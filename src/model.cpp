@@ -985,7 +985,7 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type, bool 
     return lifted;
 }
 
-
+#ifdef USE_MP
     
 template <typename type>
 template<typename T,typename std::enable_if<is_arithmetic<T>::value>::type*>
@@ -1183,6 +1183,7 @@ int Model<type>::readNL(const string& fname){
     
     return 0;
 }
+#endif
 
 template <typename type>
 template<typename T>
@@ -1842,8 +1843,9 @@ template std::tuple<bool,int,double,double,double,double,double,double,int,int,i
 
 
 template std::tuple<bool,int,double,double,double,double,double,double,int,int,int> gravity::Model<double>::run_obbt_one_iteration<double, (void*)0>(shared_ptr<Model<double>> relaxed_model, double max_time, unsigned max_iter, double rel_tol, double abs_tol, unsigned nb_threads, SolverType ub_solver_type, SolverType lb_solver_type, double ub_solver_tol, double lb_solver_tol, double range_tol, shared_ptr<Model<double>> obbt_model, Model<double> & interior_model, bool linearize, bool lag, int run_obbt_iter, double lb_scale_value, double solver_time_start, int nb_refine,  int nb_root_refine, int nb_root_ref_init, double viol_obbt_init, double viol_root_init, bool initialize_primal, double upper_bound_best);
-
+#ifdef USE_MP
 template int gravity::Model<double>::readNL<double, (void*)0>(const string&);
+#endif
 template void gravity::Model<double>::read_solution(const string& fname);
 template Constraint<Cpx> Model<Cpx>::lift(Constraint<Cpx>& c, string model_type, bool);
 template Constraint<> Model<>::lift(Constraint<>& c, string model_type, bool);

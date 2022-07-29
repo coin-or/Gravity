@@ -29,7 +29,7 @@ class myModel {
 private:
     int N;
     int M;
-    int K;
+    int K = 5;
     Net graph;
     indices sensors;
     indices objects;

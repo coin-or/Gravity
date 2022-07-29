@@ -35,14 +35,17 @@
 #ifdef USE_BONMIN
 #include <BonTMINLP.hpp>
 #endif
+#ifdef USE_MP
 #include "mp/nl.h"
 #include "mp/problem.h"
+#include "mp/expr-visitor.h"
+#endif
 #ifdef USE_CoinUtils
 #include "CoinMpsIO.hpp"
 #include "CoinFileIO.hpp"
 #include "CoinModel.hpp"
 #endif
-#include "mp/expr-visitor.h"
+
 
 using namespace std;
 
@@ -3185,7 +3188,7 @@ public:
                     for (size_t inst=0; inst<nb_inst; inst++) {
                         diff = std::abs(c->eval(inst));
                         if(diff > tol) {
-                            DebugOn("Violated equation: " << c->to_str(inst,3));
+                            DebugOn("Violated equation: " << c->to_str(inst,6));
                             //                        c->print(inst);
                             DebugOn(", violation = "<< diff << endl);
                             nb_viol++;
@@ -8500,6 +8503,7 @@ func<T> min(const func<T>& p1, const func<T>& p2){
     return res;
 }
 
+#ifdef USE_MP
 // Converter of optimization problems from NL to Gravity format.
 class MPConverter : public mp::ExprVisitor<MPConverter, func<>> {
 public:
@@ -8619,6 +8623,7 @@ public:
     //        }
 };
 
+#endif
 
 
 

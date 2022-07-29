@@ -53,7 +53,8 @@ vector<param<double>> myModel::readData(int argc, const char * argv[]){
     }
     
     jk = indices(objects, range(0,K-1));
-    
+    DebugOn("Graph has " << graph.nodes.size() << " nodes" << endl);
+    DebugOn("Graph has " << graph.arcs.size() << " arcs" << endl);
     //Parameters
     vector<param<double>> par (3);
     param<double> w0("w0");
@@ -85,10 +86,12 @@ vector<param<double>> myModel::readData(int argc, const char * argv[]){
                     for (Arc* a: graph.get_node("sensor" + to_string(i))->get_out()) {
                         own_arcs.add("sensor" + to_string(i) + "," + a->_dest->_name +  "," +  to_string(k));
                         for (Arc* b: graph.get_node(a->_dest->_name)->get_in()) {
-                            if ((owner[stoi(b->_src->_name.substr(6, b->_src->_name.find(",")))] == k) && (stoi(b->_src->_name.substr(6, b->_src->_name.find(","))) != i)) {
+                            if (owner[stoi(b->_src->_name.substr(6, b->_src->_name.find(",")))] == k) {
+                                if (stoi(b->_src->_name.substr(6, b->_src->_name.find(","))) != i) {
                                 own_rplc.add(a->_src->_name + "," + b->_src->_name + "," + a->_dest->_name +  "," +  to_string(k));
+                                }
                             }
-                            else if (stoi(b->_src->_name.substr(6, b->_src->_name.find(","))) != i) {
+                            else {
                                 oths_rplc.add("sensor" + to_string(i) + "," + b->_src->_name + "," + a->_dest->_name +  "," +  to_string(k));
                             }
                         }
@@ -108,6 +111,7 @@ vector<param<double>> myModel::readData(int argc, const char * argv[]){
         for (Arc* a: graph.arcs) {
             for (int k = 0; k < owner[stoi(a->_src->_name.substr(6, a->_src->_name.find(",")))]; k++) {
                 file >> tmp;
+                string tmpstr = a->_src->_name + "," + a->_dest->_name + "," + to_string(k);
                 w_bought(a->_src->_name + "," + a->_dest->_name + "," + to_string(k)) = stoi(tmp);
             }
             file >> tmp;
@@ -117,13 +121,13 @@ vector<param<double>> myModel::readData(int argc, const char * argv[]){
                 w_bought(a->_src->_name + "," + a->_dest->_name + "," + to_string(k)) = stod(tmp);
             }
         }
-        w0.initialize_normal(2, 1);
+//        w0.initialize_normal(2, 1);
     }
-    /*else {
+    else {
         w0.initialize_normal(2, 1);
         w_own.initialize_normal(2, 1);
         w_bought.initialize_normal(2, 1);
-    }*/
+    }
     par[0] = w0;
     par[1] = w_own;
     par[2] = w_bought;
@@ -137,27 +141,55 @@ void myModel::InitBilevel(param<double> w0, param<double> w_own, param<double> w
     
     double e = 0.001;
 
+    w_own.reset_range();
+    w_bought.reset_range();
     /*Variables*/
-    var<double> p("p", pos_);
+    var<double> p("p", 0, std::max(w_own._range->second,w_bought._range->second));
     model.add(p.in(sensors));
-    var<double> y("y", pos_);
+    var<double> y("y", 0, std::max(w_own._range->second,w_bought._range->second));
     model.add(y.in(sensors));
     var<int> s("s", 0, 1);
     model.add(s.in(own_arcs));
     var<int> sn("sn", 0, 1);
     model.add(sn.in(sensors));
-    var<double> p_sn("p_sn", pos_);
+    var<double> p_sn("p_sn", 0, std::max(w_own._range->second,w_bought._range->second));
     model.add(p_sn.in(sensors));
     
-    var<double> p_z("p_z", pos_);
+    var<double> p_z("p_z", 0, std::max(w_own._range->second,w_bought._range->second));
     model.add(p_z.in(bought_arcs));
     
     var<int> z0("z0", 0, 1);
     model.add(z0.in(arcs));
     var<int> z("z", 0, 1);
     model.add(z.in(bought_arcs));
-    var<> obj_var("obj_var", 0,10000);
-    model.add(obj_var.in(range(0,0)));
+//    var<> obj_var("obj_var", 0,10000);
+//    model.add(obj_var.in(range(0,0)));
+    
+    
+    
+    
+    
+//    for (int i = 0; i < N; i++) {
+//        for (Arc* b: graph.get_node("sensor" + to_string(i))->get_out()) {
+//            string j = b->_dest->_name;
+//            Constraint<> sl1("Seller lb1:" + to_string(i) + "," + b->_dest->_name + "," + to_string(owner[i]));
+//            sl1 += y("sensor" + to_string(i)) - w_own("sensor" + to_string(i) + "," + b->_dest->_name + "," + to_string(owner[i]));
+//            for (Arc* a: graph.get_node(j)->get_in()) {
+//                if (owner[stoi(a->_src->_name.substr(6, a->_src->_name.find(",")))] == owner[i]) {
+//                    sl1 += w_own("sensor" + to_string(i) + "," + b->_dest->_name + "," + to_string(owner[i])) * s(a->_src->_name + "," + j +  "," + to_string(owner[i]));
+//                }
+//                else if (owner[stoi(a->_src->_name.substr(6, a->_src->_name.find(",")))] != owner[i]) {
+//                    sl1 += w_own("sensor" + to_string(i) + "," + b->_dest->_name + "," + to_string(owner[i])) * z(a->_src->_name + "," + j +  "," + to_string(owner[i]));
+//                }
+//            }
+//            model.add(sl1.in(range(0,0)) >= 0);
+//        }
+//    }
+//    model.replace_integers();
+//    model.restructure();
+    
+    
+    
     
     Constraint<> p_sn_def("p_sn_def");
     p_sn_def = p*sn - p_sn;
@@ -181,41 +213,49 @@ void myModel::InitBilevel(param<double> w0, param<double> w_own, param<double> w
     w_bought0.copy_vals(f2);
     
     /*Objective*/
-    Constraint<> obj("obj_def");
+    func<> obj;
     obj += product(w_own0, s);
     obj += sum(p_sn);
     obj += product(w_bought0, z);
-    obj -= (1+e)*sum(p_z);
-    obj -= obj_var;
-    model.add(obj.in(range(0,0)) == 0);
-    model.max(obj_var);
+    obj -= sum(p_z);
+    obj -= e * sum(p_z);
+//    model.add(obj.in(range(0,0)) == 0);
+    model.max(obj);
     
     /*Constraints*/
     //Upper level
-    
+    indices z_ids0 = z.get_matrix_ids(1, 2);
     Constraint<> ub("Unique_Bought_Obsrvn");
-    ub = sum(z.in_matrix(1, 2)) - sn;
+    ub = z0.sum_over(z_ids0, 1) + sum(z.in(z_ids0)) - sn.in_ignore_ith(1, 2, bought_arcs);
     model.add(ub.in(sensors) == 0);
 
     Constraint<> luo("Leader_Unique_Object");
     luo = sum(z0.in_matrix(0, 1));
     model.add(luo.in(objects) <= 1);
     
+    Constraint<> luub("Leader_Utility_ub");
+    luub = p.in_ignore_ith(1, 1, arcs) * z0.in(arcs) - w0.in(arcs);
+    model.add(luub.in(arcs) <= 0);
+    
     //Lower level
         //----Primal Feasibility----
 
     Constraint<> fua("Unique_Own_Assignment");
-    fua = sum(s.in_matrix(1, 1)) + sn;
-    model.add(fua.in(own_sens) == 1);
+    fua = sum(s.in_matrix(1, 1)) + sn.in_ignore_ith(1, 2, own_arcs);
+    model.add(fua.in(own_sens) <= 1);
     
     Constraint<> fuab("Unique_Bought_Assignment");
-    fuab = sum(z.in_matrix(1, 1));
-    model.add(fuab.in(bought_sens) <= 1);
+    fuab = sum(z.in_matrix(1, 1)) -  sn.in_ignore_ith(1, 2, bought_arcs);
+    model.add(fuab.in(bought_sens) <= 0);
     
     indices z_ids = z.get_matrix_ids(0, 1);
     Constraint<> fub("Follower_Unique_Object");
     fub = sum(s.sum_over(z_ids, 0)) + sum(z.in(z_ids));
     model.add(fub.in(z_ids.ignore_ith(0, 1)) <= 1);
+    
+    Constraint<> fuub("Followers_Utility_ub");
+    fuub = p.in_ignore_ith(1, 2, bought_arcs) * z - w_bought;
+    model.add(fuub.in(bought_arcs) <= 0);
     
         //----Fair price----
     Constraint<> fp("FairPrice");
@@ -230,39 +270,27 @@ void myModel::InitBilevel(param<double> w0, param<double> w_own, param<double> w
     
     //w_own.print();
     //w_bought.print();
-    for (int i = 0; i < N; i++) {
-        for (Arc* b: graph.get_node("sensor" + to_string(i))->get_out()) {
-            string j = b->_dest->_name;
-            Constraint<> sl1("Seller lb1:" + to_string(i) + "," + b->_dest->_name + "," + to_string(owner[i]));
-            sl1 += y("sensor" + to_string(i)) - w_own("sensor" + to_string(i) + "," + b->_dest->_name + "," + to_string(owner[i]));
-            for (Arc* a: graph.get_node(j)->get_in()) {
-                if ((owner[stoi(a->_src->_name.substr(6, a->_src->_name.find(",")))] == owner[i]) && (stoi(a->_src->_name.substr(6, a->_src->_name.find(","))) != i)) {
-                    sl1 += w_own("sensor" + to_string(i) + "," + b->_dest->_name + "," + to_string(owner[i])) * s(a->_src->_name + "," + j +  "," + to_string(owner[i]));
-                }
-                else if (owner[stoi(a->_src->_name.substr(6, a->_src->_name.find(",")))] != owner[i]) {
-                    sl1 += w_own("sensor" + to_string(i) + "," + b->_dest->_name + "," + to_string(owner[i])) * z(a->_src->_name + "," + j +  "," + to_string(owner[i]));
-                }
-            }
-            model.add(sl1.in(range(0,0)) >= 0);
-        }
-    }
     
-    
+    own_rplc.print();
     Constraint<> sl2("Seller lb2");
     sl2 = y.in_ignore_ith(1, 3, own_rplc) - (w_own.in_ignore_ith(1, 1, own_rplc) - w_own.in_ignore_ith(0, 1, own_rplc)) * s.in_ignore_ith(0, 1, own_rplc);
     model.add(sl2.in(own_rplc) >= 0);
     
     Constraint<> sl3("Seller lb3");
-    sl3 = y.in_ignore_ith(1, 3, oths_rplc) - (w_own.in_ignore_ith(1, 1, oths_rplc) - 1)*z.in_ignore_ith(0, 1, oths_rplc) - p_z.in_ignore_ith(0, 1, oths_rplc);
+    sl3 = y.in_ignore_ith(1, 3, oths_rplc) - (w_own.in_ignore_ith(1, 1, oths_rplc) - w_bought.in_ignore_ith(0, 1, oths_rplc))*z.in_ignore_ith(0, 1, oths_rplc) - p_z.in_ignore_ith(0, 1, oths_rplc);
     model.add(sl3.in(oths_rplc) >= 0);
     
-    
+    model.print_symbolic();
     model.print();
-    solver<> sol(model, ipopt);
+//    model.replace_integers();
+//    auto R = model.relax();
+//    R->print();
+    solver<> sol(model, gurobi);
 //    model.restructure();
 //
     sol.run();
-    //
+    model.print_solution();
+    model.print_constraints_stats(1e-4);
 //    model.print();
 
 }
