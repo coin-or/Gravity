@@ -2122,14 +2122,15 @@ public:
         map<pair<tuple<int,int,int,int,int,bool>,vector<int>>,vector<pair<int,shared_ptr<Constraint<type>>>>> quad_ineq_sparsity;
         int nb_vars = 0, nb_int_vars = 0, nb_cont_vars = 0, nb_lin_terms = 0, nb_cont_quad_terms = 0, nb_hyb_quad_terms = 0, nb_int_quad_terms = 0;
         for (auto& c_pair:_cons) {
-            if(!c_pair.second->is_linear())
+            int nb_inst = c_pair.second->get_nb_inst();
+            if(!c_pair.second->is_linear() || nb_inst>1)
                 continue;
             if(c_pair.second->is_geq()){/* If >= inequality, reverse sign */
                 *c_pair.second *= -1;
                 c_pair.second->_ctype = leq;
             }
             
-            int nb_inst = c_pair.second->get_nb_inst();
+            
             
             for (size_t inst=0; inst<nb_inst; inst++) {
                 /* start with linear constraints */
@@ -3323,9 +3324,9 @@ public:
                         c->_violated[inst] = false;
                         diff = std::abs(c->eval(inst));
                         if(diff > tol) {
-                            DebugOn("Violated equation: ");
-                                                    c->print(inst);
-                            DebugOn(", violation = "<< diff << endl);
+                            DebugOff("Violated equation: ");
+//                                                    c->print(inst);
+                            DebugOff(", violation = "<< diff << endl);
                             nb_viol++;
                             //                        violated = true;
                             if (*c->_all_lazy) {
@@ -3351,9 +3352,9 @@ public:
                         c->_violated[inst] = false;
                         diff = c->eval(inst);
                         if(diff > tol) {
-                            DebugOn("Violated inequality: ");
-                                                            c->print(inst);
-                            DebugOn(", violation = "<< diff << endl);
+                            DebugOff("Violated inequality: ");
+//                                                            c->print(inst);
+                            DebugOff(", violation = "<< diff << endl);
                             nb_viol++;
                             //                        violated = true;
                             if (*c->_all_lazy) {
@@ -3385,9 +3386,9 @@ public:
                         c->_violated[inst] = false;
                         diff = c->eval(inst);
                         if(diff < -tol) {
-                            DebugOn("Violated inequality: ");
-                                                    c->print(inst);
-                            DebugOn(", violation = "<< diff << endl);
+                            DebugOff("Violated inequality: ");
+//                                                    c->print(inst);
+                            DebugOff(", violation = "<< diff << endl);
                             nb_viol++;
                             //                        violated = true;
                             if (*c->_all_lazy) {
@@ -3422,7 +3423,7 @@ public:
             nb_viol_all += nb_viol;
             nb_active_all += nb_active;
             if (nb_viol>0 && c->get_ctype()!=eq) {
-                DebugOn("Percentage of violated constraints for " << c->get_name() << " = (" << nb_viol << "/" << nb_inst << ") " << to_string_with_precision(100.*nb_viol/nb_inst,3) << "%\n");
+                DebugOff("Percentage of violated constraints for " << c->get_name() << " = (" << nb_viol << "/" << nb_inst << ") " << to_string_with_precision(100.*nb_viol/nb_inst,3) << "%\n");
             }
             if (c->get_ctype()!=eq) {
                 DebugOff("Percentage of active constraints for " << c->get_name() << " = (" << nb_active << "/" << nb_inst << ") " << to_string_with_precision(100.*nb_active/nb_inst,3) << "%\n");
