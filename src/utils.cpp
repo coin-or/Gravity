@@ -289,26 +289,26 @@ void get_row_scaling(const vector<double>& c_val, double& scale, bool& oa_cut, c
                 scale=min_coef/std::abs(c_val[j]);
             }
         }
-        if(near_zero && c_val[j]!=0 && std::abs(c_val[j])<zero_tol){
-            near_zero=true;
-        }
-        else{
-            near_zero=false;
-        }
+//        if(near_zero && c_val[j]!=0 && std::abs(c_val[j])<zero_tol){
+//            near_zero=true;
+//        }
+//        else{
+//            near_zero=false;
+//        }
     }
     oa_cut=true;
-    if(near_zero){
-        oa_cut=false;
-    }
-    for (auto j = 0; j<c_val.size(); j++) {
-        auto a=c_val[j]*scale;
-        if(a>max_coef){
-            oa_cut=false;
-            break;
-        }
-        if(std::abs(a)<=1e-12){
-            oa_cut=false;
-            break;
-        }
-    }
+//    if(near_zero){
+//        oa_cut=false;
+//    }
+//    for (auto j = 0; j<c_val.size(); j++) {
+//        auto a=c_val[j]*scale;
+//        if(a>max_coef){
+//            oa_cut=false;
+//            break;
+//        }
+//        if(std::abs(a)<=1e-12){
+//            oa_cut=false;
+//            break;
+//        }
+//    }
 }

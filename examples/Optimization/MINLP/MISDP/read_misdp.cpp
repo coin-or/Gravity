@@ -580,6 +580,7 @@ Net CBF_read(const char *file, shared_ptr<Model<double>>& m) {
                 }
             }
         }
+        //scale=0.1;
         scale=0.1;
         
         for(auto it=func_map_bounds.begin();it!=func_map_bounds.end();it++){
@@ -635,7 +636,7 @@ Net CBF_read(const char *file, shared_ptr<Model<double>>& m) {
         int ndisc=10;
         count=0;
         for(auto k:*(node_pairs_chord._keys)){
-            if(!node_pairs.has_key(k)){
+            if(!node_pairs.has_key(k) || true){
                 auto pos = k.find_first_of(",");
                 auto n1_name = k.substr(0,pos);
                 auto n2_name= k.substr(pos+1);
@@ -649,10 +650,10 @@ Net CBF_read(const char *file, shared_ptr<Model<double>>& m) {
                             double x12=sqrt(x1*x2);
                             Constraint<> soc_lina("soc_lina_"+to_string(count));
                             soc_lina=2*x12*Xij(k)-x2*X(n1_name)-x1*X(n2_name);
-                            m->add(soc_lina<=0);
+                            //m->add(soc_lina<=0);
                             Constraint<> soc_linb("soc_linb_"+to_string(count));
                             soc_linb=(-2)*x12*Xij(k)-x2*X(n1_name)-x1*X(n2_name);
-                            m->add(soc_linb<=0);
+                           // m->add(soc_linb<=0);
                             count++;
                         }
                     }
@@ -684,6 +685,14 @@ Net CBF_read(const char *file, shared_ptr<Model<double>>& m) {
             _bag_names.push_back(bn);
         }
         m->_bag_names=_bag_names;
+        
+        for(auto k:*(node_pairs_chord._keys)){
+            if(!node_pairs.has_key(k)){
+                Xij.set_lb(k,0);
+                Xij.set_ub(k,0);
+                    }
+                }
+        
     }
     else{
         throw invalid_argument("only 1 psd constraint supported now");
@@ -708,6 +717,26 @@ Net CBF_read(const char *file, shared_ptr<Model<double>>& m) {
     else{
         m->max(obj);
     }
+    count=0;
+//    y.param<int>::set_val("18", 1);
+//    y.param<int>::set_val("24", 1);
+//    y.param<int>::set_val("33", 1);
+//    x.param<>::set_val("36", 0.1);
+    
+//    Constraint<> conf("conf"+to_string(count++));
+//    conf=y(18)-1;
+//    m->add(conf==0);
+//    Constraint<> conf1("conf"+to_string(count++));
+//    conf1=y(24)-1;
+//    m->add(conf1==0);
+//    Constraint<> conf2("conf"+to_string(count++));
+//    conf2=y(33)-1;
+//    m->add(conf2==0);
+//    Constraint<> conf3("conf"+to_string(count++));
+//    conf3=x(36)-0.1;
+//    m->add(conf3==0);
+    
+  
     return g;
 }
 

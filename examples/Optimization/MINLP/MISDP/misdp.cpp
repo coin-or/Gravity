@@ -8,6 +8,8 @@
 #include <stdio.h>
 #include "read_misdp.h"
 #include <gravity/solver.h>
+#include <Eigen/Dense>
+#include <Eigen/Eigenvalues>
 
 /*returns matrix of dimension n-1, without row rowno and col colno*/
 vector<vector<double>> get_minor(vector<vector<double>>& X, int rowno, int colno, int n){
@@ -46,7 +48,9 @@ using namespace gravity;
 using namespace std;
 
 int main(){
-string fname=string(prj_dir)+"/data_sets/MISDP/2x4_2scen_3bars.cbf";
+string fname=string(prj_dir)+"/data_sets/MISDP/2x3_3bars.cbf";
+   // string fname=string(prj_dir)+"/data_sets/MISDP/2x7_3bars.cbf";
+   // string fname=string(prj_dir)+"/data_sets/MISDP/2x4_2scen_3bars.cbf";
 auto m=make_shared<Model<double>>("misdp_test");
 auto g=CBF_read(fname.c_str(), m);
    m->print();
@@ -57,6 +61,8 @@ auto g=CBF_read(fname.c_str(), m);
 //        auto res= m->cuts_eigen(1e-9);
 //        DebugOn("cuts found "<<res.size()<<endl);
 //    }
+    
+    
    solver<> s(m,gurobi);
    s.run(5, 1e-6);
 
@@ -70,7 +76,7 @@ auto g=CBF_read(fname.c_str(), m);
 //    solver<> s(m, gurobi);
 //    s.run(5,1e-9);
     m->print_solution();
-    m->print_constraints_stats(1e-6);
+    m->print_constraints_stats(1e-9);
     
     var<double> X=m->get_var<double>("X");
     var<double> Xij=m->get_var<double>("Xij");
@@ -78,20 +84,32 @@ auto g=CBF_read(fname.c_str(), m);
           auto dim=b.second.size();
           vector<string> node_names;
           vector<vector<double>> mat_X(dim, std::vector<double>(dim, 0));
+          Eigen::MatrixXd mat(dim,dim);
           int count=0;
           for(auto n:b.second){
               node_names.push_back(n->_name);
               mat_X[count][count]=X.eval(n->_name);
+              mat(count,count)=mat_X[count][count];
               count++;
           }
           for(auto i=0;i<node_names.size()-1;i++){
               for(auto j=i+1;j<node_names.size();j++){
                   mat_X[i][j]=Xij.eval(node_names[i]+","+node_names[j]);
                   mat_X[j][i]=Xij.eval(node_names[i]+","+node_names[j]);
+                  mat(i,j)=mat_X[i][j];
+                  mat(j,i)=mat_X[i][j];
               }
           }
-          double det=determinant(mat_X, dim);
-          DebugOn("Determinant "<<det<<" clique size "<<dim<<endl);
+         // double det=determinant(mat_X, dim);
+          Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> es;
+          es.compute(mat);
+          DebugOn("clique "<<dim<<endl);
+          for(auto m=0;m<dim;m++){
+              //                           cout<<es.eigenvalues()[m].real();
+              DebugOn(std::setprecision(12)<<es.eigenvalues()[m]<<" ");
+          }
+          DebugOn(endl);
+          //DebugOn("Determinant "<<std::setprecision(12)<<det<<" clique size "<<dim<<endl);
       }
 
 //    double lower_bound=numeric_limits<double>::min(),upper_bound=numeric_limits<double>::max(), lower_bound_nonlin_init=numeric_limits<double>::min(),total_time=numeric_limits<double>::min();
