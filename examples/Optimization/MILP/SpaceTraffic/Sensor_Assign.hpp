@@ -26,6 +26,8 @@ using namespace gravity;
 };*/
 
 class myModel {
+public:
+    Model<> model;
 private:
     int N;
     int M;
@@ -44,14 +46,14 @@ private:
     indices own_oths_rplc2;
     indices jk; //agents X objects
     vector<int> owner;
-    /*param<double> w0;
-    param<double> w_own;
-    param<double> w_bought;*/
     
 public:
     myModel(){ };
     vector<param<double>> readData(int argc, const char * argv[]);
     void InitBilevel(param<double> w0, param<double> w_own, param<double> w_bought);
+    //void GreedyStart(Model<>& model, param<double> w0, param<double> w_own, param<double> w_bought);
+    //string findMax(param<double> w);
+    int nthOccurrence(const std::string& str, const std::string& findMe, int nth);
     ~myModel(){ };
 };
 
