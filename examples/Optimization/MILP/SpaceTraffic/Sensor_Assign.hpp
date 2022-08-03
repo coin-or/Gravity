@@ -51,8 +51,13 @@ public:
     myModel(){ };
     vector<param<double>> readData(int argc, const char * argv[]);
     void InitBilevel(param<double> w0, param<double> w_own, param<double> w_bought);
-    //void GreedyStart(Model<>& model, param<double> w0, param<double> w_own, param<double> w_bought);
-    //string findMax(param<double> w);
+    void mSolve();
+    void GreedyStart(param<double> w0, param<double> w_own, param<double> w_bought);
+    void assignLeader(string &idx, param<double> wt0, param<double> wt_own, param<double> wt_bought);
+    void assignOwn(string &idx, param<double> wt0, param<double> wt_own, param<double> wt_bought);
+    void assignBought(string &idx, param<double> wt0, param<double> wt_own, param<double> wt_bought);
+    double parSum(param<double> w);
+    string findMax(param<double> w);
     int nthOccurrence(const std::string& str, const std::string& findMe, int nth);
     ~myModel(){ };
 };

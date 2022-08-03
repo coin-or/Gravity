@@ -15,6 +15,8 @@ int main(int argc, const char * argv[]) {
     auto start = high_resolution_clock::now();
     vector<param<double>> par = m.readData(argc, argv);
     m.InitBilevel(par[0], par[1], par[2]);
+    m.GreedyStart(par[0], par[1], par[2]);
+    m.mSolve();
     auto stop = high_resolution_clock::now();
     auto duration = duration_cast<milliseconds>(stop - start);
     cout << duration.count() << endl;
@@ -320,11 +322,11 @@ void myModel::InitBilevel(param<double> w0, param<double> w_own, param<double> w
 //    model.replace_integers();
 //    auto R = model.relax();
 //    R->print();
-    solver<> sol(model, gurobi);
+//    solver<> sol(model, gurobi);
 //    model.restructure();
 //
     //int time_limit = 300;//seconds
-    sol.run();//(1e-5, time_limit);
+ //   sol.run();//(1e-5, time_limit);
 //    model.print_solution();
 //    model.print_constraints_stats(1e-4);
 //    model.print();
@@ -332,12 +334,21 @@ void myModel::InitBilevel(param<double> w0, param<double> w_own, param<double> w
     //return &model;
 }
 
-/*void myModel::GreedyStart(Model<>& model, param<double> w0, param<double> w_own, param<double> w_bought) {
+void myModel::mSolve() {
+    solver<> sol(model, gurobi);
+    sol.run();
+}
+
+void myModel::GreedyStart(param<double> w0, param<double> w_own, param<double> w_bought) {
 
     param<double> wt0 = w0.deep_copy();
     param<double> wt_own = w_own.deep_copy();
     param<double> wt_bought = w_bought.deep_copy();
     auto s = model.get_var<int>("s");
+    auto sn = model.get_var<int>("sn");
+    auto z0 = model.get_var<int>("z0");
+    auto z = model.get_var<int>("z");
+    
     string idx1;
     string idx2;
     string idx3;
@@ -347,92 +358,167 @@ void myModel::InitBilevel(param<double> w0, param<double> w_own, param<double> w
     int ownr;
     int sensor;
     int object;
+    int agent;
 
-    while(sum(wt0) + sum(wt_own) + sum(wt_bought) > 0) {
+    while(parSum(wt0) + parSum(wt_own) + parSum(wt_bought) > 0) {
         idx1 = findMax(wt0);
         idx2 = findMax(wt_own);
         idx3 = findMax(wt_bought);
         m1 = wt0.eval(idx1);
-        m2 = wt_own(idx2);
-        m3 = wt_bought(idx3);
+        m2 = wt_own.eval(idx2);
+        m3 = wt_bought.eval(idx3);
         if (m1 >= m2) {
             if (m1 >= m3) {
                 //assign leader
-                ownr = owner[stoi(idx1.substr(6, idx1.find(",")))];
-                sensor = stoi(idx1.substr(6, idx1.find(",")));
-                object = stoi(idx1.substr(idx1.find(","), nthOccurrence(idx1, ",", 2)));
-                //sensor not used for other objs leader + owner
-                for (int j = 0; j < M; j ++) {
-                    s("sensor" + to_string(sensor) + "," + "object" + to_string(j) + "," + to_string(ownr)).set_val(0);
-                    wt_own("sensor" + to_string(sensor) + "," + "object" + to_string(j) + "," + to_string(ownr)).set_val(0);
-                    z0("sensor" + to_string(sensor) + "," + "object" + to_string(j)).set_val(0);
-                    wt0("sensor" + to_string(sensor) + "," + "object" + to_string(j)).set_val(0);
-                }
-                //assign
-                z0(idx1.substr(0, nthOccurrence(idx1, ",", 2))).set_val(1);
-                wt0(idx1.substr(0, nthOccurrence(idx1, ",", 2))).set_val(0);
-                //object not observed by other sensors
-                for (int i = 0; i < sensor; i ++) {
-                    z0("sensor" + to_string(i) + "," + "object" + to_string(object)).set_val(0);
-                    wt0("sensor" + to_string(i) + "," + "object" + to_string(object)).set_val(0);
-                }
-                for (int i = sensor + 1; i < N; i ++) {
-                    z0("sensor" + to_string(i) + "," + "object" + to_string(object)).set_val(0);
-                    wt0("sensor" + to_string(i) + "," + "object" + to_string(object)).set_val(0);
-                }
-                //sensor not used by other agents
-                for (int k = 0; k < ownr; k++) {
-                    for (int j = 0; j < M; j ++) {
-                        z("sensor" + to_string(sensor) + "," + "object" + to_string(j) + "," + to_string(k)).set_val(0);
-                        wt_bought("sensor" + to_string(i) + "," + "object" + to_string(j) + "," + to_string(k)).set_val(0);
-                    }
-                }
-                for (int k = ownr + 1; k < K; k++) {
-                    for (int j = 0; j < M; j ++) {
-                        z("sensor" + to_string(sensor) + "," + "object" + to_string(j) + "," + to_string(k)).set_val(0);
-                        wt_bought("sensor" + to_string(i) + "," + "object" + to_string(j) + "," + to_string(k)).set_val(0);
-                    }
-                }
-                //sold
-                s.set_val("sensor" + to_string(i),1);
+                assignLeader(idx1, wt0, wt_own, wt_bought);
             }
             else {
                 //assign bought
-                z(idx3).set_val(1);
-                wt_bought(idx3).set_val(0);
-                ownr = owner[stoi(idx3.substr(6, idx3.find(",")))];
-                sensor = stoi(idx3.substr(6, idx3.find(",")));
-                object = stoi(idx1.substr(idx3.find(","), nthOccurrence(idx3, ",", 2)));
-                //sensor not used for other objs leader + owner
-                for (int j = 0; j < M; j ++) {
-                    s("sensor" + to_string(sensor) + "," + "object" + to_string(j) + "," + to_string(ownr)).set_val(0);
-                    w_own("sensor" + to_string(sensor) + "," + "object" + to_string(j) + "," + to_string(ownr)).set_val(0);
-                    z0("sensor" + to_string(sensor) + "," + "object" + to_string(j)).set_val(0);
-                    wt0("sensor" + to_string(sensor) + "," + "object" + to_string(j)).set_val(0);
-                }
-                                
+                assignBought(idx3, wt0, wt_own, wt_bought);
             }
         }
         else if (m2 >= m3) {
             //assign own
+            assignOwn(idx2, wt0, wt_own, wt_bought);
         }
         else {
             //assign bought
+            assignBought(idx3, wt0, wt_own, wt_bought);
         }
     }
-}*/
+}
 
-/*string myModel::findMax(param<double> w) {
-    string max_idx;
+
+void myModel::assignLeader(string &idx, param<double> wt0, param<double> wt_own, param<double> wt_bought) {
+    auto sn = model.get_var<int>("sn");
+    auto z0 = model.get_var<int>("z0");
+    int ownr;
+    int sensor;
+    int object;
+    string j;
+    
+    ownr = owner[stoi(idx.substr(6, idx.find(",")))];
+    sensor = stoi(idx.substr(6, idx.find(",")));
+    object = stoi(idx.substr(idx.find("t") + 1, idx.find(",")));
+    z0(idx.substr(0, nthOccurrence(idx, ",", 2))).set_val(1);
+    //sensor not used for other objs leader + owner
+    for (Arc* b: graph.get_node("sensor" + to_string(sensor))->get_out()) {
+        j = b->_dest->_name;
+        wt_own("sensor" + to_string(sensor) + "," + "object" + j + "," + "agent" + to_string(ownr)).set_val(0);
+        wt0("sensor" + to_string(sensor) + "," + "object" + j).set_val(0);
+    }
+    //object not observed twice
+    for (int i = 0; i < sensor; i ++) {
+        wt0("sensor" + to_string(i) + "," + "object" + to_string(object)).set_val(0);
+    }
+    for (int i = sensor + 1; i < N; i ++) {
+        wt0("sensor" + to_string(i) + "," + "object" + to_string(object)).set_val(0);
+    }
+    //sensor not used by other agents
+    for (int k = 0; k < ownr; k++) {
+        for (Arc* b: graph.get_node("sensor" + to_string(sensor))->get_out()) {
+            j = b->_dest->_name;
+            wt_bought("sensor" + to_string(sensor) + "," + "object" + j + "," + "agent" + to_string(k)).set_val(0);
+        }
+    }
+    for (int k = ownr + 1; k < K; k++) {
+        for (Arc* b: graph.get_node("sensor" + to_string(sensor))->get_out()) {
+            j = b->_dest->_name;
+            wt_bought("sensor" + to_string(sensor) + "," + "object" + j + "," + "agent" + to_string(k)).set_val(0);
+        }
+    }
+    //sold
+    sn("sensor" + to_string(sensor)).set_val(1);
+}
+
+void myModel::assignOwn(string &idx, param<double> wt0, param<double> wt_own, param<double> wt_bought) {
+    auto s = model.get_var<int>("s");
+    int ownr;
+    int sensor;
+    string object;
+    string j;
+    string i;
+    
+    ownr = owner[stoi(idx.substr(6, idx.find(",")))];
+    sensor = stoi(idx.substr(6, idx.find(",")));
+    object = idx.substr(idx.find(",") + 1, idx.find(",") + 1);
+    s(idx).set_val(1);
+    //sensor not used by leader
+    for (Arc* b: graph.get_node("sensor" + to_string(sensor))->get_out()) {
+        j = b->_dest->_name;
+        wt0("sensor" + to_string(sensor) + "," + j).set_val(0);
+        //sensor not used by other agents
+        for (int k = 0; k < owner[sensor]; k++) {
+            wt_bought("sensor" + to_string(sensor) + "," + j + "," + "agent" + to_string(k)).set_val(0);
+        }
+        for (int k = owner[sensor] + 1; k < K; k++) {
+            wt_bought("sensor" + to_string(sensor) + "," + j + "," + "agent" + to_string(k)).set_val(0);
+        }
+    }
+    //object not observed twice
+    for (Arc* a: graph.get_node(object)->get_in()) {
+        i = a->_src->_name;
+        wt_own(i + "," + object + "," + "agent" + to_string(ownr)).set_val(0);
+    }
+}
+
+void myModel::assignBought(string &idx, param<double> wt0, param<double> wt_own, param<double> wt_bought) {
+    auto sn = model.get_var<int>("sn");
+    auto z = model.get_var<int>("z");
+    int ownr;
+    int sensor;
+    int object;
+    int agent;
+    string j;
+    
+    ownr = owner[stoi(idx.substr(6, idx.find(",")))];
+    sensor = stoi(idx.substr(6, idx.find(",")));
+    object = stoi(idx.substr(idx.find("t") + 1, idx.find(",")));
+    agent = stoi(idx.substr(nthOccurrence(idx, "t", 2) + 1, idx.length()));
+    z(idx).set_val(1);
+    //sensor not used for other objs leader + owner
+    for (Arc* b: graph.get_node("sensor" + to_string(sensor))->get_out()) {
+        j = b->_dest->_name;
+        wt_own("sensor" + to_string(sensor) + "," + "object" + j + "," + "agent" + to_string(ownr)).set_val(0);
+        wt0("sensor" + to_string(sensor) + "," + "object" + j).set_val(0);
+    }
+    //object not observed twice
+    for (int i = 0; i < sensor; i ++) {
+        wt_bought("sensor" + to_string(i) + "," + "object" + to_string(object) + "," + "agent" + to_string(agent)).set_val(0);
+    }
+    //sensor not used by other agents
+    for (int k = 0; k < std::min(agent, owner[sensor]); k++) {
+        wt_bought("sensor" + to_string(sensor) + "," + "object" + to_string(object) + "," + "agent" + to_string(k)).set_val(0);
+    }
+    for (int k = std::min(agent, owner[sensor]); k < std::max(agent, owner[sensor]); k++) {
+        wt_bought("sensor" + to_string(sensor) + "," + "object" + to_string(object) + "," + "agent" + to_string(k)).set_val(0);
+    }
+    for (int k = std::max(agent, owner[sensor]); k < K; k++) {
+        wt_bought("sensor" + to_string(sensor) + "," + "object" + to_string(object) + "," + "agent" + to_string(k)).set_val(0);
+    }
+    //sold
+    sn("sensor" + to_string(sensor)).set_val(1);
+}
+
+double myModel::parSum(param<double> w) {
+    double s = 0;
+    for (auto& n : *w.get_vals()) {
+        s += n;
+    }
+    return s;
+}
+
+string myModel::findMax(param<double> w) {
+    string max_idx = (*w.get_keys())[0];
     double max_el = 0;
     for (auto i: *w.get_keys()) {
-        if (w(i) > max_el) {
-            max_el = w(i);
+        if (w.eval(i) > max_el) {
+            max_el = w.eval(i);
             max_idx = i;
         }
     }
-    return max_ids;
-}*/
+    return max_idx;
+}
 
 int myModel::nthOccurrence(const std::string& str, const std::string& findMe, int nth)
 {
