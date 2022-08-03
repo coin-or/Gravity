@@ -244,10 +244,38 @@ void myModel::InitBilevel(param<double> w0, param<double> w_own, param<double> w
     fuab = sum(z.in_matrix(1, 1)) -  sn.in_ignore_ith(1, 1, bought_sens);
     model.add(fuab.in(bought_sens) <= 0);
     
-    indices z_ids_mat = z.get_matrix_ids(0, 1);
+    
+    indices c_fub("c_fub"), z_fub("z_fub"), s_fub("s_fub");
+    z_fub = *z._indices;
+    s_fub = *s._indices;
+    size_t row_id = 0;
+    bool no_s = true, no_z = true;
+    for (int j = 0; j<M; j++) {
+        for (int k = 0; k < K; k++) {
+            c_fub.insert("object" + to_string(j)+ ",agent" + to_string(k));
+            no_s = true, no_z = true;
+            for (Arc* a: graph.get_node("object" + to_string(j))->get_in()) {
+                int i = stoi(a->_src->_name.substr(6, a->_src->_name.find(",")));
+                if (k != owner[i]) {
+                    no_z = false;
+                    z_fub.add_in_row(row_id, a->_src->_name + "," + a->_dest->_name + ",agent" + to_string(k));
+                }
+                else{
+                    no_s = false;
+                    s_fub.add_in_row(row_id, a->_src->_name + "," + a->_dest->_name + ",agent" + to_string(k));
+                }
+            }
+            if(no_z)
+                z_fub.add_empty_row();
+            if(no_s)
+                s_fub.add_empty_row();
+            row_id++;
+        }
+    }
+    
     Constraint<> fub("Follower_Unique_Object");
-    fub = sum(s.sum_over(z_ids_mat, 0)) + sum(z.in(z_ids_mat));
-    model.add(fub.in(z_ids_mat.ignore_ith(0, 1)) <= 1);
+    fub = s.in(s_fub) + z.in(z_fub);
+    model.add(fub.in(c_fub) <= 1);
     
     Constraint<> fuub("Followers_Utility_ub");
     fuub = p.in_ignore_ith(1, 2, bought_arcs) * z - w_bought;
@@ -268,8 +296,7 @@ void myModel::InitBilevel(param<double> w0, param<double> w_own, param<double> w
     w_own_lb1 = own_arcs;
     w_own_s_lb1 = own_arcs;
     w_own_z_lb1 = own_arcs;
-    size_t row_id = 0;
-    bool no_z = true;
+    row_id = 0;
     for (int i = 0; i < N; i++) {
         for (Arc* b: graph.get_node("sensor" + to_string(i))->get_out()) {
             no_z = true;
