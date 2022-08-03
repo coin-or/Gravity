@@ -48,9 +48,9 @@ using namespace gravity;
 using namespace std;
 
 int main(){
-//string fname=string(prj_dir)+"/data_sets/MISDP/2x3_3bars.cbf";
+string fname=string(prj_dir)+"/data_sets/MISDP/2x3_3bars.cbf";
    // string fname=string(prj_dir)+"/data_sets/MISDP/2x7_3bars.cbf";
-    string fname=string(prj_dir)+"/data_sets/MISDP/2x4_2scen_3bars.cbf";
+   // string fname=string(prj_dir)+"/data_sets/MISDP/2x4_2scen_3bars.cbf";
 auto m=make_shared<Model<double>>("misdp_test");
 auto g=CBF_read(fname.c_str(), m);
     g.print();

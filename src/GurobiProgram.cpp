@@ -8,16 +8,16 @@ public:
     vector<GRBVar> vars;
     int n;
     Model<>* m;
-    Model<> interior;
+   // Model<> interior;
     vector<GRBLinExpr> vec_expi;
     int soc_viol=0, soc_found=0,soc_added=0,det_viol=0, det_found=0, det_added=0;
     int soc_viol_user=0, soc_found_user=0,soc_added_user=0,det_viol_user=0, det_found_user=0, det_added_user=0;
     //cuts(vector<GRBVar> _grb_vars, int xn, Model<>* mn, Model<> interiorn, vector<GRBLinExpr>& vec_exp) {
-    cuts(vector<GRBVar> _grb_vars, int xn, Model<>* mn, Model<> interiorn) {
+    cuts(vector<GRBVar> _grb_vars, int xn, Model<>* mn) {
         vars = _grb_vars;
         n    = xn;
         m=mn;
-        interior=interiorn;
+       // interior=interiorn;
         //vec_expi=vec_exp;
     }
     ~cuts(){
@@ -170,7 +170,7 @@ protected:
                         }
                         m->set_solution(vec_x);
                         //auto res=m->cutting_planes_solution(interior, 1e-6);
-                        auto res=m->cutting_planes_solution(interior, 1e-9,soc_viol_user, soc_found_user,soc_added_user,det_viol_user, det_found_user, det_added_user);
+                       /* auto res=m->cutting_planes_solution(interior, 1e-9,soc_viol_user, soc_found_user,soc_added_user,det_viol_user, det_found_user, det_added_user);
                         if(res.size()>=1){
                             for(i=0;i<res.size();i++){
                                 GRBLinExpr expr = 0;
@@ -184,7 +184,7 @@ protected:
                                 expr+=res[i][j];
                                 addLazy(expr, GRB_LESS_EQUAL, 0);
                             }
-                        }
+                        }*/
                     }}
             }
             
@@ -329,9 +329,9 @@ bool GurobiProgram::solve(bool relax, double mipgap){
     //interior.print_solution();
     //cuts cb = cuts(_grb_vars, n, _model, interior);
     //vector<GRBLinExpr> vec_expr;
-    //cuts cb(_grb_vars, n, _model, interior);
-   // grb_mod->setCallback(&cb);
-    bool not_sdp=true;
+    cuts cb(_grb_vars, n, _model);
+    grb_mod->setCallback(&cb);
+    bool not_sdp=false;
     int count=0;
     while(not_sdp && count<=10000){
         grb_mod->optimize();
@@ -381,7 +381,7 @@ bool GurobiProgram::solve(bool relax, double mipgap){
         grb_mod->update();
     }
     grb_mod->update();
-   // grb_mod->optimize();
+    grb_mod->optimize();
 //        for(auto i=0;i<cb.vec_expi.size();i++){
 //            grb_mod->addConstr(cb.vec_expi[i],GRB_LESS_EQUAL, 0);
 //        }
