@@ -62,28 +62,28 @@ protected:
                            // expr+=res[i][j];
                             addLazy(expr, GRB_LESS_EQUAL, 0);
                             vec_expi.push_back(expr);
-                            //addLazy(expr, GRB_LESS_EQUAL, 0);
+                            addLazy(expr, GRB_LESS_EQUAL, 0);
                         }
                     }
                     m->set_solution(vec_x);
                     if(res.size()==0){
-                        auto res1= m->cutting_planes_eigen(1e-9);
-                        if(res1.size()>=1){
-                            for(auto i=0;i<res1.size();i++){
-                                GRBLinExpr expr = 0;
-                                int j;
-                                for(j=0;j<res1[i].size()-1;j+=2){
-                                    int c=res1[i][j];
-                                    if(std::abs(c)>=0)
-                                    expr += res1[i][j+1]*vars[c];
-                                }
-                                if(std::abs(res1[i][j])>=1e-12)
-                                    expr += res1[i][j];
-                                //addLazy(expr, GRB_LESS_EQUAL, 0);
-                                vec_expi.push_back(expr);
-                            }
-                        }
-                        else{
+//                        auto res1= m->cutting_planes_eigen(1e-9);
+//                        if(res1.size()>=1){
+//                            for(auto i=0;i<res1.size();i++){
+//                                GRBLinExpr expr = 0;
+//                                int j;
+//                                for(j=0;j<res1[i].size()-1;j+=2){
+//                                    int c=res1[i][j];
+//                                    if(std::abs(c)>=0)
+//                                    expr += res1[i][j+1]*vars[c];
+//                                }
+//                                if(std::abs(res1[i][j])>=1e-12)
+//                                    expr += res1[i][j];
+//                                //addLazy(expr, GRB_LESS_EQUAL, 0);
+//                                vec_expi.push_back(expr);
+//                            }
+//                        }
+//                        else{
                             m->set_solution(vec_x);
                     auto res2=m->cuts_eigen(1e-9);
                     if(res2.size()>=1){
@@ -149,7 +149,7 @@ protected:
                             addLazy(expr, GRB_LESS_EQUAL, 0);
                             vec_expi.push_back(expr);
                         }*/
-                    }
+                   // }
                     
                     
                 }
@@ -325,13 +325,13 @@ bool GurobiProgram::solve(bool relax, double mipgap){
     int n=grb_mod->get(GRB_IntAttr_NumVars);
     Model<> interior;
     auto lin=_model->buildOA();
-    interior=lin->add_outer_app_solution(*_model);
-    interior.print_solution();
+    //interior=lin->add_outer_app_solution(*_model);
+    //interior.print_solution();
     //cuts cb = cuts(_grb_vars, n, _model, interior);
     //vector<GRBLinExpr> vec_expr;
     //cuts cb(_grb_vars, n, _model, interior);
    // grb_mod->setCallback(&cb);
-    bool not_sdp=false;
+    bool not_sdp=true;
     int count=0;
     while(not_sdp && count<=10000){
         grb_mod->optimize();
@@ -359,7 +359,7 @@ bool GurobiProgram::solve(bool relax, double mipgap){
             }
         }
         if(res.size()==0){
-        auto res2=_model->cuts_eigen(1e-8);
+        auto res2=_model->cuts_eigen(1e-10);
         if(res2.size()>=1){
             for(auto i=0;i<res2.size();i++){
                 GRBLinExpr expr = 0;
@@ -381,7 +381,7 @@ bool GurobiProgram::solve(bool relax, double mipgap){
         grb_mod->update();
     }
     grb_mod->update();
-    grb_mod->optimize();
+   // grb_mod->optimize();
 //        for(auto i=0;i<cb.vec_expi.size();i++){
 //            grb_mod->addConstr(cb.vec_expi[i],GRB_LESS_EQUAL, 0);
 //        }

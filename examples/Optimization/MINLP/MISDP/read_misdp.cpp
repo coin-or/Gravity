@@ -481,12 +481,53 @@ Net CBF_read(const char *file, shared_ptr<Model<double>>& m) {
         
         auto node_pairs=g.get_node_pairs();
         g.get_tree_decomp_bags();
+        std::vector<pair<int,std::vector<string>>> _bag_names;
+    
         auto bags_3d=g.decompose_bags_3d();
         auto node_pairs_chord = g.get_node_pairs_chord(bags_3d);
         var<> X("X", 0, 1000);
         m->add(X.in(nodes));
         var<> Xij("Xij", -2000, 2000);
         m->add(Xij.in(node_pairs_chord));
+        
+        count=0;
+        std::vector<var<double>> Z;
+        std::vector<var<double>> Zij;
+        for(auto b:g._bags){
+            pair<int,vector<string>> bn;
+            bn.first=count;
+            indices zk_nodes;
+            for(auto n:b.second){
+                bn.second.push_back(n->_name);
+                DebugOn(n->_name<<" ");
+                zk_nodes.insert(n->_name);
+            }
+            indices zk_nodepairs;
+            for(auto i=0;i<bn.second.size()-1;i++){
+                for(auto j=i+1;j<bn.second.size();j++){
+                    string key=bn.second[i]+","+bn.second[j];
+                    zk_nodepairs.insert(key);
+                }
+            }
+            
+            var<double> Zk("Zk"+to_string(count));
+            m->add(Zk.in(zk_nodes));
+            Z.push_back(Zk);
+            var<double> Zijk("Zijk"+to_string(count));
+            m->add(Zijk.in(zk_nodepairs));
+            Zij.push_back(Zijk);
+            _bag_names.push_back(bn);
+            count++;
+            DebugOn(endl);
+        }
+        
+       
+        m->_bag_names=_bag_names;
+        
+        count=0;
+        
+        
+      
         
         map<string, func<>> func_map;
         map<string, func<>> func_map_bounds;
@@ -581,7 +622,7 @@ Net CBF_read(const char *file, shared_ptr<Model<double>>& m) {
             }
         }
         //scale=0.1;
-        scale=0.1;
+        scale=1;
         
         for(auto it=func_map_bounds.begin();it!=func_map_bounds.end();it++){
             auto name=it->first;
@@ -606,7 +647,7 @@ Net CBF_read(const char *file, shared_ptr<Model<double>>& m) {
             //                                func_map.at(name)-=coeff*
             //                            }
         }
-        for(auto k:*(node_pairs_chord._keys)){
+        for(auto k:*(node_pairs._keys)){
             auto pos = k.find_first_of(",");
             auto n1_name = k.substr(0,pos);
             auto n2_name= k.substr(pos+1);
@@ -616,12 +657,69 @@ Net CBF_read(const char *file, shared_ptr<Model<double>>& m) {
             Xij.set_lb(k, std::max(-u, Xij.get_lb(k)));
             Xij.set_ub(k, std::min(u, Xij.get_ub(k)));
         }
+        for(auto k:*(node_pairs_chord._keys)){
+            if(!node_pairs.has_key(k)){
+                Xij.set_lb(k,0);
+                Xij.set_ub(k,0);
+                    }
+                }
+        
+        map<string, func<>> func_map_XZ;
+        for(auto k:*nodes._keys)
+        {
+            func_map_XZ[k]=X(k);
+            auto ubx=X.get_ub(k);
+        for(auto b:_bag_names){
+            int num=b.first;
+            indices zk_nodes;
+            for(auto n:b.second){
+                if(k==n){
+                    func_map_XZ[k]-=Z[num](k);
+                    Z[num].set_lb(k, 0);
+                    Z[num].set_ub(k, ubx);
+                }
+            }
+        }
+    }
+    
+        map<string, func<>> func_map_XZij;
+        for(auto k:*node_pairs_chord._keys)
+        {
+            func_map_XZij[k]=Xij(k);
+            auto ubx=Xij.get_ub(k);
+            auto lbx=Xij.get_lb(k);
+        for(auto b:_bag_names){
+            int num=b.first;
+            for(auto i=0;i<b.second.size()-1;i++){
+                for(auto j=i+1;j<b.second.size();j++){
+                    string key=b.second[i]+","+b.second[j];
+                    if(key==k){
+                        func_map_XZij[k]-=Zij[num](k);
+                        Zij[num].set_lb(k, lbx);
+                        Zij[num].set_ub(k, ubx);
+                    }
+                }
+            }
+        }
+    }
+        
         
         for(auto it=func_map.begin();it!=func_map.end();it++){
             Constraint<> def_X("def_X_"+it->first);
             def_X=it->second;
             m->add(def_X==0);
         }
+        for(auto it=func_map_XZ.begin();it!=func_map_XZ.end();it++){
+            Constraint<> def_XZ("def_XZ_"+it->first);
+            def_XZ=it->second;
+            m->add(def_XZ==0);
+        }
+        for(auto it=func_map_XZij.begin();it!=func_map_XZij.end();it++){
+            Constraint<> def_XZij("def_XZij_"+it->first);
+            def_XZij=it->second;
+            m->add(def_XZij==0);
+        }
+        
         
         Constraint<> pos_diag("pos_diag");
         pos_diag =  X*(-1);
@@ -629,37 +727,37 @@ Net CBF_read(const char *file, shared_ptr<Model<double>>& m) {
         
         
         Constraint<> SOC("SOC");
-        SOC = pow(Xij, 2) - X.from(node_pairs_chord)*X.to(node_pairs_chord);
+        SOC = pow(Xij, 2) - X.from(node_pairs)*X.to(node_pairs);
         SOC.add_to_callback();
-        m->add(SOC.in(node_pairs_chord) <= 0);
+        m->add(SOC.in(node_pairs) <= 0);
         
         int ndisc=10;
         count=0;
-        for(auto k:*(node_pairs_chord._keys)){
-            if(!node_pairs.has_key(k) || true){
-                auto pos = k.find_first_of(",");
-                auto n1_name = k.substr(0,pos);
-                auto n2_name= k.substr(pos+1);
-                auto u1=X.get_ub(n1_name);
-                auto u2=X.get_ub(n2_name);
-                for(auto i=1;i<ndisc;i++){
-                    for(auto j=1;j<ndisc;j++){
-                        if(j!=i){
-                            double x1=i*u1/ndisc;
-                            double x2=j*u2/ndisc;
-                            double x12=sqrt(x1*x2);
-                            Constraint<> soc_lina("soc_lina_"+to_string(count));
-                            soc_lina=2*x12*Xij(k)-x2*X(n1_name)-x1*X(n2_name);
-                            //m->add(soc_lina<=0);
-                            Constraint<> soc_linb("soc_linb_"+to_string(count));
-                            soc_linb=(-2)*x12*Xij(k)-x2*X(n1_name)-x1*X(n2_name);
-                           // m->add(soc_linb<=0);
-                            count++;
-                        }
-                    }
-                }
-            }
-        }
+//        for(auto k:*(node_pairs_chord._keys)){
+//            if(!node_pairs.has_key(k) || true){
+//                auto pos = k.find_first_of(",");
+//                auto n1_name = k.substr(0,pos);
+//                auto n2_name= k.substr(pos+1);
+//                auto u1=X.get_ub(n1_name);
+//                auto u2=X.get_ub(n2_name);
+//                for(auto i=1;i<ndisc;i++){
+//                    for(auto j=1;j<ndisc;j++){
+//                        if(j!=i){
+//                            double x1=i*u1/ndisc;
+//                            double x2=j*u2/ndisc;
+//                            double x12=sqrt(x1*x2);
+//                            Constraint<> soc_lina("soc_lina_"+to_string(count));
+//                            soc_lina=2*x12*Xij(k)-x2*X(n1_name)-x1*X(n2_name);
+//                            //m->add(soc_lina<=0);
+//                            Constraint<> soc_linb("soc_linb_"+to_string(count));
+//                            soc_linb=(-2)*x12*Xij(k)-x2*X(n1_name)-x1*X(n2_name);
+//                           // m->add(soc_linb<=0);
+//                            count++;
+//                        }
+//                    }
+//                }
+//            }
+//        }
         
         auto bag_size = bags_3d.size();
         auto Wij_ = Xij.pairs_in_bags(bags_3d, 3);
@@ -674,24 +772,9 @@ Net CBF_read(const char *file, shared_ptr<Model<double>>& m) {
         SDP3 -= Wii_[0] * Wii_[1] * Wii_[2];
         SDP3.add_to_callback();
         m->add(SDP3.in(range(0, bag_size-1)) <= 0);
-        std::vector<pair<string,std::vector<string>>> _bag_names;
+       
         
-        for(auto b:g._bags){
-            pair<string,vector<string>> bn;
-            bn.first=b.first;
-            for(auto n:b.second){
-                bn.second.push_back(n->_name);
-            }
-            _bag_names.push_back(bn);
-        }
-        m->_bag_names=_bag_names;
-        
-        for(auto k:*(node_pairs_chord._keys)){
-            if(!node_pairs.has_key(k)){
-                Xij.set_lb(k,0);
-                Xij.set_ub(k,0);
-                    }
-                }
+     
         
     }
     else{

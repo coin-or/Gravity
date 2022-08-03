@@ -755,7 +755,7 @@ vector<vector<double>> Model<type>::cutting_planes_soc(double active_tol, int& s
                    
                     soc_viol++;
                     xnow.resize(3,0);
-                    for (auto k=0;k<=3;k++){
+                    for (auto k=0;k<=4;k++){
                         oa_cut=false;
                         if(k==0 && xcurrent[1]>=active_tol){
                             xnow[1]=xcurrent[1];xnow[2]=xcurrent[2];
@@ -790,6 +790,11 @@ vector<vector<double>> Model<type>::cutting_planes_soc(double active_tol, int& s
                             oa_cut=true;
                         }
                         
+                        if(k==4 && xcurrent[1]<=active_tol && xcurrent[0]<=active_tol){
+                            xnow[1]=std::abs(xcurrent[2]);xnow[2]=xcurrent[2];
+                            xnow[0]=std::abs(xcurrent[2]);
+                            oa_cut=true;
+                        }
 
                         if(std::abs(xnow[0])<=1e-10)
                             //oa_cut=false;
@@ -960,11 +965,12 @@ vector<vector<double>> Model<type>::cuts_eigen(const double active_tol)
     int nv=_nb_vars;
     vector<double> xsol(nv,0);
     get_solution(xsol);
-    var<double> X=get_var<double>("X");
-    var<double> Xij=get_var<double>("Xij");
-    auto idx = X.get_id();
-    auto idxij = Xij.get_id();
     for(auto b:_bag_names){
+        int num=b.first;
+        var<double> X=get_var<double>("Zk"+to_string(num));
+        var<double> Xij=get_var<double>("Zijk"+to_string(num));
+        auto idx = X.get_id();
+        auto idxij = Xij.get_id();
         vector<int> var_ind;
         auto dim=b.second.size();
         Eigen::MatrixXd mat_X(dim,dim);

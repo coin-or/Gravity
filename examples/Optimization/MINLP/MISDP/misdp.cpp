@@ -48,11 +48,12 @@ using namespace gravity;
 using namespace std;
 
 int main(){
-string fname=string(prj_dir)+"/data_sets/MISDP/2x3_3bars.cbf";
+//string fname=string(prj_dir)+"/data_sets/MISDP/2x3_3bars.cbf";
    // string fname=string(prj_dir)+"/data_sets/MISDP/2x7_3bars.cbf";
-   // string fname=string(prj_dir)+"/data_sets/MISDP/2x4_2scen_3bars.cbf";
+    string fname=string(prj_dir)+"/data_sets/MISDP/2x4_2scen_3bars.cbf";
 auto m=make_shared<Model<double>>("misdp_test");
 auto g=CBF_read(fname.c_str(), m);
+    g.print();
    m->print();
 //    neg=true;
 //    while(res.size()==0){
@@ -76,10 +77,46 @@ auto g=CBF_read(fname.c_str(), m);
 //    solver<> s(m, gurobi);
 //    s.run(5,1e-9);
     m->print_solution();
+    m->cuts_eigen(1e-10);
     m->print_constraints_stats(1e-9);
+    
+
     
     var<double> X=m->get_var<double>("X");
     var<double> Xij=m->get_var<double>("Xij");
+    int dim_full=X._indices->_keys->size();
+    
+    Eigen::MatrixXd mat_full(dim_full,dim_full);
+    vector<vector<double>> mat_Xf(dim_full, std::vector<double>(dim_full, 0));
+    int count=0;
+    vector<string> all_names;
+    for(auto k:*X._indices->_keys){
+        mat_full(count, count)=X.eval(k);
+        all_names.push_back(k);
+        count++;
+    }
+    
+    for(auto i=0;i<all_names.size()-1;i++){
+        for(auto j=i+1;j<all_names.size();j++){
+            auto k=all_names[i]+","+all_names[j];
+            if (Xij._indices->has_key(k)){
+                mat_full(i, j)=Xij.eval(k);
+                mat_full(j, i)=Xij.eval(k);
+            }
+            else{
+                mat_full(i, j)=0;
+                mat_full(j, i)=0;
+            }
+        }
+    }
+    Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> es1;
+    es1.compute(mat_full);
+    
+    for(auto m=0;m<dim_full;m++){
+        DebugOn(std::setprecision(12)<<es1.eigenvalues()[m]<<" ");
+    }
+    DebugOn(endl<<"full"<<endl);
+    
       for(auto b:g._bags){
           auto dim=b.second.size();
           vector<string> node_names;
@@ -91,7 +128,9 @@ auto g=CBF_read(fname.c_str(), m);
               mat_X[count][count]=X.eval(n->_name);
               mat(count,count)=mat_X[count][count];
               count++;
+              DebugOn(n->_name<<" ");
           }
+          DebugOn(endl);
           for(auto i=0;i<node_names.size()-1;i++){
               for(auto j=i+1;j<node_names.size();j++){
                   mat_X[i][j]=Xij.eval(node_names[i]+","+node_names[j]);
