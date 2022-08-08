@@ -11,24 +11,68 @@
 using namespace std::chrono;
 
 int main(int argc, const char * argv[]) {
+    /*cout << "Sensors Objects time" << endl;
+    for (int i = 1; i < 7; i++) {
+        myModel m = myModel();
+        auto start = high_resolution_clock::now();
+        vector<param<double>> par = m.readData(argc, argv, 2*i-1, 2*i);
+        m.InitBilevel(par[0], par[1], par[2]);
+        m.mSolve();
+        auto stop = high_resolution_clock::now();
+        auto duration = duration_cast<seconds>(stop - start);
+        cout << m.sensors.size() << " " << m.M << " " << duration.count() << endl;
+    }*/
     myModel m = myModel();
-    auto start = high_resolution_clock::now();
-    vector<param<double>> par = m.readData(argc, argv);
+    //auto start = high_resolution_clock::now();
+    vector<param<double>> par = m.readData(argc, argv, 1, 2);
     m.InitBilevel(par[0], par[1], par[2]);
-    m.GreedyStart(par[0], par[1], par[2]);
+    //m.GreedyStart(par[0], par[1], par[2]);
     m.mSolve();
-    auto stop = high_resolution_clock::now();
-    auto duration = duration_cast<milliseconds>(stop - start);
-    cout << duration.count() << endl;
+    auto y = m.model.get_var<double>("y");
+    auto psn = m.model.get_var<double>("p_sn");
+    ofstream yFile;
+    yFile.open("/Users/svetlanariabova/Projects/Sensor/Data/Stats/lb_stats100000.csv");
+    ofstream pFile;
+    pFile.open("/Users/svetlanariabova/Projects/Sensor/Data/Stats/p_stats100000.csv");
+    ofstream ubFile;
+    ubFile.open("/Users/svetlanariabova/Projects/Sensor/Data/Stats/ub_stats100000.csv");
+    vector<double> y_vals = *y.get_vals();
+    vector<double> p_vals = *psn.get_vals();
+    double w_max;
+    for (int i = 0; i < m.N; i++) {
+        yFile << y_vals[i] << endl;
+        pFile << p_vals[i] << endl;
+        w_max = 0;
+        for (Arc* a: m.graph.get_node("sensor" + to_string(i))->get_out()) {
+            for (int k = 0; k < m.owner[i]; k++) {
+                if (par[2].eval("sensor" + to_string(i) + "," + a->_dest->_name + "," +"agent" + to_string(k)) > w_max) {
+                    w_max = par[2].eval("sensor" + to_string(i) + "," + a->_dest->_name + "," +"agent" + to_string(k));
+                }
+            }
+            for (int k = m.owner[i] + 1; k < m.K; k++) {
+                if (par[2].eval("sensor" + to_string(i) + "," + a->_dest->_name + "," +"agent" + to_string(k)) > w_max) {
+                    w_max = par[2].eval("sensor" + to_string(i) + "," + a->_dest->_name + "," +"agent" + to_string(k));
+                }
+            }
+        }
+        ubFile << w_max << endl;
+    }
+    yFile.close();
+    pFile.close();
+    ubFile.close();
+    //auto stop = high_resolution_clock::now();
+    //auto duration = duration_cast<seconds>(stop - start);
+    //cout << m.sensors.size() << " " << m.M << " " << duration.count() << endl;
+    //cout << duration.count() << endl;
     return 0;
 }
 
-vector<param<double>> myModel::readData(int argc, const char * argv[]){
+vector<param<double>> myModel::readData(int argc, const char * argv[], int n1, int n2){
     N = 4; M = 7; K = 3;
     int degree = 100;
 
     if(argc>=2){
-            string fname = argv[1];
+            string fname = argv[n1];
             auto dims = graph.read_pairwise_list(fname);
             N = dims.first;
             M = dims.second;
@@ -68,7 +112,7 @@ vector<param<double>> myModel::readData(int argc, const char * argv[]){
     param<double> w_own("w_own");
     param<double> w_bought("w_bought");
     if (argc >= 3) {
-        string fname = argv[2];
+        string fname = argv[n2];
         fstream file;
         file.open(fname);
         //FILE *fp = fopen(fname.c_str(),"r");
@@ -338,9 +382,14 @@ void myModel::InitBilevel(param<double> w0, param<double> w_own, param<double> w
     sl3 = y.in_ignore_ith(1, 3, oths_rplc) - (w_own.in_ignore_ith(1, 1, oths_rplc) - w_bought.in_ignore_ith(0, 1, oths_rplc))*z.in_ignore_ith(0, 1, oths_rplc) - p_z.in_ignore_ith(0, 1, oths_rplc);
     model.add(sl3.in(oths_rplc) >= 0);
     
+    //For comparison
+    /*Constraint<> no_colab("nc");
+    no_colab = sn;
+    model.add(no_colab.in(sensors) == 0);*/
+    
     
 //    model.print_symbolic();
-//    model.print();
+ //   model.print();
 //    model.write("before.txt");
 //    model.replace_integers();
 //    model.restructure();
@@ -375,6 +424,9 @@ void myModel::GreedyStart(param<double> w0, param<double> w_own, param<double> w
     auto sn = model.get_var<int>("sn");
     auto z0 = model.get_var<int>("z0");
     auto z = model.get_var<int>("z");
+    auto p = model.get_var<double>("p");
+    auto y = model.get_var<double>("y");
+
     
     string idx1;
     string idx2;
@@ -413,6 +465,53 @@ void myModel::GreedyStart(param<double> w0, param<double> w_own, param<double> w
             assignBought(idx3, wt0, wt_own, wt_bought);
         }
     }
+    
+    //fix prices
+    double y1 = 0;
+    double y2 = 0;
+    double y3 = 0;
+    double tmp_wt = 0;
+    int tmp_add = 0;
+    vector<int> srs_k;
+    vector<int> srs_oths;
+    string j;
+    int t;
+    
+    for (int i = 0; i < N; i++) {
+        for (Arc* b: graph.get_node("sensor" + to_string(i))->get_out()) {
+            j = b->_dest->_name;
+            srs_k.clear();
+            for (Arc* a: graph.get_node(j)->get_in()) {
+                t = stoi(a->_src->_name.substr(6, a->_src->_name.length()));
+                if (owner[t] == owner[i]) { srs_k.push_back(t); }
+                else { srs_oths.push_back(t); }
+            }
+            for (int t: srs_k) {
+                if (s("sensor" + to_string(t) + "," + j + "," + "agent" + to_string(owner[i])).getvalue() > 0) {
+                    tmp_add = 1;
+                }
+                if (tmp_add > 0) { break; }
+            }
+            for (int r: srs_k) {
+                if (z("sensor" + to_string(r) + "," + j + "," + "agent" + to_string(owner[i])).getvalue() > 0) {
+                    tmp_add = 1;
+                }
+                if (tmp_add > 0) { break; }
+            }
+            if (y1 < w_own.eval("sensor" + to_string(i) + "," + j + "," + "agent" + to_string(owner[i]))) {
+                y1 = w_own.eval("sensor" + to_string(i) + "," + j + "," + "agent" + to_string(owner[i]));
+            }
+        }
+        if (y1 > y2) {
+            if (y1 > y3) { p("sensor" + to_string(i)).set_val(y1); y("sensor" + to_string(i)).set_val(y1); }
+            else { p("sensor" + to_string(i)).set_val(y3); y("sensor" + to_string(i)).set_val(y3); }
+        }
+        else {
+            if (y2 > y3) { p("sensor" + to_string(i)).set_val(y2); y("sensor" + to_string(i)).set_val(y2); }
+            else { p("sensor" + to_string(i)).set_val(y3); y("sensor" + to_string(i)).set_val(y3); }
+        }
+    }
+
 }
 
 
@@ -426,6 +525,7 @@ void myModel::assignLeader(string &idx, param<double> wt0, param<double> wt_own,
     
     ownr = owner[stoi(idx.substr(6, idx.find(",")))];
     sensor = stoi(idx.substr(6, idx.find(",")));
+    cout << "z0:" << idx << endl;
     object = stoi(idx.substr(idx.find("t") + 1, idx.find(",")));
     z0(idx.substr(0, nthOccurrence(idx, ",", 2))).set_val(1);
     //sensor not used for other objs leader + owner
@@ -468,7 +568,8 @@ void myModel::assignOwn(string &idx, param<double> wt0, param<double> wt_own, pa
     
     ownr = owner[stoi(idx.substr(6, idx.find(",")))];
     sensor = stoi(idx.substr(6, idx.find(",")));
-    object = idx.substr(idx.find(",") + 1, idx.find(",") + 1);
+    object = idx.substr(idx.find(",") + 1, idx.find(","));
+    cout << "s:" << idx << endl;
     s(idx).set_val(1);
     //sensor not used by leader
     for (Arc* b: graph.get_node("sensor" + to_string(sensor))->get_out()) {
@@ -497,31 +598,38 @@ void myModel::assignBought(string &idx, param<double> wt0, param<double> wt_own,
     int object;
     int agent;
     string j;
+    string i;
     
     ownr = owner[stoi(idx.substr(6, idx.find(",")))];
     sensor = stoi(idx.substr(6, idx.find(",")));
     object = stoi(idx.substr(idx.find("t") + 1, idx.find(",")));
     agent = stoi(idx.substr(nthOccurrence(idx, "t", 2) + 1, idx.length()));
+    cout << "z:" << idx << endl;
     z(idx).set_val(1);
     //sensor not used for other objs leader + owner
     for (Arc* b: graph.get_node("sensor" + to_string(sensor))->get_out()) {
         j = b->_dest->_name;
-        wt_own("sensor" + to_string(sensor) + "," + "object" + j + "," + "agent" + to_string(ownr)).set_val(0);
-        wt0("sensor" + to_string(sensor) + "," + "object" + j).set_val(0);
+        wt_own("sensor" + to_string(sensor) + "," + j + "," + "agent" + to_string(ownr)).set_val(0);
+        wt0("sensor" + to_string(sensor) + "," + j).set_val(0);
     }
     //object not observed twice
-    for (int i = 0; i < sensor; i ++) {
-        wt_bought("sensor" + to_string(i) + "," + "object" + to_string(object) + "," + "agent" + to_string(agent)).set_val(0);
+    for (Arc* a: graph.get_node("object" + to_string(object))->get_in()) {
+        i = a->_src->_name;
+        if (owner[stoi(i.substr(6, i.length()))] == agent) { wt_own(i + "," + "object" + to_string(object) + "," + "agent" + to_string(agent)).set_val(0); }
+        else { wt_bought(i + "," + "object" + to_string(object) + "," + "agent" + to_string(agent)).set_val(0); }
     }
     //sensor not used by other agents
-    for (int k = 0; k < std::min(agent, owner[sensor]); k++) {
-        wt_bought("sensor" + to_string(sensor) + "," + "object" + to_string(object) + "," + "agent" + to_string(k)).set_val(0);
-    }
-    for (int k = std::min(agent, owner[sensor]); k < std::max(agent, owner[sensor]); k++) {
-        wt_bought("sensor" + to_string(sensor) + "," + "object" + to_string(object) + "," + "agent" + to_string(k)).set_val(0);
-    }
-    for (int k = std::max(agent, owner[sensor]); k < K; k++) {
-        wt_bought("sensor" + to_string(sensor) + "," + "object" + to_string(object) + "," + "agent" + to_string(k)).set_val(0);
+    for (Arc* b: graph.get_node("sensor" + to_string(sensor))->get_out()) {
+        j = b->_dest->_name;
+        for (int k = 0; k < std::min(agent, owner[sensor]); k++) {
+            wt_bought("sensor" + to_string(sensor) + "," + j + "," + "agent" + to_string(k)).set_val(0);
+        }
+        for (int k = std::min(agent, owner[sensor]) + 1; k < std::max(agent, owner[sensor]); k++) {
+            wt_bought("sensor" + to_string(sensor) + "," + j + "," + "agent" + to_string(k)).set_val(0);
+        }
+        for (int k = std::max(agent, owner[sensor]) + 1; k < K; k++) {
+            wt_bought("sensor" + to_string(sensor) + "," + j + "," + "agent" + to_string(k)).set_val(0);
+        }
     }
     //sold
     sn("sensor" + to_string(sensor)).set_val(1);

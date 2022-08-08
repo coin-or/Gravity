@@ -28,13 +28,12 @@ using namespace gravity;
 class myModel {
 public:
     Model<> model;
-private:
-    int N;
-    int M;
-    int K = 5;
-    Net graph;
     indices sensors;
     indices objects;
+    int M;
+    int N;
+    int K = 5;
+    Net graph;
     indices arcs;
     indices own_arcs;
     indices bought_arcs;
@@ -49,9 +48,10 @@ private:
     
 public:
     myModel(){ };
-    vector<param<double>> readData(int argc, const char * argv[]);
+    vector<param<double>> readData(int argc, const char * argv[], int n1, int n2);
     void InitBilevel(param<double> w0, param<double> w_own, param<double> w_bought);
     void mSolve();
+    void saveSolStats();
     void GreedyStart(param<double> w0, param<double> w_own, param<double> w_bought);
     void assignLeader(string &idx, param<double> wt0, param<double> wt_own, param<double> wt_bought);
     void assignOwn(string &idx, param<double> wt0, param<double> wt_own, param<double> wt_bought);

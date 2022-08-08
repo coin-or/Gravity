@@ -29,7 +29,7 @@ GurobiProgram::GurobiProgram(Model<>* m) {
             grb_env = new GRBEnv();
         //    grb_env->set(GRB_IntParam_Presolve,0);
             //grb_env->set(GRB_DoubleParam_NodeLimit,1);
-            grb_env->set(GRB_DoubleParam_TimeLimit,7200);
+            //grb_env->set(GRB_DoubleParam_TimeLimit,7200);
             //    grb_env->set(GRB_DoubleParam_MIPGap,0.01);
 //            grb_env->set(GRB_IntParam_Threads,1);
         //    grb_env->set(GRB_IntParam_Presolve,0);
