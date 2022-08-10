@@ -394,14 +394,17 @@ void myModel::GreedyStart(param<double> w0, param<double> w_own, param<double> w
         m1 = wt0.eval(idx1);
         m2 = wt_own.eval(idx2);
         m3 = wt_bought.eval(idx3);
+        vector<double> p_ub(N, 0);
         if (m1 >= m2) {
             if (m1 >= m3) {
                 //assign leader
                 assignLeader(idx1, wt0, wt_own, wt_bought);
+                p_ub[stoi(idx1.substr(6, idx1.find(",")))] = m1;
             }
             else {
                 //assign bought
                 assignBought(idx3, wt0, wt_own, wt_bought);
+                p_ub[stoi(idx3.substr(6, idx3.find(",")))] = m3;
             }
         }
         else if (m2 >= m3) {
@@ -411,7 +414,38 @@ void myModel::GreedyStart(param<double> w0, param<double> w_own, param<double> w
         else {
             //assign bought
             assignBought(idx3, wt0, wt_own, wt_bought);
+            p_ub[stoi(idx3.substr(6, idx3.find(",")))] = m3;
         }
+    }
+
+    //set prices
+    double y1 = 0;
+    double y2 = 0;
+    double y3 = 0;
+    double p_ub = 0;
+    int s_sum = 0;
+    int s_sum2 = 0;
+    int z_sum = 0;
+    int z_sum2 = 0;
+    string t;
+    for (int i = 0; i < N; i++) {
+        for (auto a : graph.get_node("sensor" + to_string(i))->get_out()) {
+            for (auto b : graph.get_node(a->_dest->_name)->get_in()) {
+                t = b->_src->_name;
+                if (owner[stoi(t.substr(6, idx3.find(",")))] == owner[i]) { 
+                    s_sum += s.getvalue(t + "," + a->_dest->_name + "," + "agent" + owner[i]);
+                    y2 = max(y2, (w_own.eval("sensor" + to_string(i) + "," + a->_dest->_name) - w_own.eval(t + "," + a->_dest->_name)) * s.getvalue(t + "," + a->_dest->_name + "," + "agent" + to_string(owner[i])));
+                }
+                else { 
+                    z_sum += z.getvalue(t + "," + a->_dest->_name + "," + "agent" + to_string(owner[i])); 
+                    y3 = max(y3, (w_own.eval("sensor" + to_string(i) + "," + a->_dest->_name) - (w_bought.eval(t + "," + a->_dest->_name + "," + "agent" + to_string(owner[i])) - p.get_value(t))) * z.getvalue(t + "," + a->_dest->_name + "," + "agent" + owner[i]));
+                }
+            }
+            if (y1 < w_own.eval("sensor" + to_string(i) + "," + a->_dest->_name) * (1 - s_sum - z_sum)) {
+                y1 = w_own.eval("sensor" + to_string(i) + "," + a->_dest->_name) * (1 - s_sum - z_sum);
+            }
+        }
+        p("sensor" + to_string(i)).set_val((p_ub[i] + max(max(y1, y2), y3))/2);
     }
 }
 
