@@ -476,53 +476,6 @@ void myModel::GreedyStart(param<double> w0, param<double> w_own, param<double> w
         }
     }
     
-    //fix prices
-    /*double y1 = 0;
-    double y2 = 0;
-    double y3 = 0;
-    double tmp_wt = 0;
-    int tmp_add = 0;
-    vector<int> srs_k;
-    vector<int> srs_oths;
-    string j;
-    int t;
-    
-    for (int i = 0; i < N; i++) {
-        for (Arc* b: graph.get_node("sensor" + to_string(i))->get_out()) {
-            j = b->_dest->_name;
-            srs_k.clear();
-            for (Arc* a: graph.get_node(j)->get_in()) {
-                t = stoi(a->_src->_name.substr(6, a->_src->_name.length()));
-                if (owner[t] == owner[i]) { srs_k.push_back(t); }
-                else { srs_oths.push_back(t); }
-            }
-            for (int t: srs_k) {
-                if (s.eval("sensor" + to_string(t) + "," + j + "," + "agent" + to_string(owner[i])) > 0) {
-                    tmp_add = 1;
-                }
-                if (tmp_add > 0) { break; }
-            }
-            for (int r: srs_k) {
-                if (z.eval("sensor" + to_string(r) + "," + j + "," + "agent" + to_string(owner[i])) > 0) {
-                    tmp_add = 1;
-                }
-                if (tmp_add > 0) { break; }
-            }
-            if (y1 < w_own.eval("sensor" + to_string(i) + "," + j + "," + "agent" + to_string(owner[i]))) {
-                y1 = w_own.eval("sensor" + to_string(i) + "," + j + "," + "agent" + to_string(owner[i]));
-            }
-        }
-        if (y1 > y2) {
-            if (y1 > y3) { p("sensor" + to_string(i)).set_val(y1); y("sensor" + to_string(i)).set_val(y1); }
-            else { p("sensor" + to_string(i)).set_val(y3); y("sensor" + to_string(i)).set_val(y3); }
-        }
-        else {
-            if (y2 > y3) { p("sensor" + to_string(i)).set_val(y2); y("sensor" + to_string(i)).set_val(y2); }
-            else { p("sensor" + to_string(i)).set_val(y3); y("sensor" + to_string(i)).set_val(y3); }
-        }
-    }*/
-
-
     //set prices
     double y1 = 0;
     double y2 = 0;
