@@ -192,7 +192,7 @@ namespace gravity {
         Sign get_sign(size_t idx = 0) const{ /**< returns the sign of one instance of the current parameter/variable. **/
             return param<type>::get_sign(idx);
         }
-        
+        	
         void initialize_all(type v) {
             this->set_val(v);
         }

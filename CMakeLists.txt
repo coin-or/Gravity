@@ -13,7 +13,7 @@ option(Debug "Turn on debug mode" OFF)
 option(Cov "Turn on coverage" OFF)
 
 # Find GUROBI (optional)
-option(Gurobi "Link to GUROBI libraries" OFF)
+option(Gurobi "Link to GUROBI libraries" ON)
 
 # Find IPOPT (optional)
 option(Ipopt "Link to IPOPT libraries" ON)
