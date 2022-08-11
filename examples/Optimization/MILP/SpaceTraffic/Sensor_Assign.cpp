@@ -26,7 +26,7 @@ int main(int argc, const char * argv[]) {
     auto start = high_resolution_clock::now();
     vector<param<double>> par = m.readData(argc, argv, 1, 2);
     m.InitBilevel(par[0], par[1], par[2]);
-    m.GreedyStart(par[0], par[1], par[2]);
+    //m.GreedyStart(par[0], par[1], par[2]);
     m.mSolve();
     auto stop = high_resolution_clock::now();
     auto duration = duration_cast<milliseconds>(stop - start);
@@ -414,10 +414,10 @@ void myModel::InitBilevel(param<double> w0, param<double> w_own, param<double> w
 }
 
 void myModel::mSolve() {
-    model.print();
+    //model.print();
     solver<> sol(model, gurobi);
     sol.run();
-    model.print_solution();
+    //model.print_solution();
 }
 
 void myModel::GreedyStart(param<double> w0, param<double> w_own, param<double> w_bought) {
@@ -507,7 +507,7 @@ void myModel::GreedyStart(param<double> w0, param<double> w_own, param<double> w
         }
         y("sensor" + to_string(i)).set_val(std::max(std::max(y1, y2), y3));
         p("sensor" + to_string(i)).set_val((p_ub[i] + std::max(std::max(y1, y2), y3))/2);
-        p_sn("sensor" + to_string(i)).set_val((p_ub[i] + std::max(std::max(y1, y2), y3))/2);
+        p_sn("sensor" + to_string(i)).set_val(sn.eval("sensor" + to_string(i)) * (p_ub[i] + std::max(std::max(y1, y2), y3))/2);
         for (auto a : graph.get_node("sensor" + to_string(i))->get_out()) {
             for (int k = 0; k < owner[i]; k++) {
                 p_z("sensor" + to_string(i) + "," + a->_dest->_name + ",agent" + to_string(k)).set_val(z.eval("sensor" + to_string(i) + "," + a->_dest->_name + ",agent" + to_string(k)) * (p_ub[i] + std::max(std::max(y1, y2), y3))/2);
@@ -526,13 +526,13 @@ void myModel::GreedyStart(param<double> w0, param<double> w_own, param<double> w
         y2 = 0;
         y3 = 0;
     }
-    sn.print_vals(3);
+    /*sn.print_vals(3);
     s.print_vals(3);
     z.print_vals(3);
     y.print_vals(3);
     p.print_vals(3);
     p_sn.print_vals(3);
-    p_z.print_vals(3);
+    p_z.print_vals(3);*/
 }
 
 
