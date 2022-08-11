@@ -493,6 +493,14 @@ Net CBF_read(const char *file, shared_ptr<Model<double>>& m) {
         count=0;
         std::vector<var<double>> Z;
         std::vector<var<double>> Zij;
+        
+//        for(auto b:g._bags){
+//            for(auto n:b.second){
+//                bn.second.push_back(n->_name);
+//                DebugOn(n->_name<<" ");
+//                zk_nodes.insert(n->_name);
+//            }
+//        }
         for(auto b:g._bags){
             pair<int,vector<string>> bn;
             bn.first=count;
@@ -502,20 +510,28 @@ Net CBF_read(const char *file, shared_ptr<Model<double>>& m) {
                 DebugOn(n->_name<<" ");
                 zk_nodes.insert(n->_name);
             }
+            indices zk_nodepairs_chord;
             indices zk_nodepairs;
             for(auto i=0;i<bn.second.size()-1;i++){
                 for(auto j=i+1;j<bn.second.size();j++){
                     string key=bn.second[i]+","+bn.second[j];
-                    zk_nodepairs.insert(key);
+                    zk_nodepairs_chord.insert(key);
+                    if(node_pairs.has_key(key)){
+                        zk_nodepairs.insert(key);
+                    }
                 }
             }
             
             var<double> Zk("Zk"+to_string(count));
             m->add(Zk.in(zk_nodes));
             Z.push_back(Zk);
-            var<double> Zijk("Zijk"+to_string(count));
-            m->add(Zijk.in(zk_nodepairs));
-            Zij.push_back(Zijk);
+            var<double> Zkij("Zkij"+to_string(count));
+            m->add(Zkij.in(zk_nodepairs_chord));
+            Zij.push_back(Zkij);
+            Constraint<> SOC("SOC"+to_string(count));
+            SOC = pow(Zkij, 2) - Zk.from(zk_nodepairs)*Zk.to(zk_nodepairs);
+            SOC.add_to_callback();
+            m->add(SOC.in(zk_nodepairs));
             _bag_names.push_back(bn);
             count++;
             DebugOn(endl);
@@ -726,10 +742,10 @@ Net CBF_read(const char *file, shared_ptr<Model<double>>& m) {
         // m->add(pos_diag.in(nodes) <= 0);
         
         
-        Constraint<> SOC("SOC");
-        SOC = pow(Xij, 2) - X.from(node_pairs)*X.to(node_pairs);
-        SOC.add_to_callback();
-        m->add(SOC.in(node_pairs) <= 0);
+        //Constraint<> SOC("SOC");
+        //SOC = pow(Xij, 2) - X.from(node_pairs)*X.to(node_pairs);
+        //SOC.add_to_callback();
+        //m->add(SOC.in(node_pairs) <= 0);
         
         int ndisc=10;
         count=0;

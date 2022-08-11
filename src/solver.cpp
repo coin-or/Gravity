@@ -869,7 +869,7 @@ vector<vector<double>> Model<type>::cutting_planes_soc(double active_tol, int& s
             }
         }
     }
-    
+    //DebugOn("soc"<<endl);
     return res;
     
 }
@@ -968,7 +968,7 @@ vector<vector<double>> Model<type>::cuts_eigen(const double active_tol)
     for(auto b:_bag_names){
         int num=b.first;
         var<double> X=get_var<double>("Zk"+to_string(num));
-        var<double> Xij=get_var<double>("Zijk"+to_string(num));
+        var<double> Xij=get_var<double>("Zkij"+to_string(num));
         auto idx = X.get_id();
         auto idxij = Xij.get_id();
         vector<int> var_ind;
@@ -1090,7 +1090,7 @@ vector<vector<double>> Model<type>::cuts_eigen(const double active_tol)
                     }
                     cut.push_back(c0_val*scale);
                     res.push_back(cut);
-                    DebugOn("posc "<<cost<<endl);
+                    DebugOff("posc "<<cost<<endl);
                 }
                 else{
                     if(cost<=1e-9)
@@ -1104,7 +1104,7 @@ vector<vector<double>> Model<type>::cuts_eigen(const double active_tol)
         }
     }
     
-    
+    //DebugOn("eig"<<endl);
     return res;
 }
 /*Adds row(or new instance) of a linear constraint to a model by linearizing a nonlinear constraint con

@@ -45,28 +45,29 @@ protected:
                         vec_x.push_back(x[i]);
                     }
                     m->set_solution(vec_x);
-                    auto res=m->cutting_planes_soc(1e-9, soc_viol, soc_added);
+                    auto res=m->cutting_planes_soc(1e-6, soc_viol, soc_added);
                     if(res.size()>=1){
                         for(auto i=0;i<res.size();i++){
                             GRBLinExpr expr = 0;
                             int j=0;
                             for(j=0;j<res[i].size()-1;j+=2){
                                 int c=res[i][j];
+                                DebugOff(res[i][j]<<" ");
                                 expr += res[i][j+1]*vars[c];
-                                DebugOn(res[i][j+1]<<" ");
+                                DebugOff(std::setprecision(12)<<res[i][j+1]<<" ");
                             }
-                            DebugOn(endl);
+                            DebugOff(endl);
                             if(abs(res[i][j])>=1e-6){
                                 DebugOff("pos resij");
                             }
                            // expr+=res[i][j];
                             addLazy(expr, GRB_LESS_EQUAL, 0);
-                            vec_expi.push_back(expr);
-                            addLazy(expr, GRB_LESS_EQUAL, 0);
+                            //vec_expi.push_back(expr);
+                            //addLazy(expr, GRB_LESS_EQUAL, 0);
                         }
                     }
                     m->set_solution(vec_x);
-                    if(res.size()==0){
+                    if(res.size()==0  ){
 //                        auto res1= m->cutting_planes_eigen(1e-9);
 //                        if(res1.size()>=1){
 //                            for(auto i=0;i<res1.size();i++){
@@ -98,7 +99,7 @@ protected:
                             if(std::abs(res2[i][j])>=1e-12)
                                 expr += res2[i][j];
                             addLazy(expr, GRB_LESS_EQUAL, 0);
-                            vec_expi.push_back(expr);
+                            //vec_expi.push_back(expr);
                         }
                     }
                     //auto res=m->cutting_planes_solution(interior, 1e-6);
@@ -157,7 +158,9 @@ protected:
             }
             if(false){
                 if (where == GRB_CB_MIPNODE) {
-                    if(getIntInfo(GRB_CB_MIPNODE_STATUS)==2){
+                    if(getIntInfo(GRB_CB_MIPNODE_STATUS)==2 ){
+                        int nc= getDoubleInfo(GRB_CB_MIPNODE_NODCNT);
+                        if(nc%100==0){
                         // Found an integer feasible solution - does it visit every node?
                         double *x = new double[n];
                         vector<double> vec_x;
@@ -169,6 +172,23 @@ protected:
                             vec_x.push_back(x[i]);
                         }
                         m->set_solution(vec_x);
+                auto res2=m->cuts_eigen(1e-9);
+                if(res2.size()>=1){
+                    for(auto i=0;i<res2.size();i++){
+                        GRBLinExpr expr = 0;
+                        int j;
+                        for(j=0;j<res2[i].size()-1;j+=2){
+                            int c=res2[i][j];
+                            if(std::abs(c)>=0)
+                            expr += res2[i][j+1]*vars[c];
+                        }
+                        if(std::abs(res2[i][j])>=1e-12)
+                            expr += res2[i][j];
+                        addCut(expr, GRB_LESS_EQUAL, 0);
+                        //vec_expi.push_back(expr);
+                    }
+                }
+                }
                         //auto res=m->cutting_planes_solution(interior, 1e-6);
                        /* auto res=m->cutting_planes_solution(interior, 1e-9,soc_viol_user, soc_found_user,soc_added_user,det_viol_user, det_found_user, det_added_user);
                         if(res.size()>=1){
@@ -318,7 +338,7 @@ bool GurobiProgram::solve(bool relax, double mipgap){
     grb_mod->getEnv().set(GRB_IntParam_LazyConstraints, 1);
     grb_mod->set(GRB_IntParam_Threads, 1);
     grb_mod->set(GRB_DoubleParam_IntFeasTol, 1e-9);
-    grb_mod->set(GRB_IntParam_NumericFocus,3);
+   // grb_mod->set(GRB_IntParam_NumericFocus,3);
     grb_mod->update();
     //grb_env2 = new GRBEnv();
     //auto mod2=GRBModel(grb_mod);
