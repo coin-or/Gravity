@@ -742,10 +742,10 @@ Net CBF_read(const char *file, shared_ptr<Model<double>>& m) {
         // m->add(pos_diag.in(nodes) <= 0);
         
         
-        //Constraint<> SOC("SOC");
-        //SOC = pow(Xij, 2) - X.from(node_pairs)*X.to(node_pairs);
-        //SOC.add_to_callback();
-        //m->add(SOC.in(node_pairs) <= 0);
+        Constraint<> SOC("SOC");
+        SOC = pow(Xij, 2) - X.from(node_pairs)*X.to(node_pairs);
+        SOC.add_to_callback();
+        m->add(SOC.in(node_pairs) <= 0);
         
         int ndisc=10;
         count=0;
