@@ -71,14 +71,17 @@ if(Ipopt)
 	add_dependencies(gravity ipopt)
 endif()
 endif()
+
+#message("-- PcapPlusPLus_LIBRARIES = : ${PcapPlusPLus_LIBRARIES}")
+
 if(OPT_PARSER)
 add_dependencies(gravity opt_parser)
-target_link_libraries(gravity ${IPOPT_DLL} ${CPLEX_LIBRARIES} ${GUROBI_LIBRARIES} ${IPOPT_LIBRARIES} ${BONMIN_LIBRARIES} ${SDPA_LIBRARIES} ${MOSEK_LIBRARIES} ${XLNT_LIBRARIES} ${OpenMPI_LIBRARIES} liboption_parser.a ${MP_LIBRARY} ${CoinUtils_LIBRARY})
+target_link_libraries(gravity ${IPOPT_DLL} ${CPLEX_LIBRARIES} ${GUROBI_LIBRARIES} ${IPOPT_LIBRARIES} ${BONMIN_LIBRARIES} ${SDPA_LIBRARIES} ${MOSEK_LIBRARIES} ${XLNT_LIBRARIES} ${OpenMPI_LIBRARIES} liboption_parser.a ${MP_LIBRARY} ${CoinUtils_LIBRARY} ${PcapPlusPlus_LIBRARIES})
 endif()
 
 if(NOT OPT_PARSER)
 set(LIBS ${LIBS} ${IPOPT_LIBRARIES})
-target_link_libraries(gravity ${CPLEX_LIBRARIES} ${GUROBI_LIBRARIES} ${IPOPT_LIBRARIES} ${BONMIN_LIBRARIES} ${SDPA_LIBRARIES} ${MOSEK_LIBRARIES} ${XLNT_LIBRARIES} ${OpenMPI_LIBRARIES} ${MP_LIBRARY} ${CoinUtils_LIBRARY})
+target_link_libraries(gravity ${CPLEX_LIBRARIES} ${GUROBI_LIBRARIES} ${IPOPT_LIBRARIES} ${BONMIN_LIBRARIES} ${SDPA_LIBRARIES} ${MOSEK_LIBRARIES} ${XLNT_LIBRARIES} ${OpenMPI_LIBRARIES} ${MP_LIBRARY} ${CoinUtils_LIBRARY} ${PcapPlusPlus_LIBRARIES})
 endif()
 
 if(Cov)

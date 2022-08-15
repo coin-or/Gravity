@@ -12,6 +12,9 @@ option(Debug "Turn on debug mode" OFF)
 # Coverage
 option(Cov "Turn on coverage" OFF)
 
+# Find PcapPlusPlus (optional)
+option(PcapPlusPlus "Link to PcapPlusPlus libraries" OFF)
+
 # Find GUROBI (optional)
 option(Gurobi "Link to GUROBI libraries" OFF)
 
@@ -61,6 +64,15 @@ if (OpenMPI)
 #   find_package(OpenMPI REQUIRED)
 #   include_directories(${OpenMPI_INCLUDE_DIRS})
 #   set(LIBS ${LIBS} ${OpenMPI_LIBRARIES})
+endif()
+
+
+if (PcapPlusPlus)
+    message(STATUS "Enable PcapPlusPlus")
+    add_definitions(-DUSE_PcapPlusPlus)
+    find_package(PcapPlusPlus REQUIRED)
+    include_directories(${PcapPlusPlus_INCLUDE_DIRS}/pcapplusplus)
+    set(LIBS ${LIBS} ${PcapPlusPlus_LIBRARIES})
 endif()
 
 
