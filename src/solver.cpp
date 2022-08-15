@@ -745,6 +745,10 @@ vector<vector<double>> Model<type>::cutting_planes_soc(double active_tol, int& s
                 c_val.resize(con->_nb_vars,0);
                 auto cname=con->_name;
                 xcurrent=con->get_x(i);
+                vector<double> xc(3,0);
+                xc[0]=xcurrent[0];
+                xc[1]=xcurrent[1];
+                xc[2]=xcurrent[2];
                 con->uneval();
                 con->eval_all();
                 DebugOff(con->_name<<"\t"<<con->eval(i)<<endl);
@@ -755,68 +759,25 @@ vector<vector<double>> Model<type>::cutting_planes_soc(double active_tol, int& s
                    
                     soc_viol++;
                     xnow.resize(3,0);
-                    for (auto k=0;k<=4;k++){
+                    
+                    if(xc[0]>=xc[1]){
+                        xnow[0]=xc[0];
+                        xnow[1]=xc[2]*xc[2]/xc[0];
+                        xnow[2]=xc[2];
+                    }
+                    else
+                    {
+                        xnow[0]=xc[2]*xc[2]/xc[1];
+                        xnow[1]=xc[1];
+                        xnow[2]=xc[2];
+                    }
+                 
                         oa_cut=false;
-                        if(k==0 && xcurrent[1]>=active_tol){
-                            xnow[1]=xcurrent[1];xnow[2]=xcurrent[2];
-                            xnow[0]=xcurrent[2]*xcurrent[2]/xcurrent[1];
-                            oa_cut=true;
-                        }
-//                        if(k==0 && xcurrent[1]<=active_tol){
-//                            xnow[1]=1;xnow[2]=xcurrent[2];
-//                            xnow[0]=xcurrent[2]*xcurrent[2]/xnow[1];
-//                            oa_cut=true;
-//                        }
-                        if(k==1 && xcurrent[0]>=active_tol){
-                            xnow[0]=xcurrent[0];xnow[2]=xcurrent[2];
-                            xnow[1]=xcurrent[2]*xcurrent[2]/xcurrent[0];
-                            oa_cut=true;
-                        }
-//                        if(k==1 && xcurrent[0]<=active_tol){
-//                            xnow[0]=1;xnow[2]=xcurrent[2];
-//                            xnow[1]=xcurrent[2]*xcurrent[2]/xnow[0];
-//                            oa_cut=true;
-//                        }
-                        
-                        if(k==2 && xcurrent[0]>=active_tol && xcurrent[1]>=active_tol){
-                            xnow[0]=xcurrent[0];xnow[1]=xcurrent[1];
-                            xnow[2]=std::sqrt(xcurrent[0]*xcurrent[1]);
-                            oa_cut=true;
-                        }
-                        
-                        if(k==3 && xcurrent[0]>=active_tol && xcurrent[1]>=active_tol){
-                            xnow[0]=xcurrent[0];xnow[1]=xcurrent[1];
-                            xnow[2]=std::sqrt(xcurrent[0]*xcurrent[1])*(-1);
-                            oa_cut=true;
-                        }
-                        
-                        if(k==4 && xcurrent[1]<=active_tol && xcurrent[0]<=active_tol){
-                            xnow[1]=std::abs(xcurrent[2]);xnow[2]=xcurrent[2];
-                            xnow[0]=std::abs(xcurrent[2]);
-                            oa_cut=true;
-                        }
 
-                        if(std::abs(xnow[0])<=1e-10)
-                            //oa_cut=false;
-                        {
-                            xnow[0]=0;
-                        }
-                        if(std::abs(xnow[1])<=1e-10)
-                        {
-                            xnow[1]=0;
-                        }
-                        if(std::abs(xnow[2])<=1e-10)
-                        {
-                            xnow[2]=0;
-                        }
-                        
-                        if((std::abs(xnow[0])<=1e-10 && std::abs(xnow[1])<=1e-10) ||(std::abs(xnow[2])<=1e-10 && std::abs(xnow[1])<=1e-10) ||(std::abs(xnow[2])<=1e-10 && std::abs(xnow[0])<=1e-10))
-                        {
-                            oa_cut=false;
-                        }
-                   
                             
-                        
+                        xnow[0]=std::abs(xc[2]);
+                        xnow[1]=std::abs(xc[2]);
+                        xnow[2]=xc[2];
                             
                         
                         if(oa_cut){
@@ -845,13 +806,19 @@ vector<vector<double>> Model<type>::cutting_planes_soc(double active_tol, int& s
                             
                             
                             int j=0;
+                            double cost=0;
                             for (auto &v_p: con->get_vars()){
                                 auto vid=v_p.second.first->get_id() + v_p.second.first->get_id_inst(i);
                                 cut.push_back(vid);
-                                cut.push_back(c_val[j++]*scale);
+                                cut.push_back(c_val[j]*scale);
+                               cost+= xcurrent[j]*c_val[j]*scale;
+                                j++;
                             }
                             cut.push_back(c0_val*scale);
-                            res.push_back(cut);
+                            cost+=c0_val*scale;
+                            if(cost>=1e-6){
+                                res.push_back(cut);
+                            }
                             if(con->is_convex()){
                                 DebugOff(con->_name<<" "<<fk );
                             }
@@ -864,7 +831,7 @@ vector<vector<double>> Model<type>::cutting_planes_soc(double active_tol, int& s
                         c0_val=0;
                         c_val.clear();
                         
-                    }
+                    
                 }
             }
         }
@@ -1083,7 +1050,7 @@ vector<vector<double>> Model<type>::cuts_eigen(const double active_tol)
                 }
                 cost*=scale;
                
-                if(cost>=1e-9){
+                if(cost>=1e-6){
                     for(auto i=0;i<c_val.size();i++){
                         cut.push_back(var_ind[i]);
                         cut.push_back(c_val[i]*scale);
@@ -1093,7 +1060,7 @@ vector<vector<double>> Model<type>::cuts_eigen(const double active_tol)
                     DebugOff("posc "<<cost<<endl);
                 }
                 else{
-                    if(cost<=1e-9)
+                    if(cost<=1e-6)
                         DebugOn("cost "<<cost<<endl);
                 }
                 cut.clear();

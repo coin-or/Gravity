@@ -45,7 +45,7 @@ protected:
                         vec_x.push_back(x[i]);
                     }
                     m->set_solution(vec_x);
-                    auto res=m->cutting_planes_soc(1e-6, soc_viol, soc_added);
+                    auto res=m->cutting_planes_soc(1e-9, soc_viol, soc_added);
                     if(res.size()>=1){
                         for(auto i=0;i<res.size();i++){
                             GRBLinExpr expr = 0;
@@ -61,13 +61,13 @@ protected:
                                 DebugOff("pos resij");
                             }
                            // expr+=res[i][j];
-                            addLazy(expr, GRB_LESS_EQUAL, 0);
+
                             //vec_expi.push_back(expr);
-                            //addLazy(expr, GRB_LESS_EQUAL, 0);
+                            addLazy(expr, GRB_LESS_EQUAL, 0);
                         }
                     }
-                    m->set_solution(vec_x);
-                    if(res.size()==0  ){
+//                    m->set_solution(vec_x);
+                    if( true ){
 //                        auto res1= m->cutting_planes_eigen(1e-9);
 //                        if(res1.size()>=1){
 //                            for(auto i=0;i<res1.size();i++){
@@ -93,7 +93,6 @@ protected:
                             int j;
                             for(j=0;j<res2[i].size()-1;j+=2){
                                 int c=res2[i][j];
-                                if(std::abs(c)>=0)
                                 expr += res2[i][j+1]*vars[c];
                             }
                             if(std::abs(res2[i][j])>=1e-12)
@@ -227,9 +226,9 @@ GurobiProgram::GurobiProgram(){
     //   grb_env->set(GRB_IntParam_Threads,8);
     //    grb_env->set(GRB_IntParam_Presolve,0);
     //   grb_env->set(GRB_IntParam_NumericFocus,3);
-    grb_env->set(GRB_IntParam_NonConvex,0);
-    grb_env->set(GRB_DoubleParam_FeasibilityTol, 1e-9);
-    grb_env->set(GRB_DoubleParam_OptimalityTol, 1e-9);
+//    grb_env->set(GRB_IntParam_NonConvex,0);
+//    grb_env->set(GRB_DoubleParam_FeasibilityTol, 1e-9);
+//    grb_env->set(GRB_DoubleParam_OptimalityTol, 1e-9);
     
     
     grb_env->set(GRB_IntParam_OutputFlag,1);
@@ -251,9 +250,9 @@ GurobiProgram::GurobiProgram(Model<>* m) {
             //    grb_env->set(GRB_IntParam_Threads,1);
             //    grb_env->set(GRB_IntParam_Presolve,0);
             //     grb_env->set(GRB_IntParam_NumericFocus,3);
-            grb_env->set(GRB_IntParam_NonConvex,0);
-            grb_env->set(GRB_DoubleParam_FeasibilityTol, 1e-9);
-            grb_env->set(GRB_DoubleParam_OptimalityTol, 1e-9);
+           // grb_env->set(GRB_IntParam_NonConvex,0);
+           // grb_env->set(GRB_DoubleParam_FeasibilityTol, 1e-9);
+           // grb_env->set(GRB_DoubleParam_OptimalityTol, 1e-9);
             
             grb_env->set(GRB_IntParam_OutputFlag,1);
             grb_mod = new GRBModel(*grb_env);
@@ -286,9 +285,9 @@ GurobiProgram::GurobiProgram(const shared_ptr<Model<>>& m) {
             //    grb_env->set(GRB_IntParam_Threads,1);
             //    grb_env->set(GRB_IntParam_Presolve,0);
             //   grb_env->set(GRB_IntParam_NumericFocus,3);
-            grb_env->set(GRB_IntParam_NonConvex,0);
-            grb_env->set(GRB_DoubleParam_FeasibilityTol, 1e-9);
-            grb_env->set(GRB_DoubleParam_OptimalityTol, 1e-9);
+            //grb_env->set(GRB_IntParam_NonConvex,0);
+            //grb_env->set(GRB_DoubleParam_FeasibilityTol, 1e-9);
+            //grb_env->set(GRB_DoubleParam_OptimalityTol, 1e-9);
             
             // grb_env->set(GRB_IntParam_OutputFlag,1);
             grb_mod = new GRBModel(*grb_env);
@@ -330,15 +329,16 @@ bool GurobiProgram::solve(bool relax, double mipgap){
     //    print_constraints();
     if (relax) relax_model();
     //    relax_model();
-    grb_mod->set(GRB_DoubleParam_MIPGap, 1e-9);
+    grb_mod->set(GRB_DoubleParam_MIPGap, 1e-6);
     grb_mod->set(GRB_DoubleParam_FeasibilityTol, 1e-9);
-    grb_mod->set(GRB_DoubleParam_OptimalityTol, 1e-9);
-    grb_mod->getEnv().set(GRB_IntParam_DualReductions, 0);
-    grb_mod->getEnv().set(GRB_IntParam_PreCrush, 1);
+    grb_mod->set(GRB_DoubleParam_OptimalityTol, 1e-6);
+//    grb_mod->getEnv().set(GRB_IntParam_DualReductions, 0);
+//    grb_mod->getEnv().set(GRB_IntParam_PreCrush, 1);
     grb_mod->getEnv().set(GRB_IntParam_LazyConstraints, 1);
     grb_mod->set(GRB_IntParam_Threads, 1);
     grb_mod->set(GRB_DoubleParam_IntFeasTol, 1e-9);
-   // grb_mod->set(GRB_IntParam_NumericFocus,3);
+    grb_mod->set(GRB_IntParam_NumericFocus,3);
+   // grb_mod->set(GRB_DoubleParam_Heuristics, 0.1);
     grb_mod->update();
     //grb_env2 = new GRBEnv();
     //auto mod2=GRBModel(grb_mod);

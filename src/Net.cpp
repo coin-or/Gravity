@@ -612,7 +612,43 @@ void Net::get_tree_decomp_bags() {
     }
     
     delete graph_clone;
-    
+    remove_duplicate_bags();
+    DebugOn("\n Bags = " << _bags.size() << endl);
+}
+void Net::remove_duplicate_bags()
+{
+    int count=-1;
+    for (auto &b:_bags) {
+        count++;
+        vector<string> cv;
+        for(auto j=0;j<b.second.size();j++){
+            cv.push_back(b.second[j]->_name);
+        }
+        int n=cv.size();
+        bool del_c=false;
+        for (auto &b2:_bags){
+            del_c=false;
+            vector<string> d;
+            if(b2.first!=b.first && b2.second.size()>n){
+                for(auto j=0;j<b2.second.size();j++){
+                    d.push_back(b2.second[j]->_name);
+                }
+            }
+            del_c=true;
+            for(auto &c:cv ){
+                if(std::find(d.begin(), d.end(),c)==d.end()){
+                    del_c=false;
+                    break;
+                }
+            }
+            if(del_c)
+                break;
+        }
+        if(del_c){
+            _bags.erase(_bags.begin()+count);
+            count--;
+        }
+    }
 }
 
 std::vector<pair<string,vector<Node*>>> Net::decompose_bags_3d(bool print_bags){

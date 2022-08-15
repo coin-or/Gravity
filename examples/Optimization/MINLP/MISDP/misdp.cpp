@@ -66,7 +66,7 @@ auto g=CBF_read(fname.c_str(), m);
     
    solver<> s(m,gurobi);
    s.run(5, 1e-6);
-
+    m->print_solution();
    // auto lin_model=m->buildOA();
    // auto interior_model=lin_model->add_outer_app_solution(*m);
 
