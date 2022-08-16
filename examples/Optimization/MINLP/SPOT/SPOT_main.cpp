@@ -11,6 +11,7 @@
 //
 
 #include <iostream>
+#include <gravity/solver.h>
 #ifdef USE_PcapPlusPlus
 #include "IPv4Layer.h"
 #include "Packet.h"
@@ -20,8 +21,8 @@
 #include "IPv4Layer.h"
 #include "TcpLayer.h"
 #include "HttpLayer.h"
-#endif
-#include <gravity/solver.h>
+
+
 
 std::string getProtocolTypeAsString(pcpp::ProtocolType protocolType)
 {
@@ -89,6 +90,7 @@ std::string printHttpMethod(pcpp::HttpRequestLayer::HttpMethod httpMethod)
             return "Other";
     }
 }
+#endif
 
 int main(int argc, char* argv[])
 {
@@ -116,56 +118,33 @@ int main(int argc, char* argv[])
     
     // read the first (and only) packet from the file
     pcpp::RawPacket rawPacket;
-    if (!reader.getNextPacket(rawPacket))
+//    if (!reader.getNextPacket(rawPacket))
+//    {
+//        std::cerr << "Couldn't read the first packet in the file" << std::endl;
+//        return 1;
+//    }
+    
+    
+    while (reader.getNextPacket(rawPacket))
     {
-        std::cerr << "Couldn't read the first packet in the file" << std::endl;
-        return 1;
+        // parse the raw packet into a parsed packet
+        pcpp::Packet parsedPacket(&rawPacket);
+        // let's get the IPv4 layer
+        pcpp::IPv4Layer* ipLayer = parsedPacket.getLayerOfType<pcpp::IPv4Layer>();
+        if (ipLayer == NULL)
+        {
+            std::cerr << "Something went wrong, couldn't find IPv4 layer" << std::endl;
+            return 1;
+        }
+        
+        // print source and dest IP addresses, IP ID and TTL
+        std::cout << std::endl
+        << "Source IP address: " << ipLayer->getSrcIPAddress() << std::endl
+        << "Destination IP address: " << ipLayer->getDstIPAddress() << std::endl
+        << "IP ID: 0x" << std::hex << pcpp::netToHost16(ipLayer->getIPv4Header()->ipId) << std::endl
+        << "TTL: " << std::dec << (int)ipLayer->getIPv4Header()->timeToLive << std::endl;
+        auto xyz = ipLayer->
     }
-    
-    // parse the raw packet into a parsed packet
-    pcpp::Packet parsedPacket(&rawPacket);
-    
-    // first let's go over the layers one by one and find out its type, its total length, its header length and its payload length
-    for (pcpp::Layer* curLayer = parsedPacket.getFirstLayer(); curLayer != NULL; curLayer = curLayer->getNextLayer())
-    {
-        std::cout
-        << "Layer type: " << getProtocolTypeAsString(curLayer->getProtocol()) << "; " // get layer type
-        << "Total data: " << curLayer->getDataLen() << " [bytes]; " // get total length of the layer
-        << "Layer data: " << curLayer->getHeaderLen() << " [bytes]; " // get the header length of the layer
-        << "Layer payload: " << curLayer->getLayerPayloadSize() << " [bytes]" // get the payload length of the layer (equals total length minus header length)
-        << std::endl;
-    }
-    
-    
-    // now let's get the Ethernet layer
-    pcpp::EthLayer* ethernetLayer = parsedPacket.getLayerOfType<pcpp::EthLayer>();
-    if (ethernetLayer == NULL)
-    {
-        std::cerr << "Something went wrong, couldn't find Ethernet layer" << std::endl;
-        return 1;
-    }
-    
-    // print the source and dest MAC addresses and the Ether type
-    std::cout << std::endl
-    << "Source MAC address: " << ethernetLayer->getSourceMac() << std::endl
-    << "Destination MAC address: " << ethernetLayer->getDestMac() << std::endl
-    << "Ether type = 0x" << std::hex << pcpp::netToHost16(ethernetLayer->getEthHeader()->etherType) << std::endl;
-    
-    // let's get the IPv4 layer
-    pcpp::IPv4Layer* ipLayer = parsedPacket.getLayerOfType<pcpp::IPv4Layer>();
-    if (ipLayer == NULL)
-    {
-        std::cerr << "Something went wrong, couldn't find IPv4 layer" << std::endl;
-        return 1;
-    }
-    
-    // print source and dest IP addresses, IP ID and TTL
-    std::cout << std::endl
-    << "Source IP address: " << ipLayer->getSrcIPAddress() << std::endl
-    << "Destination IP address: " << ipLayer->getDstIPAddress() << std::endl
-    << "IP ID: 0x" << std::hex << pcpp::netToHost16(ipLayer->getIPv4Header()->ipId) << std::endl
-    << "TTL: " << std::dec << (int)ipLayer->getIPv4Header()->timeToLive << std::endl;
-    
     
     // create the stats object
     pcpp::IPcapDevice::PcapStats stats;
