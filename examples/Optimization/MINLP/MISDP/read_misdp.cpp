@@ -227,7 +227,7 @@ Net CBF_read(const char *file, shared_ptr<Model<double>>& m) {
     y_ub.in(I);y_lb.in(I);
     for (int i = 0; i<C.size(); i++) {
         x_lb.set_val(i, 0);
-        x_ub.set_val(i, 0.1);
+        x_ub.set_val(i, 0.2);
     }
     for (int i = 0; i<I.size(); i++) {
         y_lb.set_val(i, 0);
@@ -676,28 +676,42 @@ Net CBF_read(const char *file, shared_ptr<Model<double>>& m) {
             m->add(Zkij.in(zk_nodepairs_chord));
             Zij.push_back(Zkij);
             Constraint<> SOCVa("SOCVa"+to_string(count));
-            SOCVa = 2*Zkij - (Zk.from(zk_nodepairs)+Zk.to(zk_nodepairs));
-            m->add(SOCVa.in(zk_nodepairs)<=0);
+            SOCVa = 2*Zkij - (Zk.from(zk_nodepairs_chord)+Zk.to(zk_nodepairs_chord));
+           // m->add(SOCVa.in(zk_nodepairs_chord)<=0);
             
             Constraint<> SOCVb("SOCVb"+to_string(count));
-            SOCVb = -2*Zkij - (Zk.from(zk_nodepairs)+Zk.to(zk_nodepairs));
-            m->add(SOCVb.in(zk_nodepairs)<=0);
+            SOCVb = -2*Zkij - (Zk.from(zk_nodepairs_chord)+Zk.to(zk_nodepairs_chord));
+           // m->add(SOCVb.in(zk_nodepairs_chord)<=0);
             
             Constraint<> SOCmida("SOCmida"+to_string(count));
-            SOCmida = 2*sqrt(midk.to(zk_nodepairs)*midk.from(zk_nodepairs))*Zkij - (midk.to(zk_nodepairs)*Zk.from(zk_nodepairs)+midk.from(zk_nodepairs)*Zk.to(zk_nodepairs));
-            m->add(SOCmida.in(zk_nodepairs)<=0);
+            SOCmida = 2*sqrt(midk.to(zk_nodepairs_chord)*midk.from(zk_nodepairs_chord))*Zkij - (midk.to(zk_nodepairs_chord)*Zk.from(zk_nodepairs_chord)+midk.from(zk_nodepairs_chord)*Zk.to(zk_nodepairs_chord));
+            //m->add(SOCmida.in(zk_nodepairs_chord)<=0);
             
             Constraint<> SOCmidb("SOCmidb"+to_string(count));
-            SOCmidb = (-2)*sqrt(midk.to(zk_nodepairs)*midk.from(zk_nodepairs))*Zkij - (midk.to(zk_nodepairs)*Zk.from(zk_nodepairs)+midk.from(zk_nodepairs)*Zk.to(zk_nodepairs));
-            m->add(SOCmidb.in(zk_nodepairs)<=0);
+            SOCmidb = (-2)*sqrt(midk.to(zk_nodepairs_chord)*midk.from(zk_nodepairs_chord))*Zkij - (midk.to(zk_nodepairs_chord)*Zk.from(zk_nodepairs_chord)+midk.from(zk_nodepairs_chord)*Zk.to(zk_nodepairs_chord));
+           // m->add(SOCmidb.in(zk_nodepairs_chord)<=0);
 
+            Constraint<> SOC("SOC"+to_string(count));
+            SOC = pow(Zkij, 2) - Zk.from(zk_nodepairs_chord)*Zk.to(zk_nodepairs_chord);
+            SOC.add_to_callback();
+           // m->add(SOC.in(zk_nodepairs_chord)<=0);
+            if(b.second.size()>=3){
             
-         
+            auto b3d=g.decompose_bag_3d(b);
             
-//            Constraint<> SOC("SOC"+to_string(count));
-//            SOC = pow(Zkij, 2) - Zk.from(zk_nodepairs)*Zk.to(zk_nodepairs);
-//            SOC.add_to_callback();
-           // m->add(SOC.in(zk_nodepairs)<=0);
+            auto Wij_ = Zkij.pairs_in_bags(b3d, 3);
+            auto Wii_ = Zk.in_bags(b3d, 3);
+            
+            Constraint<> SDP3a("SDP_3D"+to_string(count));
+            
+            SDP3a += (pow(Wij_[0], 2)) * Wii_[2];
+            SDP3a += (pow(Wij_[1], 2)) * Wii_[0];
+            SDP3a += (pow(Wij_[2], 2)) * Wii_[1];
+            SDP3a -= 2 * Wij_[0] * (Wij_[1] * Wij_[2]);
+            SDP3a -= Wii_[0] * Wii_[1] * Wii_[2];
+            SDP3a.add_to_callback();
+            //m->add(SDP3a.in(range(0, b3d.size()-1)) <= 0);
+            }
             _bag_names.push_back(bn);
             count++;
             DebugOn(endl);
@@ -812,7 +826,7 @@ Net CBF_read(const char *file, shared_ptr<Model<double>>& m) {
         SDP3 -= 2 * Wij_[0] * (Wij_[1] * Wij_[2]);
         SDP3 -= Wii_[0] * Wii_[1] * Wii_[2];
         SDP3.add_to_callback();
-        m->add(SDP3.in(range(0, bag_size-1)) <= 0);
+       // m->add(SDP3.in(range(0, bag_size-1)) <= 0);
        
         
      
@@ -841,24 +855,8 @@ Net CBF_read(const char *file, shared_ptr<Model<double>>& m) {
     else{
         m->max(obj);
     }
-    count=0;
-//    y.param<int>::set_val("18", 1);
-//    y.param<int>::set_val("24", 1);
-//    y.param<int>::set_val("33", 1);
-//    x.param<>::set_val("36", 0.1);
-    
-//    Constraint<> conf("conf"+to_string(count++));
-//    conf=y(18)-1;
-//    m->add(conf==0);
-//    Constraint<> conf1("conf"+to_string(count++));
-//    conf1=y(24)-1;
-//    m->add(conf1==0);
-//    Constraint<> conf2("conf"+to_string(count++));
-//    conf2=y(33)-1;
-//    m->add(conf2==0);
-//    Constraint<> conf3("conf"+to_string(count++));
-//    conf3=x(36)-0.1;
-//    m->add(conf3==0);
+ 
+
     
   
     return g;

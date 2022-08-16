@@ -693,6 +693,50 @@ std::vector<pair<string,vector<Node*>>> Net::decompose_bags_3d(bool print_bags){
     DebugOn("Total number of 3D bags after decompsition = " << res.size() << endl);
     return res;
 }
+std::vector<pair<string,vector<Node*>>> Net::decompose_bag_3d(const pair<string,vector<Node*>>& bag)
+{
+    map<string,vector<Node*>> unique_bags;
+    vector<pair<string,vector<Node*>>> res;
+    auto bag_copy=bag;
+//    for (auto &bag_copy:bag) {
+        if(bag_copy.second.size()>=3){
+            DebugOff("Decomposing bigger bag into 3d bags\n");
+            
+            for (auto i = 0; i<bag_copy.second.size()-2; i++) {
+                for (auto j = i+1; j<bag_copy.second.size()-1; j++) {
+                    for (auto k = j+1; k<bag_copy.second.size(); k++) {
+                        pair<string,vector<Node*>> new_bag;
+                        map<size_t, Node*> ordered_names;
+                        ordered_names[bag_copy.second[i]->_id] = bag_copy.second[i];
+                        ordered_names[bag_copy.second[j]->_id] = bag_copy.second[j];
+                        ordered_names[bag_copy.second[k]->_id] = bag_copy.second[k];
+                        string key;
+                        for (auto node_it = ordered_names.begin(); node_it != ordered_names.end(); node_it++) {
+                            new_bag.second.push_back(node_it->second);
+                            key += node_it->second->_name;
+                            if (next(node_it)!=ordered_names.end()) {
+                                key += ",";
+                            }
+                        }
+                        new_bag.first = key;
+                        if(unique_bags.insert(new_bag).second){
+                            res.push_back(new_bag);
+//                            if(print_bags){
+//                                DebugOn("new bag = { ");
+//                                for (int i=0; i<new_bag.second.size();     i++) {
+//                                    DebugOn(new_bag.second.at(i)->_name << " ");
+//                                }
+//                                DebugOn("}" << endl);
+//                            }
+                        }
+                    }
+                }
+            }
+        }
+    
+    DebugOn("Total number of 3D bags after decompsition = " << res.size() << endl);
+    return res;
+}
 void Net::pool_get_tree_decomp_bags() {
     Node* n = nullptr;
     Node* u = nullptr;
@@ -846,6 +890,7 @@ std::vector<pair<string,vector<Node*>>> Net::pool_decompose_bags_3d(bool print_b
     DebugOn("Total number of 3D bags after decompsition = " << res.size() << endl);
     return res;
 }
+
 
 //std::vector<std::vector<Node*>> Net::decompose_bags_4d(bool print_bags)
 //{

@@ -24,7 +24,7 @@ int main (int argc, char * argv[])
     string fname = string(prj_dir)+"/data_sets/Power/nesta_case5_pjm.m";
     
     string path = argv[0];
-    string solver_str="ipopt";
+    string solver_str="Mosek";
 #ifdef USE_OPT_PARSER
     /** Create a OptionParser with options */
     op::OptionParser opt;
@@ -232,8 +232,8 @@ int main (int argc, char * argv[])
     }
     else {
 //        SOCP.print();
-        solver<> SOCOPF(SOCP,ipopt);
-        SOCOPF.set_option("linear_solver", lin_solver);
+        solver<> SOCOPF(SOCP,_mosek);
+        //SOCOPF.set_option("linear_solver", lin_solver);
         auto solver_time_start = get_wall_time();
         SOCOPF.run(output=5, tol=1e-6);
         solver_time_end = get_wall_time();

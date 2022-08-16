@@ -49,8 +49,10 @@ using namespace std;
 
 int main(){
 //string fname=string(prj_dir)+"/data_sets/MISDP/2x3_3bars.cbf";
-   // string fname=string(prj_dir)+"/data_sets/MISDP/2x7_3bars.cbf";
+    //string fname=string(prj_dir)+"/data_sets/MISDP/2x7_3bars.cbf";
     string fname=string(prj_dir)+"/data_sets/MISDP/2x4_2scen_3bars.cbf";
+    //string fname=string(prj_dir)+"/data_sets/MISDP/coloncancer_1_100_5.cbf";
+    //string fname=string(prj_dir)+"/data_sets/MISDP/2g_4_164_k3_5_6.cbf";
 auto m=make_shared<Model<double>>("misdp_test");
 auto g=CBF_read(fname.c_str(), m);
     g.print();
@@ -67,6 +69,11 @@ auto g=CBF_read(fname.c_str(), m);
    solver<> s(m,gurobi);
    s.run(5, 1e-6);
     m->print_solution();
+    m->round_solution();
+    m->_obj->uneval();
+    DebugOn("Rounded solution objective = " << m->_obj->eval() << endl);
+    m->print_constraints_stats(1e-5);
+    
    // auto lin_model=m->buildOA();
    // auto interior_model=lin_model->add_outer_app_solution(*m);
 
@@ -76,8 +83,8 @@ auto g=CBF_read(fname.c_str(), m);
     
 //    solver<> s(m, gurobi);
 //    s.run(5,1e-9);
-    m->print_solution();
-    m->cuts_eigen(1e-10);
+   // m->print_solution();
+    //m->cuts_eigen(1e-10);
     m->print_constraints_stats(1e-9);
     
 

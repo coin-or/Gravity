@@ -188,6 +188,8 @@ public:
 
     /** Return a chordal extension graph with tree decomposition **/
     Net* get_chordal_extension();
+    
+    std::vector<pair<string,vector<Node*>>> decompose_bag_3d(const pair<string,vector<Node*>>& bag);
 
     /** Compute the vector of bus pairs, ignoring parallel lines **/
     gravity::indices get_node_pairs();

@@ -28,14 +28,14 @@ int main (int argc, char * argv[]) {
     
     size_t num_bags = 0;
     string num_bags_s = "100";
-    string solver_str = "ipopt";
+    string solver_str = "Mosek";
     string sdp_cuts_s = "yes";
     string current_from_s = "yes";
     string orig_s = "yes";
     string current_to_s="yes";
     string lazy_s = "no";
     bool lazy_bool = false;
-    SolverType solv_type = ipopt;
+    SolverType solv_type = _mosek;
     double tol = 1e-6;
     string mehrotra = "no";
     

@@ -153,7 +153,7 @@ Model<type> Model<type>::build_model_interior() const
     Interior.add(eta_int.in(ind_eta));
     
     /* Objective */
-    Interior.min(sum(eta_int));
+    Interior.min(0);
     
     /* Constraints */
     int count=0;
@@ -466,7 +466,7 @@ Model<> Model<>::get_interior(Model<>& nonlin)
     bool interior=false, convex_region=true;
     size_t posv;
     int output=0;
-    double scale=1.0, tol=1e-6;
+    double scale=1.0, tol=1e-3;
     auto Ointerior = nonlin.build_model_interior();
     solver<> modelI(Ointerior, ipopt);
     modelI.run(output=5, tol);
@@ -605,7 +605,7 @@ vector<vector<double>> Model<type>::cutting_planes_solution(const Model<type>& i
     vector<double> cut;
     for (auto &con: _cons_vec)
     {
-        if(!con->is_linear() && con->_callback && con->is_convex()) {
+        if(!con->is_linear() && con->_callback) {
             // if(con->_name!="limit_neg"){
             auto cnb_inst=con->get_nb_inst();
             for(auto i=0;i<cnb_inst;i++){
@@ -964,7 +964,7 @@ vector<vector<double>> Model<type>::cuts_eigen(const double active_tol)
         }
         SelfAdjointEigenSolver<MatrixXd> es;
         es.compute(mat_X);
-        for(auto m=0;m<dim;m++){
+        for(auto m=0;m<1;m++){
             if(es.eigenvalues()[m]<=-active_tol){
                 vector<double> c_val;
                 c0_val=0;
@@ -1050,7 +1050,7 @@ vector<vector<double>> Model<type>::cuts_eigen(const double active_tol)
                 }
                 cost*=scale;
                
-                if(cost>=1e-6){
+                if(cost>=1e-9){
                     for(auto i=0;i<c_val.size();i++){
                         cut.push_back(var_ind[i]);
                         cut.push_back(c_val[i]*scale);
@@ -1060,8 +1060,8 @@ vector<vector<double>> Model<type>::cuts_eigen(const double active_tol)
                     DebugOff("posc "<<cost<<endl);
                 }
                 else{
-                    if(cost<=1e-6)
-                        DebugOn("cost "<<cost<<endl);
+                    if(cost<=1e-9)
+                        DebugOff("cost "<<cost<<endl);
                 }
                 cut.clear();
             }

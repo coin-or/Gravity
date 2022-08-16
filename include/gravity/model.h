@@ -2394,6 +2394,8 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
                 nb_inst = c->get_nb_inst();
                 nb_viol = 0;
                 nb_active = 0;
+                c->uneval();
+                c->eval_all();
                 c->_all_satisfied = true;
                 c->_violated.resize(nb_inst);
                 c->_active.resize(nb_inst);
