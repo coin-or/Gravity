@@ -23,14 +23,18 @@ int main(int argc, const char * argv[]) {
         cout << m.sensors.size() << " " << m.M << " " << duration.count() << endl;
     }*/
     myModel m = myModel();
-    auto start = high_resolution_clock::now();
+    //auto start = high_resolution_clock::now();
     vector<param<double>> par = m.readData(argc, argv, 1, 2);
-    m.InitBilevel(par[0], par[1], par[2]);
-    //m.GreedyStart(par[0], par[1], par[2]);
-    m.mSolve();
+    auto start = high_resolution_clock::now();
+    m.InitBilevel(par[0], par[1], par[2], 0.001);
+    m.GreedyStart(par[0], par[1], par[2]);
     auto stop = high_resolution_clock::now();
-    auto duration = duration_cast<milliseconds>(stop - start);
-    cout << duration.count() << endl;
+    auto duration1 = duration_cast<seconds>(stop - start);
+    cout << "Init + greedy time: " << duration1.count() << endl;
+    m.mSolve();
+    auto stop2 = high_resolution_clock::now();
+    auto duration2 = duration_cast<seconds>(stop2 - stop);
+    cout << m.N << " " << m.M << " " << m.K << " " << duration1.count() + duration2.count() << endl;
     /*auto y = m.model.get_var<double>("y");
     auto psn = m.model.get_var<double>("p_sn");
     ofstream yFile;
@@ -189,10 +193,12 @@ vector<param<double>> myModel::readData(int argc, const char * argv[], int n1, i
     return par;
 }
 
-void myModel::InitBilevel(param<double> w0, param<double> w_own, param<double> w_bought) {
+void myModel::InitBilevel(param<double> &w0, param<double> &w_own, param<double> &w_bought, double eps) {
     
-    double e = 0.001;
-
+    //double e = 0.001;
+    e = eps;
+    //max_price = std::max(w_own._range->second,w_bought._range->second);
+    
     w_own.reset_range();
     w_bought.reset_range();
     /*Variables*/
@@ -200,27 +206,65 @@ void myModel::InitBilevel(param<double> w0, param<double> w_own, param<double> w
     model.add(p.in(sensors));
     var<double> y("y", 0, std::max(w_own._range->second,w_bought._range->second));
     model.add(y.in(sensors));
+    
     var<int> s("s", 0, 1);
     model.add(s.in(own_arcs));
     var<int> sn("sn", 0, 1);
     model.add(sn.in(sensors));
-    var<double> p_sn("p_sn", 0, std::max(w_own._range->second,w_bought._range->second));
-    model.add(p_sn.in(sensors));
-    
-    var<double> p_z("p_z", 0, std::max(w_own._range->second,w_bought._range->second));
-    model.add(p_z.in(bought_arcs));
-    
     var<int> z0("z0", 0, 1);
     model.add(z0.in(arcs));
     var<int> z("z", 0, 1);
     model.add(z.in(bought_arcs));
     
+    var<double> p_sn("p_sn", 0, std::max(w_own._range->second,w_bought._range->second));
+    model.add(p_sn.in(sensors));
+    var<double> p_z("p_z", 0, std::max(w_own._range->second,w_bought._range->second));
+    model.add(p_z.in(bought_arcs));
+//    var<double> p_z0("p_z0", 0, std::max(w_own._range->second,w_bought._range->second));
+//    model.add(p_z0.in(arcs));
+    
+    
+//    Constraint<> p_sn_def_le("p_sn_def_le");
+//    p_sn_def_le = p - p_sn + std::max(w_own._range->second,w_bought._range->second)*sn - std::max(w_own._range->second,w_bought._range->second);
+//    model.add(p_sn_def_le.in(sensors)<=0);
+//
+//    Constraint<> p_sn_def_ge("p_sn_def_ge");
+//    p_sn_def_ge = p - p_sn - std::max(w_own._range->second,w_bought._range->second)*sn + std::max(w_own._range->second,w_bought._range->second);
+//    model.add(p_sn_def_ge.in(sensors)>=0);
+//
+//    Constraint<> p_z_def_le("p_z_def_le");
+//    p_z_def_le = p.in_ignore_ith(1, 2, bought_arcs) - p_z + std::max(w_own._range->second,w_bought._range->second)*z - std::max(w_own._range->second,w_bought._range->second);
+//    model.add(p_z_def_le.in(bought_arcs)<=0);
+//
+//    Constraint<> p_z_def_ge("p_z_def_ge");
+//    p_z_def_ge = p.in_ignore_ith(1, 2, bought_arcs) - p_z - std::max(w_own._range->second,w_bought._range->second)*z + std::max(w_own._range->second,w_bought._range->second);
+//    model.add(p_z_def_ge.in(bought_arcs)>=0);
+//
+//    Constraint<> p_z0_def_le("p_z0_def_le");
+//    p_z0_def_le = p.in_ignore_ith(1, 2, arcs) - p_z0 + std::max(w_own._range->second,w_bought._range->second)*z0 - std::max(w_own._range->second,w_bought._range->second);
+//    model.add(p_z0_def_le.in(arcs)<=0);
+//
+//    Constraint<> p_z0_def_ge("p_z0_def_ge");
+//    p_z0_def_ge = p.in_ignore_ith(1, 2, arcs) - p_z0 - std::max(w_own._range->second,w_bought._range->second)*z0 + std::max(w_own._range->second,w_bought._range->second);
+//    model.add(p_z0_def_ge.in(arcs)>=0);
+//
+//    Constraint<> p_sn_zero("p_sn_zero");
+//    p_sn_zero =  p_sn - std::max(w_own._range->second,w_bought._range->second)*sn;
+//    model.add(p_sn_zero.in(sensors)<=0);
+//
+//    Constraint<> p_z_zero("p_z_zero");
+//    p_z_zero =  p_z - std::max(w_own._range->second,w_bought._range->second)*z;
+//    model.add(p_z_zero.in(bought_arcs)<=0);
+//
+//    Constraint<> p_z0_zero("p_z0_zero");
+//    p_z0_zero =  p_z0 - std::max(w_own._range->second,w_bought._range->second)*z0;
+//    model.add(p_z0_zero.in(arcs)<=0);
     
     Constraint<> p_sn_def("p_sn_def");
     p_sn_def = p*sn - p_sn;
     model.add(p_sn_def.in(sensors)==0);
     
-    
+    //model.add_on_off_multivariate_refined(p_z_def.in(bought_arcs)==0, z);
     Constraint<> p_z_def("p_z_def");
     p_z_def = p.in_ignore_ith(1, 2, bought_arcs)*z - p_z;
     model.add(p_z_def.in(bought_arcs)==0);
@@ -272,9 +316,9 @@ void myModel::InitBilevel(param<double> w0, param<double> w_own, param<double> w
     ub = z0.in(z0_ids) + z.in(z_ids) - sn;
     model.add(ub.in(sensors) == 0);
 
-    Constraint<> luo("Leader_Unique_Object");
+    /*Constraint<> luo("Leader_Unique_Object");
     luo = sum(z0.in_matrix(0, 1));
-    model.add(luo.in(objects) <= 1);
+    model.add(luo.in(objects) <= 1);*/
     
     Constraint<> luub("Leader_Utility_ub");
     luub = p.in_ignore_ith(1, 1, arcs) * z0.in(arcs) - w0.in(arcs);
@@ -287,9 +331,9 @@ void myModel::InitBilevel(param<double> w0, param<double> w_own, param<double> w
     fua = sum(s.in_matrix(1, 1)) + sn.in_ignore_ith(1, 1, own_sens);
     model.add(fua.in(own_sens) <= 1);
     
-    Constraint<> fuab("Unique_Bought_Assignment");
+    /*Constraint<> fuab("Unique_Bought_Assignment");
     fuab = sum(z.in_matrix(1, 1)) -  sn.in_ignore_ith(1, 1, bought_sens);
-    model.add(fuab.in(bought_sens) <= 0);
+    model.add(fuab.in(bought_sens) <= 0);*/
     
     
     indices c_fub("c_fub"), z_fub("z_fub"), s_fub("s_fub");
@@ -324,9 +368,9 @@ void myModel::InitBilevel(param<double> w0, param<double> w_own, param<double> w
     fub = s.in(s_fub) + z.in(z_fub);
     model.add(fub.in(c_fub) <= 1);
     
-    Constraint<> fuub("Followers_Utility_ub");
-    fuub = p.in_ignore_ith(1, 2, bought_arcs) * z - w_bought;
-    model.add(fuub.in(bought_arcs) <= 0);
+    Constraint<> fulb("Followers_Utility_lb");
+    fulb = w_bought - p_z;//p.in_ignore_ith(1, 2, bought_arcs) * z;
+    model.add(fulb.in(bought_arcs) >= 0);
     
         //----Fair price----
     Constraint<> fp("FairPrice");
@@ -373,10 +417,6 @@ void myModel::InitBilevel(param<double> w0, param<double> w_own, param<double> w
     sl1 = y.in(y_lb1) + w_own.in(w_own_s_lb1)*s.in(s_lb1) + w_own.in(w_own_z_lb1)*z.in(z_lb1) - w_own.in(w_own_lb1);
     model.add(sl1.in(c_lb1) >= 0);
     
-    //w_own.print();
-    //w_bought.print();
-    
-//    own_rplc.print();
     Constraint<> sl2("Seller lb2");
     sl2 = y.in_ignore_ith(1, 3, own_rplc) - (w_own.in_ignore_ith(1, 1, own_rplc) - w_own.in_ignore_ith(0, 1, own_rplc)) * s.in_ignore_ith(0, 1, own_rplc);
     model.add(sl2.in(own_rplc) >= 0);
@@ -390,14 +430,13 @@ void myModel::InitBilevel(param<double> w0, param<double> w_own, param<double> w
     no_colab = sn;
     model.add(no_colab.in(sensors) == 0);*/
     
-    
 //    model.print_symbolic();
 //    model.print();
 //    model.write("before.txt");
 //    model.replace_integers();
 //    model.restructure();
 //    model.write(3);
-    //model.print();
+//    model.print();
 //    model.replace_integers();
 //    auto R = model.relax();
 //    R->print();
@@ -420,7 +459,7 @@ void myModel::mSolve() {
     //model.print_solution();
 }
 
-void myModel::GreedyStart(param<double> w0, param<double> w_own, param<double> w_bought) {
+void myModel::GreedyStart(const param<double> &w0, const param<double> &w_own, const param<double> &w_bought) {
 
     param<double> wt0 = w0.deep_copy();
     param<double> wt_own = w_own.deep_copy();
@@ -444,7 +483,8 @@ void myModel::GreedyStart(param<double> w0, param<double> w_own, param<double> w
     int sensor;
     int object;
     int agent;
-    vector<double> p_ub(N, 0);
+    double obj = 0;
+    vector<double> p_ub(N, std::max(w_own._range->second,w_bought._range->second));
 
     while(parSum(wt0) + parSum(wt_own) + parSum(wt_bought) > 0) {
         idx1 = findMax(wt0);
@@ -462,16 +502,19 @@ void myModel::GreedyStart(param<double> w0, param<double> w_own, param<double> w
             else {
                 //assign bought
                 assignBought(idx3, wt0, wt_own, wt_bought);
+                obj += m3;
                 p_ub[stoi(idx3.substr(6, idx3.find(",")))] = m3;
             }
         }
         else if (m2 >= m3) {
             //assign own
             assignOwn(idx2, wt0, wt_own, wt_bought);
+            obj += m2;
         }
         else {
             //assign bought
             assignBought(idx3, wt0, wt_own, wt_bought);
+            obj += m3;
             p_ub[stoi(idx3.substr(6, idx3.find(",")))] = m3;
         }
     }
@@ -490,17 +533,17 @@ void myModel::GreedyStart(param<double> w0, param<double> w_own, param<double> w
             for (auto b : graph.get_node(a->_dest->_name)->get_in()) {
                 t = b->_src->_name;
                 if (owner[stoi(t.substr(6, idx3.find(",")))] == owner[i]) {
-                    int tmps = s.eval(t + "," + a->_dest->_name + "," + "agent" + to_string(owner[i]));
-                    s_sum += s.eval(t + "," + a->_dest->_name + "," + "agent" + to_string(owner[i]));
-                    y2 = std::max(y2, (w_own.eval("sensor" + to_string(i) + "," + a->_dest->_name + "," + "agent" + to_string(owner[i])) - w_own.eval(t + "," + a->_dest->_name + "," + "agent" + to_string(owner[i]))) * s.eval(t + "," + a->_dest->_name + "," + "agent" + to_string(owner[i])));
+                    int tmps = s.eval(t + "," + a->_dest->_name + ",agent" + to_string(owner[i]));
+                    s_sum += s.eval(t + "," + a->_dest->_name + ",agent" + to_string(owner[i]));
+                    y2 = std::max(y2, (w_own.eval("sensor" + to_string(i) + "," + a->_dest->_name + ",agent" + to_string(owner[i])) - w_own.eval(t + "," + a->_dest->_name + ",agent" + to_string(owner[i]))) * s.eval(t + "," + a->_dest->_name + ",agent" + to_string(owner[i])));
                 }
                 else {
-                    z_sum += z.eval(t + "," + a->_dest->_name + "," + "agent" + to_string(owner[i]));
-                    //y3 = std::max(y3, ((w_own.eval("sensor" + to_string(i) + "," + a->_dest->_name) - w_bought.eval(t + "," + a->_dest->_name + "," + "agent" + to_string(owner[i]))) * z.eval(t + "," + //a->_dest->_name + "," + "agent" + to_string(owner[i])) + p_ub[i]/2)/(1 - z.eval(t + "," + a->_dest->_name + "," + "agent" + to_string(owner[i]))));
+                    z_sum += z.eval(t + "," + a->_dest->_name + ",agent" + to_string(owner[i]));
+                    y3 = std::max(y3, std::min(p_ub[i], (w_own.eval("sensor" + to_string(i) + "," + a->_dest->_name + ",agent" + to_string(owner[i])) - w_bought.eval(t + "," + a->_dest->_name + ",agent" + to_string(owner[i])) + p_ub[stoi(t.substr(6, t.length()))]) * z.eval(t + "," + a->_dest->_name + ",agent" + to_string(owner[i]))));
                 }
             }
-            if (y1 < w_own.eval("sensor" + to_string(i) + "," + a->_dest->_name + "," + "agent" + to_string(owner[i])) * (1 - s_sum - z_sum)) {
-                y1 = w_own.eval("sensor" + to_string(i) + "," + a->_dest->_name + "," + "agent" + to_string(owner[i])) * (1 - s_sum - z_sum);
+            if (y1 < w_own.eval("sensor" + to_string(i) + "," + a->_dest->_name + ",agent" + to_string(owner[i])) * (1 - s_sum - z_sum)) {
+                y1 = w_own.eval("sensor" + to_string(i) + "," + a->_dest->_name + ",agent" + to_string(owner[i])) * (1 - s_sum - z_sum);
             }
             s_sum = 0;
             z_sum = 0;
@@ -516,6 +559,7 @@ void myModel::GreedyStart(param<double> w0, param<double> w_own, param<double> w
                 p_z("sensor" + to_string(i) + "," + a->_dest->_name + ",agent" + to_string(k)).set_val(z.eval("sensor" + to_string(i) + "," + a->_dest->_name + ",agent" + to_string(k)) * (p_ub[i] + std::max(std::max(y1, y2), y3))/2);
             }
         }
+        obj -= e * p_sn.eval("sensor" + to_string(i));
         /*Constraint<> tmp1("tmp1" + to_string(i));
         tmp1 = y("sensor" + to_string(i)) - std::max(std::max(y1, y2), y3);
         model.add(tmp1 == 0);
@@ -533,10 +577,12 @@ void myModel::GreedyStart(param<double> w0, param<double> w_own, param<double> w
     p.print_vals(3);
     p_sn.print_vals(3);
     p_z.print_vals(3);*/
+    cout << "Greedy objective: " << obj << endl;
+    //model.print_constraints_stats(1e-4);
 }
 
 
-void myModel::assignLeader(string &idx, param<double> wt0, param<double> wt_own, param<double> wt_bought) {
+void myModel::assignLeader(string &idx, param<double> &wt0, param<double> &wt_own, param<double> &wt_bought) {
     auto sn = model.get_var<int>("sn");
     auto z0 = model.get_var<int>("z0");
     int ownr;
@@ -585,7 +631,7 @@ void myModel::assignLeader(string &idx, param<double> wt0, param<double> wt_own,
     model.add(tmpLead1 == 0);*/
 }
 
-void myModel::assignOwn(string &idx, param<double> wt0, param<double> wt_own, param<double> wt_bought) {
+void myModel::assignOwn(string &idx, param<double> &wt0, param<double> &wt_own, param<double> &wt_bought) {
     auto s = model.get_var<int>("s");
     int ownr;
     int sensor;
@@ -624,7 +670,7 @@ void myModel::assignOwn(string &idx, param<double> wt0, param<double> wt_own, pa
     }
 }
 
-void myModel::assignBought(string &idx, param<double> wt0, param<double> wt_own, param<double> wt_bought) {
+void myModel::assignBought(string &idx, param<double> &wt0, param<double> &wt_own, param<double> &wt_bought) {
     auto sn = model.get_var<int>("sn");
     auto z = model.get_var<int>("z");
     int ownr;
@@ -684,16 +730,17 @@ double myModel::parSum(param<double> w) {
     return s;
 }
 
-string myModel::findMax(param<double> w) {
-    string max_idx = (*w.get_keys())[0];
+string myModel::findMax(const param<double> &w) {
+    int pos = 0;
     double max_el = 0;
-    for (auto i: *w.get_keys()) {
-        if (w.eval(i) > max_el) {
-            max_el = w.eval(i);
-            max_idx = i;
+    vector<double> wts = *w.get_vals();
+    for (int i = 0; i < wts.size(); i++) {
+        if (wts[i] > max_el) {
+            max_el = wts[i];
+            pos = i;
         }
     }
-    return max_idx;
+    return (*w.get_keys())[pos];
 }
 
 int myModel::nthOccurrence(const std::string& str, const std::string& findMe, int nth)

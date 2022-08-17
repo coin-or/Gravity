@@ -6730,7 +6730,7 @@ public:
     //This function adds on-off version of a given linear constraint and the binary variables to activate. The boolean option handles all the facet definining inequalities of the convex hull (if true), else it only adds the Big_M version of the constraint
     //INPUT: linear constraint to be activated, corresponding binary variables to form a disjunctive union, big_M version of the constraint or the whole convex hull
     //OUTPUT: disjunctive union of the constraints provided by "c" and linked by "on"
-    void add_on_off_multivariate_refined(Constraint<type>& c, const var<int>& on, bool big_M = false){
+    void add_on_off_multivariate_refined(Constraint<type>& c, const var<int>& on, bool big_M = true){
         if (c.get_ftype() != lin_) {
             cerr << "Nonlinear constraint.\n";
             exit(-1);

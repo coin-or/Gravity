@@ -34,7 +34,7 @@ GurobiProgram::GurobiProgram(Model<>* m) {
 //            grb_env->set(GRB_IntParam_Threads,1);
         //    grb_env->set(GRB_IntParam_Presolve,0);
         //    grb_env->set(GRB_IntParam_NumericFocus,3);
-            grb_env->set(GRB_IntParam_NonConvex,2);
+//            grb_env->set(GRB_IntParam_NonConvex,2);
             //grb_env->set(GRB_IntParam_LogToConsole, 0);
             //grb_env->set(GRB_DoubleParam_FeasibilityTol, 1E-6);
 //            grb_env->set(GRB_DoubleParam_OptimalityTol, 1E-6);

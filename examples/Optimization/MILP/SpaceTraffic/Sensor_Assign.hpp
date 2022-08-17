@@ -33,6 +33,8 @@ public:
     int M;
     int N;
     int K = 5;
+    double e;
+    double max_price;
     Net graph;
     indices arcs;
     indices own_arcs;
@@ -49,15 +51,15 @@ public:
 public:
     myModel(){ };
     vector<param<double>> readData(int argc, const char * argv[], int n1, int n2);
-    void InitBilevel(param<double> w0, param<double> w_own, param<double> w_bought);
+    void InitBilevel(param<double> &w0, param<double> &w_own, param<double> &w_bought, double eps);
     void mSolve();
     void saveSolStats();
-    void GreedyStart(param<double> w0, param<double> w_own, param<double> w_bought);
-    void assignLeader(string &idx, param<double> wt0, param<double> wt_own, param<double> wt_bought);
-    void assignOwn(string &idx, param<double> wt0, param<double> wt_own, param<double> wt_bought);
-    void assignBought(string &idx, param<double> wt0, param<double> wt_own, param<double> wt_bought);
+    void GreedyStart(const param<double> &w0, const param<double> &w_own, const param<double> &w_bought);
+    void assignLeader(string &idx, param<double> &wt0, param<double> &wt_own, param<double> &wt_bought);
+    void assignOwn(string &idx, param<double> &wt0, param<double> &wt_own, param<double> &wt_bought);
+    void assignBought(string &idx, param<double> &wt0, param<double> &wt_own, param<double> &wt_bought);
     double parSum(param<double> w);
-    string findMax(param<double> w);
+    string findMax(const param<double> &w);
     int nthOccurrence(const std::string& str, const std::string& findMe, int nth);
     ~myModel(){ };
 };
