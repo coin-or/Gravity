@@ -35,14 +35,16 @@ int main(int argc, const char * argv[]) {
     auto stop2 = high_resolution_clock::now();
     auto duration2 = duration_cast<seconds>(stop2 - stop);
     cout << m.N << " " << m.M << " " << m.K << " " << duration1.count() + duration2.count() << endl;
+    //auto ct = (*(m.model.get_var<int>("tmp").get_vals()))[0];
+    //cout << "Sensors sold: " << ct << endl;
     /*auto y = m.model.get_var<double>("y");
     auto psn = m.model.get_var<double>("p_sn");
     ofstream yFile;
-    yFile.open("/Users/svetlanariabova/Projects/Sensor/Data/Stats/lb_stats100000.csv");
+    yFile.open("/Users/svetlanariabova/Projects/Sensor/Data/Stats/lb_stats10000.csv");
     ofstream pFile;
-    pFile.open("/Users/svetlanariabova/Projects/Sensor/Data/Stats/p_stats100000.csv");
+    pFile.open("/Users/svetlanariabova/Projects/Sensor/Data/Stats/p_stats10000.csv");
     ofstream ubFile;
-    ubFile.open("/Users/svetlanariabova/Projects/Sensor/Data/Stats/ub_stats100000.csv");
+    ubFile.open("/Users/svetlanariabova/Projects/Sensor/Data/Stats/ub_stats10000.csv");
     vector<double> y_vals = *y.get_vals();
     vector<double> p_vals = *psn.get_vals();
     double w_max;
@@ -215,11 +217,17 @@ void myModel::InitBilevel(param<double> &w0, param<double> &w_own, param<double>
     model.add(z0.in(arcs));
     var<int> z("z", 0, 1);
     model.add(z.in(bought_arcs));
+    //var<int> tmp("tmp", 0, N);
+    //model.add(tmp);
     
     var<double> p_sn("p_sn", 0, std::max(w_own._range->second,w_bought._range->second));
     model.add(p_sn.in(sensors));
     var<double> p_z("p_z", 0, std::max(w_own._range->second,w_bought._range->second));
     model.add(p_z.in(bought_arcs));
+    
+    /*Constraint<> count("count");
+    count = tmp - sum(sn);
+    model.add(count == 0);*/
 //    var<double> p_z0("p_z0", 0, std::max(w_own._range->second,w_bought._range->second));
 //    model.add(p_z0.in(arcs));
     
@@ -316,9 +324,9 @@ void myModel::InitBilevel(param<double> &w0, param<double> &w_own, param<double>
     ub = z0.in(z0_ids) + z.in(z_ids) - sn;
     model.add(ub.in(sensors) == 0);
 
-    /*Constraint<> luo("Leader_Unique_Object");
+    Constraint<> luo("Leader_Unique_Object");
     luo = sum(z0.in_matrix(0, 1));
-    model.add(luo.in(objects) <= 1);*/
+    model.add(luo.in(objects) <= 1);
     
     Constraint<> luub("Leader_Utility_ub");
     luub = p.in_ignore_ith(1, 1, arcs) * z0.in(arcs) - w0.in(arcs);
