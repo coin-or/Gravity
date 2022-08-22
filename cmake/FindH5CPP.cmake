@@ -9,7 +9,7 @@ find_path(H5CPP_INCLUDE_DIR
 	HINTS /usr/local/include
 	HINTS /usr/local/include/h5cpp
 	HINTS ${H5CPP_ROOT_DIR}/include
-	HINTS ${H5CPP_ROOT_DIR}/src
+	HINTS ${H5CPP_ROOT_DIR}/src/h5cpp
 	HINTS ${PROJECT_SOURCE_DIR}/thirdparty/H5CPP/src
 )
 
@@ -32,6 +32,7 @@ elseif(APPLE)
 find_library(H5CPP_LIBRARY 
 	libh5cpp.dylib	
 	HINTS ${H5CPP_ROOT_DIR}/lib
+	HINTS ${H5CPP_ROOT_DIR}/build/lib
 	HINTS ${PROJECT_SOURCE_DIR}/third_party/H5CPP/build/lib
 	HINTS ${PROJECT_SOURCE_DIR}/third_party/H5CPP/lib	
 	HINTS /usr/local/lib
@@ -42,6 +43,7 @@ elseif(UNIX)
 find_library(H5CPP_LIBRARY 
 	libH5CPP.so	
 	HINTS ${H5CPP_ROOT_DIR}/lib
+	HINTS ${H5CPP_ROOT_DIR}/build/lib
 	HINTS ${PROJECT_SOURCE_DIR}/thirdparty/H5CPP/lib
 	HINTS ${PROJECT_SOURCE_DIR}/third_party/H5CPP/build/lib
 	HINTS /usr/local/lib
