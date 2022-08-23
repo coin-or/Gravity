@@ -40,7 +40,7 @@ int main(int argc, const char * argv[]) {
     m.mSolve();
     auto stop2 = high_resolution_clock::now();
     auto duration2 = duration_cast<seconds>(stop2 - stop);
-    cout << m.N << " " << m.M << " " << m.K << " " << duration1.count() + duration2.count() << endl;
+    cout << m.N << " " << m.M << " " << m.K << " " << duration1.count() + duration2.count() << endl;    
     //auto ct = (*(m.model.get_var<int>("tmp").get_vals()))[0];
     //cout << "Sensors sold: " << ct << endl;
     /*auto y = m.model.get_var<double>("y");
@@ -100,12 +100,12 @@ vector<param<double>> myModel::readData(int argc, const char * argv[], int n1, i
     assert(N + M == graph.nodes.size());/* Make sure we have the right number of nodes */
     
     //init ownr...
-    random_device rd; // obtain a random number from hardware
+    /*random_device rd; // obtain a random number from hardware
     mt19937 gen(rd()); // seed the generator
     uniform_int_distribution<> distr(0, K-1); // define the range
 
     for(int i = 0; i < N; i++)
-        owner.push_back(distr(gen)); // generate numbers
+        owner.push_back(distr(gen)); // generate numbers*/
     
     /* Indexing sets */
     //sensors = range (0, N - 1);
@@ -143,7 +143,7 @@ vector<param<double>> myModel::readData(int argc, const char * argv[], int n1, i
         K = stoi(tmp1);
         for (int i = 0; i < N; i++) {
             file >> tmp2;
-            owner[i] = stoi(tmp2);
+            owner.push_back(stoi(tmp2));
         }
         for (int k = 0; k < K; k++) {
             for (int i = 0; i < N; i++) {
@@ -177,8 +177,8 @@ vector<param<double>> myModel::readData(int argc, const char * argv[], int n1, i
         for (Arc* a: graph.arcs) {
             for (int k = 0; k < owner[stoi(a->_src->_name.substr(6, a->_src->_name.find(",")))]; k++) {
                 file >> tmp;
-                string tmpstr = a->_src->_name + "," + a->_dest->_name + ",agent" + to_string(k);
-                w_bought(a->_src->_name + "," + a->_dest->_name + ",agent" + to_string(k)) = stoi(tmp);
+                //string tmpstr = a->_src->_name + "," + a->_dest->_name + ",agent" + to_string(k);
+                w_bought(a->_src->_name + "," + a->_dest->_name + ",agent" + to_string(k)) = stod(tmp);
             }
             file >> tmp;
             w_own(a->_src->_name + "," + a->_dest->_name + ",agent" + to_string(owner[stoi(a->_src->_name.substr(6, a->_src->_name.find(",")))])) = stod(tmp);
@@ -355,7 +355,7 @@ void myModel::InitBilevel(param<double> &w0, param<double> &w_own, param<double>
     s_fub = *s._indices;
     size_t row_id = 0;
     bool no_s = true, no_z = true;
-    for (int j = 0; j<M; j++) {
+    for (int j = 0; j < M; j++) {
         for (int k = 0; k < K; k++) {
             c_fub.insert("object" + to_string(j)+ ",agent" + to_string(k));
             no_s = true, no_z = true;
@@ -791,4 +791,8 @@ int myModel::nthOccurrence(const std::string& str, const std::string& findMe, in
         cnt++;
     }
     return pos;
+}
+
+void myModel::printAssignment() {
+    
 }

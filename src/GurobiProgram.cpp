@@ -115,6 +115,7 @@ bool GurobiProgram::solve(int output, bool relax, double tol, double mipgap, boo
 //    grb_mod->set(GRB_IntParam_Threads, 4);
 //    grb_mod->set(GRB_IntParam_NumericFocus,1);
     grb_mod->set(GRB_IntParam_NonConvex,2);
+//    grb_mod->set(GRB_IntParam_LogToConsole, 0);
 //    grb_mod->set(GRB_IntParam_MIQCPMethod, 0 );
 //    if(!gurobi_crossover){
 //        grb_mod->set(GRB_IntParam_Crossover, 0);

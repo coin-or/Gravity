@@ -13,18 +13,6 @@
 using namespace std;
 using namespace gravity;
 
-/*struct Agent {
-    int n;
-    vector<int> own;
-    vector<int> oths;
-    indices own_arcs;
-    indices oths_arcs;
-    vector<double> w;
-    
-    Agent() { };
-    ~Agent() { };
-};*/
-
 class myModel {
 public:
     Model<> model;
@@ -58,6 +46,7 @@ public:
     void assignLeader(string &idx, param<double> &wt0, param<double> &wt_own, param<double> &wt_bought);
     void assignOwn(string &idx, param<double> &wt0, param<double> &wt_own, param<double> &wt_bought);
     void assignBought(string &idx, param<double> &wt0, param<double> &wt_own, param<double> &wt_bought);
+    void printAssignment();
     double parSum(param<double> w);
     string findMax(const param<double> &w);
     int nthOccurrence(const std::string& str, const std::string& findMe, int nth);
