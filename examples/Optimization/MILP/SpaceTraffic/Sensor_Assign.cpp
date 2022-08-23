@@ -10,6 +10,12 @@
 #include <chrono>
 using namespace std::chrono;
 
+#ifdef USE_H5CPP
+#include <h5cpp/hdf5.hpp>
+using namespace hdf5;
+#endif
+
+
 int main(int argc, const char * argv[]) {
     /*cout << "Sensors Objects time" << endl;
     for (int i = 1; i < 7; i++) {
@@ -464,6 +470,26 @@ void myModel::mSolve() {
     //model.print();
     solver<> sol(model, gurobi);
     sol.run();
+    model.write_solution();
+#ifdef USE_H5CPP
+    // create a file
+    file::File f = file::create("sol.h5",file::AccessFlags::Truncate);
+
+    // create a group
+    node::Group root_group = f.root();
+    node::Group my_group = root_group.create_group("prices");
+
+    auto p = model.get_var_ptr("p");
+    auto p_vals = *p->get_vals();
+    // create a dataset
+    node::Dataset dataset = my_group.create_dataset("p",
+                                                    datatype::create<vector<double>>(),
+                                                    dataspace::create(p_vals));
+
+    // write to dataset
+    dataset.write(p_vals);
+    
+#endif
     //model.print_solution();
 }
 

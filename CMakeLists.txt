@@ -1,5 +1,7 @@
 cmake_minimum_required(VERSION 3.2)
 
+set(CMAKE_CXX_STANDARD 17)
+
 project(Gravity)
 
 enable_testing()
@@ -14,6 +16,9 @@ option(Cov "Turn on coverage" OFF)
 
 # Find GUROBI (optional)
 option(Gurobi "Link to GUROBI libraries" ON)
+
+# Find H5CPP(required)
+option(H5CPP "Link to H5CPP libraries" ON)
 
 # Find IPOPT (optional)
 option(Ipopt "Link to IPOPT libraries" ON)
@@ -222,6 +227,29 @@ endif(APPLE)
  include(ExternalIpopt)
 endif (IPOPT_FOUND)
 endif()
+
+
+#H5CPP
+if (H5CPP)
+message(STATUS "Enable H5CPP")
+add_definitions(-DUSE_H5CPP)
+find_package(H5CPP QUIET)
+if (H5CPP_FOUND)
+ message("-- Found H5CPP: ${H5CPP_INCLUDE_DIRS}")
+ include_directories(${H5CPP_INCLUDE_DIRS}/..)
+ set(LIBS ${LIBS} ${H5CPP_LIBRARIES})
+else(H5CPP_FOUND)
+set(ADD_H5CPP TRUE)
+if(APPLE)
+ set(H5CPP_LIBRARIES ${THIRDPARTY_INSTALL_PATH}/Install/H5CPP/build/lib/libh5cpp.dylib)
+elseif(UNIX)
+set(H5CPP_LIBRARIES ${PROJECT_SOURCE_DIR}/thirdparty/H5CPP/libh5cpp.so)
+include_directories("${PROJECT_SOURCE_DIR}/thirdparty/H5CPP/src")
+endif(APPLE) 
+ include(ExternalH5CPP)
+endif (H5CPP_FOUND)
+endif()
+
 # Eigen
 #find_package(Eigen QUIET)
 #if (EIGEN_FOUND)
