@@ -479,8 +479,8 @@ void myModel::mSolve() {
     node::Group root_group = f.root();
     node::Group my_group = root_group.create_group("prices");
 
-    auto p = model.get_var_ptr("p");
-    auto p_vals = *p->get_vals();
+    auto p = model.get_var<double>("p");
+    auto p_vals = *p.get_vals();
     // create a dataset
     node::Dataset dataset = my_group.create_dataset("p",
                                                     datatype::create<vector<double>>(),
