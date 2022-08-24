@@ -467,7 +467,7 @@ void myModel::InitBilevel(param<double> &w0, param<double> &w_own, param<double>
 }
 
 void myModel::mSolve() {
-    //model.print();
+    model.print();
     solver<> sol(model, gurobi);
     sol.run();
     model.write_solution();

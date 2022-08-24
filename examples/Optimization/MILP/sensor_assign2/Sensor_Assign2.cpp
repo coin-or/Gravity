@@ -174,11 +174,11 @@ void myModel::InitBilevel(param<double> &w0, param<double> &w, param<double> &w_
     
     /*Objective*/
     func<> obj;
-    obj += sum(w.in(own_arcs) * s.in_ignore_ith(2, 1, own_arcs) * z.in_ignore_ith(1, 1, own_arcs));
-    obj -= sum(p.in_ignore_ith(1, 2, own_arcs) * z.in_ignore_ith(1, 1, own_arcs));
-    obj += sum(w.in(bought_arcs) * s.in_ignore_ith(2, 1, bought_arcs) * z.in_ignore_ith(1, 1, bought_arcs));
-    obj -= sum(p.in_ignore_ith(1, 2, bought_arcs) * s.in_ignore_ith(2, 1, bought_arcs) * z.in_ignore_ith(1, 1, bought_arcs));
-    obj -= sum(e * p.in_ignore_ith(1, 1, operations) * z);
+    obj += product(w.in(own_arcs), s.in_ignore_ith(2, 1, own_arcs) * z.in_ignore_ith(1, 1, own_arcs));
+    obj += product(w.in(bought_arcs), s.in_ignore_ith(2, 1, bought_arcs) * z.in_ignore_ith(1, 1, bought_arcs));
+    obj -= product(1,p.in_ignore_ith(1, 2, own_arcs) * z.in_ignore_ith(1, 1, own_arcs));
+    obj -= product(1,p.in_ignore_ith(1, 2, bought_arcs) * z.in_ignore_ith(1, 1, bought_arcs));
+    obj -= product(e,p.in_ignore_ith(1, 1, operations) * z);
     obj += sum(p);
     model.max(obj);
     
@@ -235,7 +235,7 @@ void myModel::InitBilevel(param<double> &w0, param<double> &w, param<double> &w_
     indices tmp_ids = oths_rplc.ignore_ith(1, 1).ignore_ith(2, 1);
     indices tmp_ids1 = oths_rplc.ignore_ith(0, 1).ignore_ith(2, 1);
     Constraint<> sl3("Seller lb3");
-    sl3 = y.in_ignore_ith(1, 3, oths_rplc) - (w.in_ignore_ith(1, 1, oths_rplc) - w.in_ignore_ith(0, 1, oths_rplc)) * s.in(tmp_ids) * z.in_ignore_ith(1, 2, oths_rplc) - p.in(tmp_ids1) * s.in(tmp_ids) * z.in_ignore_ith(1, 2, oths_rplc);
+    sl3 = y.in_ignore_ith(1, 3, oths_rplc) - (w.in_ignore_ith(1, 1, oths_rplc) - w.in_ignore_ith(0, 1, oths_rplc)) * s.in(tmp_ids) * z.in_ignore_ith(1, 2, oths_rplc) - p.in(tmp_ids1) * z.in_ignore_ith(1, 2, oths_rplc);
     model.add(sl3.in(oths_rplc) >= 0);
     
     //For comparison
