@@ -634,9 +634,35 @@ Net CBF_read(const char *file, shared_ptr<Model<double>>& m) {
         
         for(auto it=func_map.begin();it!=func_map.end();it++){
             Constraint<> def_X("def_X_"+it->first);
-            def_X=it->second;
+            def_X=it->second*scale;
             m->add(def_X==0);
         }
+        
+        Constraint<> SOC("SOC");
+        SOC = Xij*Xij - X.from(node_pairs)*X.to(node_pairs);
+        SOC.add_to_callback();
+        m->add(SOC.in(node_pairs) <= 0);
+        
+                Constraint<> aSOC("aSOC");
+                aSOC = 2*Xij - X.from(node_pairs)-X.to(node_pairs);
+                //m->add(aSOC.in(node_pairs) <= 0);
+        
+        Constraint<> bSOC("bSOC");
+        bSOC = 2*Xij + X.from(node_pairs)+X.to(node_pairs);
+       // m->add(bSOC.in(node_pairs) >= 0);
+        
+        count=0;
+        for(auto b:g._bags){
+              pair<int,vector<string>> bn;
+              bn.first=count++;
+  //            indices zk_nodes;
+  //            param<double> midk("midk"+to_string(count));
+              for(auto n:b.second){
+                  bn.second.push_back(n->_name);
+             }
+            _bag_names.push_back(bn);
+        }
+                
         
 //        for(auto b:g._bags){
 //            for(auto n:b.second){
@@ -645,116 +671,116 @@ Net CBF_read(const char *file, shared_ptr<Model<double>>& m) {
 //                zk_nodes.insert(n->_name);
 //            }
 //        }
-        for(auto b:g._bags){
-            pair<int,vector<string>> bn;
-            bn.first=count;
-            indices zk_nodes;
-            param<double> midk("midk"+to_string(count));
-            for(auto n:b.second){
-                bn.second.push_back(n->_name);
-                DebugOn(n->_name<<" ");
-                zk_nodes.insert(n->_name);
-                auto ubx=X.get_ub(n->_name);
-                midk.add_val(n->_name, ubx*0.5);
-            }
-            indices zk_nodepairs_chord;
-            indices zk_nodepairs;
-            for(auto i=0;i<bn.second.size()-1;i++){
-                for(auto j=i+1;j<bn.second.size();j++){
-                    string key=bn.second[i]+","+bn.second[j];
-                    zk_nodepairs_chord.insert(key);
-                    if(node_pairs.has_key(key)){
-                        zk_nodepairs.insert(key);
-                    }
-                }
-            }
-            
-            var<double> Zk("Zk"+to_string(count));
-            m->add(Zk.in(zk_nodes));
-            Z.push_back(Zk);
-            var<double> Zkij("Zkij"+to_string(count));
-            m->add(Zkij.in(zk_nodepairs_chord));
-            Zij.push_back(Zkij);
-            Constraint<> SOCVa("SOCVa"+to_string(count));
-            SOCVa = 2*Zkij - (Zk.from(zk_nodepairs_chord)+Zk.to(zk_nodepairs_chord));
-           // m->add(SOCVa.in(zk_nodepairs_chord)<=0);
-            
-            Constraint<> SOCVb("SOCVb"+to_string(count));
-            SOCVb = -2*Zkij - (Zk.from(zk_nodepairs_chord)+Zk.to(zk_nodepairs_chord));
-           // m->add(SOCVb.in(zk_nodepairs_chord)<=0);
-            
-            Constraint<> SOCmida("SOCmida"+to_string(count));
-            SOCmida = 2*sqrt(midk.to(zk_nodepairs_chord)*midk.from(zk_nodepairs_chord))*Zkij - (midk.to(zk_nodepairs_chord)*Zk.from(zk_nodepairs_chord)+midk.from(zk_nodepairs_chord)*Zk.to(zk_nodepairs_chord));
-            //m->add(SOCmida.in(zk_nodepairs_chord)<=0);
-            
-            Constraint<> SOCmidb("SOCmidb"+to_string(count));
-            SOCmidb = (-2)*sqrt(midk.to(zk_nodepairs_chord)*midk.from(zk_nodepairs_chord))*Zkij - (midk.to(zk_nodepairs_chord)*Zk.from(zk_nodepairs_chord)+midk.from(zk_nodepairs_chord)*Zk.to(zk_nodepairs_chord));
-           // m->add(SOCmidb.in(zk_nodepairs_chord)<=0);
-
-            Constraint<> SOC("SOC"+to_string(count));
-            SOC = pow(Zkij, 2) - Zk.from(zk_nodepairs_chord)*Zk.to(zk_nodepairs_chord);
-            SOC.add_to_callback();
-           // m->add(SOC.in(zk_nodepairs_chord)<=0);
-            if(b.second.size()>=3){
-            
-            auto b3d=g.decompose_bag_3d(b);
-            
-            auto Wij_ = Zkij.pairs_in_bags(b3d, 3);
-            auto Wii_ = Zk.in_bags(b3d, 3);
-            
-            Constraint<> SDP3a("SDP_3D"+to_string(count));
-            
-            SDP3a += (pow(Wij_[0], 2)) * Wii_[2];
-            SDP3a += (pow(Wij_[1], 2)) * Wii_[0];
-            SDP3a += (pow(Wij_[2], 2)) * Wii_[1];
-            SDP3a -= 2 * Wij_[0] * (Wij_[1] * Wij_[2]);
-            SDP3a -= Wii_[0] * Wii_[1] * Wii_[2];
-            SDP3a.add_to_callback();
-            //m->add(SDP3a.in(range(0, b3d.size()-1)) <= 0);
-            }
-            _bag_names.push_back(bn);
-            count++;
-            DebugOn(endl);
-        }
-        
-        map<string, func<>> func_map_XZ;
-        for(auto k:*nodes._keys)
-        {
-            func_map_XZ[k]=X(k);
-            auto ubx=X.get_ub(k);
-        for(auto b:_bag_names){
-            int num=b.first;
-            indices zk_nodes;
-            for(auto n:b.second){
-                if(k==n){
-                    func_map_XZ[k]-=Z[num](k);
-                    Z[num].set_lb(k, 0);
-                    Z[num].set_ub(k, ubx);
-                }
-            }
-        }
-    }
-    
-        map<string, func<>> func_map_XZij;
-        for(auto k:*node_pairs_chord._keys)
-        {
-            func_map_XZij[k]=Xij(k);
-            auto ubx=Xij.get_ub(k);
-            auto lbx=Xij.get_lb(k);
-        for(auto b:_bag_names){
-            int num=b.first;
-            for(auto i=0;i<b.second.size()-1;i++){
-                for(auto j=i+1;j<b.second.size();j++){
-                    string key=b.second[i]+","+b.second[j];
-                    if(key==k){
-                        func_map_XZij[k]-=Zij[num](k);
-                        Zij[num].set_lb(k, lbx);
-                        Zij[num].set_ub(k, ubx);
-                    }
-                }
-            }
-        }
-    }
+//        for(auto b:g._bags){
+//            pair<int,vector<string>> bn;
+//            bn.first=count;
+//            indices zk_nodes;
+//            param<double> midk("midk"+to_string(count));
+//            for(auto n:b.second){
+//                bn.second.push_back(n->_name);
+//                DebugOn(n->_name<<" ");
+//                zk_nodes.insert(n->_name);
+//                auto ubx=X.get_ub(n->_name);
+//                midk.add_val(n->_name, ubx*0.5);
+//            }
+//            indices zk_nodepairs_chord;
+//            indices zk_nodepairs;
+//            for(auto i=0;i<bn.second.size()-1;i++){
+//                for(auto j=i+1;j<bn.second.size();j++){
+//                    string key=bn.second[i]+","+bn.second[j];
+//                    zk_nodepairs_chord.insert(key);
+//                    if(node_pairs.has_key(key)){
+//                        zk_nodepairs.insert(key);
+//                    }
+//                }
+//            }
+//
+//            var<double> Zk("Zk"+to_string(count));
+//            m->add(Zk.in(zk_nodes));
+//            Z.push_back(Zk);
+//            var<double> Zkij("Zkij"+to_string(count));
+//            m->add(Zkij.in(zk_nodepairs_chord));
+//            Zij.push_back(Zkij);
+//            Constraint<> SOCVa("SOCVa"+to_string(count));
+//            SOCVa = 2*Zkij - (Zk.from(zk_nodepairs_chord)+Zk.to(zk_nodepairs_chord));
+//           // m->add(SOCVa.in(zk_nodepairs_chord)<=0);
+//
+//            Constraint<> SOCVb("SOCVb"+to_string(count));
+//            SOCVb = -2*Zkij - (Zk.from(zk_nodepairs_chord)+Zk.to(zk_nodepairs_chord));
+//           // m->add(SOCVb.in(zk_nodepairs_chord)<=0);
+//
+//            Constraint<> SOCmida("SOCmida"+to_string(count));
+//            SOCmida = 2*sqrt(midk.to(zk_nodepairs_chord)*midk.from(zk_nodepairs_chord))*Zkij - (midk.to(zk_nodepairs_chord)*Zk.from(zk_nodepairs_chord)+midk.from(zk_nodepairs_chord)*Zk.to(zk_nodepairs_chord));
+//            //m->add(SOCmida.in(zk_nodepairs_chord)<=0);
+//
+//            Constraint<> SOCmidb("SOCmidb"+to_string(count));
+//            SOCmidb = (-2)*sqrt(midk.to(zk_nodepairs_chord)*midk.from(zk_nodepairs_chord))*Zkij - (midk.to(zk_nodepairs_chord)*Zk.from(zk_nodepairs_chord)+midk.from(zk_nodepairs_chord)*Zk.to(zk_nodepairs_chord));
+//           // m->add(SOCmidb.in(zk_nodepairs_chord)<=0);
+//
+//            Constraint<> SOC("SOC"+to_string(count));
+//            SOC = pow(Zkij, 2) - Zk.from(zk_nodepairs_chord)*Zk.to(zk_nodepairs_chord);
+//            SOC.add_to_callback();
+//           // m->add(SOC.in(zk_nodepairs_chord)<=0);
+//            if(b.second.size()>=3){
+//
+//            auto b3d=g.decompose_bag_3d(b);
+//
+//            auto Wij_ = Zkij.pairs_in_bags(b3d, 3);
+//            auto Wii_ = Zk.in_bags(b3d, 3);
+//
+//            Constraint<> SDP3a("SDP_3D"+to_string(count));
+//
+//            SDP3a += (pow(Wij_[0], 2)) * Wii_[2];
+//            SDP3a += (pow(Wij_[1], 2)) * Wii_[0];
+//            SDP3a += (pow(Wij_[2], 2)) * Wii_[1];
+//            SDP3a -= 2 * Wij_[0] * (Wij_[1] * Wij_[2]);
+//            SDP3a -= Wii_[0] * Wii_[1] * Wii_[2];
+//            SDP3a.add_to_callback();
+//            //m->add(SDP3a.in(range(0, b3d.size()-1)) <= 0);
+//            }
+//            _bag_names.push_back(bn);
+//            count++;
+//            DebugOn(endl);
+//        }
+//
+//        map<string, func<>> func_map_XZ;
+//        for(auto k:*nodes._keys)
+//        {
+//            func_map_XZ[k]=X(k);
+//            auto ubx=X.get_ub(k);
+//        for(auto b:_bag_names){
+//            int num=b.first;
+//            indices zk_nodes;
+//            for(auto n:b.second){
+//                if(k==n){
+//                    func_map_XZ[k]-=Z[num](k);
+//                    Z[num].set_lb(k, 0);
+//                    Z[num].set_ub(k, ubx);
+//                }
+//            }
+//        }
+//    }
+//
+//        map<string, func<>> func_map_XZij;
+//        for(auto k:*node_pairs_chord._keys)
+//        {
+//            func_map_XZij[k]=Xij(k);
+//            auto ubx=Xij.get_ub(k);
+//            auto lbx=Xij.get_lb(k);
+//        for(auto b:_bag_names){
+//            int num=b.first;
+//            for(auto i=0;i<b.second.size()-1;i++){
+//                for(auto j=i+1;j<b.second.size();j++){
+//                    string key=b.second[i]+","+b.second[j];
+//                    if(key==k){
+//                        func_map_XZij[k]-=Zij[num](k);
+//                        Zij[num].set_lb(k, lbx);
+//                        Zij[num].set_ub(k, ubx);
+//                    }
+//                }
+//            }
+//        }
+//    }
        
         m->_bag_names=_bag_names;
         
@@ -764,28 +790,24 @@ Net CBF_read(const char *file, shared_ptr<Model<double>>& m) {
       
         
        
-        for(auto it=func_map_XZ.begin();it!=func_map_XZ.end();it++){
-            Constraint<> def_XZ("def_XZ_"+it->first);
-            def_XZ=it->second;
-            m->add(def_XZ==0);
-        }
-        for(auto it=func_map_XZij.begin();it!=func_map_XZij.end();it++){
-            Constraint<> def_XZij("def_XZij_"+it->first);
-            def_XZij=it->second;
-            m->add(def_XZij==0);
-        }
+//        for(auto it=func_map_XZ.begin();it!=func_map_XZ.end();it++){
+//            Constraint<> def_XZ("def_XZ_"+it->first);
+//            def_XZ=it->second;
+//            m->add(def_XZ==0);
+//        }
+//        for(auto it=func_map_XZij.begin();it!=func_map_XZij.end();it++){
+//            Constraint<> def_XZij("def_XZij_"+it->first);
+//            def_XZij=it->second;
+//            m->add(def_XZij==0);
+//        }
+//
+//
+//        Constraint<> pos_diag("pos_diag");
+//        pos_diag =  X*(-1);
+//        // m->add(pos_diag.in(nodes) <= 0);
         
         
-        Constraint<> pos_diag("pos_diag");
-        pos_diag =  X*(-1);
-        // m->add(pos_diag.in(nodes) <= 0);
-        
-        
-//        Constraint<> SOC("SOC");
-//        SOC = pow(Xij, 2) - X.from(node_pairs)*X.to(node_pairs);
-//        SOC.add_to_callback();
-        //m->add(SOC.in(node_pairs) <= 0);
-        
+
         int ndisc=10;
         count=0;
 //        for(auto k:*(node_pairs_chord._keys)){
@@ -820,17 +842,17 @@ Net CBF_read(const char *file, shared_ptr<Model<double>>& m) {
         
         Constraint<> SDP3("SDP_3D");
         
-        SDP3 += (pow(Wij_[0], 2)) * Wii_[2];
-        SDP3 += (pow(Wij_[1], 2)) * Wii_[0];
-        SDP3 += (pow(Wij_[2], 2)) * Wii_[1];
-        SDP3 -= 2 * Wij_[0] * (Wij_[1] * Wij_[2]);
-        SDP3 -= Wii_[0] * Wii_[1] * Wii_[2];
+        SDP3 += (pow(Wij_[0], 2)) * Wii_[2]*0.001;
+        SDP3 += (pow(Wij_[1], 2)) * Wii_[0]*0.001;
+        SDP3 += (pow(Wij_[2], 2)) * Wii_[1]*0.001;
+        SDP3 -= 2 * Wij_[0] * (Wij_[1] * Wij_[2])*0.001;
+        SDP3 -= Wii_[0] * Wii_[1] * Wii_[2]*0.001;
         SDP3.add_to_callback();
-       // m->add(SDP3.in(range(0, bag_size-1)) <= 0);
+        m->add(SDP3.in(range(0, bag_size-1)) <= 0);
        
         
      
-        
+       // Xij.param<>::set_val("2,3", 1);
     }
     else{
         throw invalid_argument("only 1 psd constraint supported now");
@@ -856,7 +878,7 @@ Net CBF_read(const char *file, shared_ptr<Model<double>>& m) {
         m->max(obj);
     }
  
-
+   
     
   
     return g;

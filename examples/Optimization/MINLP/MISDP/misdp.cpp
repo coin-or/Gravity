@@ -48,15 +48,20 @@ using namespace gravity;
 using namespace std;
 
 int main(){
-//string fname=string(prj_dir)+"/data_sets/MISDP/2x3_3bars.cbf";
-    //string fname=string(prj_dir)+"/data_sets/MISDP/2x7_3bars.cbf";
-    string fname=string(prj_dir)+"/data_sets/MISDP/2x4_2scen_3bars.cbf";
+string fname=string(prj_dir)+"/data_sets/MISDP/2x3_3bars.cbf";
+   // string fname=string(prj_dir)+"/data_sets/MISDP/2x7_3bars.cbf";
+   // string fname=string(prj_dir)+"/data_sets/MISDP/2x4_2scen_3bars.cbf";
     //string fname=string(prj_dir)+"/data_sets/MISDP/coloncancer_1_100_5.cbf";
     //string fname=string(prj_dir)+"/data_sets/MISDP/2g_4_164_k3_5_6.cbf";
 auto m=make_shared<Model<double>>("misdp_test");
 auto g=CBF_read(fname.c_str(), m);
     g.print();
    m->print();
+    int soc_viol=0, soc_added=0;
+    //m->print_solution();
+    //m->cutting_planes_soc(1e-9, soc_viol,soc_added);
+    
+    //m->cuts_eigen_bags(1e-9);
 //    neg=true;
 //    while(res.size()==0){
 //        solver<> s(m,gurobi);
@@ -69,10 +74,10 @@ auto g=CBF_read(fname.c_str(), m);
    solver<> s(m,gurobi);
    s.run(5, 1e-6);
     m->print_solution();
-    m->round_solution();
+  /*  m->round_solution();
     m->_obj->uneval();
-    DebugOn("Rounded solution objective = " << m->_obj->eval() << endl);
-    m->print_constraints_stats(1e-5);
+    DebugOn("Rounded solution objective = " << m->_obj->eval() << endl);*/
+   // m->print_constraints_stats(1e-5);
     
    // auto lin_model=m->buildOA();
    // auto interior_model=lin_model->add_outer_app_solution(*m);
@@ -94,7 +99,6 @@ auto g=CBF_read(fname.c_str(), m);
     int dim_full=X._indices->_keys->size();
     
     Eigen::MatrixXd mat_full(dim_full,dim_full);
-    vector<vector<double>> mat_Xf(dim_full, std::vector<double>(dim_full, 0));
     int count=0;
     vector<string> all_names;
     for(auto k:*X._indices->_keys){

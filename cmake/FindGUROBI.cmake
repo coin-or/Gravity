@@ -36,7 +36,7 @@ include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(GUROBI DEFAULT_MSG GUROBI_LIBRARY GUROBI_CPP_LIBRARY GUROBI_INCLUDE_DIR)
 
 if(GUROBI_FOUND)
-    set(GRB_LICENSE_FILE "~/gurobi.research.lic")
+#    set(GRB_LICENSE_FILE "~/gurobi.research.lic")
     set(GUROBI_INCLUDE_DIRS ${GUROBI_INCLUDE_DIR})
     set(GUROBI_LIBRARIES ${GUROBI_CPP_LIBRARY} ${GUROBI_LIBRARY})
     message("CMAKE_SYSTEM_NAME ${CMAKE_SYSTEM_NAME}")
