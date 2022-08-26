@@ -10,10 +10,10 @@
 #include <chrono>
 using namespace std::chrono;
 
-#ifdef USE_H5CPP
+/*#ifdef USE_H5CPP
 #include <h5cpp/hdf5.hpp>
 using namespace hdf5;
-#endif
+#endif*/
 
 
 int main(int argc, const char * argv[]) {
@@ -34,6 +34,7 @@ int main(int argc, const char * argv[]) {
     auto start = high_resolution_clock::now();
     m.InitBilevel(par[0], par[1], par[2], 0.001);
     m.GreedyStart(par[0], par[1], par[2]);
+    m.writeGreedySol();
     auto stop = high_resolution_clock::now();
     auto duration1 = duration_cast<seconds>(stop - start);
     cout << "Init + greedy time: " << duration1.count() << endl;
@@ -126,6 +127,8 @@ vector<param<double>> myModel::readData(int argc, const char * argv[], int n1, i
     param<double> w0("w0");
     param<double> w_own("w_own");
     param<double> w_bought("w_bought");
+    own_arcs = indices("own_arcs");
+    bought_arcs = indices("bought_arcs");
     if (argc >= 3) {
         string fname = argv[n2];
         fstream file;
@@ -188,6 +191,7 @@ vector<param<double>> myModel::readData(int argc, const char * argv[], int n1, i
             }
         }
 //        w0.initialize_normal(2, 1);
+        file.close();
     }
     else {
         w0.initialize_normal(2, 1);
@@ -343,7 +347,7 @@ void myModel::InitBilevel(param<double> &w0, param<double> &w_own, param<double>
 
     Constraint<> fua("Unique_Own_Assignment");
     fua = sum(s.in_matrix(1, 1)) + sn.in_ignore_ith(1, 1, own_sens);
-    model.add(fua.in(own_sens) <= 1);
+    model.add(fua.in(own_sens) == 1);
     
     /*Constraint<> fuab("Unique_Bought_Assignment");
     fuab = sum(z.in_matrix(1, 1)) -  sn.in_ignore_ith(1, 1, bought_sens);
@@ -388,7 +392,7 @@ void myModel::InitBilevel(param<double> &w0, param<double> &w_own, param<double>
     
         //----Fair price----
     Constraint<> fp("FairPrice");
-    fp = p.in_ignore_ith(1, 2, bought_arcs) - (w_bought*z + y.in_ignore_ith(1, 2, bought_arcs))/2;
+    fp = p.in_ignore_ith(1, 2, bought_arcs) - (w_bought.in(bought_arcs) * z.in(bought_arcs) + y.in_ignore_ith(1, 2, bought_arcs))/2;
     model.add(fp.in(bought_arcs) >= 0);
 
     //indices s_ids = s.get_matrix_ids(0, 1);
@@ -431,13 +435,13 @@ void myModel::InitBilevel(param<double> &w0, param<double> &w_own, param<double>
     sl1 = y.in(y_lb1) + w_own.in(w_own_s_lb1)*s.in(s_lb1) + w_own.in(w_own_z_lb1)*z.in(z_lb1) - w_own.in(w_own_lb1);
     model.add(sl1.in(c_lb1) >= 0);
     
-    Constraint<> sl2("Seller lb2");
+    /*Constraint<> sl2("Seller lb2");
     sl2 = y.in_ignore_ith(1, 3, own_rplc) - (w_own.in_ignore_ith(1, 1, own_rplc) - w_own.in_ignore_ith(0, 1, own_rplc)) * s.in_ignore_ith(0, 1, own_rplc);
     model.add(sl2.in(own_rplc) >= 0);
     
     Constraint<> sl3("Seller lb3");
     sl3 = y.in_ignore_ith(1, 3, oths_rplc) - (w_own.in_ignore_ith(1, 1, oths_rplc) - w_bought.in_ignore_ith(0, 1, oths_rplc))*z.in_ignore_ith(0, 1, oths_rplc) - p_z.in_ignore_ith(0, 1, oths_rplc);
-    model.add(sl3.in(oths_rplc) >= 0);
+    model.add(sl3.in(oths_rplc) >= 0);*/
     
     //For comparison
     /*Constraint<> no_colab("nc");
@@ -450,7 +454,6 @@ void myModel::InitBilevel(param<double> &w0, param<double> &w_own, param<double>
 //    model.replace_integers();
 //    model.restructure();
 //    model.write(3);
-//    model.print();
 //    model.replace_integers();
 //    auto R = model.relax();
 //    R->print();
@@ -461,17 +464,17 @@ void myModel::InitBilevel(param<double> &w0, param<double> &w_own, param<double>
  //   sol.run();//(1e-5, time_limit);
 //    model.print_solution();
 //    model.print_constraints_stats(1e-4);
-//    model.print();
     
     //return &model;
 }
 
 void myModel::mSolve() {
-    model.print();
+    //model.print_solution();
     solver<> sol(model, gurobi);
     sol.run();
+    model.set_name("Sensor_assign");
     model.write_solution();
-#ifdef USE_H5CPP
+/*#ifdef USE_H5CPP
     // create a file
     file::File f = file::create("sol.h5",file::AccessFlags::Truncate);
 
@@ -479,8 +482,8 @@ void myModel::mSolve() {
     node::Group root_group = f.root();
     node::Group my_group = root_group.create_group("prices");
 
-    auto p = model.get_var_ptr("p");
-    auto p_vals = *p->get_vals();
+    auto p = model.get_var<double>("p");
+    auto p_vals = *p.get_vals();
     // create a dataset
     node::Dataset dataset = my_group.create_dataset("p",
                                                     datatype::create<vector<double>>(),
@@ -489,7 +492,7 @@ void myModel::mSolve() {
     // write to dataset
     dataset.write(p_vals);
     
-#endif
+#endif*/
     //model.print_solution();
 }
 
@@ -519,41 +522,54 @@ void myModel::GreedyStart(const param<double> &w0, const param<double> &w_own, c
     int agent;
     double obj = 0;
     vector<double> p_ub(N, std::max(w_own._range->second,w_bought._range->second));
+    
+    /*was used to test if the violated equality is due to zero interest*/
+//    double test_sum = 0;
+//    for (auto a : graph.get_node("sensor29")->get_out()) {
+//        test_sum += w_own.eval("sensor29," + a->_dest->_name + ",agent" + to_string(owner[29]));
+//        for (int k = 0; k < owner[29]; k++) {
+//            test_sum += w_bought.eval("sensor29," + a->_dest->_name + ",agent" + to_string(k));
+//        }
+//        for (int k = owner[29] + 1; k < K; k++) {
+//            test_sum += w_bought.eval("sensor29," + a->_dest->_name + ",agent" + to_string(k));
+//        }
+//    }
+//    cout << "Utility29: " << test_sum << endl;
 
     while(parSum(wt0) + parSum(wt_own) + parSum(wt_bought) > 0) {
         idx1 = findMax(wt0);
         idx2 = findMax(wt_own);
         idx3 = findMax(wt_bought);
-        m1 = wt0.eval(idx1);
-        m2 = wt_own.eval(idx2);
-        m3 = wt_bought.eval(idx3);
+        m1 = wt0.eval(idx1); //max leader's weight
+        m2 = wt_own.eval(idx2); //max own weight
+        m3 = wt_bought.eval(idx3); //max bought weight
         if (m1 >= m2) {
             if (m1 >= m3) {
-                //assign leader
+                /*assign leader*/
                 assignLeader(idx1, wt0, wt_own, wt_bought);
-                p_ub[stoi(idx1.substr(6, idx1.find(",")))] = m1;
+                p_ub[stoi(idx1.substr(6, idx1.find(",")))] = m1; //price upper bound (for fair price)
             }
             else {
-                //assign bought
+                /*assign bought*/
                 assignBought(idx3, wt0, wt_own, wt_bought);
                 obj += m3;
-                p_ub[stoi(idx3.substr(6, idx3.find(",")))] = m3;
+                p_ub[stoi(idx3.substr(6, idx3.find(",")))] = m3; //price upper bound (for fair price)
             }
         }
         else if (m2 >= m3) {
-            //assign own
+            /*assign own*/
             assignOwn(idx2, wt0, wt_own, wt_bought);
             obj += m2;
         }
         else {
-            //assign bought
+            /*assign bought*/
             assignBought(idx3, wt0, wt_own, wt_bought);
             obj += m3;
-            p_ub[stoi(idx3.substr(6, idx3.find(",")))] = m3;
+            p_ub[stoi(idx3.substr(6, idx3.find(",")))] = m3; //price upper bound (for fair price)
         }
     }
     
-    //set prices
+    /*set prices*/
     double y1 = 0;
     double y2 = 0;
     double y3 = 0;
@@ -567,21 +583,24 @@ void myModel::GreedyStart(const param<double> &w0, const param<double> &w_own, c
             for (auto b : graph.get_node(a->_dest->_name)->get_in()) {
                 t = b->_src->_name;
                 if (owner[stoi(t.substr(6, idx3.find(",")))] == owner[i]) {
-                    int tmps = s.eval(t + "," + a->_dest->_name + ",agent" + to_string(owner[i]));
+                    /*Seller_lb2*/
                     s_sum += s.eval(t + "," + a->_dest->_name + ",agent" + to_string(owner[i]));
                     y2 = std::max(y2, (w_own.eval("sensor" + to_string(i) + "," + a->_dest->_name + ",agent" + to_string(owner[i])) - w_own.eval(t + "," + a->_dest->_name + ",agent" + to_string(owner[i]))) * s.eval(t + "," + a->_dest->_name + ",agent" + to_string(owner[i])));
                 }
                 else {
+                    /*Seller_lb3*/
                     z_sum += z.eval(t + "," + a->_dest->_name + ",agent" + to_string(owner[i]));
                     y3 = std::max(y3, std::min(p_ub[i], (w_own.eval("sensor" + to_string(i) + "," + a->_dest->_name + ",agent" + to_string(owner[i])) - w_bought.eval(t + "," + a->_dest->_name + ",agent" + to_string(owner[i])) + p_ub[stoi(t.substr(6, t.length()))]) * z.eval(t + "," + a->_dest->_name + ",agent" + to_string(owner[i]))));
                 }
             }
             if (y1 < w_own.eval("sensor" + to_string(i) + "," + a->_dest->_name + ",agent" + to_string(owner[i])) * (1 - s_sum - z_sum)) {
+                /*Seller_lb1*/
                 y1 = w_own.eval("sensor" + to_string(i) + "," + a->_dest->_name + ",agent" + to_string(owner[i])) * (1 - s_sum - z_sum);
             }
             s_sum = 0;
             z_sum = 0;
         }
+        /*Fair price*/
         y("sensor" + to_string(i)).set_val(std::max(std::max(y1, y2), y3));
         p("sensor" + to_string(i)).set_val((p_ub[i] + std::max(std::max(y1, y2), y3))/2);
         p_sn("sensor" + to_string(i)).set_val(sn.eval("sensor" + to_string(i)) * (p_ub[i] + std::max(std::max(y1, y2), y3))/2);
@@ -594,27 +613,94 @@ void myModel::GreedyStart(const param<double> &w0, const param<double> &w_own, c
             }
         }
         obj -= e * p_sn.eval("sensor" + to_string(i));
-        /*Constraint<> tmp1("tmp1" + to_string(i));
-        tmp1 = y("sensor" + to_string(i)) - std::max(std::max(y1, y2), y3);
-        model.add(tmp1 == 0);
-        Constraint<> tmp2("tmp2" + to_string(i));
-        tmp2 = p("sensor" + to_string(i)) - (p_ub[i] + std::max(std::max(y1, y2), y3))/2;
-        model.add(tmp2 == 0);*/
         y1 = 0;
         y2 = 0;
         y3 = 0;
     }
-    /*sn.print_vals(3);
-    s.print_vals(3);
-    z.print_vals(3);
-    y.print_vals(3);
-    p.print_vals(3);
-    p_sn.print_vals(3);
-    p_z.print_vals(3);*/
     cout << "Greedy objective: " << obj << endl;
     //model.print_constraints_stats(1e-4);
 }
 
+void myModel::writeGreedySol() {
+    auto p = model.get_var<double>("p");
+    auto y = model.get_var<double>("y");
+    auto sn = model.get_var<int>("sn");
+    auto z0 = model.get_var<int>("z0");
+    auto s = model.get_var<int>("s");
+    auto z = model.get_var<int>("z");
+    
+    //format: p y; id s; id z
+    
+    ofstream solFile;
+    solFile.open("/Users/svetlanariabova/Projects/Sensor/Data/sol_tmp/sol1000.dat");
+    for (int i = 0; i < N; i++) {
+        if (p.eval("sensor" + to_string(i)) >= 0) {
+            solFile << p.eval("sensor" + to_string(i)) << " " << y.eval("sensor" + to_string(i)) << endl;
+        }
+        else { solFile << 0 << " " << 0 << endl; }
+    }
+    bool no_use = true;
+    for (int i = 0; i < N; i++) {
+        for (Arc* a: graph.get_node("sensor" + to_string(i))->get_out()) {
+            if (s.eval("sensor" + to_string(i) + "," + a->_dest->_name + ",agent" + to_string(owner[i])) > 0.5) {
+                solFile << "sensor" + to_string(i) + "," + a->_dest->_name << " " << 1 << endl;
+            }
+            else {
+                for (int k = 0; k < owner[i]; k++) {
+                    if (z.eval("sensor" + to_string(i) + "," + a->_dest->_name + ",agent" + to_string(k)) > 0.5) {
+                        solFile << "sensor" + to_string(i) + "," + a->_dest->_name << " " << 1 << endl;
+                        no_use = false;
+                        break;
+                    }
+                }
+                for (int k = owner[i] + 1; k < K; k++) {
+                    if (z.eval("sensor" + to_string(i) + "," + a->_dest->_name + ",agent" + to_string(k)) > 0.5) {
+                        solFile << "sensor" + to_string(i) + "," + a->_dest->_name << " " << 1 << endl;
+                        no_use = false;
+                        break;
+                    }
+                }
+                if (no_use) { solFile << "sensor" + to_string(i) + "," + a->_dest->_name << " " << 0 << endl; }
+                no_use = true;
+            }
+        }
+    }
+    bool no_operate = true;
+    for (int i = 0; i < N; i++) {
+        for (int k = 0; k < owner[i]; k++) {
+            for (Arc* a: graph.get_node("sensor" + to_string(i))->get_out()) {
+                if (z.eval("sensor" + to_string(i) + "," + a->_dest->_name + ",agent" + to_string(k)) > 0.5) {
+                    solFile << "sensor" + to_string(i) + ",agent" + to_string(k) << " " << 1 << endl;
+                    no_operate = false;
+                    break;
+                }
+            }
+            if (no_operate) { solFile << "sensor" + to_string(i) + ",agent" + to_string(k) << " " << 0 << endl; }
+            no_operate = true;
+        }
+        for (Arc* a: graph.get_node("sensor" + to_string(i))->get_out()) {
+            if (s.eval("sensor" + to_string(i) + "," + a->_dest->_name + ",agent" + to_string(owner[i])) > 0.5) {
+                solFile << "sensor" + to_string(i) + ",agent" + to_string(owner[i]) << " " << 1 << endl;
+                no_operate = false;
+                break;
+            }
+            if (no_operate) { solFile << "sensor" + to_string(i) + ",agent" + to_string(owner[i]) << " " << 0 << endl; }
+            no_operate = true;
+        }
+        for (int k = owner[i] + 1; k < K; k++) {
+            for (Arc* a: graph.get_node("sensor" + to_string(i))->get_out()) {
+                if (z.eval("sensor" + to_string(i) + "," + a->_dest->_name + ",agent" + to_string(k)) > 0.5) {
+                    solFile << "sensor" + to_string(i) + ",agent" + to_string(k) << " " << 1 << endl;
+                    no_operate = false;
+                    break;
+                }
+            }
+            if (no_operate) { solFile << "sensor" + to_string(i) + ",agent" + to_string(k) << " " << 0 << endl; }
+            no_operate = true;
+        }
+    }
+    solFile.close();
+}
 
 void myModel::assignLeader(string &idx, param<double> &wt0, param<double> &wt_own, param<double> &wt_bought) {
     auto sn = model.get_var<int>("sn");
@@ -759,6 +845,14 @@ void myModel::assignBought(string &idx, param<double> &wt0, param<double> &wt_ow
 double myModel::parSum(param<double> w) {
     double s = 0;
     for (auto& n : *w.get_vals()) {
+        s += n;
+    }
+    return s;
+}
+
+double myModel::varSum(var<double> v) {
+    double s = 0;
+    for (auto& n : *v.get_vals()) {
         s += n;
     }
     return s;

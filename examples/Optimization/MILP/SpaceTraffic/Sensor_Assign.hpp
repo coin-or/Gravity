@@ -43,11 +43,13 @@ public:
     void mSolve();
     void saveSolStats();
     void GreedyStart(const param<double> &w0, const param<double> &w_own, const param<double> &w_bought);
+    void writeGreedySol();
     void assignLeader(string &idx, param<double> &wt0, param<double> &wt_own, param<double> &wt_bought);
     void assignOwn(string &idx, param<double> &wt0, param<double> &wt_own, param<double> &wt_bought);
     void assignBought(string &idx, param<double> &wt0, param<double> &wt_own, param<double> &wt_bought);
     void printAssignment();
     double parSum(param<double> w);
+    double varSum(var<double> w);
     string findMax(const param<double> &w);
     int nthOccurrence(const std::string& str, const std::string& findMe, int nth);
     ~myModel(){ };

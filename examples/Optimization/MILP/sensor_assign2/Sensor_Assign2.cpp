@@ -16,7 +16,7 @@ int main(int argc, const char * argv[]) {
     vector<param<double>> par = m.readData(argc, argv, 1, 2);
     auto start = high_resolution_clock::now();
     m.InitBilevel(par[0], par[1], par[2], 0.001);
-    //m.GreedyStart(par[0], par[1], par[2]);
+    m.readGreedySol("/Users/svetlanariabova/Projects/Sensor/Data/sol_tmp/sol1000.dat");
     auto stop = high_resolution_clock::now();
     auto duration1 = duration_cast<seconds>(stop - start);
     cout << "Init + greedy time: " << duration1.count() << endl;
@@ -72,6 +72,8 @@ vector<param<double>> myModel::readData(int argc, const char * argv[], int n1, i
     param<double> w("w");
     //param<double> w_own("w_own");
     //param<double> w_bought("w_bought");
+    own_arcs = indices("own_arcs");
+    bought_arcs = indices("bought_arcs");
     if (argc >= 3) {
         string fname = argv[n2];
         fstream file;
@@ -112,7 +114,7 @@ vector<param<double>> myModel::readData(int argc, const char * argv[], int n1, i
                     }
                 }
                 else {
-                    bought_sens.add("sensor" + to_string(i) + "," + to_string(k));
+                    bought_sens.add("sensor" + to_string(i) + ",agent" + to_string(k));
                     for (Arc* a: graph.get_node("sensor" + to_string(i))->get_out()) {
                         bought_arcs.add(a->_src->_name + "," + a->_dest->_name +  ",agent" +  to_string(k));
                         agents_arcs.add(a->_src->_name + "," + a->_dest->_name +  ",agent" +  to_string(k));
@@ -131,6 +133,7 @@ vector<param<double>> myModel::readData(int argc, const char * argv[], int n1, i
                 w(a->_src->_name + "," + a->_dest->_name + ",agent" + to_string(k)) = stod(tmp);
             }
         }
+        file.close();
     }
     else {
         w0.initialize_normal(2, 1);
@@ -174,11 +177,11 @@ void myModel::InitBilevel(param<double> &w0, param<double> &w, param<double> &w_
     
     /*Objective*/
     func<> obj;
-    obj += product(w.in(own_arcs), s.in_ignore_ith(2, 1, own_arcs) * z.in_ignore_ith(1, 1, own_arcs));
-    obj += product(w.in(bought_arcs), s.in_ignore_ith(2, 1, bought_arcs) * z.in_ignore_ith(1, 1, bought_arcs));
-    obj -= product(1,p.in_ignore_ith(1, 2, own_arcs) * z.in_ignore_ith(1, 1, own_arcs));
-    obj -= product(1,p.in_ignore_ith(1, 2, bought_arcs) * z.in_ignore_ith(1, 1, bought_arcs));
-    obj -= product(e,p.in_ignore_ith(1, 1, operations) * z);
+    obj += product(w_own0, s.in_ignore_ith(2, 1, own_arcs) * z.in_ignore_ith(1, 1, own_arcs));
+    obj += product(w_bought0, s.in_ignore_ith(2, 1, bought_arcs) * z.in_ignore_ith(1, 1, bought_arcs));
+    obj -= product(1, p.in_ignore_ith(1, 2, own_arcs) * z.in_ignore_ith(1, 1, own_arcs));
+    obj -= product(1, p.in_ignore_ith(1, 1, bought_sens) * z.in(bought_sens));
+    obj -= product(e, p.in_ignore_ith(1, 1, bought_sens) * z.in(bought_sens));
     obj += sum(p);
     model.max(obj);
     
@@ -202,7 +205,7 @@ void myModel::InitBilevel(param<double> &w0, param<double> &w, param<double> &w_
     int row_id = 0;
     for (int j = 0; j < M; j++) {
         for (int k = 0; k < K; k++) {
-            uobj_ids.add("Unique_Object:object" + to_string(j) + ",agent" + to_string(k));
+            uobj_ids.add("object" + to_string(j) + ",agent" + to_string(k));
             for (Arc* a: graph.get_node("object" + to_string(j))->get_in()) {
                 s_ids.add_in_row(row_id, a->_src->_name + ",object" + to_string(j));
                 z_ids.add_in_row(row_id, a->_src->_name + ",agent" + to_string(k));
@@ -216,7 +219,7 @@ void myModel::InitBilevel(param<double> &w0, param<double> &w, param<double> &w_
     model.add(uobj.in(uobj_ids) <= 1);
     
     Constraint<> fulb("Followers_Utility_lb");
-    fulb = w.in(bought_arcs) - p.in_ignore_ith(1, 2, bought_arcs) * z.in_ignore_ith(1, 1, bought_arcs);
+    fulb = w.in(bought_arcs) * s.in_ignore_ith(2, 1, bought_arcs) * z.in_ignore_ith(1, 1, bought_arcs) + w._range->second * (1 - s.in_ignore_ith(2, 1, bought_arcs) * z.in_ignore_ith(1, 1, bought_arcs)) - p.in_ignore_ith(1, 2, bought_arcs) * z.in_ignore_ith(1, 1, bought_arcs);
     model.add(fulb.in(bought_arcs) >= 0);
     
         //----Fair price----
@@ -224,18 +227,41 @@ void myModel::InitBilevel(param<double> &w0, param<double> &w, param<double> &w_
     fp = p.in_ignore_ith(1, 2, bought_arcs) - (w.in(bought_arcs) * s.in_ignore_ith(2, 1, bought_arcs) * z.in_ignore_ith(1, 1, bought_arcs) + y.in_ignore_ith(1, 2, bought_arcs))/2;
     model.add(fp.in(bought_arcs) >= 0);
     
+    indices c_lb1("c_lb1"), y_lb1("y_lb1"), w_own_lb1("w_own_lb1"), z_lb1("z_lb1"), s_lb1("s_lb1");
+    y_lb1 = sensors;
+    z_lb1 = bought_arcs;
+    s_lb1 = own_arcs;
+    w_own_lb1 = own_arcs;
+    row_id = 0;
+    for (int i = 0; i < N; i++) {
+        for (Arc* b: graph.get_node("sensor" + to_string(i))->get_out()) {
+            string j = b->_dest->_name;
+            c_lb1.add("sensor" + to_string(i) + "," + b->_dest->_name);
+            y_lb1.add_ref("sensor" + to_string(i));
+            w_own_lb1.add_ref("sensor" + to_string(i) + "," + b->_dest->_name + ",agent" + to_string(owner[i]));
+            for (Arc* a: graph.get_node(j)->get_in()) {
+                s_lb1.add_in_row(row_id, a->_src->_name + "," + j);
+                z_lb1.add_in_row(row_id, a->_src->_name + ",agent" + to_string(owner[i]));
+            }
+            row_id++;
+        }
+    }
+    
+    /*Probably better to replace this with .add_in_row()*/
+    indices tmp_ids2 = own_rplc.ignore_ith(0, 1).ignore_ith(3, 1);
+    indices tmp_ids3 = own_rplc.ignore_ith(0, 1).ignore_ith(1, 1);
     Constraint<> sl1("Seller lb1");
-    sl1 = y.in_ignore_ith(1, 2, agents_arcs) + w * s.in_ignore_ith(2, 1, agents_arcs) * z.in_ignore_ith(1, 1, agents_arcs) - w;
-    model.add(sl1.in(agents_arcs) >= 0);
+    sl1 = y.in(y_lb1) + w.in(w_own_lb1) * s.in(s_lb1) * z.in(z_lb1) - w.in(w_own_lb1);
+    model.add(sl1.in(c_lb1) >= 0);
     
     Constraint<> sl2("Seller lb2");
-    sl2 = y.in_ignore_ith(1, 3, own_rplc) - (w.in_ignore_ith(1, 1, own_rplc) - w.in_ignore_ith(0, 1, own_rplc)) * s.in_ignore_ith(0, 1, own_rplc);
+    sl2 = y.in_ignore_ith(1, 3, own_rplc) - (w.in_ignore_ith(1, 1, own_rplc) - w.in_ignore_ith(0, 1, own_rplc)) * s.in_ignore_ith(2, 3, tmp_ids2);
     model.add(sl2.in(own_rplc) >= 0);
-    
-    indices tmp_ids = oths_rplc.ignore_ith(1, 1).ignore_ith(2, 1);
-    indices tmp_ids1 = oths_rplc.ignore_ith(0, 1).ignore_ith(2, 1);
+
+    indices tmp_ids = oths_rplc.ignore_ith(0, 1).ignore_ith(2, 1);
+    indices tmp_ids1 = oths_rplc.ignore_ith(0, 1);
     Constraint<> sl3("Seller lb3");
-    sl3 = y.in_ignore_ith(1, 3, oths_rplc) - (w.in_ignore_ith(1, 1, oths_rplc) - w.in_ignore_ith(0, 1, oths_rplc)) * s.in(tmp_ids) * z.in_ignore_ith(1, 2, oths_rplc) - p.in(tmp_ids1) * z.in_ignore_ith(1, 2, oths_rplc);
+    sl3 = y.in_ignore_ith(1, 3, oths_rplc) - (w.in_ignore_ith(1, 1, oths_rplc) - w.in_ignore_ith(0, 1, oths_rplc)) * s.in_ignore_ith(2, 3, tmp_ids) * z.in_ignore_ith(1, 1, tmp_ids1) - p.in_ignore_ith(1, 2, tmp_ids1) * z.in_ignore_ith(1, 1, tmp_ids1);
     model.add(sl3.in(oths_rplc) >= 0);
     
     //For comparison
@@ -244,13 +270,48 @@ void myModel::InitBilevel(param<double> &w0, param<double> &w, param<double> &w_
     model.add(no_colab.in(sensors) == 0);*/
     
 //   model.print_symbolic();
-    model.print();
-//    model.print_constraints_stats(1e-4);
+//    model.print();
     
 }
 
 void myModel::mSolve() {
+    model.print_constraints_stats(1e-4);
     solver<> sol(model, gurobi);
+//    model.set_name("Greedy_read");
+//    model.write_solution();
     sol.run();
+//    model.set_name("Sensor_assign2");
+//    model.write_solution();
     //model.print_solution();
+}
+
+void myModel::readGreedySol(string fname) {
+    auto p = model.get_var<double>("p");
+    auto y = model.get_var<double>("y");
+    auto s = model.get_var<int>("s");
+    auto z = model.get_var<int>("z");
+    
+    fstream file;
+    file.open(fname);
+    string id;
+    string tmpval;
+    for (int i = 0; i < N; i++) {
+        file >> tmpval;
+        p("sensor" + to_string(i)).set_val(stod(tmpval));
+        file >> tmpval;
+        y("sensor" + to_string(i)).set_val(stod(tmpval));
+    }
+    for (int i = 0; i < N; i++) {
+        for (Arc* a: graph.get_node("sensor" + to_string(i))->get_out()) {
+            file >> id >> tmpval;
+            s(id).set_val(stoi(tmpval));
+        }
+    }
+    for (int i = 0; i < N; i++) {
+        for (int k = 0; k < K; k++) {
+            file >> id >> tmpval;
+            z(id).set_val(stoi(tmpval));
+        }
+    }
+    file.close();
 }
