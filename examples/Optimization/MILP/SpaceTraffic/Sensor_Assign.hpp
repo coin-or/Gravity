@@ -22,7 +22,6 @@ public:
     int N;
     int K = 5;
     double e;
-    double max_price;
     Net graph;
     indices arcs;
     indices own_arcs;
@@ -33,7 +32,6 @@ public:
     indices oths_rplc;
     indices own_oths_rplc1;
     indices own_oths_rplc2;
-    indices jk; //agents X objects
     vector<int> owner;
     
 public:
@@ -47,9 +45,7 @@ public:
     void assignLeader(string &idx, param<double> &wt0, param<double> &wt_own, param<double> &wt_bought);
     void assignOwn(string &idx, param<double> &wt0, param<double> &wt_own, param<double> &wt_bought);
     void assignBought(string &idx, param<double> &wt0, param<double> &wt_own, param<double> &wt_bought);
-    void printAssignment();
     double parSum(param<double> w);
-    double varSum(var<double> w);
     string findMax(const param<double> &w);
     int nthOccurrence(const std::string& str, const std::string& findMe, int nth);
     ~myModel(){ };
