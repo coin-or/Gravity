@@ -1,7 +1,8 @@
 #include <gravity/GurobiProgram.h>
 #include <thread>         // std::this_thread::sleep_for
 #include <chrono>         // std::chrono::seconds
-
+#include <Eigen/Dense>
+#include <Eigen/Eigenvalues>
 class cuts: public GRBCallback
 {
 public:
@@ -102,7 +103,7 @@ protected:
                                 if(std::abs(res1[i][j])>=1e-12)
                                     expr += res1[i][j];
                                 addLazy(expr, GRB_LESS_EQUAL, 0);
-                               // addCut(expr, GRB_LESS_EQUAL, 0);
+//                                addCut(expr, GRB_LESS_EQUAL, 0);
                                 //vec_expi.push_back(expr);
                             }
                         }
@@ -124,6 +125,7 @@ protected:
                                   }
                                   DebugOff(endl);
                                   addLazy(expr, GRB_LESS_EQUAL, 0);
+//                                  addCut(expr, GRB_LESS_EQUAL, 0);
                                   
                                   //vec_expi.push_back(expr);
                               }
@@ -141,7 +143,7 @@ protected:
                             if(std::abs(res2[i][j])>=1e-12)
                                 expr += res2[i][j];
                             addLazy(expr, GRB_LESS_EQUAL, 0);
-                           // addCut(expr, GRB_LESS_EQUAL, 0);
+//                            addCut(expr, GRB_LESS_EQUAL, 0);
                             //vec_expi.push_back(expr);
                         }
                     }
@@ -200,39 +202,84 @@ protected:
                 }
             }
             }
-            if(false){
+            if(true){
                 if (where == GRB_CB_MIPNODE) {
                     if(getIntInfo(GRB_CB_MIPNODE_STATUS)==2 ){
                         int nc= getDoubleInfo(GRB_CB_MIPNODE_NODCNT);
-                        if(nc%10==0){
-                        // Found an integer feasible solution - does it visit every node?
-                        double *x = new double[n];
-                        vector<double> vec_x;
-                        // double obj=getDoubleInfo(GRB_CB_MIPSOL_OBJ);
-                        int i,j;
-                        x=getNodeRel(vars.data(),n);
-                        //x=getSolution(vars.data(),n);
-                        for(i=0;i<n;i++){
-                            vec_x.push_back(x[i]);
-                        }
-                        m->set_solution(vec_x);
-                auto res2=m->cuts_eigen_bags(1e-6);
-                if(res2.size()>=1){
-                    for(auto i=0;i<res2.size();i++){
-                        GRBLinExpr expr = 0;
-                        int j;
-                        for(j=0;j<res2[i].size()-1;j+=2){
-                            int c=res2[i][j];
-                            if(std::abs(c)>=0)
-                            expr += res2[i][j+1]*vars[c];
-                        }
-                        if(std::abs(res2[i][j])>=1e-12)
-                            expr += res2[i][j];
-//                        addLazy(expr, GRB_LESS_EQUAL, 0);
-                        addCut(expr, GRB_LESS_EQUAL, 0);
-                        //vec_expi.push_back(expr);
+//                        if(nc%100==0){
+                            // Found an integer feasible solution - does it visit every node?
+                            double *x = new double[n];
+                            vector<double> vec_x;
+                            // double obj=getDoubleInfo(GRB_CB_MIPSOL_OBJ);
+                            int i,j;
+                            x=getNodeRel(vars.data(),n);
+                            //x=getSolution(vars.data(),n);
+                            for(i=0;i<n;i++){
+                                vec_x.push_back(x[i]);
+                            }
+                            m->set_solution(vec_x);
+                            auto res1=m->cuts_eigen_bags(1e-9);
+                            if(res1.size()>=1){
+                                for(auto i=0;i<res1.size();i++){
+                                    GRBLinExpr expr = 0;
+                                    int j;
+                                    DebugOff("eig cut at");
+                                    for(j=0;j<res1[i].size()-1;j+=2){
+                                        int c=res1[i][j];
+                                        expr += res1[i][j+1]*vars[c];
+                                        DebugOff(to_string_with_precision(vec_x[c],10)<<" "<<to_string_with_precision(c,10)<<" "<<to_string_with_precision(res1[i][j+1],10)<<" ");
+                                    }
+                                    DebugOff(to_string_with_precision(res1[i][j],10));
+                                    DebugOff(endl);
+                                    if(std::abs(res1[i][j])>=1e-12)
+                                        expr += res1[i][j];
+//                                    addLazy(expr, GRB_LESS_EQUAL, 0);
+                                    addCut(expr, GRB_LESS_EQUAL, 0);
+                                    //vec_expi.push_back(expr);
+                                }
+                            }
+                            
+                            
+                            m->set_solution(vec_x);
+                            
+                            auto res= m->cutting_planes_soc(1e-9, soc_found, soc_added);
+                            if(res.size()>=1){
+                                for(auto i=0;i<res.size();i++){
+                                    GRBLinExpr expr = 0;
+                                    int j;
+                                    DebugOff("soc cut at ");
+                                    for(j=0;j<res[i].size()-1;j+=2){
+                                        int c=res[i][j];
+                                        if(std::abs(c)>=0)
+                                            expr += res[i][j+1]*vars[c];
+                                        DebugOff(to_string_with_precision(vec_x[c],10)<<" "<<to_string_with_precision(c,10)<<" "<<to_string_with_precision(res[i][j+1],10)<<" ");
+                                    }
+                                    DebugOff(endl);
+//                                    addLazy(expr, GRB_LESS_EQUAL, 0);
+                                    addCut(expr, GRB_LESS_EQUAL, 0);
+                                    
+                                    //vec_expi.push_back(expr);
+                                }
+                            }
+                            m->set_solution(vec_x);
+                            auto res2=m->cuts_eigen_full(1e-9);
+                            if(res2.size()>=1){
+                                for(auto i=0;i<res2.size();i++){
+                                    GRBLinExpr expr = 0;
+                                    int j;
+                                    for(j=0;j<res2[i].size()-1;j+=2){
+                                        int c=res2[i][j];
+                                        expr += res2[i][j+1]*vars[c];
+                                    }
+                                    if(std::abs(res2[i][j])>=1e-12)
+                                        expr += res2[i][j];
+//                                    addLazy(expr, GRB_LESS_EQUAL, 0);
+                                    addCut(expr, GRB_LESS_EQUAL, 0);
+                                    //vec_expi.push_back(expr);
+                                }
+                            }
+//                        }
                     }
-                }
                 }
                         //auto res=m->cutting_planes_solution(interior, 1e-6);
                        /* auto res=m->cutting_planes_solution(interior, 1e-9,soc_viol_user, soc_found_user,soc_added_user,det_viol_user, det_found_user, det_added_user);
@@ -250,7 +297,7 @@ protected:
                                 addLazy(expr, GRB_LESS_EQUAL, 0);
                             }
                         }*/
-                    }}
+//                    }}
             }
             
         } catch (GRBException e) {
@@ -376,7 +423,7 @@ bool GurobiProgram::solve(bool relax, double mipgap){
     if (relax) relax_model();
     //    relax_model();
     grb_mod->set(GRB_DoubleParam_MIPGap, 1e-6);
-    grb_mod->set(GRB_DoubleParam_FeasibilityTol, 1e-6);
+    grb_mod->set(GRB_DoubleParam_FeasibilityTol, 1e-9);
     grb_mod->set(GRB_DoubleParam_OptimalityTol, 1e-6);
    // grb_mod->set(GRB_IntParam_StartNodeLimit, -3);
 //    grb_mod->getEnv().set(GRB_IntParam_DualReductions, 0);
@@ -390,11 +437,18 @@ bool GurobiProgram::solve(bool relax, double mipgap){
    // grb_mod->set(GRB_IntParam_Presolve,2);
     //grb_mod->set(GRB_IntParam_MIPFocus,3);
 //    grb_mod->set(GRB_IntParam_IntegralityFocus,1);
-//    grb_mod->set(GRB_IntParam_MIPFocus,2);
+//    grb_mod->set(GRB_IntParam_MIPFocus,1);
+//    grb_mod->set(GRB_IntParam_PumpPasses,5);
+    grb_mod->set(GRB_IntParam_RINS,1000);
+//    grb_mod->set(GRB_IntParam_Cuts,0);
+    
     grb_mod->set(GRB_DoubleParam_TimeLimit,9000);
     //grb_mod->set(GRB_DoubleParam_Cutoff,5.33);
   //  grb_mod->set(GRB_IntParam_MinRelNodes,0);
-    //grb_mod->set(GRB_DoubleParam_Heuristics, 0.1);
+//    grb_mod->set(GRB_DoubleParam_Heuristics, 1);
+    grb_mod->set(GRB_DoubleParam_NoRelHeurTime, 5);
+    grb_mod->set(GRB_DoubleParam_NoRelHeurWork, 5);
+//    grb_mod->set(GRB_IntParam_CutPasses,10000);
     grb_mod->update();
     //grb_env2 = new GRBEnv();
     //auto mod2=GRBModel(grb_mod);
@@ -427,6 +481,40 @@ bool GurobiProgram::solve(bool relax, double mipgap){
     while(not_sdp && count<=10000){
         grb_mod->optimize();
         update_solution();
+        var<double> X=_model->get_var<double>("X");
+        var<double> Xij=_model->get_var<double>("Xij");
+        int dim_full=X._indices->_keys->size();
+        
+        Eigen::MatrixXd mat_full(dim_full,dim_full);
+        int count=0;
+        vector<string> all_names;
+        for(auto k:*X._indices->_keys){
+            mat_full(count, count)=X.eval(k);
+            all_names.push_back(k);
+            count++;
+        }
+        
+        for(auto i=0;i<all_names.size()-1;i++){
+            for(auto j=i+1;j<all_names.size();j++){
+                auto k=all_names[i]+","+all_names[j];
+                if (Xij._indices->has_key(k)){
+                    mat_full(i, j)=Xij.eval(k);
+                    mat_full(j, i)=Xij.eval(k);
+                }
+                else{
+                    mat_full(i, j)=0;
+                    mat_full(j, i)=0;
+                }
+            }
+        }
+        Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> es1;
+        es1.compute(mat_full);
+        
+        for(auto m=0;m<dim_full;m++){
+            DebugOn(std::setprecision(12)<<es1.eigenvalues()[m]<<" ");
+        }
+        DebugOn(endl<<"full"<<endl);
+          
         //grb_mod->setCallback(NULL);
         int soc_viol=0, soc_found=0, soc_added=0, det_viol=0, det_found=0, det_added=0;
         auto res=_model->cutting_planes_soc(1e-9,soc_viol, soc_added);
@@ -464,6 +552,22 @@ bool GurobiProgram::solve(bool relax, double mipgap){
                 grb_mod->addConstr(expr, GRB_LESS_EQUAL, 0);
             }
         }
+            auto res3=_model->cuts_eigen_full(1e-9);
+            if(res3.size()>=1){
+                for(auto i=0;i<res3.size();i++){
+                    GRBLinExpr expr = 0;
+                    int j;
+                    for(j=0;j<res3[i].size()-1;j+=2){
+                        int c=res3[i][j];
+                        expr += res3[i][j+1]*_grb_vars[c];
+                    }
+                    if(std::abs(res3[i][j])>=1e-12)
+                        expr += res3[i][j];
+                    grb_mod->addConstr(expr, GRB_LESS_EQUAL, 0);
+//                            addCut(expr, GRB_LESS_EQUAL, 0);
+                    //vec_expi.push_back(expr);
+                }
+            }
         else{
             not_sdp=false;
         }
@@ -479,7 +583,7 @@ bool GurobiProgram::solve(bool relax, double mipgap){
 //    grb_mod->setCallback(NULL);
 //    grb_mod->update();
 //    grb_mod->optimize();
-    grb_mod->write("mod.lp");
+//    grb_mod->write("mod.lp");
     if (grb_mod->get(GRB_IntAttr_Status) != 2) {
         cerr << "\nModel has not been solved to optimality, error code = " << grb_mod->get(GRB_IntAttr_Status) << endl;
         //        return false;
