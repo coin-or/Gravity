@@ -650,7 +650,7 @@ vector<vector<double>> Model<type>::cutting_planes_solution(const Model<type>& i
                         if(max_coef>=1e3)
                             scale=1000.0/max_coef;
                         if(scale<=1e-4)
-                            DebugOn("scale "<<scale<<endl);
+                            DebugOff("scale "<<scale<<endl);
                         oa_cut=true;
                     }
                 }
@@ -763,7 +763,7 @@ vector<vector<double>> Model<type>::cutting_planes_soc(double active_tol, int& s
                             if(max_coef>=1e4)
                                 scale=10000.0/max_coef;
                             if(scale<=1e-4)
-                                DebugOn("scale "<<scale<<endl);
+                                DebugOff("scale "<<scale<<endl);
                             
                             
                             

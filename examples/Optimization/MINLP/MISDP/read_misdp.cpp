@@ -94,7 +94,7 @@ readDCOORD(CBFFILE *pFile, long long int *linecount, CBFdata *data);
 // Function definitions
 // -------------------------------------
 
-Net CBF_read(const char *file, shared_ptr<Model<double>>& m) {
+Net CBF_read(const char *file, shared_ptr<Model<double>>& m, bool add_3d) {
     Net g;
     CBFresponsee res = CBF_RES_OK;
     long long int linecount = 0;
@@ -226,12 +226,12 @@ Net CBF_read(const char *file, shared_ptr<Model<double>>& m) {
     x_ub.in(C);x_lb.in(C);
     y_ub.in(I);y_lb.in(I);
     for (int i = 0; i<C.size(); i++) {
-        x_lb.set_val(i, 0);
-        x_ub.set_val(i, 0.2);
+        x_lb.set_val(i, -100);
+        x_ub.set_val(i, 100);
     }
     for (int i = 0; i<I.size(); i++) {
-        y_lb.set_val(i, 0);
-        y_ub.set_val(i, 1);
+        y_lb.set_val(i, -100);
+        y_ub.set_val(i, 100);
     }
     var<> x("x", x_lb, x_ub);
     var<int> y("y", y_lb, y_ub);
@@ -430,6 +430,8 @@ Net CBF_read(const char *file, shared_ptr<Model<double>>& m) {
             }
         }
     }
+//    x.reset_range();
+//    y.reset_range();
     if(data.psdmapnum==1){
         int nnodes=data.psdmapdim[0];
         indices nodes;
@@ -835,22 +837,22 @@ Net CBF_read(const char *file, shared_ptr<Model<double>>& m) {
 //                }
 //            }
 //        }
-        
-        auto bag_size = bags_3d.size();
-        auto Wij_ = Xij.pairs_in_bags(bags_3d, 3);
-        auto Wii_ = X.in_bags(bags_3d, 3);
-        
-        Constraint<> SDP3("SDP_3D");
-        
-        SDP3 += (pow(Wij_[0], 2)) * Wii_[2]*0.001;
-        SDP3 += (pow(Wij_[1], 2)) * Wii_[0]*0.001;
-        SDP3 += (pow(Wij_[2], 2)) * Wii_[1]*0.001;
-        SDP3 -= 2 * Wij_[0] * (Wij_[1] * Wij_[2])*0.001;
-        SDP3 -= Wii_[0] * Wii_[1] * Wii_[2]*0.001;
-        SDP3.add_to_callback();
-        m->add(SDP3.in(range(0, bag_size-1)) <= 0);
+        if(add_3d){
+            auto bag_size = bags_3d.size();
+            auto Wij_ = Xij.pairs_in_bags(bags_3d, 3);
+            auto Wii_ = X.in_bags(bags_3d, 3);
+            
+            Constraint<> SDP3("SDP_3D");
+            
+            SDP3 += (pow(Wij_[0], 2)) * Wii_[2]*0.001;
+            SDP3 += (pow(Wij_[1], 2)) * Wii_[0]*0.001;
+            SDP3 += (pow(Wij_[2], 2)) * Wii_[1]*0.001;
+            SDP3 -= 2 * Wij_[0] * (Wij_[1] * Wij_[2])*0.001;
+            SDP3 -= Wii_[0] * Wii_[1] * Wii_[2]*0.001;
+            SDP3.add_to_callback();
+            m->add(SDP3.in(range(0, bag_size-1)) <= 0);
        
-        
+        }
      
        // Xij.param<>::set_val("2,3", 1);
     }

@@ -12,6 +12,6 @@
 using namespace gravity;
 using namespace std;
 
-Net CBF_read(const char *file, shared_ptr<Model<double>>& m);
+Net CBF_read(const char *file, shared_ptr<Model<double>>& m, bool add_3d = true);
 
 #endif /* read_misdp_hpp */

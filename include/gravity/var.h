@@ -241,7 +241,8 @@ namespace gravity {
             if(!indexed & !res._ub->is_number()){
                 (res._ub->in(*res._indices));
             }
-            res._range = make_shared<pair<type,type>>(res._lb->_range->first,res._ub->_range->second);
+ //           res._range = make_shared<pair<type,type>>(res._lb->_range->first,res._ub->_range->second);
+            res._range = make_shared<pair<type,type>>(res._lb->eval(t1, args...),res._ub->eval(t1, args...));
             return res;
         }
         
@@ -351,9 +352,19 @@ namespace gravity {
             this->_imag = make_shared<var<>>(p);
         }
 
-//        void reset_range(){
-//            param<type>::reset_range();
-//        }
+        void reset_range(){
+            this->init_range();
+            for (auto i = 0; i< this->_val->size(); i++) {
+                auto lb_val = _lb->_val->at(i);
+                if(this->_range->first > lb_val){
+                    this->_range->first = lb_val;
+                }
+                auto ub_val = _ub->_val->at(i);
+                if(this->_range->second < ub_val){
+                    this->_range->second = ub_val;
+                }
+            }
+        }
 
 //        void index_in(const indices& ids) {
 //            *this = this->in(ids);

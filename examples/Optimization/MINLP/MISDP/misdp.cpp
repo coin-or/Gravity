@@ -47,16 +47,30 @@ double determinant(vector<vector<double>> X, int n){
 using namespace gravity;
 using namespace std;
 
-int main(){
-string fname=string(prj_dir)+"/data_sets/MISDP/2x3_3bars.cbf";
-   // string fname=string(prj_dir)+"/data_sets/MISDP/2x7_3bars.cbf";
-   // string fname=string(prj_dir)+"/data_sets/MISDP/2x4_2scen_3bars.cbf";
+int main(int argc, char * argv[]){
+//string fname=string(prj_dir)+"/data_sets/MISDP/2x3_3bars.cbf";
+//    string fname=string(prj_dir)+"/data_sets/MISDP/2x7_3bars.cbf";
+    string fname=string(prj_dir)+"/data_sets/MISDP/2x4_2scen_3bars.cbf";
     //string fname=string(prj_dir)+"/data_sets/MISDP/coloncancer_1_100_5.cbf";
     //string fname=string(prj_dir)+"/data_sets/MISDP/2g_4_164_k3_5_6.cbf";
+    
+    if(argc==2){
+        fname=argv[1];
+    }
 auto m=make_shared<Model<double>>("misdp_test");
 auto g=CBF_read(fname.c_str(), m);
-    g.print();
+//    g.print();
    m->print();
+//    auto rel=make_shared<Model<double>>("misdp_rel");
+//    auto g2=CBF_read(fname.c_str(), rel);
+//    double ub_solver_tol=1e-6, lb_solver_tol=1e-6, range_tol=1e-4, opt_rel_tol=1e-2, opt_abs_tol=1e6;
+//    unsigned max_iter=1e3;
+//    SolverType ub_solver_type = ipopt, lb_solver_type = ipopt;
+//
+//    double max_time = 60;
+//    m_init->replace_integers();
+//    m_init->project();
+//    auto res=m_init->run_obbt(rel, max_time, max_iter, opt_rel_tol, opt_abs_tol, 6, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol);
     int soc_viol=0, soc_added=0;
     //m->print_solution();
     //m->cutting_planes_soc(1e-9, soc_viol,soc_added);
@@ -70,7 +84,11 @@ auto g=CBF_read(fname.c_str(), m);
 //        DebugOn("cuts found "<<res.size()<<endl);
 //    }
     
-    
+//    auto m=make_shared<Model<double>>("misdp_test");
+//    auto g=CBF_read(fname.c_str(), m);
+//    m->copy_bounds(m_init);
+//    m->copy_solution(m_init);
+//    m->print();
    solver<> s(m,gurobi);
    s.run(5, 1e-6);
     m->print_solution();

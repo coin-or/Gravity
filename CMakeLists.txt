@@ -27,7 +27,7 @@ endif()
 #add_definitions(${PCL_DEFINITIONS})
 
 # Find GUROBI (optional)
-option(Gurobi "Link to GUROBI libraries" OFF)
+option(Gurobi "Link to GUROBI libraries" ON)
 
 # Find IPOPT (REQUIRED)
 option(Ipopt "Link to IPOPT libraries" ON)
@@ -95,12 +95,12 @@ endif()
 
 # Find Eigen3.
 if (Eigen3)
-        message(STATUS "Enable Eigen3")
-        add_definitions(-DUSE_EIGEN3)
-        find_package(Eigen3 REQUIRED)
-        message("including ${EIGEN3_INCLUDE_DIRS}")
-        set(ADD_Eigen3 TRUE)
-        include_directories(${EIGEN3_INCLUDE_DIRS})
+        message(STATUS "Enable Eigen")
+        add_definitions(-DUSE_EIGEN)
+        find_package(Eigen REQUIRED)
+        message("including ${EIGEN_INCLUDE_DIRS}")
+#        set(ADD_Eigen3 TRUE)
+        include_directories(${EIGEN_INCLUDE_DIRS})
 endif()
 
 

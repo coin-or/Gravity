@@ -91,14 +91,14 @@ protected:
                             for(auto i=0;i<res1.size();i++){
                                 GRBLinExpr expr = 0;
                                 int j;
-                                DebugOn("eig cut at");
+                                DebugOff("eig cut at");
                                 for(j=0;j<res1[i].size()-1;j+=2){
                                     int c=res1[i][j];
                                     expr += res1[i][j+1]*vars[c];
-                                    DebugOn(to_string_with_precision(vec_x[c],10)<<" "<<to_string_with_precision(c,10)<<" "<<to_string_with_precision(res1[i][j+1],10)<<" ");
+                                    DebugOff(to_string_with_precision(vec_x[c],10)<<" "<<to_string_with_precision(c,10)<<" "<<to_string_with_precision(res1[i][j+1],10)<<" ");
                                 }
-                                DebugOn(to_string_with_precision(res1[i][j],10));
-                                DebugOn(endl);
+                                DebugOff(to_string_with_precision(res1[i][j],10));
+                                DebugOff(endl);
                                 if(std::abs(res1[i][j])>=1e-12)
                                     expr += res1[i][j];
                                 addLazy(expr, GRB_LESS_EQUAL, 0);
@@ -115,14 +115,14 @@ protected:
                               for(auto i=0;i<res.size();i++){
                                   GRBLinExpr expr = 0;
                                   int j;
-                                  DebugOn("soc cut at ");
+                                  DebugOff("soc cut at ");
                                   for(j=0;j<res[i].size()-1;j+=2){
                                       int c=res[i][j];
                                       if(std::abs(c)>=0)
                                       expr += res[i][j+1]*vars[c];
-                                      DebugOn(to_string_with_precision(vec_x[c],10)<<" "<<to_string_with_precision(c,10)<<" "<<to_string_with_precision(res[i][j+1],10)<<" ");
+                                      DebugOff(to_string_with_precision(vec_x[c],10)<<" "<<to_string_with_precision(c,10)<<" "<<to_string_with_precision(res[i][j+1],10)<<" ");
                                   }
-                                  DebugOn(endl);
+                                  DebugOff(endl);
                                   addLazy(expr, GRB_LESS_EQUAL, 0);
                                   
                                   //vec_expi.push_back(expr);
@@ -376,21 +376,21 @@ bool GurobiProgram::solve(bool relax, double mipgap){
     if (relax) relax_model();
     //    relax_model();
     grb_mod->set(GRB_DoubleParam_MIPGap, 1e-6);
-    grb_mod->set(GRB_DoubleParam_FeasibilityTol, 1e-9);
+    grb_mod->set(GRB_DoubleParam_FeasibilityTol, 1e-6);
     grb_mod->set(GRB_DoubleParam_OptimalityTol, 1e-6);
    // grb_mod->set(GRB_IntParam_StartNodeLimit, -3);
 //    grb_mod->getEnv().set(GRB_IntParam_DualReductions, 0);
 //    grb_mod->getEnv().set(GRB_IntParam_PreCrush, 1);
-        grb_mod->getEnv().set(GRB_IntParam_Method, 1);
-    grb_mod->getEnv().set(GRB_IntParam_NodeMethod, 1);
+//        grb_mod->getEnv().set(GRB_IntParam_Method, 1);
+//    grb_mod->getEnv().set(GRB_IntParam_NodeMethod, 1);
     grb_mod->getEnv().set(GRB_IntParam_LazyConstraints, 1);
-    grb_mod->set(GRB_IntParam_Threads, 1);
+//    grb_mod->set(GRB_IntParam_Threads, 1);
 //    grb_mod->set(GRB_DoubleParam_IntFeasTol, 1e-9);
-   grb_mod->set(GRB_IntParam_NumericFocus,3);
+//   grb_mod->set(GRB_IntParam_NumericFocus,3);
    // grb_mod->set(GRB_IntParam_Presolve,2);
     //grb_mod->set(GRB_IntParam_MIPFocus,3);
-    grb_mod->set(GRB_IntParam_IntegralityFocus,1);
-    grb_mod->set(GRB_IntParam_MIPFocus,2);
+//    grb_mod->set(GRB_IntParam_IntegralityFocus,1);
+//    grb_mod->set(GRB_IntParam_MIPFocus,2);
     grb_mod->set(GRB_DoubleParam_TimeLimit,9000);
     //grb_mod->set(GRB_DoubleParam_Cutoff,5.33);
   //  grb_mod->set(GRB_IntParam_MinRelNodes,0);
@@ -437,9 +437,9 @@ bool GurobiProgram::solve(bool relax, double mipgap){
                 for(j=0;j<res[i].size()-1;j+=2){
                     int c=res[i][j];
                     expr += res[i][j+1]*_grb_vars[c];
-                    DebugOn(res[i][j+1]<<" ");
+                    DebugOff(res[i][j+1]<<" ");
                 }
-                DebugOn(endl);
+                DebugOff(endl);
                 if(abs(res[i][j])>=1e-6){
                     DebugOff("pos resij");
                 }

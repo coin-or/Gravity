@@ -22,6 +22,28 @@
 using namespace std;
 using namespace gravity;
 
+TEST_CASE("testing range update"){
+    var<> x1("x1", -10, 150);
+    x1.in(R(3));
+    CHECK(x1._range->first==-10);
+    CHECK(x1._range->second==150);
+    x1.set_lb("0", -5);
+    x1.set_ub("0", 200);
+    x1.set_lb("2", 0);
+    x1.set_ub("2", 1);
+    CHECK(x1._range->first==-10);
+    CHECK(x1._range->second==200);
+    auto x1_0 = x1(0);
+    CHECK(x1_0._range->first==-5);
+    CHECK(x1_0._range->second==200);
+    auto x1_2 = x1(2);
+    CHECK(x1_2._range->first==0);
+    CHECK(x1_2._range->second==1);
+    auto f = 2*x1_2 - 2;
+    CHECK(f._range->first==-2);
+    CHECK(f._range->second==0);
+}
+
 TEST_CASE("testing multi max/min"){
     var<> x1("x1", -1, 1), x2("x2", 0.1, 3), x3("x3",2,4), x4("x4",2,4);
     x1.in(R(2));
