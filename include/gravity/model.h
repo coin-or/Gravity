@@ -4801,10 +4801,10 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
             }
             _obj->_new = true;
             _obj->_dfdx->clear();
-//            for(auto &v_p: _vars)
-//            {
-//                v_p.second->reset_bounds();
-//            }
+            for(auto &v_p: _vars)
+            {
+                v_p.second->_new = true;
+            }
         }
         
         /* Build the interaction graph with symbolic variables as nodes, an edge links two variables if they appear together in a constraint or if they are linked in a nonlinear fashion in the objective

@@ -421,6 +421,8 @@ bool GurobiProgram::solve(bool relax, double mipgap){
     //cout << "\n Presolve = " << grb_env->get(GRB_IntParam_Presolve) << endl;
     //    print_constraints();
     if (relax) relax_model();
+    else
+        unrelax_model();
     //    relax_model();
     grb_mod->set(GRB_DoubleParam_MIPGap, 1e-6);
     grb_mod->set(GRB_DoubleParam_FeasibilityTol, 1e-9);
@@ -437,17 +439,17 @@ bool GurobiProgram::solve(bool relax, double mipgap){
    // grb_mod->set(GRB_IntParam_Presolve,2);
     //grb_mod->set(GRB_IntParam_MIPFocus,3);
 //    grb_mod->set(GRB_IntParam_IntegralityFocus,1);
-//    grb_mod->set(GRB_IntParam_MIPFocus,1);
-//    grb_mod->set(GRB_IntParam_PumpPasses,5);
-    grb_mod->set(GRB_IntParam_RINS,1000);
+//    grb_mod->set(GRB_IntParam_MIPFocus,2);
+//    grb_mod->set(GRB_IntParam_PumpPasses,50);
+//    grb_mod->set(GRB_IntParam_RINS,1000);
 //    grb_mod->set(GRB_IntParam_Cuts,0);
     
     grb_mod->set(GRB_DoubleParam_TimeLimit,9000);
     //grb_mod->set(GRB_DoubleParam_Cutoff,5.33);
   //  grb_mod->set(GRB_IntParam_MinRelNodes,0);
 //    grb_mod->set(GRB_DoubleParam_Heuristics, 1);
-    grb_mod->set(GRB_DoubleParam_NoRelHeurTime, 5);
-    grb_mod->set(GRB_DoubleParam_NoRelHeurWork, 5);
+//    grb_mod->set(GRB_DoubleParam_NoRelHeurTime, 5);
+//    grb_mod->set(GRB_DoubleParam_NoRelHeurWork, 5);
 //    grb_mod->set(GRB_IntParam_CutPasses,10000);
     grb_mod->update();
     //grb_env2 = new GRBEnv();
@@ -476,7 +478,7 @@ bool GurobiProgram::solve(bool relax, double mipgap){
 //    grb_mod->set(GRB_IntParam_RINS,10000);
    // grb_mod->update();
    // grb_mod->optimize();
-    bool not_sdp=false;
+    bool not_sdp=true;
     int count=0;
     while(not_sdp && count<=10000){
         grb_mod->optimize();
@@ -510,14 +512,14 @@ bool GurobiProgram::solve(bool relax, double mipgap){
         Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> es1;
         es1.compute(mat_full);
         
-        for(auto m=0;m<dim_full;m++){
-            DebugOn(std::setprecision(12)<<es1.eigenvalues()[m]<<" ");
-        }
-        DebugOn(endl<<"full"<<endl);
+//        for(auto m=0;m<dim_full;m++){
+//            DebugOn(std::setprecision(12)<<es1.eigenvalues()[m]<<" ");
+//        }
+//        DebugOn(endl<<"full"<<endl);
           
         //grb_mod->setCallback(NULL);
         int soc_viol=0, soc_found=0, soc_added=0, det_viol=0, det_found=0, det_added=0;
-        auto res=_model->cutting_planes_soc(1e-9,soc_viol, soc_added);
+        auto res=_model->cutting_planes_soc(1e-6,soc_viol, soc_added);
         if(res.size()>=1){
             for(auto i=0;i<res.size();i++){
                 GRBLinExpr expr = 0;
@@ -538,7 +540,7 @@ bool GurobiProgram::solve(bool relax, double mipgap){
             }
         }
         if(res.size()==0){
-        auto res2=_model->cuts_eigen_bags(1e-10);
+        auto res2=_model->cuts_eigen_bags(1e-6);
         if(res2.size()>=1){
             for(auto i=0;i<res2.size();i++){
                 GRBLinExpr expr = 0;
@@ -552,7 +554,7 @@ bool GurobiProgram::solve(bool relax, double mipgap){
                 grb_mod->addConstr(expr, GRB_LESS_EQUAL, 0);
             }
         }
-            auto res3=_model->cuts_eigen_full(1e-9);
+            auto res3=_model->cuts_eigen_full(1e-6);
             if(res3.size()>=1){
                 for(auto i=0;i<res3.size();i++){
                     GRBLinExpr expr = 0;
@@ -660,7 +662,26 @@ void GurobiProgram::update_solution(){
 void GurobiProgram::relax_model(){
     GRBVar* gvars = grb_mod->getVars();
     for(int i = 0; i < grb_mod->get(GRB_IntAttr_NumVars); ++i) {
-        if (gvars[i].get(GRB_CharAttr_VType) == 'B') gvars[i].set(GRB_CharAttr_VType,'C');
+        if (gvars[i].get(GRB_CharAttr_VType) == 'B' || gvars[i].get(GRB_CharAttr_VType) == 'I')
+            gvars[i].set(GRB_CharAttr_VType,'C');
+    }
+}
+
+void GurobiProgram::unrelax_model(){
+    GRBVar gvar;
+    param_* v;
+    for(auto& v_p: _model->_vars)
+    {
+        v = v_p.second.get();
+        if(v->is_continuous())
+            continue;
+        auto idx = v->get_id();
+        auto dim = v->_dim[0];
+        for (auto i = 0; i < dim; i++) {
+            auto vid = idx + v->get_id_inst(i);
+            gvar = _grb_vars.at(vid);
+            gvar.set(GRB_CharAttr_VType, 'I');
+        }
     }
 }
 

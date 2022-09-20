@@ -53,9 +53,12 @@ int main(int argc, char * argv[]){
     string fname=string(prj_dir)+"/data_sets/MISDP/2x4_2scen_3bars.cbf";
     //string fname=string(prj_dir)+"/data_sets/MISDP/coloncancer_1_100_5.cbf";
     //string fname=string(prj_dir)+"/data_sets/MISDP/2g_4_164_k3_5_6.cbf";
-    
-    if(argc==2){
+    bool root_refine = false;
+    if(argc>=2){
         fname=argv[1];
+    }
+    if(argc>=3){
+        root_refine = true;
     }
 auto m=make_shared<Model<double>>("misdp_test");
 auto g=CBF_read(fname.c_str(), m);
@@ -119,8 +122,12 @@ auto g=CBF_read(fname.c_str(), m);
 //    y.set_ub("165", 1);
 //    auto x = m->get_var<double>("x");
 //    x.set_lb(0.1);
-   solver<> s(m,gurobi);
-   s.run(5, 1e-6);
+   solver<> sc(m,gurobi);
+    bool relax = false;
+    if(root_refine){
+        sc.run(relax = true);
+    }
+    sc.run(relax=false);
     m->print_solution();
   /*  m->round_solution();
     m->_obj->uneval();

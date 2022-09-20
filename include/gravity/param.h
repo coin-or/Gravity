@@ -369,6 +369,12 @@ namespace gravity {
             return (_intype==binary_);
         };
 
+        bool is_continuous() const {
+            if (_intype==binary_ || _intype==integer_ || _intype==short_)
+                return false;
+            return true;
+        };
+        
         bool is_integer() const {
             return (_intype==integer_ || _intype==short_);
         };
