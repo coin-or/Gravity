@@ -17,7 +17,9 @@ using namespace hdf5;
 
 
 int main(int argc, const char * argv[]) {
-    
+    bool run_MIP = false;
+    if(argc>3)
+        run_MIP = true;
     myModel m = myModel();
     vector<param<double>> par = m.readData(argc, argv, 1, 2);
     auto start = high_resolution_clock::now();
@@ -27,7 +29,7 @@ int main(int argc, const char * argv[]) {
     auto stop = high_resolution_clock::now();
     auto duration1 = duration_cast<seconds>(stop - start);
     cout << "Init + greedy time: " << duration1.count() << endl;
-    m.mSolve();
+    m.mSolve(run_MIP);
     auto stop2 = high_resolution_clock::now();
     auto duration2 = duration_cast<seconds>(stop2 - stop);
     cout << m.N << " " << m.M << " " << m.K << " " << duration1.count() + duration2.count() << endl; //prints num sensors; num objetcs; num agents; total time after reading input (init + greedy + solver)
@@ -117,6 +119,7 @@ vector<param<double>> myModel::readData(int argc, const char * argv[], int n1, i
                 }
             }
         }
+//        own_sens.print();
         w0.in(arcs);
         w_own.in(own_arcs);
         w_bought.in(bought_arcs);
@@ -344,12 +347,14 @@ void myModel::InitBilevel(param<double> &w0, param<double> &w_own, param<double>
     model.add(no_colab.in(sensors) == 0);*/
 }
 
-void myModel::mSolve() {
-    
-    solver<> sol(model, gurobi);
-    sol.run();
+void myModel::mSolve(bool run_mip) {
+
     model.set_name("Sensor_assign");
-    model.write_solution();
+    if(run_mip){
+        solver<> sol(model, gurobi);
+        sol.run();
+//        model.write_solution();
+    }
 #ifdef USE_H5CPP
 //    auto hd5file = file::open(string(prj_dir)+"/data_sets/sensor/horizon10deg_0.hd5");
 //    auto RootGroup = hd5file.root();
@@ -417,8 +422,13 @@ void myModel::mSolve() {
     node::Group root_group = f.root();
     node::Group my_group = root_group.create_group("prices");
 
-    auto p = model.get_var<double>("p_z");
+    auto p = model.get_var<double>("p");
+    auto sn = model.get_var<int>("sn");
     auto p_vals = *p.get_vals();
+    for (auto i = 0; i<p_vals.size(); i++) {
+        if(sn.eval(i)!=1)
+            p_vals[i] = 0;
+    }
     // create a dataset
     node::Dataset dataset = my_group.create_dataset("p",
                                                     datatype::create<vector<double>>(),
@@ -426,7 +436,33 @@ void myModel::mSolve() {
 
     // write to dataset
     dataset.write(p_vals);
+    node::Group binary_group = root_group.create_group("assignment");
+
+    vector<string> binaries;
+    auto z = model.get_var<int>("z");
+    auto z_vals = *z.get_vals();
+    for (int i = 0; i<z_vals.size(); i++) {
+        if(z_vals[i]==1){
+            binaries.push_back(z._indices->get_key(i));
+        }
+            
+    }
+    auto s = model.get_var<int>("s");
+    auto s_vals = *s.get_vals();
+    for (int i = 0; i<s_vals.size(); i++) {
+        if(s_vals[i]==1){
+            binaries.push_back(s._indices->get_key(i));
+        }
+            
+    }
     
+    // create a dataset
+    dataset = binary_group.create_dataset("binaries: (sensor id, object id, agent id)",
+                                                    datatype::create<vector<string>>(),
+                                                    dataspace::create(binaries));
+
+    // write to dataset
+    dataset.write(binaries);
 #endif
 }
 
@@ -557,7 +593,7 @@ void myModel::writeGreedySol() {
     //format: p y; id s; id z
     
     ofstream solFile;
-    solFile.open(string(prj_dir)+"/data_sets/sol.dat");
+    solFile.open("sol.dat");
     for (int i = 0; i < N; i++) {
         /*greedy solution might have vars at -inf when sensor is not used; replacing it with 0 in else statement*/
         if (p.eval("sensor" + to_string(i)) >= 0) {

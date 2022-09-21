@@ -38,7 +38,7 @@ public:
     myModel(){ };
     vector<param<double>> readData(int argc, const char * argv[], int n1, int n2);
     void InitBilevel(param<double> &w0, param<double> &w_own, param<double> &w_bought, double eps);
-    void mSolve();
+    void mSolve(bool run_mip=false);
     void saveSolStats();
     void GreedyStart(const param<double> &w0, const param<double> &w_own, const param<double> &w_bought);
     void writeGreedySol();
