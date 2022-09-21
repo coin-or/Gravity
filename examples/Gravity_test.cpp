@@ -22,6 +22,47 @@
 using namespace std;
 using namespace gravity;
 
+
+TEST_CASE("Add in row") {
+    Model<> M("Test");
+    /* Symbolic variable x in R^8 */
+    param<> x_lb("x_lb"), x_ub("x_ub");
+    x_lb = {100,1000,1000,10,10,10,10,10};
+    x_ub = {10000,10000,10000,1000,1000,1000,1000,1000};
+    var<> x("x",x_lb,x_ub);
+    
+    /* Symbolic variable x in R^8 */
+    param<> y_lb("y_lb"), y_ub("y_ub");
+    y_lb = {-100,-1000,-1000,-10,-10,-10,-10,-10};
+    y_ub = {2,2,0,10,12,-1,-2,-3};
+    var<> y("y",y_lb,y_ub);
+    
+    auto x_ids = indices("x_ids"), y_ids = indices("y_ids");
+    x_ids = range(1,8);
+    y_ids = range(1,8);
+    M.add(x.in(x_ids), y.in(y_ids));
+
+    indices y_mat("y_mat");/* Declaring a matrix index set based on the indices of y */
+    y_mat = y_ids; /* y_mat is based on y_ids */
+    for(int i = 0; i<4; i++){
+        y_mat.add_empty_row();
+        for(int j = 0; j<7; j++){
+            if(i%2==0 && j%(i+1)==0)
+                y_mat.add_in_row(i, to_string(j+1));
+        }
+        if(i%2!=0)
+            y_mat.add_in_row(i, "1");
+    }
+    
+
+    Constraint<> LinCons("LinCons");
+    LinCons = x.in(range(1,4)) - x.in(range(2,5)) - y.in(y_mat);
+    M.add(LinCons.in(range(1,4)) == 0);
+    M.print();
+    CHECK(M.get_nb_vars()==16);
+    CHECK(M.get_nb_cons()==4);
+}
+
 #ifdef USE_MP
 TEST_CASE("testing readNL() function on ex4.nl") {
     Model<> M;
@@ -29,6 +70,7 @@ TEST_CASE("testing readNL() function on ex4.nl") {
     int status = M.readNL(NL_file);
     M.print();
     CHECK(status==0);
+    CHECK(M.get_nb_vars()==36);
     CHECK(M.get_nb_vars()==36);
     CHECK(M.get_nb_cons()==30);
     CHECK(M.is_convex());
@@ -145,7 +187,7 @@ TEST_CASE("Variable Scaling") {
     Model<> M("Test");
     param<> lb("x_lb");
     lb = {100,1000,1000,10,10,10,10,10};
-    param<> ub("x_lb");
+    param<> ub("x_ub");
     ub = {10000,10000,10000,1000,1000,1000,1000,1000};
     var<> x("x",lb,ub);
     M.add(x.in(range(1,8)));
