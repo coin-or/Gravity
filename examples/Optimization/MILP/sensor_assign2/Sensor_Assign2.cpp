@@ -16,7 +16,7 @@ int main(int argc, const char * argv[]) {
     vector<param<double>> par = m.readData(argc, argv, 1, 2);
     auto start = high_resolution_clock::now();
     m.InitBilevel(par[0], par[1], 0.001);
-    m.readGreedySol("/Users/svetlanariabova/Projects/Sensor/Data/sol_tmp/sol1000.dat"); //comment if not using greedy sol
+//    m.readGreedySol(string(prj_dir)+"/data_sets/sol.dat"); //comment if not using greedy sol
     auto stop = high_resolution_clock::now();
     auto duration1 = duration_cast<seconds>(stop - start);
     cout << "Init + greedy time: " << duration1.count() << endl;

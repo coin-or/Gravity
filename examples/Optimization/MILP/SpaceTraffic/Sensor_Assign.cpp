@@ -10,10 +10,10 @@
 #include <chrono>
 using namespace std::chrono;
 
-/*#ifdef USE_H5CPP
+#ifdef USE_H5CPP
 #include <h5cpp/hdf5.hpp>
 using namespace hdf5;
-#endif*/
+#endif
 
 
 int main(int argc, const char * argv[]) {
@@ -23,7 +23,7 @@ int main(int argc, const char * argv[]) {
     auto start = high_resolution_clock::now();
     m.InitBilevel(par[0], par[1], par[2], 0.001);
     m.GreedyStart(par[0], par[1], par[2]); //comment if no greedy start not needed
-    //m.writeGreedySol(); //writing greedy sol to a file to load it to sensor_assign2
+    m.writeGreedySol(); //writing greedy sol to a file to load it to sensor_assign2
     auto stop = high_resolution_clock::now();
     auto duration1 = duration_cast<seconds>(stop - start);
     cout << "Init + greedy time: " << duration1.count() << endl;
@@ -350,7 +350,66 @@ void myModel::mSolve() {
     sol.run();
     model.set_name("Sensor_assign");
     model.write_solution();
-/*#ifdef USE_H5CPP
+#ifdef USE_H5CPP
+//    auto hd5file = file::open(string(prj_dir)+"/data_sets/sensor/horizon10deg_0.hd5");
+//    auto RootGroup = hd5file.root();
+//    auto Dataset = RootGroup.get_dataset("masn");
+//    dataspace::Simple Dataspace(Dataset.dataspace());
+//    auto Dimensions = Dataspace.current_dimensions();
+//    auto MaxDimensions = Dataspace.maximum_dimensions();
+//    std::cout << "Dataset dimensions\n";
+//    std::cout << "   Current | Max\n";
+//    for (int i = 0; i < Dimensions.size(); i++) {
+//        std::cout << "i:" << i << "      " << Dimensions[i] << " | "
+//        << MaxDimensions[i] << "\n";
+//    }
+//
+//    auto CreationProperties = Dataset.creation_list();
+//    auto ChunkDims = CreationProperties.chunk();
+//    std::cout << "\nChunk size\n";
+//    for (int i = 0; i < ChunkDims.size(); i++) {
+//        std::cout << "i:" << i << "     " << ChunkDims[i] << "\n";
+//    }
+//
+//    std::cout << "\nData type\n";
+//    auto Int32Type = datatype::create<std::int32_t>();
+//    auto UInt32Type = datatype::create<std::uint32_t>();
+//    auto FloatType = datatype::create<float>();
+//    auto DataTypeClass = Dataset.datatype().get_class();
+//    auto CurrentType = Dataset.datatype();
+//    std::cout << "Is:        " << DataTypeClass << std::endl;
+//    std::cout << "Is  int32: " << (Int32Type == CurrentType) << std::endl;
+//    std::cout << "Is uint32: " << (UInt32Type == CurrentType) << std::endl;
+//    std::cout << "Is  float: " << (FloatType == CurrentType) << std::endl;
+//
+//    std::cout << "\nAll elements\n";
+//    std::vector<int> AllElements(Dataspace.size());
+//    Dataset.read(AllElements);
+//    for (auto Value : AllElements) {
+//        std::cout << Value << " ";
+//    }
+//    std::cout << "\n\nRow access\n";
+//    std::vector<int> RowData(static_cast<size_t>(Dimensions[1]));
+//    for (size_t i = 0; i < Dimensions[0]; i++) {
+//        dataspace::Hyperslab RowSelection{{i, 0}, {1, 3}};
+//        Dataset.read(RowData, RowSelection);
+//        std::cout << "i: " << i << " | ";
+//        for (auto Value : RowData) {
+//            std::cout << Value << " ";
+//        }
+//        std::cout << "\n";
+//    }
+//    std::cout << "\nElement access\n     j:0  j:1 j:2\n";
+//    for (size_t i = 0; i < Dimensions[0]; i++) {
+//        std::cout << "i:" << i << "    ";
+//        for (size_t j = 0; j < Dimensions[1]; j++) {
+//            int Value;
+//            dataspace::Hyperslab ElementSelection{{i, j}, {1, 1}};
+//            Dataset.read(Value, ElementSelection);
+//            std::cout << Value << "    ";
+//        }
+//        std::cout << "\n";
+//    }
     // create a file
     file::File f = file::create("sol.h5",file::AccessFlags::Truncate);
 
@@ -358,7 +417,7 @@ void myModel::mSolve() {
     node::Group root_group = f.root();
     node::Group my_group = root_group.create_group("prices");
 
-    auto p = model.get_var<double>("p");
+    auto p = model.get_var<double>("p_z");
     auto p_vals = *p.get_vals();
     // create a dataset
     node::Dataset dataset = my_group.create_dataset("p",
@@ -368,7 +427,7 @@ void myModel::mSolve() {
     // write to dataset
     dataset.write(p_vals);
     
-#endif*/
+#endif
 }
 
 void myModel::GreedyStart(const param<double> &w0, const param<double> &w_own, const param<double> &w_bought) {
@@ -498,7 +557,7 @@ void myModel::writeGreedySol() {
     //format: p y; id s; id z
     
     ofstream solFile;
-    solFile.open("/Users/svetlanariabova/Projects/Sensor/Data/sol_tmp/sol1000.dat"); //hardcoded file name; might need to change later
+    solFile.open(string(prj_dir)+"/data_sets/sol.dat");
     for (int i = 0; i < N; i++) {
         /*greedy solution might have vars at -inf when sensor is not used; replacing it with 0 in else statement*/
         if (p.eval("sensor" + to_string(i)) >= 0) {
