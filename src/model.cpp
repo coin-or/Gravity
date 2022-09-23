@@ -6438,6 +6438,9 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int,double
         auto gap_final = (upper_bound - lower_bound_final)/(std::abs(upper_bound)+zero_tol)*100;
         DebugOff("Final gap = " << to_string(gap_final) << "%."<<endl);
     }
+    obbt_model->print();
+    relaxed_model->copy_bounds(obbt_model);
+    relaxed_model->print();
     return res;
 }
 /** function to run one global iteration of the obbt algorithm

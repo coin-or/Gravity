@@ -63,17 +63,18 @@ int main(int argc, char * argv[]){
 auto m=make_shared<Model<double>>("misdp_test");
 auto g=CBF_read(fname.c_str(), m);
 //    g.print();
-   m->print();
-//    auto rel=make_shared<Model<double>>("misdp_rel");
-//    auto g2=CBF_read(fname.c_str(), rel);
-//    double ub_solver_tol=1e-6, lb_solver_tol=1e-6, range_tol=1e-4, opt_rel_tol=1e-2, opt_abs_tol=1e6;
-//    unsigned max_iter=1e3;
-//    SolverType ub_solver_type = ipopt, lb_solver_type = ipopt;
-//
-//    double max_time = 60;
-//    m_init->replace_integers();
-//    m_init->project();
-//    auto res=m_init->run_obbt(rel, max_time, max_iter, opt_rel_tol, opt_abs_tol, 6, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol);
+  // m->print();
+    auto rel=make_shared<Model<double>>("misdp_rel");
+    auto g2=CBF_read(fname.c_str(), rel);
+    double ub_solver_tol=1e-6, lb_solver_tol=1e-6, range_tol=1e-4, opt_rel_tol=1e-2, opt_abs_tol=1e6;
+    unsigned max_iter=1e3;
+    SolverType ub_solver_type = ipopt, lb_solver_type = ipopt;
+
+    double max_time = 60;
+    rel->replace_integers();
+    auto res=m->run_obbt(rel, max_time, max_iter, opt_rel_tol, opt_abs_tol, 6, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol);
+    m->print();
+    rel->print();
     int soc_viol=0, soc_added=0;
     //m->print_solution();
     //m->cutting_planes_soc(1e-9, soc_viol,soc_added);
@@ -217,22 +218,4 @@ auto g=CBF_read(fname.c_str(), m);
           //DebugOn("Determinant "<<std::setprecision(12)<<det<<" clique size "<<dim<<endl);
       }
 
-//    double lower_bound=numeric_limits<double>::min(),upper_bound=numeric_limits<double>::max(), lower_bound_nonlin_init=numeric_limits<double>::min(),total_time=numeric_limits<double>::min();
-//    double ub_solver_tol=1e-6, lb_solver_tol=1e-6, range_tol=1e-3, opt_rel_tol=1e-2, opt_abs_tol=1e-2, zero_tol=1e-12;
-//    unsigned max_iter=1e3;
-//        int oacuts=0, oacuts_init=0, fail=0;
-//        SolverType ub_solver_type = ipopt, lb_solver_type = ipopt;
-//        auto nonlin_obj=false;
-//        std::vector<double> vrbasis;
-//        std::map<string,double> crbasis;
-//        lower_bound=0;
-//        double active_root_tol=1e-6;
-//        double lb_scale_value=1;
-//        int nb_root_refine=10;
-//        bool initialize_primal=false;
-//    lin_model->print();
-//
-//    auto close=m->root_refine(interior_model, lin_model, lb_solver_type, nb_root_refine, upper_bound, lower_bound, lb_scale_value, lb_solver_tol, active_root_tol, oacuts,  opt_abs_tol, opt_rel_tol, zero_tol, "ma27", 10000, 2000, vrbasis, crbasis, initialize_primal);
-//    DebugOn("oa cuts "<<oacuts<<endl);
-//    lin_model->print();
 }
