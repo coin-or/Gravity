@@ -6376,11 +6376,11 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int,double
         //MPI_Barrier(MPI_COMM_WORLD);
         auto time=get_wall_time()-time_start;
         if(time>=max_time){
-            DebugOff("Maximum time exceeded"<<endl);
+            DebugOn("Maximum time exceeded"<<endl);
             break;
         }
         if(total_iter>= max_iter){
-            DebugOff("Maximum iterations exceeded"<<endl);
+            DebugOn("Maximum iterations exceeded"<<endl);
             break;
         }
         if(!linearize && get<1>(status)==1 && max_iter>1)
@@ -6428,19 +6428,19 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int,double
         auto obj_m=*this->_obj*(-1);
         this->max(obj_m);
     }
-    DebugOff("Total wall-clock time spent in OBBT = " << total_time << endl);
-    DebugOff("Total number of OBBT iterations = " << total_iter << endl);
-    DebugOff("Number of global iterations = " << global_iter << endl);
+    DebugOn("Total wall-clock time spent in OBBT = " << total_time << endl);
+    DebugOn("Total number of OBBT iterations = " << total_iter << endl);
+    DebugOn("Number of global iterations = " << global_iter << endl);
     auto gapnl=(upper_bound_orig-lower_bound_nonlin_init)/(std::abs(upper_bound_orig)+zero_tol)*100;
-    DebugOff("Initial gap = "<<gapnl<<"%"<<endl);
+    DebugOn("Initial gap = "<<gapnl<<"%"<<endl);
     if(obbt_model->_status==0){
         auto lower_bound_final=get<6>(status);
         auto gap_final = (upper_bound - lower_bound_final)/(std::abs(upper_bound)+zero_tol)*100;
-        DebugOff("Final gap = " << to_string(gap_final) << "%."<<endl);
+        DebugOn("Final gap = " << to_string(gap_final) << "%."<<endl);
     }
-    obbt_model->print();
+//    obbt_model->print();
     relaxed_model->copy_bounds(obbt_model);
-    relaxed_model->print();
+//    relaxed_model->print();
     return res;
 }
 /** function to run one global iteration of the obbt algorithm
@@ -6554,9 +6554,9 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
                             /* When batch models has reached size of nb_threads or when at the last key of last variable */
                             if (objective_models.size()==nb_total_threads || (next(it)==obbt_model->_vars.end() && next(it_key)==v.get_keys()->end() && dir=="UB")){
 #ifdef USE_MPI
-                                nb_workers_= run_MPI_new(objective_models, sol_obj, sol_status, batch_models, relaxed_model, interior_model, cut_type, active_tol, lb_solver_type, obbt_subproblem_tol, nb_threads, "ma27", 10000, 600, linearize, nb_refine, old_map, vbasis, cbasis, initialize_primal);
+                                nb_workers_= run_MPI_new(objective_models, sol_obj, sol_status, batch_models, relaxed_model, interior_model, cut_type, active_tol, lb_solver_type, obbt_subproblem_tol, nb_threads, "ma27", 10000, 5, linearize, nb_refine, old_map, vbasis, cbasis, initialize_primal);
 #else
-                                auto viol= run_parallel_new(objective_models, sol_obj, sol_status, batch_models, relaxed_model, interior_model, cut_type, active_tol, lb_solver_type, obbt_subproblem_tol, nb_threads, "ma27", 10000, 600, linearize, nb_refine, vbasis, cbasis, initialize_primal);
+                                auto viol= run_parallel_new(objective_models, sol_obj, sol_status, batch_models, relaxed_model, interior_model, cut_type, active_tol, lb_solver_type, obbt_subproblem_tol, nb_threads, "ma27", 10000, 5, linearize, nb_refine, vbasis, cbasis, initialize_primal);
 #endif
                                 auto b=this->obbt_batch_update_bounds( objective_models,  sol_obj, sol_status,  batch_models,obbt_model,  fixed_point,  interval_original,  ub_original,  lb_original, terminate,  fail, range_tol, fixed_tol_abs, fixed_tol_rel,  zero_tol, iter);
                                 if(lag){
@@ -6581,6 +6581,9 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
                             solver_time=get_wall_time()-solver_time_start;
                             if(solver_time>=max_time){
                                 break;
+                            }
+                            else {
+                                DebugOn("Current time in OBBT = " << solver_time << endl);
                             }
                         }
                     }

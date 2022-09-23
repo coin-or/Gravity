@@ -314,7 +314,7 @@ GurobiProgram::GurobiProgram(){
     grb_env = new GRBEnv();
     //    grb_env->set(GRB_IntParam_Presolve,0);
     //grb_env->set(GRB_DoubleParam_NodeLimit,1);
-    grb_env->set(GRB_DoubleParam_TimeLimit,9000);
+//    grb_env->set(GRB_DoubleParam_TimeLimit,9000);
     //    grb_env->set(GRB_DoubleParam_MIPGap,0.01);
     //   grb_env->set(GRB_IntParam_Threads,8);
     //    grb_env->set(GRB_IntParam_Presolve,0);
@@ -337,7 +337,7 @@ GurobiProgram::GurobiProgram(Model<>* m) {
             grb_env = new GRBEnv();
             //    grb_env->set(GRB_IntParam_Presolve,0);
             //grb_env->set(GRB_DoubleParam_NodeLimit,1);
-            grb_env->set(GRB_DoubleParam_TimeLimit,9000);
+//            grb_env->set(GRB_DoubleParam_TimeLimit,9000);
             //   grb_env->set(GRB_IntParam_Threads,8);
             //    grb_env->set(GRB_DoubleParam_MIPGap,0.01);
             //    grb_env->set(GRB_IntParam_Threads,1);
@@ -373,7 +373,7 @@ GurobiProgram::GurobiProgram(const shared_ptr<Model<>>& m) {
             //    grb_env->set(GRB_IntParam_Presolve,0);
             //grb_env->set(GRB_DoubleParam_NodeLimit,1);
             //   grb_env->set(GRB_IntParam_Threads,8);
-            grb_env->set(GRB_DoubleParam_TimeLimit,9000);
+//            grb_env->set(GRB_DoubleParam_TimeLimit,9000);
             //    grb_env->set(GRB_DoubleParam_MIPGap,0.01);
             //    grb_env->set(GRB_IntParam_Threads,1);
             //    grb_env->set(GRB_IntParam_Presolve,0);
@@ -417,11 +417,11 @@ void GurobiProgram::reset_model(){
     grb_mod = new GRBModel(*grb_env);
 }
 
-bool GurobiProgram::solve(bool relax, double mipgap){
+bool GurobiProgram::solve(bool relax, double mipgap, double time_limit){
     //cout << "\n Presolve = " << grb_env->get(GRB_IntParam_Presolve) << endl;
     //    print_constraints();
-    if (relax) relax_model();
-    else
+//    if (relax) relax_model();
+//    else
         unrelax_model();
     //    relax_model();
     grb_mod->set(GRB_DoubleParam_MIPGap, 1e-6);
@@ -444,7 +444,7 @@ bool GurobiProgram::solve(bool relax, double mipgap){
 //    grb_mod->set(GRB_IntParam_RINS,1000);
 //    grb_mod->set(GRB_IntParam_Cuts,0);
     
-    grb_mod->set(GRB_DoubleParam_TimeLimit,9000);
+    grb_mod->set(GRB_DoubleParam_TimeLimit,time_limit);
     //grb_mod->set(GRB_DoubleParam_Cutoff,5.33);
   //  grb_mod->set(GRB_IntParam_MinRelNodes,0);
 //    grb_mod->set(GRB_DoubleParam_Heuristics, 1);
@@ -456,8 +456,8 @@ bool GurobiProgram::solve(bool relax, double mipgap){
     //auto mod2=GRBModel(grb_mod);
     int n=grb_mod->get(GRB_IntAttr_NumVars);
     Model<> interior;
-    auto lin=_model->buildOA();
-    interior=lin->get_interior(*_model);
+//    auto lin=_model->buildOA();
+//    interior=lin->get_interior(*_model);
     
     //interior=lin->add_outer_app_solution(*_model);
     //interior.print_solution();

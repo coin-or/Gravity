@@ -5568,6 +5568,18 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
             return size_header;
         }
         
+        /** Write Model to file */
+        void write(int precision = 10){
+            ofstream myfile;
+            string fname = _name+".txt";
+            myfile.open(fname);
+            std::streambuf *coutbuf = std::cout.rdbuf(); //save old buf
+            std::cout.rdbuf(myfile.rdbuf());
+            print(precision);
+            std::cout.rdbuf(coutbuf);
+            myfile.close();
+        }
+        
         void print(int prec = 10){
             auto size_header = print_properties();
             _obj->print(prec);
