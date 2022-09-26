@@ -1289,7 +1289,7 @@ bool Model<type>::root_refine(const Model<type>& interior_model, shared_ptr<Mode
     auto err_size = MPI_Comm_size(MPI_COMM_WORLD, &nb_workers);
 #endif
     while (constr_viol==1 && lin_count<nb_refine){
-        LB_solver.run(output = 5, lb_solver_tol, max_iter, max_time);
+        LB_solver.run(output = 5, lb_solver_tol, max_time, max_iter);
         if(obbt_model->_status==0){
             lower_bound=obbt_model->get_obj_val()*lb_scale_value;
             // gap=(upper_bound- lower_bound)/(std::abs(upper_bound))*100;
@@ -1319,7 +1319,7 @@ bool Model<type>::root_refine(const Model<type>& interior_model, shared_ptr<Mode
             {
 #endif
                 DebugOn("lower bounding failed in root refine"<<lin_count<<endl);
-                LB_solver.run(output = 5, lb_solver_tol, max_iter, max_time);
+                LB_solver.run(output = 5, lb_solver_tol, max_time, max_iter);
                 obbt_model->print();
 #ifdef USE_MPI
             }

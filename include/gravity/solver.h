@@ -236,6 +236,10 @@ public:
         return run(output, tol, max_iter, 1e-6, false, {false,""}, 1e+6);
     }
     /* run model */
+    
+    int run(int output, type tol , int max_iter, bool relax, double time_limit){
+        return run(output, tol,max_iter,1e-6,relax,{false,""},time_limit);
+    }
     int run(int output, type tol , int max_iter, double mipgap, bool relax, pair<bool,string> lin_solver, double time_limit ){
         int return_status = -1, dyn_max_iter = 20;
         bool violated_constraints = true, optimal = true, solver_violated=false;

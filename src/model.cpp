@@ -5966,7 +5966,7 @@ shared_ptr<Model<type>> Model<type>::outer_approximate_continuous_relaxation(int
     solver<> LB_solver(lin_model, ipopt);
     vector<double> solution(lin_model->_nb_vars);
     while (constr_viol==1 && lin_count<nb_max){
-        LB_solver.run(output = 0, 1e-6, 2000, 300);
+        LB_solver.run(output = 0, 1e-6, 300, 2000);
         if(lin_model->_status==0){
             lin_model->get_solution(solution);
             constr_viol=relaxed_model->add_iterative(interior_model, solution, lin_model, "allvar", oacuts, 1e-8);
@@ -6257,7 +6257,7 @@ void Model<type>::compute_iter_gap(double& gap, double& active_tol, bool& termin
     obbt_model->reset_constrs();
     if(!linearize){
         solver<> LB_solver(obbt_model,lb_solver_type);
-        LB_solver.run(output = 0, lb_solver_tol, max_iter, max_time);
+        LB_solver.run(output = 0, lb_solver_tol, 300, max_iter);
         if(obbt_model->_status==0)
         {
             lower_bound=obbt_model->get_obj_val()*lb_scale_value;
@@ -6331,7 +6331,7 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int,double
         this->min(obj_m);
     }
     solver<> UB_solver(*this,ub_solver_type);
-    UB_solver.run(output = 5, ub_solver_tol, 2000, 600);
+    UB_solver.run(output = 5, ub_solver_tol, 600, 2000);
     this->print_solution();
     upper_bound=upper_bound_integral(ub_solver_type, ub_solver_tol, ub_sol);
     this->print_solution();
@@ -6343,14 +6343,15 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int,double
     upper_bound_orig=upper_bound;
     upper_bound_best=upper_bound;
     lb_scale_value=1.0;
-    solver<> LBnonlin_solver(relaxed_model,ub_solver_type);
+    solver<> LBnonlin_solver(relaxed_model,lb_solver_type);
     if(scale_objective){
         auto obj = *relaxed_model->_obj/upper_bound;
         relaxed_model->min(obj);
         relaxed_model->reset();
         lb_scale_value=upper_bound;
     }
-    LBnonlin_solver.run(output = 0 , lb_solver_tol, 2000, 600);
+    bool relax = true;
+    LBnonlin_solver.run(output = 0 , lb_solver_tol, 2000, relax, 300);
     if(relaxed_model->_status==0)
     {
         lower_bound_nonlin_init = relaxed_model->get_obj_val()*lb_scale_value;
