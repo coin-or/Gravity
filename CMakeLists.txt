@@ -15,15 +15,15 @@ option(Debug "Turn on debug mode" OFF)
 option(Cov "Turn on coverage" OFF)
 
 # Find GUROBI (optional)
-option(Gurobi "Link to GUROBI libraries" ON)
+option(Gurobi "Link to GUROBI libraries" OFF)
 
 # Find H5CPP(required)
-option(H5CPP "Link to H5CPP libraries" ON)
+option(H5CPP "Link to H5CPP libraries" OFF)
 
 # Find IPOPT (optional)
 option(Ipopt "Link to IPOPT libraries" ON)
 
-option(MP "Link to AMPL MP libraries" OFF)
+option(MP "Link to AMPL MP libraries" ON)
 
 option(CoinUtils "Link to CoinUtils libraries" OFF)
 

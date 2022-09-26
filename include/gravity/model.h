@@ -2123,8 +2123,8 @@ public:
         int nb_vars = 0, nb_int_vars = 0, nb_cont_vars = 0, nb_lin_terms = 0, nb_cont_quad_terms = 0, nb_hyb_quad_terms = 0, nb_int_quad_terms = 0;
         for (auto& c_pair:_cons) {
             int nb_inst = c_pair.second->get_nb_inst();
-            if(!c_pair.second->is_linear() || nb_inst>1)
-                continue;
+//            if(!c_pair.second->is_linear() || nb_inst>1)
+//                continue;
             if(c_pair.second->is_geq()){/* If >= inequality, reverse sign */
                 *c_pair.second *= -1;
                 c_pair.second->_ctype = leq;
@@ -6329,7 +6329,7 @@ public:
                 new_v->shallow_copy(*v);
                 new_v->_is_relaxed = true;
                 new_v->copy_vals(v);
-                new_v->copy_bounds(v);
+                new_v->copy_bounds_(v);
                 v_p.second = new_v;
             }
         }

@@ -1151,7 +1151,7 @@ namespace gravity {
         }
 
 
-        template<class T=type, class = typename enable_if<is_arithmetic<T>::value>::type> void update_range(T val) {
+        template<class T=type, class = typename enable_if<is_arithmetic<T>::value>::type> void update_range_(T val) {
             if (val < _range->first) {
                 _range->first = val;
             }
@@ -2461,7 +2461,11 @@ namespace gravity {
             return _val->back();
         }
         
-        void update_range(const Cpx& val);
+        void update_range(type val) {
+            update_range_(val);
+        }
+        
+        void update_range_(const Cpx& val);
         /**
          Recompute range based on stored values.
          */
