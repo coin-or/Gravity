@@ -49,8 +49,8 @@ using namespace std;
 
 int main(int argc, char * argv[]){
 //string fname=string(prj_dir)+"/data_sets/MISDP/2x3_3bars.cbf";
-//    string fname=string(prj_dir)+"/data_sets/MISDP/2x7_3bars.cbf";
-    string fname=string(prj_dir)+"/data_sets/MISDP/2x4_2scen_3bars.cbf";
+    string fname=string(prj_dir)+"/data_sets/MISDP/2x7_3bars.cbf";
+//    string fname=string(prj_dir)+"/data_sets/MISDP/2x4_2scen_3bars.cbf";
     //string fname=string(prj_dir)+"/data_sets/MISDP/coloncancer_1_100_5.cbf";
     //string fname=string(prj_dir)+"/data_sets/MISDP/2g_4_164_k3_5_6.cbf";
     bool root_refine = false;
@@ -71,15 +71,15 @@ auto g=CBF_read(fname.c_str(), m);
     SolverType ub_solver_type = ipopt, lb_solver_type = gurobi;
 
     double max_time = 300;
-    rel->replace_integers();
-    m->replace_integers();
-    m->set_name("Before");
-    m->write();
-    auto res=m->run_obbt(rel, max_time, max_iter, opt_rel_tol, opt_abs_tol, 3, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol);
-    m->set_name("After");
-    m->write();
-//    rel->print();
-    int soc_viol=0, soc_added=0;
+//    rel->replace_integers();
+//    m->replace_integers();
+//    m->set_name("Before");
+//    m->write();
+//    auto res=m->run_obbt(rel, max_time, max_iter, opt_rel_tol, opt_abs_tol, 3, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol);
+//    m->set_name("After");
+//    m->write();
+////    rel->print();
+//    int soc_viol=0, soc_added=0;
     //m->print_solution();
     //m->cutting_planes_soc(1e-9, soc_viol,soc_added);
     
