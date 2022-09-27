@@ -1,5 +1,7 @@
 cmake_minimum_required(VERSION 3.16)
 
+set(CMAKE_CXX_STANDARD 17)
+
 project(Gravity)
 
 enable_testing()
@@ -14,6 +16,11 @@ option(Cov "Turn on coverage" OFF)
 
 # Find PcapPlusPlus (optional)
 option(PcapPlusPlus "Link to PcapPlusPlus libraries" OFF)
+
+
+# Find OUSTER (optional)
+option(OUSTER "Link to OUSTER libraries" OFF)
+
 
 # Find GUROBI (optional)
 option(Gurobi "Link to GUROBI libraries" OFF)
@@ -66,6 +73,17 @@ if (OpenMPI)
 #   set(LIBS ${LIBS} ${OpenMPI_LIBRARIES})
 endif()
 
+
+
+if (OUSTER)
+    message(STATUS "Enable OUSTER")
+    add_definitions(-DUSE_OUSTER)
+    find_package(OUSTER REQUIRED)
+    find_package(jsoncpp REQUIRED)
+    find_package(libtins REQUIRED)
+    include_directories(${OUSTER_INCLUDE_DIRS}/../)
+    set(LIBS ${LIBS} ${OUSTER_LIBRARIES})
+endif()
 
 if (PcapPlusPlus)
     message(STATUS "Enable PcapPlusPlus")
@@ -248,8 +266,7 @@ endif (IPOPT_FOUND)
 endif()
 
 # Eigen
-if(!WIN32)
-find_package(Eigen QUIET)
+find_package(Eigen)
 if (EIGEN_FOUND)
  message("-- Found Eigen version ${EIGEN_VERSION}: ${EIGEN_INCLUDE_DIRS}")
 else(EIGEN_FOUND)
@@ -258,8 +275,8 @@ else(EIGEN_FOUND)
  set(EIGEN_INCLUDE_DIR ${THIRDPARTY_INSTALL_PATH}/Install/eigen)
  set(ADD_EIGEN TRUE)
 endif (EIGEN_FOUND)
-include_directories(${EIGEN_INCLUDE_DIR})
-endif()
+include_directories(${EIGEN_INCLUDE_DIRS})
+include_directories(${EIGEN_INCLUDE_DIRS}/../)
 # cpp_option_parser
 if (OPT_PARSER)
 	set(OPT_PARSER_VERSION v1.0)
