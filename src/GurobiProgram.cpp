@@ -233,8 +233,8 @@ protected:
                                     DebugOff(endl);
                                     if(std::abs(res1[i][j])>=1e-12)
                                         expr += res1[i][j];
-//                                    addLazy(expr, GRB_LESS_EQUAL, 0);
-                                    addCut(expr, GRB_LESS_EQUAL, 0);
+                                    addLazy(expr, GRB_LESS_EQUAL, 0);
+//                                    addCut(expr, GRB_LESS_EQUAL, 0);
                                     //vec_expi.push_back(expr);
                                 }
                             }
@@ -255,8 +255,8 @@ protected:
                                         DebugOff(to_string_with_precision(vec_x[c],10)<<" "<<to_string_with_precision(c,10)<<" "<<to_string_with_precision(res[i][j+1],10)<<" ");
                                     }
                                     DebugOff(endl);
-//                                    addLazy(expr, GRB_LESS_EQUAL, 0);
-                                    addCut(expr, GRB_LESS_EQUAL, 0);
+                                    addLazy(expr, GRB_LESS_EQUAL, 0);
+//                                    addCut(expr, GRB_LESS_EQUAL, 0);
                                     
                                     //vec_expi.push_back(expr);
                                 }
@@ -273,8 +273,8 @@ protected:
                                     }
                                     if(std::abs(res2[i][j])>=1e-12)
                                         expr += res2[i][j];
-//                                    addLazy(expr, GRB_LESS_EQUAL, 0);
-                                    addCut(expr, GRB_LESS_EQUAL, 0);
+                                    addLazy(expr, GRB_LESS_EQUAL, 0);
+//                                    addCut(expr, GRB_LESS_EQUAL, 0);
                                     //vec_expi.push_back(expr);
                                 }
                             }
@@ -433,11 +433,11 @@ bool GurobiProgram::solve(bool relax, double mipgap, double time_limit){
     //        grb_mod->getEnv().set(GRB_IntParam_Method, 1);
     //    grb_mod->getEnv().set(GRB_IntParam_NodeMethod, 1);
     grb_mod->getEnv().set(GRB_IntParam_LazyConstraints, 1);
-//    grb_mod->set(GRB_IntParam_Threads, 12);
+    grb_mod->set(GRB_IntParam_Threads, 12);
     //    grb_mod->set(GRB_DoubleParam_IntFeasTol, 1e-9);
     //   grb_mod->set(GRB_IntParam_NumericFocus,3);
     // grb_mod->set(GRB_IntParam_Presolve,2);
-    //grb_mod->set(GRB_IntParam_MIPFocus,3);
+    grb_mod->set(GRB_IntParam_MIPFocus,3);
     //    grb_mod->set(GRB_IntParam_IntegralityFocus,1);
     //    grb_mod->set(GRB_IntParam_MIPFocus,2);
     //    grb_mod->set(GRB_IntParam_PumpPasses,50);
@@ -471,6 +471,8 @@ bool GurobiProgram::solve(bool relax, double mipgap, double time_limit){
     // grb_mod->set(GRB_DoubleParam_Heuristics, 0.5);
     //grb_mod->update();
     grb_mod->optimize();
+    if(grb_mod->get(GRB_IntAttr_SolCount)>0)
+        update_solution();
     //    grb_mod->set(GRB_IntParam_MIPFocus,3);
     //   // grb_mod->set(GRB_DoubleParam_ImproveStartTime,9000);
     //   // grb_mod->set(GRB_DoubleParam_Heuristics, 0.05);
@@ -481,8 +483,6 @@ bool GurobiProgram::solve(bool relax, double mipgap, double time_limit){
     bool not_sdp=true;
     int count=0;
     while(not_sdp && count<=10000){
-        grb_mod->optimize();
-        update_solution();
         var<double> X=_model->get_var<double>("X");
         var<double> Xij=_model->get_var<double>("Xij");
         int dim_full=X._indices->_keys->size();
@@ -573,6 +573,12 @@ bool GurobiProgram::solve(bool relax, double mipgap, double time_limit){
             if(res.size()==0 && res2.size()==0 && res3.size()==0){
                 not_sdp=false;
             }
+            if(not_sdp){
+                grb_mod->optimize();
+                if(grb_mod->get(GRB_IntAttr_SolCount)>0)
+                    update_solution();
+            }
+
         }
         count++;
         grb_mod->update();
@@ -590,7 +596,8 @@ bool GurobiProgram::solve(bool relax, double mipgap, double time_limit){
         cerr << "\nModel has not been solved to optimality, error code = " << grb_mod->get(GRB_IntAttr_Status) << endl;
         //        return false;
     }
-    update_solution();
+    if(grb_mod->get(GRB_IntAttr_SolCount)>0)
+        update_solution();
     //    GRBVar* gvars = grb_mod->getVars();
     //    for(int i = 0; i < grb_mod->get(GRB_IntAttr_NumVars); ++i) {
     ////        cout << gvars[i].get(GRB_StringAttr_VarName) << "  " << gvars[i].get(GRB_DoubleAttr_X) << endl;

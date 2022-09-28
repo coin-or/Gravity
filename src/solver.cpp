@@ -358,7 +358,7 @@ int run_parallel(const vector<shared_ptr<gravity::Model<double>>>& models, gravi
 template<>
 Model<> Model<>::add_outer_app_solution(Model<>& nonlin)
 {
-    const double active_tol_sol=1e-12, zero_tol=1e-6;
+    const double active_tol_sol=1e-12, zero_tol=1e-9;
     vector<double> xactive, xcurrent, xinterior, xres, xtest;
     bool interior=false, convex_region=true;
     size_t posv;
@@ -461,7 +461,7 @@ Model<> Model<>::add_outer_app_solution(Model<>& nonlin)
 template<>
 Model<> Model<>::get_interior(Model<>& nonlin)
 {
-    const double active_tol_sol=1e-12, zero_tol=1e-6;
+    const double active_tol_sol=1e-12, zero_tol=1e-9;
     vector<double> xactive, xcurrent, xinterior, xres, xtest;
     bool interior=false, convex_region=true;
     size_t posv;
@@ -487,7 +487,7 @@ bool Model<type>::add_iterative(const Model<type>& interior, vector<double>& obb
     vector<double> xcurrent, c_val;
     get_solution(xsolution);
     set_solution(obbt_solution);
-    const double active_tol_sol=1e-12, zero_tol=1e-6;
+    const double active_tol_sol=1e-12, zero_tol=1e-9;
     double c0_val, scale=1.0;
     bool constr_viol=false, oa_cut=true, convex_region=true, add_new=false;
     int nb_added_cuts = 0;
@@ -597,7 +597,7 @@ vector<vector<double>> Model<type>::cutting_planes_solution(const Model<type>& i
     vector<double> xsolution(_nb_vars);
     vector<double> xinterior(_nb_vars);
     vector<double> xcurrent, c_val,xnow;
-    const double active_tol_sol=1e-9, zero_tol=1e-6;
+    const double active_tol_sol=1e-9, zero_tol=1e-9;
     double c0_val, scale=1.0, fk;
     bool constr_viol=false, oa_cut=true, convex_region=true, add_new=false;
     int nb_added_cuts = 0;
@@ -638,7 +638,7 @@ vector<vector<double>> Model<type>::cutting_planes_solution(const Model<type>& i
                     if(convex_region){
                         scale=1.0;
                         con->get_outer_coef(i, c_val, c0_val);
-                        //get_row_scaling(c_val, scale, oa_cut, zero_tol, 1e-6, 1000);
+                        //get_row_scaling(c_val, scale, oa_cut, zero_tol, 1e-9, 1000);
                         double max_coef=-1000;
                         for (auto j = 0; j<c_val.size(); j++) {
                            // c_val[j]*=scale;
@@ -692,7 +692,7 @@ vector<vector<double>> Model<type>::cutting_planes_soc(double active_tol, int& s
     vector<double> xsolution(_nb_vars);
     vector<double> xinterior(_nb_vars);
     vector<double> xcurrent, c_val,xnow;
-    const double active_tol_sol=1e-9, zero_tol=1e-6;
+    const double active_tol_sol=1e-9, zero_tol=1e-9;
     double c0_val, scale=1.0, fk;
     bool constr_viol=false, oa_cut=true, convex_region=true, add_new=false;
     int nb_added_cuts = 0;
@@ -751,7 +751,7 @@ vector<vector<double>> Model<type>::cutting_planes_soc(double active_tol, int& s
                             c_val[1]=-xnow[0];
                             c_val[2]=2*xnow[2];
                             c0_val=0;
-                            get_row_scaling(c_val, scale, oa_cut, zero_tol, 1e-6, 1000);
+                            get_row_scaling(c_val, scale, oa_cut, zero_tol, 1e-9, 1000);
                             double max_coef=-1000;
                             for (auto j = 0; j<c_val.size(); j++) {
                                 c_val[j]*=scale;
@@ -942,7 +942,7 @@ vector<vector<double>> Model<type>::cuts_eigen_bags(const double active_tol)
                 double maxc=-10000;
                 for(auto n=0;n<dim;n++){
                     double c=eig_vec[n]*eig_vec[n]*(-1);
-                        if(X.get_ub(b.second[n])-X.get_lb(b.second[n])<=1e-6){
+                        if(X.get_ub(b.second[n])-X.get_lb(b.second[n])<=1e-9){
                             c_val.push_back(0);
                             c0_val+=c*X.get_ub(b.second[n]);
                         }
@@ -962,7 +962,7 @@ vector<vector<double>> Model<type>::cuts_eigen_bags(const double active_tol)
                         double c=(eig_vec[n]*eig_vec[o]*(-2));
                         double lb=Xij.get_lb(b.second[n]+","+b.second[o]);
                         double ub=Xij.get_ub(b.second[n]+","+b.second[o]);
-                        if(ub-lb<=1e-6){
+                        if(ub-lb<=1e-9){
                             c_val.push_back(0);
                             if(-c<=0){
                                 c0_val+=c*lb;
@@ -991,7 +991,7 @@ vector<vector<double>> Model<type>::cuts_eigen_bags(const double active_tol)
                 cost+=c0_val;
                 double scale=1;
                 
-                if(minc<=1e-6 && maxc<=1){
+                if(minc<=1e-9 && maxc<=1){
                     scale=1e3;
                     maxc*=scale;
                     minc*=scale;
@@ -1000,7 +1000,7 @@ vector<vector<double>> Model<type>::cuts_eigen_bags(const double active_tol)
                     }
                     DebugOff("scaling "<<scale<<endl);
                 }
-                else if(cost<=1e-6){
+                else if(cost<=1e-9){
                     if(maxc<=1)
                     scale=1e3;
                     else if(maxc<=10)
@@ -1102,7 +1102,7 @@ var_ind.push_back(idx+it);
                 double maxc=-10000;
                 for(auto n=0;n<dim_full;n++){
                     double c=eig_vec[n]*eig_vec[n]*(-1);
-                        if(X.get_ub(all_names[n])-X.get_lb(all_names[n])<=1e-6){
+                        if(X.get_ub(all_names[n])-X.get_lb(all_names[n])<=1e-9){
                             c_val.push_back(0);
                             c0_val+=c*X.get_ub(all_names[n]);
                         }
@@ -1123,7 +1123,7 @@ var_ind.push_back(idx+it);
                         double c=(eig_vec[n]*eig_vec[o]*(-2));
                         double lb=Xij.get_lb(all_names[n]+","+all_names[o]);
                         double ub=Xij.get_ub(all_names[n]+","+all_names[o]);
-                        if(ub-lb<=1e-6){
+                        if(ub-lb<=1e-9){
                             c_val.push_back(0);
                             if(-c<=0){
                                 c0_val+=c*lb;
@@ -1153,7 +1153,7 @@ var_ind.push_back(idx+it);
                 cost+=c0_val;
                 double scale=1;
                 
-                if(minc<=1e-6 && maxc<=1){
+                if(minc<=1e-9 && maxc<=1){
                     scale=1e3;
                     maxc*=scale;
                     minc*=scale;
@@ -1162,7 +1162,7 @@ var_ind.push_back(idx+it);
                     }
                     DebugOff("scaling "<<scale<<endl);
                 }
-                else if(cost<=1e-6){
+                else if(cost<=1e-9){
                     if(maxc<=1)
                     scale=1e3;
                     else if(maxc<=10)
