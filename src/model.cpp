@@ -6441,6 +6441,8 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int,double
     }
 //    obbt_model->print();
     relaxed_model->copy_bounds(obbt_model);
+    relaxed_model->copy_solution(obbt_model);
+    relaxed_model->_obj->set_val(get<6>(status));
 //    relaxed_model->print();
     return res;
 }
@@ -6498,7 +6500,7 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
     bool close=false, terminate=false, xb_true=true, alg_batch_reset=true;
     const double fixed_tol_abs=1e-3, fixed_tol_rel=1e-3, zero_tol=1e-6, obbt_subproblem_tol=1e-6;
     int iter=0, fail=0, count_var=0, count_skip=0, nb_init_refine=nb_refine,oacuts, oacuts_init;
-    double solver_time =0, gapnl,gap, gaplin=-999, sum=0, avg=0, active_root_tol=lb_solver_tol, active_tol=1e-6;
+    double last_print = 0, last_print_start = get_wall_time(), solver_time =0, gapnl,gap, gaplin=-999, sum=0, avg=0, active_root_tol=lb_solver_tol, active_tol=1e-6;
     double lower_bound_nonlin_init = numeric_limits<double>::min(), lower_bound_init = numeric_limits<double>::min(), upper_bound = 0, lower_bound = numeric_limits<double>::min(), lower_bound_old;
     map<string,int> old_map;
     upper_bound=upper_bound_best;
@@ -6580,11 +6582,14 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
                                     DebugOff("batch: "<<solver_time<<endl);
                             }
                             solver_time=get_wall_time()-solver_time_start;
+                            last_print=get_wall_time()-last_print_start;
                             if(solver_time>=max_time){
                                 break;
                             }
-                            else {
-                                DebugOn("Current time in OBBT = " << solver_time << endl);
+                            else if(last_print>5){
+                                last_print = 0;
+                                last_print_start=get_wall_time();
+                                DebugOn("Current time in OBBT = " << std::round(solver_time) << " secs" << endl);
                             }
                         }
                     }

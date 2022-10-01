@@ -323,9 +323,9 @@ TEST_CASE("Model.relax()") {
     unsigned max_iter=30, nb_threads = thread::hardware_concurrency();
     SolverType ub_solver_type = ipopt, lb_solver_type = ipopt;
     M.run_obbt(LB, max_time, max_iter, opt_rel_tol, opt_abs_tol, nb_threads=1, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol);
-    LB->print_constraints_stats(1e-6);
+//    LB->print_constraints_stats(1e-6);
 //    LB->print_nonzero_constraints(1e-6);
-    LB->print();
+//    LB->print();
     auto final_gap = 100*(M.get_obj_val() - LB->get_obj_val())/std::abs(M.get_obj_val());
     CHECK(final_gap<1);
 }
