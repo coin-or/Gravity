@@ -146,10 +146,10 @@ void GurobiProgram::update_solution(){
         for (auto i = 0; i < dim; i++) {
             auto vid = idx + v->get_id_inst(i);
             gvar = _grb_vars.at(vid);
-            if(v->is_continuous())
-                v->set_double_val(i,gvar.get(GRB_DoubleAttr_X));
-            else
+            if(v->is_integer()||v->is_binary()||v->_is_relaxed)
                 v->set_double_val(i,std::round(gvar.get(GRB_DoubleAttr_X)));
+            else
+                v->set_double_val(i,gvar.get(GRB_DoubleAttr_X));
         }
     }
 }
