@@ -751,19 +751,19 @@ vector<vector<double>> Model<type>::cutting_planes_soc(double active_tol, int& s
                             c_val[1]=-xnow[0];
                             c_val[2]=2*xnow[2];
                             c0_val=0;
-//                            get_row_scaling(c_val, scale, oa_cut, zero_tol, 1e-9, 1000);
-//                            double max_coef=-1000;
-//                            for (auto j = 0; j<c_val.size(); j++) {
-//                                c_val[j]*=scale;
-//                                if(std::abs(c_val[j])>=max_coef)
-//                                    max_coef=std::abs(c_val[j]);
-//                            }
-//                            c0_val*=scale;
-//                            scale=1.0;
-//                            if(max_coef>=1e4)
-//                                scale=10000.0/max_coef;
-//                            if(scale<=1e-4)
-//                                DebugOff("scale "<<scale<<endl);
+                            get_row_scaling(c_val, scale, oa_cut, zero_tol, 1e-9, 1000);
+                            double max_coef=-1000;
+                            for (auto j = 0; j<c_val.size(); j++) {
+                                c_val[j]*=scale;
+                                if(std::abs(c_val[j])>=max_coef)
+                                    max_coef=std::abs(c_val[j]);
+                            }
+                            c0_val*=scale;
+                            scale=1.0;
+                            if(max_coef>=1e4)
+                                scale=10000.0/max_coef;
+                            if(scale<=1e-4)
+                                DebugOff("scale "<<scale<<endl);
                             
                             
                             
@@ -991,26 +991,26 @@ vector<vector<double>> Model<type>::cuts_eigen_bags(const double active_tol)
                 cost+=c0_val;
                 double scale=1;
                 
-//                if(minc<=1e-9 && maxc<=1){
-//                    scale=1e3;
-//                    maxc*=scale;
-//                    minc*=scale;
-//                    if(minc<=1e-12){
-//                        DebugOn("small"<<endl);
-//                    }
-//                    DebugOff("scaling "<<scale<<endl);
-//                }
-//                else if(cost<=1e-9){
-//                    if(maxc<=1)
-//                    scale=1e3;
-//                    else if(maxc<=10)
-//                        scale=1e2;
-//                    else if(maxc<=100)
-//                        scale=1e1;
-////                    else if(maxc<=1000)
-////                        scale=10;
-//                }
-//                cost*=scale;
+                if(minc<=1e-9 && maxc<=1){
+                    scale=1e3;
+                    maxc*=scale;
+                    minc*=scale;
+                    if(minc<=1e-12){
+                        DebugOn("small"<<endl);
+                    }
+                    DebugOff("scaling "<<scale<<endl);
+                }
+                else if(cost<=1e-9){
+                    if(maxc<=1)
+                    scale=1e3;
+                    else if(maxc<=10)
+                        scale=1e2;
+                    else if(maxc<=100)
+                        scale=1e1;
+//                    else if(maxc<=1000)
+//                        scale=10;
+                }
+                cost*=scale;
                
                 if(cost>1e-6){
                     for(auto i=0;i<c_val.size();i++){
@@ -1153,26 +1153,26 @@ var_ind.push_back(idx+it);
                 cost+=c0_val;
                 double scale=1;
                 
-//                if(minc<=1e-9 && maxc<=1){
-//                    scale=1e3;
-//                    maxc*=scale;
-//                    minc*=scale;
-//                    if(minc<=1e-12){
-//                        DebugOn("small"<<endl);
-//                    }
-//                    DebugOff("scaling "<<scale<<endl);
-//                }
-//                else if(cost<=1e-9){
-//                    if(maxc<=1)
-//                    scale=1e3;
-//                    else if(maxc<=10)
-//                        scale=1e2;
-//                    else if(maxc<=100)
-//                        scale=1e1;
-////                    else if(maxc<=1000)
-////                        scale=10;
-//                }
-//                cost*=scale;
+                if(minc<=1e-9 && maxc<=1){
+                    scale=1e3;
+                    maxc*=scale;
+                    minc*=scale;
+                    if(minc<=1e-12){
+                        DebugOn("small"<<endl);
+                    }
+                    DebugOff("scaling "<<scale<<endl);
+                }
+                else if(cost<=1e-9){
+                    if(maxc<=1)
+                    scale=1e3;
+                    else if(maxc<=10)
+                        scale=1e2;
+                    else if(maxc<=100)
+                        scale=1e1;
+//                    else if(maxc<=1000)
+//                        scale=10;
+                }
+                cost*=scale;
                
                 if(cost>1e-6){
                     for(auto i=0;i<c_val.size();i++){

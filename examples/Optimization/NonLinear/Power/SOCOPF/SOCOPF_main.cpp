@@ -63,9 +63,15 @@ int main (int argc, char * argv[])
         fname=string(prj_dir)+"/data_sets/Power/nesta_case5_pjm.m";
     }
     if(argc>=3){
-        lin_solver=argv[2];
+        solver_str=argv[2];
     }
 #endif
+    if (solver_str.compare("gurobi")==0) {
+        use_gurobi = true;
+    }
+    else if(solver_str.compare("cplex")==0) {
+        use_cplex = true;
+    }
     double total_time_start = get_wall_time();
     PowerNet grid;
     grid.readgrid(fname);
@@ -232,7 +238,7 @@ int main (int argc, char * argv[])
     }
     else {
 //        SOCP.print();
-        solver<> SOCOPF(SOCP,_mosek);
+        solver<> SOCOPF(SOCP,ipopt);
         //SOCOPF.set_option("linear_solver", lin_solver);
         auto solver_time_start = get_wall_time();
         SOCOPF.run(output=5, tol=1e-6);

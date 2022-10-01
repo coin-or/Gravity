@@ -34,7 +34,7 @@ protected:
         try {
             bool incumbent=true;
             bool mipnode=true;
-            bool hierarc = false;
+            bool hierarc = true;
             if(incumbent){
                 if (where == GRB_CB_MIPSOL) {
                     // Found an integer feasible solution - does it visit every node?
@@ -482,8 +482,8 @@ bool GurobiProgram::solve(bool relax, double mipgap, double time_limit){
     // grb_mod->set(GRB_DoubleParam_Heuristics, 0.5);
     //grb_mod->update();
     grb_mod->optimize();
-    if(grb_mod->get(GRB_IntAttr_SolCount)>0)
-        update_solution();
+//    grb_mod->write("out.sol");
+//    _model->print_solution();
     //    grb_mod->set(GRB_IntParam_MIPFocus,3);
     //   // grb_mod->set(GRB_DoubleParam_ImproveStartTime,9000);
     //   // grb_mod->set(GRB_DoubleParam_Heuristics, 0.05);
@@ -491,7 +491,7 @@ bool GurobiProgram::solve(bool relax, double mipgap, double time_limit){
     //    grb_mod->set(GRB_IntParam_RINS,10000);
     // grb_mod->update();
     // grb_mod->optimize();
-    bool not_sdp=true;
+    bool not_sdp=false;
     int count=0;
     while(not_sdp && count<=10000){
         var<double> X=_model->get_var<double>("X");
@@ -657,13 +657,6 @@ void GurobiProgram::update_solution(){
     size_t vid, vid_inst;
     GRBVar gvar;
     param_* v;
-    //    for (auto i = 0; i < _grb_vars.size(); i++) {
-    //        gvar = _grb_vars.at(i);
-    //        auto dim = _model->_vars[i]->get_dim();
-    //        for (auto j = 0; j < _model->_vars[i]->get_dim(); j++) {
-    //            poly_set_val(j, gvar.get(GRB_DoubleAttr_X), _model->_vars[i]);
-    //        }
-    //    }
     for(auto& v_p: _model->_vars)
     {
         v = v_p.second.get();
@@ -672,7 +665,10 @@ void GurobiProgram::update_solution(){
         for (auto i = 0; i < dim; i++) {
             auto vid = idx + v->get_id_inst(i);
             gvar = _grb_vars.at(vid);
-            v->set_double_val(i,gvar.get(GRB_DoubleAttr_X));
+            if(v->is_continuous())
+                v->set_double_val(i,gvar.get(GRB_DoubleAttr_X));
+            else
+                v->set_double_val(i,std::round(gvar.get(GRB_DoubleAttr_X)));
         }
     }
 }
