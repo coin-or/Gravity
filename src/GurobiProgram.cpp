@@ -138,13 +138,6 @@ void GurobiProgram::update_solution(){
     size_t vid, vid_inst;
     GRBVar gvar;
     param_* v;
-//    for (auto i = 0; i < _grb_vars.size(); i++) {
-//        gvar = _grb_vars.at(i);
-//        auto dim = _model->_vars[i]->get_dim();
-//        for (auto j = 0; j < _model->_vars[i]->get_dim(); j++) {
-//            poly_set_val(j, gvar.get(GRB_DoubleAttr_X), _model->_vars[i]);
-//        }
-//    }
     for(auto& v_p: _model->_vars)
     {
         v = v_p.second.get();
@@ -153,7 +146,10 @@ void GurobiProgram::update_solution(){
         for (auto i = 0; i < dim; i++) {
             auto vid = idx + v->get_id_inst(i);
             gvar = _grb_vars.at(vid);
-            v->set_double_val(i,gvar.get(GRB_DoubleAttr_X));
+            if(v->is_continuous())
+                v->set_double_val(i,gvar.get(GRB_DoubleAttr_X));
+            else
+                v->set_double_val(i,std::round(gvar.get(GRB_DoubleAttr_X)));
         }
     }
 }
