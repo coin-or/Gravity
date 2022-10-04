@@ -659,10 +659,12 @@ Net CBF_read(const char *file, shared_ptr<Model<double>>& m, bool add_3d) {
               bn.first=count++;
   //            indices zk_nodes;
   //            param<double> midk("midk"+to_string(count));
+            if(b.second.size()>=3){
               for(auto n:b.second){
                   bn.second.push_back(n->_name);
              }
             _bag_names.push_back(bn);
+            }
         }
                 
         
