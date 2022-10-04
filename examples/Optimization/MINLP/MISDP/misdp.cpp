@@ -10,6 +10,7 @@
 #include <gravity/solver.h>
 #include <Eigen/Dense>
 #include <Eigen/Eigenvalues>
+#include <fstream>
 
 /*returns matrix of dimension n-1, without row rowno and col colno*/
 vector<vector<double>> get_minor(vector<vector<double>>& X, int rowno, int colno, int n){
@@ -49,8 +50,8 @@ using namespace std;
 
 int main(int argc, char * argv[]){
 //string fname=string(prj_dir)+"/data_sets/MISDP/2x3_3bars.cbf";
-    string fname=string(prj_dir)+"/data_sets/MISDP/2x7_3bars.cbf";
-//    string fname=string(prj_dir)+"/data_sets/MISDP/2x4_2scen_3bars.cbf";
+   // string fname=string(prj_dir)+"/data_sets/MISDP/2x7_3bars.cbf";
+    string fname=string(prj_dir)+"/data_sets/MISDP/2x4_2scen_3bars.cbf";
     //string fname=string(prj_dir)+"/data_sets/MISDP/coloncancer_1_100_5.cbf";
     //string fname=string(prj_dir)+"/data_sets/MISDP/2g_4_164_k3_5_6.cbf";
     bool root_refine = false;
@@ -71,6 +72,7 @@ auto g=CBF_read(fname.c_str(), m);
     SolverType ub_solver_type = ipopt, lb_solver_type = gurobi;
 
     double max_time = 300;
+    DebugOn("Instance "<<fname<<endl);
 //    rel->replace_integers();
 //    m->replace_integers();
 //    m->set_name("Before");
@@ -130,10 +132,12 @@ auto g=CBF_read(fname.c_str(), m);
     m->reset();
    solver<> sc(m,gurobi);
     bool relax = false;
+    auto ts=get_wall_time();
     if(root_refine){
         sc.run(relax = true);
     }
     sc.run(relax=false);
+    auto tf=get_wall_time();
     m->print_solution();
   /*  m->round_solution();
     m->_obj->uneval();
@@ -222,5 +226,15 @@ auto g=CBF_read(fname.c_str(), m);
           DebugOn(endl);
           //DebugOn("Determinant "<<std::setprecision(12)<<det<<" clique size "<<dim<<endl);
       }
-
+    string out_file_name=fname;
+    auto pos=out_file_name.find_last_of("/");
+    out_file_name=out_file_name.substr(pos+1);
+    pos=out_file_name.find_first_of(".");
+    auto out_file_name1=out_file_name.substr(0,pos);
+    out_file_name=string(prj_dir)+"/results_misdp/"+out_file_name1+".txt";
+    ofstream fout(out_file_name.c_str());
+    fout<<out_file_name1<<"&"<<m->get_obj_val()<<"&"<<tf-ts<<"&"<<es1.eigenvalues()[0]<<"&"<<m->_rel_obj_val<<"&"<<m->num_cuts[0]<<"&"<<m->num_cuts[1]<<"&"<<m->num_cuts[2]<<"&"<<m->num_cuts[3]<<"&"<<m->num_cuts[4]<<"&"<<m->num_cuts[5]<<"\n";
+    fout.close();
+    cout<<out_file_name1<<" obj "<<m->get_obj_val()<<" time "<<tf-ts<<" smallest eig "<<es1.eigenvalues()[0]<<" lower bound  "<<m->_rel_obj_val<<endl;
+    cout<<"soc incumbent "<<m->num_cuts[0]<<" eig bags incumbent "<<m->num_cuts[1]<<" eig full incumbent "<<m->num_cuts[2]<<" soc mipnode "<<m->num_cuts[3]<<" eig bags mipnode "<<m->num_cuts[4]<<" eig full mipnode "<<m->num_cuts[5]<<"\n";
 }

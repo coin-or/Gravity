@@ -20,6 +20,7 @@ public:
         m=mn;
         interior=interiorn;
         //vec_expi=vec_exp;
+        m->num_cuts.resize(6,0);
     }
     ~cuts(){
         DebugOn("soc_viol_user "<<soc_viol_user<<" "<<soc_viol<<endl);
@@ -105,6 +106,7 @@ protected:
                                 //                                  addCut(expr, GRB_LESS_EQUAL, 0);
                                 
                                 //vec_expi.push_back(expr);
+                                m->num_cuts[0]++;
                             }
                         }
                         
@@ -128,6 +130,7 @@ protected:
                                     if(std::abs(res1[i][j])>=1e-12)
                                         expr += res1[i][j];
                                     addLazy(expr, GRB_LESS_EQUAL, 0);
+                                    m->num_cuts[1]++;
                                     //                                addCut(expr, GRB_LESS_EQUAL, 0);
                                     //vec_expi.push_back(expr);
                                 }
@@ -149,6 +152,7 @@ protected:
                                         if(std::abs(res2[i][j])>=1e-12)
                                             expr += res2[i][j];
                                         addLazy(expr, GRB_LESS_EQUAL, 0);
+                                        m->num_cuts[2]++;
                                         //                            addCut(expr, GRB_LESS_EQUAL, 0);
                                         //vec_expi.push_back(expr);
                                     }
@@ -242,7 +246,7 @@ protected:
                                 DebugOff(endl);
                                 addLazy(expr, GRB_LESS_EQUAL, 0);
 //                                addCut(expr, GRB_LESS_EQUAL, 0);
-
+                                m->num_cuts[3]++;
                                 //vec_expi.push_back(expr);
                             }
                         }
@@ -264,6 +268,7 @@ protected:
                                     if(std::abs(res1[i][j])>=1e-12)
                                         expr += res1[i][j];
                                     addLazy(expr, GRB_LESS_EQUAL, 0);
+                                    m->num_cuts[4]++;
 //                                    addCut(expr, GRB_LESS_EQUAL, 0);
                                     //vec_expi.push_back(expr);
                                 }
@@ -284,6 +289,7 @@ protected:
                                         if(std::abs(res2[i][j])>=1e-12)
                                             expr += res2[i][j];
                                         addLazy(expr, GRB_LESS_EQUAL, 0);
+                                        m->num_cuts[5]++;
                                         //                                    addCut(expr, GRB_LESS_EQUAL, 0);
                                         //vec_expi.push_back(expr);
                                     }
@@ -455,7 +461,7 @@ bool GurobiProgram::solve(bool relax, double mipgap, double time_limit){
     //    grb_mod->set(GRB_IntParam_RINS,1000);
     //    grb_mod->set(GRB_IntParam_Cuts,0);
     
-    grb_mod->set(GRB_DoubleParam_TimeLimit,time_limit);
+    grb_mod->set(GRB_DoubleParam_TimeLimit,14300);
     //grb_mod->set(GRB_DoubleParam_Cutoff,5.33);
     //  grb_mod->set(GRB_IntParam_MinRelNodes,0);
     //    grb_mod->set(GRB_DoubleParam_Heuristics, 1);
@@ -603,10 +609,6 @@ bool GurobiProgram::solve(bool relax, double mipgap, double time_limit){
     //    grb_mod->update();
     //    grb_mod->optimize();
     //    grb_mod->write("mod.lp");
-    if (grb_mod->get(GRB_IntAttr_Status) != 2) {
-        cerr << "\nModel has not been solved to optimality, error code = " << grb_mod->get(GRB_IntAttr_Status) << endl;
-        //        return false;
-    }
     if(grb_mod->get(GRB_IntAttr_SolCount)>0)
         update_solution();
     //    GRBVar* gvars = grb_mod->getVars();
@@ -619,6 +621,7 @@ bool GurobiProgram::solve(bool relax, double mipgap, double time_limit){
     //        }
     //    }
     _model->_obj->set_val(grb_mod->get(GRB_DoubleAttr_ObjVal));
+    _model->_rel_obj_val=grb_mod->get(GRB_DoubleAttr_ObjBound);
     cout << "\n***** Optimal Objective = " << _model->get_obj_val() << " *****\n";
     if (grb_mod->get(GRB_IntAttr_IsMIP)) {
         cout.setf(ios::fixed);
@@ -632,6 +635,10 @@ bool GurobiProgram::solve(bool relax, double mipgap, double time_limit){
         cout << grb_mod->get(GRB_DoubleAttr_Runtime) << " & " << endl;
     }
     //    delete[] gvars;
+    if (grb_mod->get(GRB_IntAttr_Status) != 2) {
+        cerr << "\nModel has not been solved to optimality, error code = " << grb_mod->get(GRB_IntAttr_Status) << endl;
+               return false;
+    }
     return true;
 }
 
