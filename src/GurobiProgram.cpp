@@ -497,7 +497,13 @@ bool GurobiProgram::solve(bool relax, double mipgap, double time_limit){
     //    grb_mod->set(GRB_IntParam_RINS,10000);
     // grb_mod->update();
     // grb_mod->optimize();
-    bool not_sdp=true;
+    if(grb_mod->get(GRB_IntAttr_SolCount)>0)
+        update_solution();
+    bool not_sdp=false;
+    if(_model->check_PSD()<=-1e-9){
+        not_sdp=true;
+    }
+    
     int count=0;
     while(not_sdp && count<=10000){
         var<double> X=_model->get_var<double>("X");
@@ -609,8 +615,7 @@ bool GurobiProgram::solve(bool relax, double mipgap, double time_limit){
     //    grb_mod->update();
     //    grb_mod->optimize();
     //    grb_mod->write("mod.lp");
-    if(grb_mod->get(GRB_IntAttr_SolCount)>0)
-        update_solution();
+   
     //    GRBVar* gvars = grb_mod->getVars();
     //    for(int i = 0; i < grb_mod->get(GRB_IntAttr_NumVars); ++i) {
     ////        cout << gvars[i].get(GRB_StringAttr_VarName) << "  " << gvars[i].get(GRB_DoubleAttr_X) << endl;

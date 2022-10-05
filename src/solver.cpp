@@ -1195,6 +1195,78 @@ vector<vector<double>> Model<type>::cuts_eigen_full(const double active_tol)
     //DebugOn("eig"<<endl);
     return res;
 }
+template<typename type>
+template<typename T>
+double Model<type>::check_PSD(){
+var<double> X=get_var<double>("X");
+var<double> Xij=get_var<double>("Xij");
+int dim_full=X._indices->_keys->size();
+
+Eigen::MatrixXd mat_full(dim_full,dim_full);
+int count=0;
+vector<string> all_names;
+for(auto k:*X._indices->_keys){
+    mat_full(count, count)=X.eval(k);
+    all_names.push_back(k);
+    count++;
+}
+
+for(auto i=0;i<all_names.size()-1;i++){
+    for(auto j=i+1;j<all_names.size();j++){
+        auto k=all_names[i]+","+all_names[j];
+        if (Xij._indices->has_key(k)){
+            mat_full(i, j)=Xij.eval(k);
+            mat_full(j, i)=Xij.eval(k);
+        }
+        else{
+            mat_full(i, j)=0;
+            mat_full(j, i)=0;
+        }
+    }
+}
+Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> es1;
+es1.compute(mat_full);
+
+for(auto m=0;m<dim_full;m++){
+    DebugOn(std::setprecision(12)<<es1.eigenvalues()[m]<<" ");
+}
+DebugOn(endl<<"full"<<endl);
+
+//  for(auto b:g._bags){
+//      auto dim=b.second.size();
+//      vector<string> node_names;
+//      vector<vector<double>> mat_X(dim, std::vector<double>(dim, 0));
+//      Eigen::MatrixXd mat(dim,dim);
+//      int count=0;
+//      for(auto n:b.second){
+//          node_names.push_back(n->_name);
+//          mat_X[count][count]=X.eval(n->_name);
+//          mat(count,count)=mat_X[count][count];
+//          count++;
+//          DebugOn(n->_name<<" ");
+//      }
+//      DebugOn(endl);
+//      for(auto i=0;i<node_names.size()-1;i++){
+//          for(auto j=i+1;j<node_names.size();j++){
+//              mat_X[i][j]=Xij.eval(node_names[i]+","+node_names[j]);
+//              mat_X[j][i]=Xij.eval(node_names[i]+","+node_names[j]);
+//              mat(i,j)=mat_X[i][j];
+//              mat(j,i)=mat_X[i][j];
+//          }
+//      }
+//     // double det=determinant(mat_X, dim);
+//      Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> es;
+//      es.compute(mat);
+//      DebugOn("clique "<<dim<<endl);
+//      for(auto m=0;m<dim;m++){
+//          //                           cout<<es.eigenvalues()[m].real();
+//          DebugOn(std::setprecision(12)<<es.eigenvalues()[m]<<" ");
+//      }
+//      DebugOn(endl);
+//      //DebugOn("Determinant "<<std::setprecision(12)<<det<<" clique size "<<dim<<endl);
+//  }
+    return(es1.eigenvalues()[0]);
+}
 /*Adds row(or new instance) of a linear constraint to a model by linearizing a nonlinear constraint con
  @param[in] con: Nonlinear constraint
  @param[in] c_inst: Instance of nonlinear constraint which is to be linearized
@@ -1942,5 +2014,6 @@ template vector<vector<double>> Model<double>::cutting_planes_eigen(const double
 template vector<vector<double>> Model<double>::cuts_eigen_full(const double active_tol);
 template vector<vector<double>> Model<double>::cuts_eigen_bags(const double active_tol);
 template vector<vector<double>> Model<double>::cutting_planes_soc(double active_tol, int& soc_viol,int& soc_added);
+template double Model<double>::check_PSD();
 }
 
