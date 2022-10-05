@@ -38,7 +38,7 @@ protected:
             bool hierarc = true;
             if(incumbent){
                 if (where == GRB_CB_MIPSOL) {
-                    // Found an integer feasible solution - does it visit every node?
+                    /* Found an integer feasible solution */
                     double *x = new double[n];
                     vector<double> vec_x;
                     // double obj=getDoubleInfo(GRB_CB_MIPSOL_OBJ);
