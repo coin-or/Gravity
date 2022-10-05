@@ -497,7 +497,7 @@ bool GurobiProgram::solve(bool relax, double mipgap, double time_limit){
     //    grb_mod->set(GRB_IntParam_RINS,10000);
     // grb_mod->update();
     // grb_mod->optimize();
-    bool not_sdp=false;
+    bool not_sdp=true;
     int count=0;
     while(not_sdp && count<=10000){
         var<double> X=_model->get_var<double>("X");
@@ -571,7 +571,7 @@ bool GurobiProgram::solve(bool relax, double mipgap, double time_limit){
                     grb_mod->addConstr(expr, GRB_LESS_EQUAL, 0);
                 }
             }
-            auto res3=_model->cuts_eigen_full(1e-6);
+            auto res3=_model->cuts_eigen_full(1e-9);
             if(res3.size()>=1){
                 for(auto i=0;i<res3.size();i++){
                     GRBLinExpr expr = 0;
