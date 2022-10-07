@@ -129,7 +129,7 @@ int main(int argc, char * argv[]){
     //    auto x = m->get_var<double>("x");
     //    x.set_lb(0.1);
     m->reset();
-    bool upper_bound_heur=true;
+    bool upper_bound_heur=false;
     auto m2=m->copy();
     auto m1=m->copy();
     vector<double> sol(m2->_nb_vars);

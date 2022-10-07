@@ -437,9 +437,9 @@ void GurobiProgram::reset_model(){
 bool GurobiProgram::solve(bool relax, double mipgap, double time_limit){
     //cout << "\n Presolve = " << grb_env->get(GRB_IntParam_Presolve) << endl;
     //    print_constraints();
-    //    if (relax) relax_model();
-    //    else
-    unrelax_model();
+        if (relax) relax_model();
+        else
+            unrelax_model();
     //    relax_model();
     grb_mod->set(GRB_DoubleParam_MIPGap, 1e-6);
     grb_mod->set(GRB_DoubleParam_FeasibilityTol, 1e-9);
@@ -562,7 +562,7 @@ bool GurobiProgram::solve(bool relax, double mipgap, double time_limit){
                 //addLazy(expr, GRB_LESS_EQUAL, 0);
             }
         }
-        if(res.size()==0){
+        if(true){
             auto res2=_model->cuts_eigen_bags(1e-6);
             if(res2.size()>=1){
                 for(auto i=0;i<res2.size();i++){
@@ -595,6 +595,7 @@ bool GurobiProgram::solve(bool relax, double mipgap, double time_limit){
             }
             if(res.size()==0 && res2.size()==0 && res3.size()==0){
                 not_sdp=false;
+                
             }
             if(not_sdp){
                 grb_mod->update();
