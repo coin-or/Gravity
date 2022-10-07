@@ -33,7 +33,7 @@ public:
     indices oths_rplc;
     indices own_oths_rplc1;
     indices own_oths_rplc2;
-    vector<int> owner;
+    vector<int> owner;/*< vector storing ownership of each sensor */
     
 public:
     myModel(){ };
