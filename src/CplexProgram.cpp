@@ -3,6 +3,7 @@
 CplexProgram::CplexProgram(Model<>* m) {
     _cplex_env = make_shared<IloEnv>();
     _cplex_model = make_shared<IloModel>(*_cplex_env);
+    _cplex = make_shared<IloCplex>(*_cplex_env);
     _model = m;
     m->fill_in_maps();
     m->compute_funcs();
@@ -19,7 +20,7 @@ void CplexProgram::update_model(){
 
 
 void CplexProgram::warm_start(){
-    IloCplex cplex(*_cplex_env);
+    
     IloNumArray vals(*_cplex_env);
     IloNumVarArray vars(*_cplex_env);
     double val = 0;
@@ -30,7 +31,7 @@ void CplexProgram::warm_start(){
             vals.add(val);
         }
     }
-    cplex.setStart(vals, 0, vars, 0, 0, 0);
+    _cplex->setStart(vals, 0, vars, 0, 0, 0);
 }
 
 bool CplexProgram::solve(bool relax, double mipgap) {
@@ -40,7 +41,6 @@ bool CplexProgram::solve(bool relax, double mipgap) {
     //    relax_model();
     int return_status = -1;
     try {
-        IloCplex cplex(*_cplex_env);
 
         if(relax) {
             IloModel relax(*_cplex_env);
@@ -48,10 +48,10 @@ bool CplexProgram::solve(bool relax, double mipgap) {
             for (auto &vv: _cplex_vars) {
                 relax.add(IloConversion(*_cplex_env, vv, ILOFLOAT));
             }
-            cplex.extract(relax);
+            _cplex->extract(relax);
         }
         else {
-            cplex.extract(*_cplex_model);
+            _cplex->extract(*_cplex_model);
         }
         size_t idx = 0, idx_inst = 0, idx1 = 0, idx2 = 0, idx_inst1 = 0, idx_inst2 = 0, nb_inst = 0, inst = 0;
     //    size_t c_idx_inst = 0;
@@ -119,13 +119,13 @@ bool CplexProgram::solve(bool relax, double mipgap) {
                 if(c->get_ctype()==geq) {
                     IloConstraint c_(cc >= 0);
                     c_.setName(c->_name.c_str());
-                    cplex.addLazyConstraint(c_);
+                    _cplex->addLazyConstraint(c_);
                 }
                 else if(c->get_ctype()==leq) {
                     IloConstraint c_(cc <= 0);
                     c_.setName(c->_name.c_str());
     //                _cplex_model->addLazyConstraint(c_);
-                    cplex.addLazyConstraint(c_);
+                    _cplex->addLazyConstraint(c_);
                 }
                 inst++;
             }
@@ -135,17 +135,17 @@ bool CplexProgram::solve(bool relax, double mipgap) {
 //        cplex.setParam(IloCplex::BarDisplay, 0);
 //        cplex.setParam(IloCplex::AdvInd, 1);
 
-        cplex.setParam(IloCplex::MIPDisplay, 0);
-        cplex.setParam(IloCplex::SimDisplay, 0);
+        _cplex->setParam(IloCplex::MIPDisplay, 0);
+        _cplex->setParam(IloCplex::SimDisplay, 0);
 //        cplex.setParam(IloCplex::PreInd, 0);
 //        cplex.setParam(IloCplex::Reduce, 0);
 //        cplex.setParam(IloCplex::RelaxPreInd,0);
 //        cplex.setParam(IloCplex::PreslvNd,-1);
 
 //        cplex.setParam(IloCplex::Param::RootAlgorithm,4);
-        cplex.setParam(IloCplex::Param::Simplex::Tolerances::Feasibility, 1e-6);
-        cplex.setParam(IloCplex::Param::Simplex::Tolerances::Optimality, 1e-6);
-        cplex.setParam(IloCplex::EpGap, 1e-6 ); //stopping criterion MIPgap
+        _cplex->setParam(IloCplex::Param::Simplex::Tolerances::Feasibility, 1e-6);
+        _cplex->setParam(IloCplex::Param::Simplex::Tolerances::Optimality, 1e-6);
+        _cplex->setParam(IloCplex::EpGap, 1e-6 ); //stopping criterion MIPgap
 //        cplex.setParam(IloCplex::PreInd, 1);
 //        cplex.setParam(IloCplex::MIPDisplay, 2);
         
@@ -179,26 +179,26 @@ bool CplexProgram::solve(bool relax, double mipgap) {
                 vals.add(val);
             }
         }
-        cplex.setStart(vals, 0, vars, 0, 0, 0);
-        cplex.solve();
-        if (cplex.getStatus() == IloAlgorithm::Infeasible) {
+        _cplex->setStart(vals, 0, vars, 0, 0, 0);
+        _cplex->solve();
+        if (_cplex->getStatus() == IloAlgorithm::Infeasible) {
             _cplex_env->out() << "No Solution" << endl;
         }
-        else if(cplex.getStatus() == IloAlgorithm::Optimal){
+        else if(_cplex->getStatus() == IloAlgorithm::Optimal){
             return_status = 100;
         }
-        _cplex_env->out() << "Solution status: " << cplex.getStatus() << endl;
+        _cplex_env->out() << "Solution status: " << _cplex->getStatus() << endl;
 
         // Print results
-        _cplex_env->out() << "Cost:" << cplex.getObjValue() << endl;
+        _cplex_env->out() << "Cost:" << _cplex->getObjValue() << endl;
 
         // set the optimal value.
-        _model->_obj->set_val(cplex.getObjValue());
+        _model->_obj->set_val(_cplex->getObjValue());
 
         for (auto i = 0; i < _cplex_vars.size(); i++) {
             for (auto j = 0; j < _model->_vars[i]->get_dim(); j++) {
-                if(cplex.isExtracted(_cplex_vars[i][j])){
-                    _model->_vars[i]->set_double_val(j,cplex.getValue(_cplex_vars[i][j]));
+                if(_cplex->isExtracted(_cplex_vars[i][j])){
+                    _model->_vars[i]->set_double_val(j,_cplex->getValue(_cplex_vars[i][j]));
                 }
                 else {
                     _model->_vars[i]->set_double_val(j, 0);
@@ -472,7 +472,18 @@ void CplexProgram::create_cplex_constraints() {
 }
 
 void CplexProgram::create_callback(){
-    
+    bool separateFracSols = true;
+    IloCplex cplex(*_cplex_model);
+    int numThreads = cplex.getNumCores();
+
+    // Set up the callback to be used for separating Benders' cuts
+    _cplex_callback  = CplexCallback(numThreads);
+    CPXLONG contextmask = IloCplex::Callback::Context::Id::Candidate
+                          | IloCplex::Callback::Context::Id::ThreadUp
+                          | IloCplex::Callback::Context::Id::ThreadDown;
+    if ( separateFracSols )
+       contextmask |= IloCplex::Callback::Context::Id::Relaxation;
+    cplex.use(&_cplex_callback, contextmask);
 }
 
 
