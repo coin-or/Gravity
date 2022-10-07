@@ -725,14 +725,14 @@ vector<vector<double>> Model<type>::cutting_planes_soc(double active_tol, int& s
                     soc_viol++;
                     xnow.resize(3,0);
                     /*Avoid divide by zero*/
-                    if(xc[0]>=xc[1]){
+                    if(xc[0]>=xc[1] && xc[0]>=1e-6){
                         xnow[0]=xc[0];
-                        xnow[1]=(xc[2]*xc[2])/(xc[0]+1e-6);
+                        xnow[1]=(xc[2]*xc[2])/(xc[0]);
                         xnow[2]=xc[2];
                     }
-                    else
+                    else if (xc[1]>=1e-6)
                     {
-                        xnow[0]=(xc[2]*xc[2])/(xc[1]+1e-6);
+                        xnow[0]=(xc[2]*xc[2])/(xc[1]);
                         xnow[1]=xc[1];
                         xnow[2]=xc[2];
                     }
@@ -766,7 +766,7 @@ vector<vector<double>> Model<type>::cutting_planes_soc(double active_tol, int& s
                                 scale=1000.0/max_coef;
                             min_coef*=scale;
                             max_coef*=scale;
-                            if(min_coef>=1e-9 && max_coef<=1e3){
+                            if(min_coef>=1e-9 && max_coef<=1e4){
                                 int j=0;
                                 double cost=0;
                                 for (auto &v_p: con->get_vars()){
@@ -778,7 +778,7 @@ vector<vector<double>> Model<type>::cutting_planes_soc(double active_tol, int& s
                                 }
                                 cut.push_back(c0_val*scale);
                                 cost+=c0_val*scale;
-                                if(cost>1e-6){
+                                if(cost>=1e-6){
                                     res.push_back(cut);
                                 }
                             }
@@ -911,8 +911,8 @@ vector<vector<double>> Model<type>::cuts_eigen_bags(const double active_tol)
         for(auto i=0;i<b.second.size()-1;i++){
             for(auto j=i+1;j<b.second.size();j++){
                 mat_X(i,j)=Xij.eval(b.second[i]+","+b.second[j]);
-                if(std::abs(mat_X(i,j))<=1e-12)
-                    mat_X(i,j)=0;
+                //if(std::abs(mat_X(i,j))<=1e-12)
+                  //  mat_X(i,j)=0;
                 mat_X(j,i)=mat_X(i,j);
                 mat[i][j]=mat_X(i, j);
                 mat[j][i]=mat[i][j];
@@ -938,7 +938,7 @@ vector<vector<double>> Model<type>::cuts_eigen_bags(const double active_tol)
                 double maxc=-10000;
                 for(auto n=0;n<dim;n++){
                     double c=eig_vec[n]*eig_vec[n]*(-1);
-                        if(X.get_ub(b.second[n])-X.get_lb(b.second[n])<=1e-9){
+                        if(X.get_ub(b.second[n])-X.get_lb(b.second[n])<=1e-6){
                             c_val.push_back(0);
                             c0_val+=c*X.get_ub(b.second[n]);
                         }
@@ -958,7 +958,7 @@ vector<vector<double>> Model<type>::cuts_eigen_bags(const double active_tol)
                         double c=(eig_vec[n]*eig_vec[o]*(-2));
                         double lb=Xij.get_lb(b.second[n]+","+b.second[o]);
                         double ub=Xij.get_ub(b.second[n]+","+b.second[o]);
-                        if(ub-lb<=1e-9){
+                        if(ub-lb<=1e-6){
                             c_val.push_back(0);
                             if(-c<=0){
                                 c0_val+=c*lb;
@@ -987,7 +987,7 @@ vector<vector<double>> Model<type>::cuts_eigen_bags(const double active_tol)
                 cost+=c0_val;
                 double scale=1;
                 
-                if(minc<=1e-9 && maxc<=1){
+                if(minc<=1e-6 && maxc<=1){
                     scale=1e3;
                     maxc*=scale;
                     minc*=scale;
@@ -996,20 +996,22 @@ vector<vector<double>> Model<type>::cuts_eigen_bags(const double active_tol)
                     }
                     DebugOff("scaling "<<scale<<endl);
                 }
-                else if(cost<=1e-9){
+                else if(cost<=1e-6){
                     if(maxc<=1)
                     scale=1e3;
                     else if(maxc<=10)
                         scale=1e2;
                     else if(maxc<=100)
                         scale=1e1;
+                   //else if(maxc<=1000)
+             //    scale=10;
                     maxc*=scale;
                     minc*=scale;
                 }
                 cost*=scale;
                
-                if(minc>=1e-9 && maxc<=1e3){
-                if(cost>1e-6){
+                if(minc>=1e-9 && maxc<=1e4){
+                if(cost>=1e-6){
                     for(auto i=0;i<c_val.size();i++){
                         cut.push_back(var_ind[i]);
                         cut.push_back(c_val[i]*scale);
@@ -1099,7 +1101,7 @@ vector<vector<double>> Model<type>::cuts_eigen_full(const double active_tol)
                 double maxc=-10000;
                 for(auto n=0;n<dim_full;n++){
                     double c=eig_vec[n]*eig_vec[n]*(-1);
-                        if(X.get_ub(all_names[n])-X.get_lb(all_names[n])<=1e-9){
+                        if(X.get_ub(all_names[n])-X.get_lb(all_names[n])<=1e-6){
                             c_val.push_back(0);
                             c0_val+=c*X.get_ub(all_names[n]);
                         }
@@ -1120,7 +1122,7 @@ vector<vector<double>> Model<type>::cuts_eigen_full(const double active_tol)
                         double c=(eig_vec[n]*eig_vec[o]*(-2));
                         double lb=Xij.get_lb(all_names[n]+","+all_names[o]);
                         double ub=Xij.get_ub(all_names[n]+","+all_names[o]);
-                        if(ub-lb<=1e-9){
+                        if(ub-lb<=1e-6){
                             c_val.push_back(0);
                             if(-c<=0){
                                 c0_val+=c*lb;
@@ -1150,7 +1152,7 @@ vector<vector<double>> Model<type>::cuts_eigen_full(const double active_tol)
                 cost+=c0_val;
                 double scale=1;
                 
-                if(minc<=1e-9 && maxc<=1){
+                if(minc<=1e-6 && maxc<=1){
                     scale=1e3;
                     maxc*=scale;
                     minc*=scale;
@@ -1159,19 +1161,21 @@ vector<vector<double>> Model<type>::cuts_eigen_full(const double active_tol)
                     }
                     DebugOff("scaling "<<scale<<endl);
                 }
-                else if(cost<=1e-9){
+                else if(cost<=1e-6){
                     if(maxc<=1)
                     scale=1e3;
                     else if(maxc<=10)
                         scale=1e2;
                     else if(maxc<=100)
                         scale=1e1;
+             //else if(maxc<=1000)
+               //   scale=10;
                     maxc*=scale;
                     minc*=scale;
                 }
                 cost*=scale;
                
-                if(cost>1e-9){
+                if(cost>=1e-9 && minc>=1e-9 && maxc<=1e4){
                     for(auto i=0;i<c_val.size();i++){
                         cut.push_back(var_ind[i]);
                         cut.push_back(c_val[i]*scale);
@@ -2016,4 +2020,5 @@ template vector<vector<double>> Model<double>::cuts_eigen_bags(const double acti
 template vector<vector<double>> Model<double>::cutting_planes_soc(double active_tol, int& soc_viol,int& soc_added);
 template double Model<double>::check_PSD();
 }
+
 

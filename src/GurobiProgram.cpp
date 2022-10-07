@@ -451,10 +451,10 @@ bool GurobiProgram::solve(bool relax, double mipgap, double time_limit){
     //    grb_mod->getEnv().set(GRB_IntParam_NodeMethod, 1);
     grb_mod->getEnv().set(GRB_IntParam_LazyConstraints, 1);
     grb_mod->set(GRB_IntParam_Threads, 8);
-//        grb_mod->set(GRB_DoubleParam_IntFeasTol, 1e-9);
+        grb_mod->set(GRB_DoubleParam_IntFeasTol, 1e-9);
     //   grb_mod->set(GRB_IntParam_NumericFocus,3);
     // grb_mod->set(GRB_IntParam_Presolve,2);
-    grb_mod->set(GRB_IntParam_MIPFocus,2);
+    grb_mod->set(GRB_IntParam_MIPFocus,3);
     //    grb_mod->set(GRB_IntParam_IntegralityFocus,1);
     //    grb_mod->set(GRB_IntParam_MIPFocus,2);
     //    grb_mod->set(GRB_IntParam_PumpPasses,50);
@@ -597,14 +597,16 @@ bool GurobiProgram::solve(bool relax, double mipgap, double time_limit){
                 not_sdp=false;
             }
             if(not_sdp){
+                grb_mod->update();
                 grb_mod->optimize();
+                if(grb_mod->get(GRB_IntAttr_Status)!=2)
+                    break;
                 if(grb_mod->get(GRB_IntAttr_SolCount)>0)
                     update_solution();
             }
 
         }
         count++;
-        grb_mod->update();
     }
     // grb_mod->update();
     // grb_mod->optimize();
