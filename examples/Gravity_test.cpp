@@ -23,6 +23,7 @@ using namespace std;
 using namespace gravity;
 
 
+
 TEST_CASE("Add in row") {
     Model<> M("Test");
     /* Symbolic variable x in R^8 */
@@ -61,6 +62,70 @@ TEST_CASE("Add in row") {
     M.print();
     CHECK(M.get_nb_vars()==16);
     CHECK(M.get_nb_cons()==4);
+}
+
+
+TEST_CASE("Add in row, weighted sum") {
+    gravity::Model<> M("Test");
+    /* Symbolic variable x in R^8 */
+    gravity::param<> x_lb("x_lb"), x_ub("x_ub");
+    x_lb = {100,1000,1000,10,10,10,10,10};
+    x_ub = {10000,10000,10000,1000,1000,1000,1000,1000};
+    gravity::var<> x("x",x_lb,x_ub);
+   
+    /* Symbolic variable x in R^8 */
+    gravity::param<> y_lb("y_lb"), y_ub("y_ub");
+    y_lb = {-100,-1000,-1000,-10,-10,-10,-10,-10};
+    y_ub = {2,2,0,10,12,-1,-2,-3};
+    gravity::var<> y("y",y_lb,y_ub);
+   
+    auto x_ids = gravity::indices("x_ids"), y_ids = gravity::indices("y_ids");
+    x_ids = gravity::range(1,8);
+    y_ids = gravity::range(1,8);
+    M.add(x.in(x_ids), y.in(y_ids));
+ 
+    gravity::indices y_mat("y_mat");/* Declaring a matrix index set based on the indices of y */
+    y_mat = y_ids; /* y_mat is based on y_ids */
+ 
+    gravity::param<double> w("w");
+    w = {0.1,0.2,0.3,0.4,0.5,0.6,0.7};
+    w.in(range(1,7));
+    gravity::indices w_mat("weight mat");
+    w_mat = gravity::range(1,7);
+
+
+    y_mat.add_empty_row();
+    y_mat.add_in_row(0,"1");
+    y_mat.add_in_row(0,"2");
+    y_mat.add_in_row(0,"3");
+    w_mat.add_empty_row();
+    w_mat.add_in_row(0,"1");
+    w_mat.add_in_row(0,"2");
+    w_mat.add_in_row(0,"3");
+ 
+    y_mat.add_empty_row();
+    y_mat.add_in_row(1,"1");
+    y_mat.add_in_row(1,"2");
+    w_mat.add_empty_row();
+    w_mat.add_in_row(1,"4");
+    w_mat.add_in_row(1,"5");
+   
+    y_mat.add_empty_row();
+    y_mat.add_in_row(2,"1");
+    w_mat.add_empty_row();
+    w_mat.add_in_row(2,"6");
+ 
+    y_mat.add_empty_row();
+    y_mat.add_in_row(3,"1");
+    w_mat.add_empty_row();
+    w_mat.add_in_row(3,"7");
+ 
+   
+ 
+    gravity::Constraint<> LinCons("LinCons");
+    LinCons = x.in(range(1,4)) - x.in(range(2,5)) - w.in(w_mat) * y.in(y_mat);
+    M.add(LinCons.in(range(1,4)) == 0);
+    M.print();
 }
 
 #ifdef USE_MP
