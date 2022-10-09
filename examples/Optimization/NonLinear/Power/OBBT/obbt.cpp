@@ -49,7 +49,7 @@ int main (int argc, char * argv[]) {
     bool linearize=false;
     
     
-    string fname = string(prj_dir)+"/data_sets/Power/nesta_case9_bgm__nco.m";
+    string fname = string(prj_dir)+"/data_sets/Power/WB5.m";
     
     
 #ifdef USE_OPT_PARSER
