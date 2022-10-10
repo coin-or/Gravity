@@ -22,68 +22,96 @@
     using namespace std;
     using namespace gravity;
 
-TEST_CASE("testing restructure and projection with SDP relaxation of ACOPF") {
-//    string fname = string(prj_dir)+"/data_sets/Power/nesta_case5_pjm.m";
-    string fname = string(prj_dir)+"/data_sets/Power/nesta_case9_bgm__nco.m";
-    int output = 0;
-    double tol = 1e-6;
-    double ub_solver_tol=1e-6, lb_solver_tol=1e-8, range_tol=1e-3, max_time = 200, opt_rel_tol=1e-2, opt_abs_tol=1e6;
-    unsigned max_iter=1e3, nb_threads=thread::hardware_concurrency();
-    SolverType ub_solver_type = ipopt, lb_solver_type = ipopt;
-    auto nonlin_obj=true, current=true;
-
+TEST_CASE("testing SDP-BT"){
     PowerNet grid;
+    auto fname = string(prj_dir)+"/data_sets/Power/WB5.m";
+    try{
+        build_ACOPF(grid, ACRECT);
+    }
+    catch(invalid_argument& arg){
+        cout << "Error successfully caught: "<< endl;
+        cout << arg.what() << endl;
+    }
     grid.readgrid(fname);
     auto OPF=build_ACOPF(grid, ACRECT);
-    OPF->print();
-    solver<> s1(OPF,ipopt);
-    auto time_start = get_wall_time();
-    auto status = s1.run(output=5, tol=1e-6);
-//    OPF->print_solution();
-//    auto SDP=build_SDPOPF(grid);
-//    SDP->print();
-    auto OPF_proj = build_ACOPF(grid, ACRECT);
-//    SDP_proj->restructure();
-//    DebugOn("Done restructuring\n");
-    auto proj_pairs = OPF_proj->project();
-    DebugOn("Done projecting\n");
-    solver<> s2(OPF_proj,ipopt);
-    status = s2.run(output=5, tol=1e-6);
-////    OPF_proj->is_feasible(tol);
-////    OPF_proj->print_solution();
-//    for (const auto &p: proj_pairs) {
-//        auto v = p.first;
-//        auto f = p.second;
-//        OPF_proj->merge_vars(f);
-//        f->eval_all();
-//        v->copy_vals(*f);
-//    }
-//    OPF_proj->print_solution();
-//    OPF->copy_solution(OPF_proj);
-//    OPF->reset_constrs();
-//    OPF->print_constraints_stats(tol);
-//    OPF_proj->restructure();
-    auto Rel = OPF_proj->relax(3,false,false);
-    Rel->print();
-    solver<> srel(Rel,ipopt);
-    status = srel.run(output=5, tol=1e-6);
-    Rel->print_constraints_stats(tol);
-//    Rel->print_constraints_stats(tol);
-//    SDP->_aux_eqs = proj_pairs;
-//    SDP->copy_aux_vars_status(SDP_proj);
-
-
-
-//    auto res=OPF->run_obbt(Rel, max_time, max_iter, opt_rel_tol, opt_abs_tol, nb_threads=6, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol);
-//    exit(1);
-//    solver<> s2(SDP_proj,ipopt);
-//    auto status = s2.run(output=5, tol=1e-6);
-    CHECK(std::abs(OPF_proj->get_obj_val()- OPF->get_obj_val())/OPF->get_obj_val() < 0.001);
-    double upper_bound = OPF->get_obj_val(), lower_bound = Rel->get_obj_val();
-    auto final_gap = 100*(upper_bound - lower_bound)/std::abs(upper_bound);
-    DebugOn("Root node gap = " << final_gap << endl);
-//    CHECK(final_gap<11);
+    double ub_solver_tol=1e-6, lb_solver_tol=1e-8, range_tol=1e-4, max_time = 200, opt_rel_tol=1e-2, opt_abs_tol=1e6;
+    unsigned max_iter=1e3, nb_threads=1;
+    SolverType ub_solver_type = ipopt, lb_solver_type = ipopt;
+    auto nonlin_obj=true, current=true;
+    auto SDP= build_SDPOPF(grid, current, nonlin_obj);
+//        SDP->restructure();
+    auto res=OPF->run_obbt(SDP, max_time, max_iter, opt_rel_tol, opt_abs_tol, nb_threads=1, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol);
+    auto lower_bound = SDP->get_obj_val();
+    auto lower_bound_init = get<3>(res);
+    auto upper_bound = OPF->get_obj_val();
+    auto gap_init = 100*(upper_bound - lower_bound_init)/std::abs(upper_bound);
+    auto lower_bound_final=get<6>(res);
+    auto final_gap = 100*(upper_bound - lower_bound_final)/std::abs(upper_bound);
+    CHECK(final_gap<1);
 }
+
+//TEST_CASE("testing restructure and projection with SDP relaxation of ACOPF") {
+////    string fname = string(prj_dir)+"/data_sets/Power/nesta_case5_pjm.m";
+//    string fname = string(prj_dir)+"/data_sets/Power/nesta_case9_bgm__nco.m";
+//    int output = 0;
+//    double tol = 1e-6;
+//    double ub_solver_tol=1e-6, lb_solver_tol=1e-8, range_tol=1e-4, max_time = 200, opt_rel_tol=1e-2, opt_abs_tol=1e6;
+//    unsigned max_iter=1e3, nb_threads=thread::hardware_concurrency();
+//    SolverType ub_solver_type = ipopt, lb_solver_type = ipopt;
+//    auto nonlin_obj=true, current=true;
+//
+//    PowerNet grid;
+//    grid.readgrid(fname);
+//    auto OPF=build_ACOPF(grid, ACRECT);
+//    OPF->print();
+//    solver<> s1(OPF,ipopt);
+//    auto time_start = get_wall_time();
+//    auto status = s1.run(output=5, tol=1e-6);
+////    OPF->print_solution();
+////    auto SDP=build_SDPOPF(grid);
+////    SDP->print();
+//    auto OPF_proj = build_ACOPF(grid, ACRECT);
+////    SDP_proj->restructure();
+////    DebugOn("Done restructuring\n");
+//    auto proj_pairs = OPF_proj->project();
+//    DebugOn("Done projecting\n");
+//    solver<> s2(OPF_proj,ipopt);
+//    status = s2.run(output=5, tol=1e-6);
+//////    OPF_proj->is_feasible(tol);
+//////    OPF_proj->print_solution();
+////    for (const auto &p: proj_pairs) {
+////        auto v = p.first;
+////        auto f = p.second;
+////        OPF_proj->merge_vars(f);
+////        f->eval_all();
+////        v->copy_vals(*f);
+////    }
+////    OPF_proj->print_solution();
+////    OPF->copy_solution(OPF_proj);
+////    OPF->reset_constrs();
+////    OPF->print_constraints_stats(tol);
+////    OPF_proj->restructure();
+//    auto Rel = OPF_proj->relax(3,false,false);
+//    Rel->print();
+//    solver<> srel(Rel,ipopt);
+//    status = srel.run(output=5, tol=1e-6);
+//    Rel->print_constraints_stats(tol);
+////    Rel->print_constraints_stats(tol);
+////    SDP->_aux_eqs = proj_pairs;
+////    SDP->copy_aux_vars_status(SDP_proj);
+//
+//
+//
+////    auto res=OPF->run_obbt(Rel, max_time, max_iter, opt_rel_tol, opt_abs_tol, nb_threads=6, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol);
+////    exit(1);
+////    solver<> s2(SDP_proj,ipopt);
+////    auto status = s2.run(output=5, tol=1e-6);
+//    CHECK(std::abs(OPF_proj->get_obj_val()- OPF->get_obj_val())/OPF->get_obj_val() < 0.001);
+//    double upper_bound = OPF->get_obj_val(), lower_bound = Rel->get_obj_val();
+//    auto final_gap = 100*(upper_bound - lower_bound)/std::abs(upper_bound);
+//    DebugOn("Root node gap = " << final_gap << endl);
+////    CHECK(final_gap<11);
+//}
 
 TEST_CASE("testing polynomial lifting") {
     indices buses("buses");
@@ -1881,8 +1909,8 @@ TEST_CASE("testing camshape100.nl") {
     //    OPF1.run(0,tol);
     //    OPF2.run(0,tol);
         run_parallel(models, ipopt, tol = 1e-6, nb_threads=2);
-        CHECK(std::abs(ACOPF1->get_obj_val()-17551.89092*1e-3)<1e-2);
-        CHECK(std::abs(ACOPF2->get_obj_val()-3087.83977*1e-3)<1e-2);
+        CHECK(std::abs(ACOPF1->get_obj_val()-17551.89092)<1e-2);
+        CHECK(std::abs(ACOPF2->get_obj_val()-3087.83977)<1e-2);
         CHECK(ACOPF1->is_feasible(tol));
         ACOPF1->print_solution();
         auto Mc = ACOPF1->build_McCormick();

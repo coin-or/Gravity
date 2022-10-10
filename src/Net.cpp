@@ -601,7 +601,7 @@ string Net::remove_end_node() {
         for (auto aa: nn->branches) {
             if (!aa->neighbour(nn)->is_connected(n)) {
                 nn->fill_in--;
-                assert(nn->fill_in >=0);
+//                assert(nn->fill_in >=0);
             }
         }
     }

@@ -67,17 +67,17 @@ void Arc::connect() {
         //throw invalid_argument ("It is now allowed to make a node self connected in gravity. \n");
         std::cout << "It is now allowed to make a node self connected in gravity" << endl;
     }
-//    _src->update_fill_in(_dest);// update the fill-ins
-//    _dest->update_fill_in(_src);
+    _src->update_fill_in(_dest);// update the fill-ins
+    _dest->update_fill_in(_src);
     Node* common = nullptr;
     // just for source.
-//    for (auto a:_src->branches) {
-//        common = a->neighbour(_src);
-//        if (common->is_connected(_dest)) {
-//            common->fill_in--;
+    for (auto a:_src->branches) {
+        common = a->neighbour(_src);
+        if (common->is_connected(_dest)) {
+            common->fill_in--;
 //            assert(common->fill_in >=0);
-//        }
-//    }
+        }
+    }
     _src->addArc(this);
     _dest->addArc(this);
 }
