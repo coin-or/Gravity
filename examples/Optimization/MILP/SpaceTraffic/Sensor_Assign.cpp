@@ -21,11 +21,12 @@ int main(int argc, const char * argv[]) {
     if(argc>3)
         run_MIP = true;
     myModel m = myModel();
-    vector<param<double>> par = m.readData(argc, argv, 1, 2);
+    auto par = m.readHD5(argv[1]);
+//    vector<param<double>> par = m.readData(argc, argv, 1, 2);
     auto start = high_resolution_clock::now();
     m.InitBilevel(par[0], par[1], par[2], 0.001);
     m.GreedyStart(par[0], par[1], par[2]); //comment if no greedy start not needed
-    m.writeGreedySol(); //writing greedy sol to a file to load it to sensor_assign2
+//    m.writeGreedySol(); //writing greedy sol to a file to load it to sensor_assign2
     auto stop = high_resolution_clock::now();
     auto duration1 = duration_cast<seconds>(stop - start);
     cout << "Init + greedy time: " << duration1.count() << endl;
@@ -34,6 +35,158 @@ int main(int argc, const char * argv[]) {
     auto duration2 = duration_cast<seconds>(stop2 - stop);
     cout << m.N << " " << m.M << " " << m.K << " " << duration1.count() + duration2.count() << endl; //prints num sensors; num objetcs; num agents; total time after reading input (init + greedy + solver)
     return 0;
+}
+
+vector<param<double>> myModel::readHD5(const string& fname){
+    
+#ifdef USE_H5CPP
+    auto hd5file = file::open(fname);
+    auto RootGroup = hd5file.root();
+    /* Read agent names */
+    auto agents_set = RootGroup.get_group("agents");
+    auto agents_names = agents_set.get_dataset("agent_name");
+    agents = indices("agents");
+    dataspace::Simple Dataspace(agents_names.dataspace());
+    auto Dimensions = Dataspace.current_dimensions();
+    auto nb_agents = Dimensions[0];
+    auto MaxDimensions = Dataspace.maximum_dimensions();
+    std::vector<string> AllElements(Dataspace.size());
+    agents_names.read(AllElements);
+    for (auto Value : AllElements) {
+        agents.insert(Value);
+    }
+    /* Read objects */
+    auto objects_group = RootGroup.get_group("objects");
+    auto object_names_set = objects_group.get_dataset("object_name");
+    dataspace::Simple object_names_space(object_names_set.dataspace());
+    objects = indices("objects");
+    auto nb_objects = object_names_space.size();
+    std::vector<string> object_names(nb_objects);
+    object_names_set.read(object_names);
+    for (auto name : object_names) {
+        objects.insert(name);
+    }
+    /* Read sensors */
+    auto sensors_group = RootGroup.get_group("sensors");
+    auto sensors_names_set = sensors_group.get_dataset("sensor_name");
+    auto agent_own_set = sensors_group.get_dataset("agent_id");
+    dataspace::Simple sensors_names_space(sensors_names_set.dataspace());
+    dataspace::Simple agent_own_space(agent_own_set.dataspace());
+    sensors = indices("sensors");
+    own_sens = indices("own_sens");
+    
+    auto nb_sensors = sensors_names_space.size();
+    owner.resize(nb_sensors);/*< vector storing ownership of each sensor */
+    vector<string> sensors_names(nb_sensors);
+    sensors_names_set.read(sensors_names);
+    for (auto name : sensors_names) {
+        sensors.insert(name);
+    }
+    vector<int> agent_own(nb_sensors);
+    agent_own_set.read(agent_own);
+    int s_id = 0;
+    for (auto agent_id : agent_own) {
+        owner[s_id] = agent_id;
+        own_sens.insert(sensors.get_key(s_id++)+","+agents.get_key(agent_id));
+    }
+    agents.print();
+    objects.print();
+    sensors.print();
+    own_sens.print();
+    /* Read arcs */
+    auto arcs_group = RootGroup.get_group("arcs");
+    auto object_id_set = arcs_group.get_dataset("object_id");
+    auto sensor_id_set = arcs_group.get_dataset("sensor_id");
+    auto quality_set = arcs_group.get_dataset("quality");
+    auto nb_arcs = object_id_set.dataspace().size();
+    vector<int> object_ids(nb_arcs), sensor_ids(nb_arcs);
+    vector<double> quality(nb_arcs);
+    object_id_set.read(object_ids);
+    sensor_id_set.read(sensor_ids);
+    quality_set.read(quality);
+    Node* node = NULL;
+    Arc* arc = NULL;
+    string src, dest;
+    
+    for (int i = 0; i <nb_sensors; i++){
+        node = new Node(sensors.get_key(i),graph.nodes.size());
+        node->owner_id = owner[i];
+        graph.add_node(node);
+    }
+    for (int i = 0; i <nb_objects; i++){
+        node = new Node(objects.get_key(i),graph.nodes.size());
+        graph.add_node(node);
+    }
+        
+    for (int i = 0; i < nb_arcs; i++) {
+        src = sensors.get_key(sensor_ids[i]);
+        dest = objects.get_key(object_ids[i]);
+        arc = new Arc(src + "," + dest);
+        arc->_id = i;
+        arc->_src = graph.get_node(src);
+        arc->_dest= graph.get_node(dest);
+        arc->weight = quality[i];
+        graph.add_arc(arc);
+        arc->connect();
+    }
+    DebugOn("Graph has " << graph.nodes.size() << " nodes" << endl);
+    DebugOn("Graph has " << graph.arcs.size() << " arcs" << endl);
+    
+#else
+    cerr << "Can't read Hd5 as a solver: this version of Gravity was compiled without H5CPP. Rerun cmake with -DH5CPP=ON." << endl;
+    exit(1);
+#endif
+    N = nb_sensors;
+    M = nb_objects;
+    K = nb_agents;
+    /* Graph nodes are indexed in {0,...,n+m-1})*/
+    assert(N + M == graph.nodes.size());/* Make sure we have the right number of nodes */
+    own_arcs = indices("own_arcs");
+    bought_arcs = indices("bought_arcs");
+
+    /* Parameters */
+    vector<param<double>> par (3);
+    param<double> w0("w0");
+    param<double> w_own("w_own");
+    param<double> w_bought("w_bought");
+
+    string sensor_name, agent_name, object_name;
+    /*define index sets for weights, then read weights (need owner to sepsrate own and bought weights)*/
+    for (int k = 0; k < K; k++) {
+        for (int i = 0; i < N; i++) {
+            sensor_name = sensors.get_key(i);
+            agent_name = agents.get_key(k);
+            if (owner[i] == k) {
+                for (Arc* a: graph.get_node(sensor_name)->get_out()) {
+                    own_arcs.add(sensor_name + "," + a->_dest->_name + "," + agent_name);
+                    for (Arc* b: graph.get_node(a->_dest->_name)->get_in()) {
+                        if (b->_src->owner_id == k) {
+                            if (b->_src->_id != i) {
+                                own_rplc.add(a->_src->_name + "," + b->_src->_name + "," + a->_dest->_name + "," + agent_name);
+                            }
+                            else {
+                                oths_rplc.add(sensor_name + "," + b->_src->_name + "," + a->_dest->_name + "," + agent_name);
+                            }
+                        }
+                    }
+                }
+            }
+            else {
+                bought_sens.add(sensor_name + "," + agent_name);
+                for (Arc* a: graph.get_node(sensor_name)->get_out()) {
+                    bought_arcs.add(a->_src->_name + "," + a->_dest->_name +  "," + agent_name);
+                }
+            }
+        }
+    }
+
+
+    /*pass weights to init*/
+    par[0] = w0;
+    par[1] = w_own;
+    par[2] = w_bought;
+    
+    return par;
 }
 
 vector<param<double>> myModel::readData(int argc, const char * argv[], int n1, int n2){

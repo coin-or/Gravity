@@ -36,6 +36,7 @@ public:
 
     Node* predecessor = nullptr;
     int distance = 0;
+    int owner_id = 0;
     
     /* the number of edges needed to make the subgraph formed by adjacent nodes a clique */
     int fill_in = 0;
