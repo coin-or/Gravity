@@ -130,10 +130,12 @@ int main(int argc, char * argv[]){
     //    x.set_lb(0.1);
     m->reset();
     bool upper_bound_heur=false;
-    auto m2=m->copy();
-    auto m1=m->copy();
-    vector<double> sol(m2->_nb_vars);
+    
+    
     if(upper_bound_heur){
+        vector<double> sol(m->_nb_vars);
+        auto m2=m->copy();
+        auto m1=m->copy();
         var<double> Xa=m2->get_var<double>("X");
         var<double> Xija=m2->get_var<double>("Xij");
         // m2->min(sum(Xija)-sum(Xa));
@@ -142,7 +144,7 @@ int main(int argc, char * argv[]){
         Constraint<> diag_cut("diag_cut");
         diag_cut=sum(Xija)-sum(Xa);
         m2->add(diag_cut<=0);
-        m2->print();
+        //m2->print();
         solver<> s(m2,ipopt);
         s.run();
         m2->print_solution();
@@ -168,12 +170,40 @@ int main(int argc, char * argv[]){
         }
     }
     
-    m->set_solution(sol);
+    //m->set_solution(sol);
     solver<> sc(m,gurobi);
     bool relax = false;
     auto ts=get_wall_time();
     if(root_refine){
+        //auto m2=m->copy();
         sc.run(relax = true);
+       // m->print_solution();
+//      upper_bound_heur=true;
+//        if(upper_bound_heur){
+//            auto y2d=m->get_var<int>("y");
+//            auto y2=m2->get_var<int>("y");
+//
+//            for(auto k:*y2d.get_keys()){
+//                if(y2d.eval(k)<0.5){
+//                    y2.set_lb(k,0);
+//                    y2.set_ub(k,0);
+//
+//                }
+//                else{
+//                    y2.set_lb(k,1);
+//                    y2.set_ub(k,1);
+//                }
+//            }
+//            solver<> s2(m2,gurobi);
+//            s2.run();
+//            //check_PSD(m1);
+//            if(m2->_status==0){
+//                vector<double> sol(m->_nb_vars);
+//                m2->get_solution(sol);
+//                m->set_solution(sol);
+//            }
+//
+//        }
     }
     sc.run(relax=false);
     auto tf=get_wall_time();

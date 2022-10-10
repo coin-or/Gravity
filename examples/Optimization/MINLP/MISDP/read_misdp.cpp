@@ -623,6 +623,11 @@ Net CBF_read(const char *file, shared_ptr<Model<double>>& m, bool add_3d) {
             auto u=sqrt(u1*u2);
             Xij.set_lb(k, std::max(-u, Xij.get_lb(k)));
             Xij.set_ub(k, std::min(u, Xij.get_ub(k)));
+            if(Xij.get_ub(k)<=-1e-6 || Xij.get_lb(k)>=1e-6){
+                auto a=std::min(Xij.get_ub(k)*Xij.get_ub(k), Xij.get_lb(k)*Xij.get_lb(k));
+                X.set_lb(n1_name, a/u2);
+                X.set_lb(n2_name, a/u1);
+            }
         }
         for(auto k:*(node_pairs_chord._keys)){
             if(!node_pairs.has_key(k)){

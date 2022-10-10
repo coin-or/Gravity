@@ -364,7 +364,7 @@ GurobiProgram::GurobiProgram(Model<>* m) {
            // grb_env->set(GRB_DoubleParam_FeasibilityTol, 1e-9);
            // grb_env->set(GRB_DoubleParam_OptimalityTol, 1e-9);
             
-            grb_env->set(GRB_IntParam_OutputFlag,1);
+            //grb_env->set(GRB_IntParam_OutputFlag,1);
             grb_mod = new GRBModel(*grb_env);
             //    grb_env->set(GRB_IntParam_OutputFlag,2);
             found_token = true;
@@ -462,6 +462,7 @@ bool GurobiProgram::solve(bool relax, double mipgap, double time_limit){
     //    grb_mod->set(GRB_IntParam_Cuts,0);
     
     grb_mod->set(GRB_DoubleParam_TimeLimit,14300);
+    grb_mod->set(GRB_IntParam_OutputFlag,1);
     //grb_mod->set(GRB_DoubleParam_Cutoff,5.33);
     //  grb_mod->set(GRB_IntParam_MinRelNodes,0);
     //    grb_mod->set(GRB_DoubleParam_Heuristics, 1);
@@ -480,9 +481,9 @@ bool GurobiProgram::solve(bool relax, double mipgap, double time_limit){
     //interior.print_solution();
     //cuts cb = cuts(_grb_vars, n, _model, interior);
     //vector<GRBLinExpr> vec_expr;
-    cuts cb(_grb_vars, n, _model, interior);
-    grb_mod->setCallback(&cb);
-    grb_mod->update();
+        cuts cb(_grb_vars, n, _model, interior);
+        grb_mod->setCallback(&cb);
+        grb_mod->update();
     
     //grb_mod->set(GRB_IntParam_RINS,1);
     // grb_mod->set(GRB_DoubleParam_Heuristics, 0.5);
@@ -502,38 +503,43 @@ bool GurobiProgram::solve(bool relax, double mipgap, double time_limit){
     bool not_sdp=false;
     if(_model->check_PSD()<=-1e-9){
         not_sdp=true;
+       // grb_mod->set(GRB_IntParam_OutputFlag,0);
     }
     
     int count=0;
-    while(not_sdp && count<=10000){
-        var<double> X=_model->get_var<double>("X");
-        var<double> Xij=_model->get_var<double>("Xij");
-        int dim_full=X._indices->_keys->size();
-        
-        Eigen::MatrixXd mat_full(dim_full,dim_full);
-        int count=0;
-        vector<string> all_names;
-        for(auto k:*X._indices->_keys){
-            mat_full(count, count)=X.eval(k);
-            all_names.push_back(k);
-            count++;
-        }
-        
-        for(auto i=0;i<all_names.size()-1;i++){
-            for(auto j=i+1;j<all_names.size();j++){
-                auto k=all_names[i]+","+all_names[j];
-                if (Xij._indices->has_key(k)){
-                    mat_full(i, j)=Xij.eval(k);
-                    mat_full(j, i)=Xij.eval(k);
-                }
-                else{
-                    mat_full(i, j)=0;
-                    mat_full(j, i)=0;
-                }
-            }
-        }
-        Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> es1;
-        es1.compute(mat_full);
+    auto ts=get_wall_time();
+//    double sol_new=grb_mod->get(GRB_DoubleAttr_ObjVal);
+//    double sol_old=-1e6;
+    while(not_sdp && count<=3000 && grb_mod->get(GRB_IntAttr_Status)==2){
+        grb_mod->setCallback(NULL);
+//        var<double> X=_model->get_var<double>("X");
+//        var<double> Xij=_model->get_var<double>("Xij");
+//        int dim_full=X._indices->_keys->size();
+//
+//        Eigen::MatrixXd mat_full(dim_full,dim_full);
+//        int counti=0;
+//        vector<string> all_names;
+//        for(auto k:*X._indices->_keys){
+//            mat_full(count, count)=X.eval(k);
+//            all_names.push_back(k);
+//            counti++;
+//        }
+//
+//        for(auto i=0;i<all_names.size()-1;i++){
+//            for(auto j=i+1;j<all_names.size();j++){
+//                auto k=all_names[i]+","+all_names[j];
+//                if (Xij._indices->has_key(k)){
+//                    mat_full(i, j)=Xij.eval(k);
+//                    mat_full(j, i)=Xij.eval(k);
+//                }
+//                else{
+//                    mat_full(i, j)=0;
+//                    mat_full(j, i)=0;
+//                }
+//            }
+//        }
+//        Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> es1;
+//        es1.compute(mat_full);
         
         //        for(auto m=0;m<dim_full;m++){
         //            DebugOn(std::setprecision(12)<<es1.eigenvalues()[m]<<" ");
@@ -541,7 +547,7 @@ bool GurobiProgram::solve(bool relax, double mipgap, double time_limit){
         //        DebugOn(endl<<"full"<<endl);
         
         //grb_mod->setCallback(NULL);
-        int soc_viol=0, soc_found=0, soc_added=0, det_viol=0, det_found=0, det_added=0;
+        int soc_viol=0, soc_added=0;
         auto res=_model->cutting_planes_soc(1e-6,soc_viol, soc_added);
         if(res.size()>=1){
             for(auto i=0;i<res.size();i++){
@@ -552,17 +558,11 @@ bool GurobiProgram::solve(bool relax, double mipgap, double time_limit){
                     expr += res[i][j+1]*_grb_vars[c];
                     DebugOff(res[i][j+1]<<" ");
                 }
-                DebugOff(endl);
-                if(abs(res[i][j])>=1e-6){
-                    DebugOff("pos resij");
-                }
-                // expr+=res[i][j];
+                 expr+=res[i][j];
                 grb_mod->addConstr(expr, GRB_LESS_EQUAL, 0);
-                // vec_expi.push_back(expr);
-                //addLazy(expr, GRB_LESS_EQUAL, 0);
             }
         }
-        if(true){
+        if(res.size()==0){
             auto res2=_model->cuts_eigen_bags(1e-6);
             if(res2.size()>=1){
                 for(auto i=0;i<res2.size();i++){
@@ -577,7 +577,8 @@ bool GurobiProgram::solve(bool relax, double mipgap, double time_limit){
                     grb_mod->addConstr(expr, GRB_LESS_EQUAL, 0);
                 }
             }
-            auto res3=_model->cuts_eigen_full(1e-9);
+            if(res2.size()==0){
+            auto res3=_model->cuts_eigen_full(1e-6);
             if(res3.size()>=1){
                 for(auto i=0;i<res3.size();i++){
                     GRBLinExpr expr = 0;
@@ -586,17 +587,15 @@ bool GurobiProgram::solve(bool relax, double mipgap, double time_limit){
                         int c=res3[i][j];
                         expr += res3[i][j+1]*_grb_vars[c];
                     }
-                    if(std::abs(res3[i][j])>=1e-12)
                         expr += res3[i][j];
                     grb_mod->addConstr(expr, GRB_LESS_EQUAL, 0);
-                    //                            addCut(expr, GRB_LESS_EQUAL, 0);
-                    //vec_expi.push_back(expr);
                 }
             }
-            if(res.size()==0 && res2.size()==0 && res3.size()==0){
+            if(res3.size()==0){
                 not_sdp=false;
-                
             }
+            }
+        }
             if(not_sdp){
                 grb_mod->update();
                 grb_mod->optimize();
@@ -604,11 +603,14 @@ bool GurobiProgram::solve(bool relax, double mipgap, double time_limit){
                     break;
                 if(grb_mod->get(GRB_IntAttr_SolCount)>0)
                     update_solution();
+//                sol_old=sol_new;
+//                sol_new=grb_mod->get(GRB_DoubleAttr_ObjVal);
             }
 
-        }
         count++;
     }
+    auto tf=get_wall_time();
+    DebugOn("While loop Count "<<count<<" in time "<<tf-ts<<endl);
     // grb_mod->update();
     // grb_mod->optimize();
     //        for(auto i=0;i<cb.vec_expi.size();i++){
