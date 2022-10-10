@@ -16,9 +16,10 @@ find_path(H5CPP_INCLUDE_DIR
 
 find_path(HDF5_INCLUDE_DIR
         NAMES hdf5.h
-        HINTS /usr/local/include
+	HINTS /usr/local/opt/hdf5/include
         HINTS ${HDF5_ROOT_DIR}/src/
         HINTS ${PROJECT_SOURCE_DIR}/thirdparty/HDF5/src
+        HINTS /usr/local/include
 )
 include_directories(${HDF5_INCLUDE_DIR})
 if(WIN32)
@@ -40,7 +41,7 @@ find_library(HDF5_LIBRARY
         HINTS ${H5CPP_ROOT_DIR}/build/lib
 )
 
-find_package_handle_standard_args(H5CPP DEFAULT_MSG H5CPP_LIBRARY H5CPP_INCLUDE_DIR)
+find_package_handle_standard_args(H5CPP DEFAULT_MSG H5CPP_LIBRARY H5CPP_INCLUDE_DIR HDF5_INCLUDE_DIR)
 elseif(APPLE)
 
 find_library(H5CPP_LIBRARY 
@@ -54,13 +55,14 @@ find_library(H5CPP_LIBRARY
 
 find_library(HDF5_LIBRARY
         libhdf5.dylib
-        HINTS /usr/local/lib
+	HINTS /usr/local/opt/hdf5/lib
         HINTS ${PROJECT_SOURCE_DIR}/thirdparty/H5CPP/lib
         HINTS ${H5CPP_ROOT_DIR}/lib
         HINTS ${H5CPP_ROOT_DIR}/build/lib
+        HINTS /usr/local/lib
 )
 
-find_package_handle_standard_args(H5CPP DEFAULT_MSG H5CPP_LIBRARY HDF5_LIBRARY H5CPP_INCLUDE_DIR)
+find_package_handle_standard_args(H5CPP DEFAULT_MSG H5CPP_LIBRARY HDF5_LIBRARY H5CPP_INCLUDE_DIR HDF5_INCLUDE_DIR)
 elseif(UNIX)
 
 find_library(H5CPP_LIBRARY 
@@ -81,7 +83,7 @@ find_library(HDF5_LIBRARY
         HINTS /usr/local/lib
 )
 
-find_package_handle_standard_args(H5CPP DEFAULT_MSG H5CPP_LIBRARY HDF5_LIBRARY H5CPP_INCLUDE_DIR)
+find_package_handle_standard_args(H5CPP DEFAULT_MSG H5CPP_LIBRARY HDF5_LIBRARY H5CPP_INCLUDE_DIR HDF5_INCLUDE_DIR)
 endif(WIN32)
 
 if(H5CPP_FOUND)
