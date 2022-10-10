@@ -139,13 +139,10 @@ vector<param<double>> myModel::readHD5(const string& fname){
     DebugOn("Graph has " << graph.nodes.size() << " nodes" << endl);
     DebugOn("Graph has " << graph.arcs.size() << " arcs" << endl);
     
-#else
-    cerr << "Can't read Hd5 as a solver: this version of Gravity was compiled without H5CPP. Rerun cmake with -DH5CPP=ON." << endl;
-    exit(1);
-#endif
     N = nb_sensors;
     M = nb_objects;
     K = nb_agents;
+
     /* Graph nodes are indexed in {0,...,n+m-1})*/
     assert(N + M == graph.nodes.size());/* Make sure we have the right number of nodes */
     arcs = indices("arcs");
@@ -201,6 +198,10 @@ vector<param<double>> myModel::readHD5(const string& fname){
     par[2] = w_bought;
     
     return par;
+#else
+    cerr << "Can't read Hd5 as a solver: this version of Gravity was compiled without H5CPP. Rerun cmake with -DH5CPP=ON." << endl;
+    exit(1);
+#endif
 }
 
 vector<param<double>> myModel::readData(int argc, const char * argv[], int n1, int n2){

@@ -1,3 +1,9 @@
+if(CMAKE_XCODE_BUILD_SYSTEM VERSION_GREATER_EQUAL 12)
+  cmake_policy(SET CMP0114 NEW)
+else()
+  cmake_policy(SET CMP0114 OLD)
+endif()
+
 set(H5CPP_DOWNLOAD_URL https://github.com/ess-dmsc/h5cpp.git)
 
 

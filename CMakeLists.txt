@@ -23,7 +23,7 @@ option(H5CPP "Link to H5CPP libraries" OFF)
 # Find IPOPT (optional)
 option(Ipopt "Link to IPOPT libraries" ON)
 
-option(MP "Link to AMPL MP libraries" ON)
+option(MP "Link to AMPL MP libraries" OFF)
 
 option(CoinUtils "Link to CoinUtils libraries" OFF)
 
