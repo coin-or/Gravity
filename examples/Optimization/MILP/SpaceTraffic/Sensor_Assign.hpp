@@ -34,6 +34,7 @@ public:
     indices own_oths_rplc1;
     indices own_oths_rplc2;
     vector<int> owner;/*< vector storing ownership of each sensor */
+    map<string,int> owner_map;/*< map storing ownership of each sensor */
     
 public:
     myModel(){ };
