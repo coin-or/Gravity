@@ -261,6 +261,7 @@ TEST_CASE("testing restructure with ACOPF") {
 //    }
 //}
 
+#ifdef USE_MP
 TEST_CASE("testing ex5_2_5.nl") {
     Model<> M;
     string NL_file = string(prj_dir)+"/data_sets/NL/ex5_2_5.nl";
@@ -404,6 +405,7 @@ TEST_CASE("testing waterund01.nl") {
         DebugOn("Done Restructuring!");
         M.write();
     }
+#endif
 
     TEST_CASE("testing projection1") {
         indices buses("buses");
@@ -507,6 +509,7 @@ TEST_CASE("testing waterund01.nl") {
         
     }
 
+#ifdef USE_MP
 TEST_CASE("testing camshape100.nl") {
     Model<> M;
     string NL_file = string(prj_dir)+"/data_sets/NL/camshape100.nl";
@@ -734,7 +737,7 @@ TEST_CASE("testing camshape100.nl") {
     }
 
 
-
+#endif
 
     TEST_CASE("testing param, var anf func copy operators") {
         indices ids("ids");
