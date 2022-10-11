@@ -815,7 +815,7 @@ void GurobiProgram::create_grb_constraints(){
         }
         if(c->_callback)
         {
-            DebugOn(c->_name<<"  lazy"<<endl);
+            DebugOn(c->_name<<"  added as callback"<<endl);
             continue;
         }
         c->_new = false;

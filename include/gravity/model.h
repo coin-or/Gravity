@@ -1448,7 +1448,7 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
             if (c.get_dim()==0) {
                 return;
             }
-            //            c.make_lazy();   //Should we do a similar thing like this?
+            c._callback = true;
             add_constraint(c);
             _has_callback = true;
         }
@@ -5273,6 +5273,9 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
                                 //                f->_val->resize(f->get_nb_inst());
                             }
                             else {
+                                if(f->_dfdx->size()>0) {
+                                    f_p.first->second->_dfdx = f->_dfdx;
+                                }
                                 ue->_son = f_p.first->second;
                             }
                         }
@@ -5321,6 +5324,9 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
                                 //                f->_val->resize(f->get_nb_inst());
                             }
                             else {
+                                if(f->_dfdx->size()>0) {
+                                    f_p.first->second->_dfdx = f->_dfdx;
+                                }
                                 be->_lson = f_p.first->second;
                             }
                         }
@@ -5365,6 +5371,9 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
                                 //                f->_val->resize(f->get_nb_inst());
                             }
                             else {
+                                if(f->_dfdx->size()>0) {
+                                    f_p.first->second->_dfdx = f->_dfdx;
+                                }
                                 be->_rson = f_p.first->second;
                             }
                         }
@@ -5476,10 +5485,10 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
                 //                    *f_p.first->second = *f;
                 //                }
                 
-                //                else if (f->_dfdx->size()>0) {
-                //                    *f_p.first->second = *f;
-                
-                //                }
+                else if (f->_dfdx->size()>0) {
+                    f_p.first->second->_dfdx = f->_dfdx;
+                    
+                }
                 //        f_p.first->second->allocate_mem();
                 return f_p.first->second;
             }
