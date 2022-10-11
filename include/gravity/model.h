@@ -8232,9 +8232,25 @@ public:
             bln_second_var._in_SOC_partn = false;
         }
     }
-    /* Run a single iteration of Optimality Based Bound Tightening
-     @param[in] relaxed_model a convex relaxtion of the current model
-     @param[in] res vector storing the computation results
+    
+    /** function to run one global iteration of the obbt algorithm
+     @param[in] relaxed model: original nonlinear nonconvex model
+     @param[in] max_time: max_time to run the run_obbt algorithm
+     @param[in] max_iter: max_iter to run the run_obbt algorithm
+     @param[in] rel_tol,abs_tol: To determine when the run_obbt is converged
+     @param[in] nb_threads: threads per machine
+     @param[in] ub_solver_type, lb_solver_type: solver types for upper bound problem and all lower and obbt problems
+     @param[in] ub_solver_tol, lb_solver_tol: tolerances for upper bound and lower bound problems
+     @param[in] range_tol: a variable interval is closed if <= range_tol
+     @param[in] linearize: true if linear obbt algorithm is used
+     @param[in] obbt_model: model which is used to compute lower bound. Linear in the case of linearize, else is initially identical to relaxed_model
+     @param[in] interior_model: model to compute interior point of relaxed model
+     @param[in] oacuts, oacuts_init: initial oa cuts at start of run_obbt
+     @param[in] run_obbt_iter: global iteration of run_obbt
+     @param[in] ub_scale_value: if scaling is true in run_obbt, ub_scale_value=1, else equals upper bound
+     @param[in] solver_time_start: time at which run_obbt started
+     @param[in] nb_refine: number of refinement steps, used for linearizs only
+     @return returns tuple of terminate status, no of iter of run_obbt_one_iter, solver_time,lower_bound_nonlin_init,lower_bound_init(linear), upper_bound,lower_bound, avergae interval reduction,oacuts (on obbt_model) at end of run_obbt_one_iter,oacuts_init(no. cuts on obbt model after root refine in run_obbt_one_iter, total number of failed obbt subproblems in run_obbt_one_iter
      */
     template<typename T=type,
     typename std::enable_if<is_same<T,double>::value>::type* = nullptr>

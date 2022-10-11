@@ -1105,7 +1105,7 @@ namespace gravity {
             return func();
         }
         
-        shared_ptr<func> get_stored_derivative(const string& vid) const{ /**< Returns the stored derivative with respect to variable v. */
+        shared_ptr<func> get_stored_derivative(const string& vid) const{ /** Returns the stored derivative with respect to variable v. */
             auto it = _dfdx->find(vid);
             if (it!=_dfdx->end()) {
                 return it->second;
@@ -1814,7 +1814,7 @@ namespace gravity {
         
         
         
-        func<type> get_outer_app_insti(size_t nb_inst, bool scale=false){ /**< Returns an outer-approximation of the function using the current value of the variables **/
+        func<type> get_outer_app_insti(size_t nb_inst, bool scale=false){ /** Returns an outer-approximation of the function using the current value of the variables **/
             func<type> res; // res = gradf(x*)*(x-x*) + f(x*)
             const double active_tol=1e-8;
             double f_xstar, xv, dfv;
@@ -1963,7 +1963,7 @@ namespace gravity {
         }
         
         /** Fill the coefficients corresponding to the OA cuts of a symbolic constraints */
-        void get_outer_coef(size_t nb_inst, vector<double>& c, double& c0){ /**< Returns an outer-approximation of the function using the current value of the variables **/
+        void get_outer_coef(size_t nb_inst, vector<double>& c, double& c0){ /** Returns an outer-approximation of the function using the current value of the variables **/
             double f_xstar, xv, dfv;
             uneval();
             f_xstar=eval(nb_inst);
@@ -2787,7 +2787,7 @@ namespace gravity {
         }
         
         
-        bool insert(bool sign, const constant_& coef, const param_& p){/**< Adds coef*p to the linear function. Returns true if added new term, false if only updated coef of p */
+        bool insert(bool sign, const constant_& coef, const param_& p){/** Adds coef*p to the linear function. Returns true if added new term, false if only updated coef of p */
             shared_ptr<param_> p_new = p.pcopy();
             bool transpose = false;
             _evaluated=false;
@@ -3155,10 +3155,10 @@ namespace gravity {
         //            //                break;
         //        }
         
-        //        Sign get_all_sign() const{ /**< If all instances of the current parameter/variable have the same sign, it returns it, otherwise, it returns unknown. **/
+        //        Sign get_all_sign() const{ /** If all instances of the current parameter/variable have the same sign, it returns it, otherwise, it returns unknown. **/
         //            return get_all_sign();
         //        };
-        //        Sign get_sign(size_t idx = 0) const{ /**< returns the sign of one instance of the current parameter/variable. **/
+        //        Sign get_sign(size_t idx = 0) const{ /** returns the sign of one instance of the current parameter/variable. **/
         //            return get_sign(idx);
         //        }
         
@@ -6750,7 +6750,7 @@ namespace gravity {
         //            return _val->at(i*_dim[1]+j);
         //        }
         
-        template<class T=type, typename enable_if<is_arithmetic<T>::value>::type* = nullptr> bool is_unit() const { /**< Returns true if all values of this paramter are 1 **/
+        template<class T=type, typename enable_if<is_arithmetic<T>::value>::type* = nullptr> bool is_unit() const { /** Returns true if all values of this paramter are 1 **/
             return (!_is_vector && !_is_transposed && func_is_number() && _range->first == 1 && _range->second == 1);
             //            return (_range->first == 1 && _range->second == 1);
         }
@@ -6791,21 +6791,21 @@ namespace gravity {
         
         
         
-        bool is_non_positive() const { /**< Returns true if all values of this paramter are <= 0 **/
+        bool is_non_positive() const { /** Returns true if all values of this paramter are <= 0 **/
             auto sgn = get_all_sign();
             return (sgn==non_pos_ || sgn==zero_ || sgn==neg_);
         }
         
-        bool is_positive() const { /**< Returns true if all values of this paramter are positive **/
+        bool is_positive() const { /** Returns true if all values of this paramter are positive **/
             return (get_all_sign()==pos_);
         }
         
-        bool is_non_negative() const { /**< Returns true if all values of this paramter are >= 0 **/
+        bool is_non_negative() const { /** Returns true if all values of this paramter are >= 0 **/
             auto sgn = get_all_sign();
             return (sgn==non_neg_ || sgn==zero_ || sgn==pos_);
         }
         
-        bool is_negative() const { /**< Returns true if all values of this paramter are positive **/
+        bool is_negative() const { /** Returns true if all values of this paramter are positive **/
             return (get_all_sign()==neg_);
         }
         template<class T2, typename enable_if<is_convertible<T2, type>::value && sizeof(T2) <= sizeof(type)>::type* = nullptr>
@@ -8429,7 +8429,7 @@ namespace gravity {
             return insert(true, coef, p1, p2, coef_p1_tr);
         };
         
-        bool insert(bool sign, const constant_& coef, const param_& p1, const param_& p2, bool c_p1_transposed=false){/**< Adds coef*p1*p2 to the function. Returns true if added new term, false if only updated coef of p1*p2 */
+        bool insert(bool sign, const constant_& coef, const param_& p1, const param_& p2, bool c_p1_transposed=false){/** Adds coef*p1*p2 to the function. Returns true if added new term, false if only updated coef of p1*p2 */
             auto ps1 = p1.get_name(false,false);
             auto ps2 = p2.get_name(false,false);
             auto qname = ps1+","+ps2;
@@ -8576,7 +8576,7 @@ namespace gravity {
                 //            }
                 return false;
             }
-        };/**< Adds coef*p1*p2 to the function. Returns true if added new term, false if only updated coef of p1*p2 */
+        };/** Adds coef*p1*p2 to the function. Returns true if added new term, false if only updated coef of p1*p2 */
         
         func(const pterm& term){
             func res = unit<type>();
@@ -8612,7 +8612,7 @@ namespace gravity {
             *this = res;
         }
         
-        bool insert(bool sign, const constant_& coef, const list<pair<shared_ptr<param_>, int>>& l){/**< Adds polynomial term to the function. Returns true if added new term, false if only updated corresponding coef */
+        bool insert(bool sign, const constant_& coef, const list<pair<shared_ptr<param_>, int>>& l){/** Adds polynomial term to the function. Returns true if added new term, false if only updated corresponding coef */
             _all_convexity = undet_;
             string name;
             string s;
@@ -8753,7 +8753,7 @@ namespace gravity {
                 return false;
             }
             
-        };/**< Adds polynomial term to the function. Returns true if added new term, false if only updated corresponding coef */
+        };/** Adds polynomial term to the function. Returns true if added new term, false if only updated corresponding coef */
         
         bool insert(const constant_& coef, const param_& p, int exp){
             return insert(true, coef, p, exp);
@@ -8763,7 +8763,7 @@ namespace gravity {
             list<pair<shared_ptr<param_>, int>> l;
             l.push_back(make_pair<>(p.pcopy(), exp));
             return insert(sign, coef, l);
-        };/**< Adds polynomial term to the function. Returns true if added new term, false if only updated corresponding coef */
+        };/** Adds polynomial term to the function. Returns true if added new term, false if only updated corresponding coef */
         
         
         bool insert(const qterm& term){
