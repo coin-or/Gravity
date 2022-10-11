@@ -101,6 +101,7 @@ protected:
                                         expr += res[i][j+1]*vars[c];
                                     DebugOff(to_string_with_precision(vec_x[c],10)<<" "<<to_string_with_precision(c,10)<<" "<<to_string_with_precision(res[i][j+1],10)<<" ");
                                 }
+                                expr += res[i][j];
                                 DebugOff(endl);
                                 addLazy(expr, GRB_LESS_EQUAL, 0);
                                 //                                  addCut(expr, GRB_LESS_EQUAL, 0);
@@ -243,6 +244,7 @@ protected:
                                         expr += res[i][j+1]*vars[c];
                                     DebugOff(to_string_with_precision(vec_x[c],10)<<" "<<to_string_with_precision(c,10)<<" "<<to_string_with_precision(res[i][j+1],10)<<" ");
                                 }
+                                expr += res[i][j];
                                 DebugOff(endl);
                                 addLazy(expr, GRB_LESS_EQUAL, 0);
 //                                addCut(expr, GRB_LESS_EQUAL, 0);
@@ -453,7 +455,7 @@ bool GurobiProgram::solve(bool relax, double mipgap, double time_limit){
     grb_mod->set(GRB_IntParam_Threads, 8);
         grb_mod->set(GRB_DoubleParam_IntFeasTol, 1e-9);
     //   grb_mod->set(GRB_IntParam_NumericFocus,3);
-    // grb_mod->set(GRB_IntParam_Presolve,2);
+   //  grb_mod->set(GRB_IntParam_Presolve,2);
     grb_mod->set(GRB_IntParam_MIPFocus,3);
     //    grb_mod->set(GRB_IntParam_IntegralityFocus,1);
     //    grb_mod->set(GRB_IntParam_MIPFocus,2);
@@ -501,17 +503,17 @@ bool GurobiProgram::solve(bool relax, double mipgap, double time_limit){
     if(grb_mod->get(GRB_IntAttr_SolCount)>0)
         update_solution();
     bool not_sdp=false;
-    if(_model->check_PSD()<=-1e-9){
+    if(_model->check_PSD()<=-1e-9  && grb_mod->get(GRB_IntAttr_Status)==2){
         not_sdp=true;
-       // grb_mod->set(GRB_IntParam_OutputFlag,0);
+        grb_mod->setCallback(NULL);
     }
+       // grb_mod->set(GRB_IntParam_OutputFlag,0);
     
     int count=0;
     auto ts=get_wall_time();
 //    double sol_new=grb_mod->get(GRB_DoubleAttr_ObjVal);
 //    double sol_old=-1e6;
-    while(not_sdp && count<=3000 && grb_mod->get(GRB_IntAttr_Status)==2){
-        grb_mod->setCallback(NULL);
+    while(not_sdp && count<=1000){
 //        var<double> X=_model->get_var<double>("X");
 //        var<double> Xij=_model->get_var<double>("Xij");
 //        int dim_full=X._indices->_keys->size();
