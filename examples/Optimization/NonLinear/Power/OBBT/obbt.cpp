@@ -49,7 +49,7 @@ int main (int argc, char * argv[]) {
     bool linearize=false;
     
     
-    string fname = string(prj_dir)+"/data_sets/Power/WB5.m";
+    string fname = string(prj_dir)+"/data_sets/Power/nesta_case9_bgm__nco.m";
     
     
 #ifdef USE_OPT_PARSER
@@ -190,6 +190,7 @@ int main (int argc, char * argv[]) {
     
     
     auto OPF=build_ACOPF(grid, ACRECT);
+    OPF->print();
     double ub_solver_tol=1e-6, lb_solver_tol=1e-8, range_tol=1e-4, opt_rel_tol=1e-2, opt_abs_tol=1e6;
     unsigned max_iter=1e3;
     SolverType ub_solver_type = ipopt, lb_solver_type = ipopt;

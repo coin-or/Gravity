@@ -235,7 +235,9 @@ int run_parallel_new(const std::vector<std::string> objective_models, std::vecto
         models[s]->reset_constrs();
         models[s]->reset();
         models[s]->_status=0;
-        //models[s]->print();
+//        models[s]->print();
+//        models[s]->print_solution();
+//        models[s]->print_constraints_stats(1e-6);
         DebugOff("to create solver"<<endl);
         auto solverk = make_shared<solver<double>>(models[s], stype);
         if(stype==gurobi && initialize_primal){
@@ -582,7 +584,7 @@ bool Model<type>::add_iterative(const Model<type>& interior, vector<double>& obb
     DebugOff("Number of constraints in linear model = " << nb_oacuts << endl);
     return(constr_viol);
 }
-/*Generates and creates a vector of cuts when any solution is violated by the model this . The curent model solution is set to obbt_solution and OA cuts are generated for the nonlinear constraints in the current model at the obbt_solution point. These cuts are added to model lin.
+/** Generates and creates a vector of cuts when any solution is violated by the current model. The curent model solution is set to obbt_solution and OA cuts are generated for the nonlinear constraints in the current model at the obbt_solution point. These cuts are added to model lin.
  @param[in] interior model: Model which can give interior point of current model
  @param[in] obbt_solution: Point at which constraints are linearized. For non-convex constraints that define a convex region, the point is shifted to an active point of that constraint and its instance
  @param[in] lin: Model to which linear cuts are added

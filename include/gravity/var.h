@@ -770,8 +770,7 @@ namespace gravity {
         }
         
         /**
-         \brief Update dimensions based on the current indexing-set
-         \todo sparse matrix/double indexing
+         \brief Update dimensions based on the current indexing-set         
          */
         void update_dim(){
             this->_dim[0] = this->_indices->size();
