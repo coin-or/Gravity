@@ -5,16 +5,19 @@ enable_testing()
 
 # # add the automatically determined parts of the RPATH
 # # which point to directories outside the build tree to the install RPATH
-# #SET(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
+#SET(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 
 
 file(GLOB Power_SOURCES ${PROJECT_SOURCE_DIR}/examples/Optimization/NonLinear/Power/*.cpp)
 add_executable(gravity_test ${Power_SOURCES} ${PROJECT_SOURCE_DIR}/examples/Gravity_test.cpp)
 LINK_DIRECTORIES(${PROJECT_SOURCE_DIR}/thirdparty/Ipopt)
+if(ADD_H5CPP)
+LINK_DIRECTORIES(${THIRDPARTY_INSTALL_PATH}/Install/H5CPP/build/lib)
+endif()
 target_link_libraries(gravity_test gravity ${IPOPT_LIBRARIES})
 
 # # the RPATH to be used when installing, but only if it's not a system directory
-# #SET(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib:'$ORIGIN/lib'")
+#SET(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib:'$ORIGIN/lib'")
 file(GLOB HEADERS ${PROJECT_SOURCE_DIR}/examples/Optimization/NonLinear/Power/*.h)
 file(GLOB POOLHEADERS ${PROJECT_SOURCE_DIR}/examples/Optimization/NonLinear/Pooling/*.h)
 file(GLOB MISDPHEADERS ${PROJECT_SOURCE_DIR}/examples/Optimization/MINLP/MISDP/*.h)
