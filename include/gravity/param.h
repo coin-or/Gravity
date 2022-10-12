@@ -1206,13 +1206,13 @@ namespace gravity {
             if (it == _indices->_keys_map->end()){
                 throw invalid_argument("in Function size_t set_val(const string& key, type val), unknown key: "+key+ " for variable/param: " + _name);
             }
-            if(_val->at(it->second)==_range->first ||  _val->at(it->second)==_range->second || val<_range->first || val>_range->second){
+//            if(_val->at(it->second)==_range->first ||  _val->at(it->second)==_range->second || val<_range->first || val>_range->second){
+//                _val->at(it->second) = val;
+////                reset_range();
+//            }
+//            else {
                 _val->at(it->second) = val;
-                reset_range();
-            }
-            else {
-                _val->at(it->second) = val;
-            }
+//            }
             return it->second;
         }
 

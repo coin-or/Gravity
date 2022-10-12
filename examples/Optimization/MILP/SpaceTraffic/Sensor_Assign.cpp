@@ -692,9 +692,12 @@ void myModel::GreedyStart(const param<double> &w0, const param<double> &w_own, c
     for (const auto &sensor_name:*sensors._keys) {
         p_ub[sensor_name] = std::max(w_own._range->second,w_bought._range->second);
     }
-
-    while(parSum(wt0) + parSum(wt_own) + parSum(wt_bought) > 0) {
-        
+    double psum_wt0 = parSum(wt0), psum_wt_own = parSum(wt_own), psum_wt_bought = parSum(wt_bought);
+    while(psum_wt0 + psum_wt_own + psum_wt_bought > 0) {
+        DebugOn("parSum(wt0) = " << psum_wt0 << endl);
+        DebugOn("parSum(wt_own) = " << psum_wt_own << endl);
+        DebugOn("parSum(wt_bought) = " << psum_wt_bought << endl);
+        DebugOn("----------------------------------------" << endl);
         /*finding max weights (idx) in 3 weight sets*/
         idx1 = findMax(wt0);
         idx2 = findMax(wt_own);
@@ -709,13 +712,13 @@ void myModel::GreedyStart(const param<double> &w0, const param<double> &w_own, c
                 DebugOn("assignLeader");
                 assignLeader(idx1, wt0, wt_own, wt_bought);
                 exit(1);
-                p_ub[idx1.substr(0, idx1.find(","))] = m1; //price upper bound (for fair price)
+                p_ub.at(idx1.substr(0, idx1.find(","))) = m1; //price upper bound (for fair price)
             }
             else {
                 /*assign bought*/
                 assignBought(idx3, wt0, wt_own, wt_bought);
                 //obj += m3;
-                p_ub[idx3.substr(0, idx3.find(","))] = m3; //price upper bound (for fair price)
+                p_ub.at(idx3.substr(0, idx3.find(","))) = m3; //price upper bound (for fair price)
             }
         }
         else if (m2 >= m3) {
@@ -727,8 +730,11 @@ void myModel::GreedyStart(const param<double> &w0, const param<double> &w_own, c
             /*assign bought*/
             assignBought(idx3, wt0, wt_own, wt_bought);
             //obj += m3;
-            p_ub[idx3.substr(0, idx3.find(","))] = m3; //price upper bound (for fair price)
+            p_ub.at(idx3.substr(0, idx3.find(","))) = m3; //price upper bound (for fair price)
         }
+        psum_wt0 = parSum(wt0);
+        psum_wt_own = parSum(wt_own);
+        psum_wt_bought = parSum(wt_bought);
     }
     
     /*set prices*/
@@ -745,7 +751,7 @@ void myModel::GreedyStart(const param<double> &w0, const param<double> &w_own, c
         for (const Arc* a : sensor_node->get_out()) {
             for (const Arc* b : a->_dest->get_in()) {
                 t = b->_src->_name;
-                if (owner_map[t.substr(0, idx3.find(","))] == owner[i]) {
+                if (b->_src->owner_id == owner[i]) {
                     /*Seller_lb2*/
                     s_sum += s.eval(t + "," + a->_dest->_name + "," + agent_name);
                     y2 = std::max(y2, (w_own.eval(sensor_name + "," + a->_dest->_name + "," + agent_name) - w_own.eval(t + "," + a->_dest->_name + "," + agent_name)) * s.eval(t + "," + a->_dest->_name + "," + agent_name));
@@ -753,7 +759,7 @@ void myModel::GreedyStart(const param<double> &w0, const param<double> &w_own, c
                 else {
                     /*Seller_lb3*/
                     z_sum += z.eval(t + "," + a->_dest->_name + "," + agent_name);
-                    y3 = std::max(y3, std::min(p_ub[sensor_name], (w_own.eval(sensor_name + "," + a->_dest->_name + "," + agent_name) - w_bought.eval(t + "," + a->_dest->_name + "," + agent_name) + p_ub[t]) * z.eval(t + "," + a->_dest->_name + ",Agent_" + to_string(owner[i]))));
+                    y3 = std::max(y3, std::min(p_ub.at(sensor_name), (w_own.eval(sensor_name + "," + a->_dest->_name + "," + agent_name) - w_bought.eval(t + "," + a->_dest->_name + "," + agent_name) + p_ub.at(t)) * z.eval(t + "," + a->_dest->_name + "," + agent_name)));
                 }
             }
             if (y1 < w_own.eval(sensor_name + "," + a->_dest->_name + "," + agent_name) * (1 - s_sum - z_sum)) {
@@ -765,15 +771,15 @@ void myModel::GreedyStart(const param<double> &w0, const param<double> &w_own, c
         }
         /*Fair price*/
         y.set_val(sensor_name,std::max(std::max(y1, y2), y3));
-        p.set_val(sensor_name,(p_ub[sensor_name] + std::max(std::max(y1, y2), y3))/2);
+        p.set_val(sensor_name,(p_ub.at(sensor_name) + std::max(std::max(y1, y2), y3))/2.);
         /*update p_sn and p_z*/
-        p_sn.set_val(sensor_name,sn.eval(sensor_name) * (p_ub[sensor_name] + std::max(std::max(y1, y2), y3))/2);
+        p_sn.set_val(sensor_name,sn.eval(sensor_name) * (p_ub.at(sensor_name) + std::max(std::max(y1, y2), y3))/2.);
         for (auto a : sensor_node->get_out()) {
             for (int k = 0; k < K; k++) {
                 if(k==owner[i])
                     continue;
                 string agent_k_name = agents.get_key(k);
-                p_z.set_val(sensor_name + "," + a->_dest->_name + "," + agent_k_name, z.eval(sensor_name + "," + a->_dest->_name + "," + agent_k_name) * (p_ub[sensor_name] + std::max(std::max(y1, y2), y3))/2);
+                p_z.set_val(sensor_name + "," + a->_dest->_name + "," + agent_k_name, z.eval(sensor_name + "," + a->_dest->_name + "," + agent_k_name) * (p_ub.at(sensor_name) + std::max(std::max(y1, y2), y3))/2.);
             }
         }
         //obj -= e * p_sn.eval("Sensor_" + to_string(i));
@@ -926,8 +932,8 @@ void myModel::assignOwn(string &idx, param<double> &wt0, param<double> &wt_own, 
     
     string sensor_name = idx.substr(0, idx.find(","));
     auto sub_idx = idx.substr(idx.find(",")+1);
-    string object_name = sub_idx.substr(0, idx.find(","));
-    string agent_name  = sub_idx.substr(idx.find(",")+1);
+    string object_name = sub_idx.substr(0, sub_idx.find(","));
+    string agent_name  = sub_idx.substr(sub_idx.find(",")+1);
     int ownr = owner_map[sensor_name];
     string owner_name = agents.get_key(ownr);
 
@@ -971,14 +977,11 @@ void myModel::assignBought(string &idx, param<double> &wt0, param<double> &wt_ow
     auto sn = model.get_var<int>("sn");
     auto z = model.get_var<int>("z");
     int ownr;
-    string j;
-    string i;
-    
-    
+    string i,j;
     string sensor_name = idx.substr(0, idx.find(","));
     auto sub_idx = idx.substr(idx.find(",")+1);
-    string object_name = sub_idx.substr(0, idx.find(","));
-    string agent_name  = sub_idx.substr(idx.find(",")+1);
+    string object_name = sub_idx.substr(0, sub_idx.find(","));
+    string agent_name  = sub_idx.substr(sub_idx.find(",")+1);
     ownr = owner_map[sensor_name];
     string owner_name = agents.get_key(ownr);
     //assign to agent
@@ -995,6 +998,7 @@ void myModel::assignBought(string &idx, param<double> &wt0, param<double> &wt_ow
         j = b->_dest->_name;
         wt_own.set_val((sensor_name + "," + j + "," + owner_name),0);
         wt0.set_val((sensor_name + "," + j),0);
+//        if(agent_name!=owner_name)
         wt_bought.set_val((sensor_name + "," + j + "," + agent_name),0);
     }
 //    object not observed twice
