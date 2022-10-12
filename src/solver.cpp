@@ -804,9 +804,32 @@ vector<vector<double>> Model<type>::cutting_planes_soc(double active_tol, int& s
                                         cut.push_back(coef);
                                         }
                                     cut.push_back(fcut.eval(fcut.get_cst()));
-                                    if(true || min_coef>=1e-9 && max_coef<=1e3){
-                                    res.push_back(cut);
+                                    if(min_coef<=1e-9 && max_coef<=1e3){
+                                        scale =1;
+                                        if(min_coef>=1e-10 && max_coef<=1e2)
+                                            scale =10;
+                                        if(min_coef>=1e-11 && max_coef<=1e2)
+                                            scale =10;
+                                        if(min_coef>=1e-12 && max_coef<=10)
+                                            scale =100;
+                                    
+                                    auto s=cut.size();
+                                    cut[s-1]*=scale;
+                                    for(auto i=1;i<cut.size();i+=2){
+                                        cut[i]*=scale;
+                                        if(std::abs(cut[i])<=1e-9){
+                                            if(cut[i]>=0){
+                                                cut[i]=0;
+                                            }
+                                            else{
+                                                cut[s-1]+=cut[i];
+                                                cut[i]=0;
+                                            }
+                                        }
                                     }
+                                    }
+                                    
+                                    res.push_back(cut);
                                     cut.clear();
                                 }
                             }
@@ -1068,9 +1091,32 @@ vector<vector<double>> Model<type>::cuts_eigen_bags(const double active_tol)
                         
                         }
                     cut.push_back(fcut.eval(fcut.get_cst()));
-                    if(true || min_coef>=1e-9 && max_coef<=1e4){
-                    res.push_back(cut);
+                    if(min_coef<=1e-9 && max_coef<=1e3){
+                        scale =1;
+                        if(min_coef>=1e-10 && max_coef<=1e2)
+                            scale =10;
+                        if(min_coef>=1e-11 && max_coef<=1e2)
+                            scale =10;
+                        if(min_coef>=1e-12 && max_coef<=10)
+                            scale =100;
+                    
+                    auto s=cut.size();
+                    cut[s-1]*=scale;
+                    for(auto i=1;i<cut.size();i+=2){
+                        cut[i]*=scale;
+                        if(std::abs(cut[i])<=1e-9){
+                            if(cut[i]>=0){
+                                cut[i]=0;
+                            }
+                            else{
+                                cut[s-1]+=cut[i];
+                                cut[i]=0;
+                            }
+                        }
                     }
+                    }
+                    
+                    res.push_back(cut);
                     cut.clear();
                     key.clear();
                 }
@@ -1259,10 +1305,34 @@ vector<vector<double>> Model<type>::cuts_eigen_full(const double active_tol)
                         }
                     cut.push_back(fcut.eval(fcut.get_cst()));
                     //if(min_coef>=1e-9 && max_coef<=1e4){
-                        res.push_back(cut);
-                    //}
-                    cut.clear();
-                    key.clear();
+                    if(min_coef<=1e-9 && max_coef<=1e3){
+                        scale =1;
+                        if(min_coef>=1e-10 && max_coef<=1e2)
+                            scale =10;
+                        if(min_coef>=1e-11 && max_coef<=1e2)
+                            scale =10;
+                        if(min_coef>=1e-12 && max_coef<=10)
+                            scale =100;
+                    
+                    auto s=cut.size();
+                    cut[s-1]*=scale;
+                    for(auto i=1;i<cut.size();i+=2){
+                        cut[i]*=scale;
+                        if(std::abs(cut[i])<=1e-9){
+                            if(cut[i]>=0){
+                                cut[i]=0;
+                            }
+                            else{
+                                cut[s-1]+=cut[i];
+                                cut[i]=0;
+                            }
+                        }
+                    }
+                    }
+                    res.push_back(cut);
+                //}
+                cut.clear();
+                key.clear();
                 }
                 else{
                     if(cost<=1e-9)
