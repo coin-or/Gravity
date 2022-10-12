@@ -1140,7 +1140,7 @@ namespace gravity {
                 throw invalid_argument("Cannot call param::add_val(type val) on matrix");
             }
             _val->push_back(val);
-            _off.push_back(false);
+//            _off.push_back(false);
             update_range(val);
             _dim[0] = _val->size();
         }
@@ -1204,7 +1204,7 @@ namespace gravity {
         size_t set_val(const string& key, type val) {
             auto it = _indices->_keys_map->find(key);
             if (it == _indices->_keys_map->end()){
-                throw invalid_argument("in Function size_t set_val(const string& key, type val), unknown key"+key);
+                throw invalid_argument("in Function size_t set_val(const string& key, type val), unknown key: "+key+ " for variable/param: " + _name);
             }
             if(_val->at(it->second)==_range->first ||  _val->at(it->second)==_range->second || val<_range->first || val>_range->second){
                 _val->at(it->second) = val;

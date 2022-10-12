@@ -197,6 +197,10 @@ namespace gravity {
             this->set_val(v);
         }
         
+        size_t set_val(const string& key, type val) {            
+            return this->param<type>::set_val(key,val);
+        }
+        
         void set_val(type val) {
             if(this->is_indexed()){
                 for(auto &idx: this->_indices->_ids->at(0)){
