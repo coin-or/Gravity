@@ -205,7 +205,10 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
         map<pair<string, string>,map<int,pair<shared_ptr<func<type>>,shared_ptr<func<type>>>>>            _hess_link; /* for each pair of variables appearing in the hessian, storing the set of constraints they appear together in */
         map<size_t, set<vector<int>>>                        _OA_cuts; /**< Sorted map pointing to all OA cut coefficients for each constraint. */
         std::vector<pair<int,std::vector<string>>>           _bag_names; /*vector of pair of name of each bag and name of nodes in each bag*/
-        map<string, func<>>                                  _func_map;/*map of func corresponding to each (sparse) key of a symmetric matrix*/
+       // map<string, func<>>                                  _func_map;/*map of func corresponding to each (sparse) key of a symmetric matrix*/
+        map<string, vector<pair<string, double>>>               map_x;
+        map<string, vector<pair<string, double>>>               map_y;
+        map<string, double>                                     map_const;
          template<typename T=type>
         void merge_vars(const shared_ptr<expr<T>>& e, bool share_bounds = false){/**<  Transfer all variables and parameters to the model. */
             switch (e->get_type()) {
@@ -624,7 +627,10 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
             }
             _int_vars = m._int_vars;
             _bag_names=m._bag_names;
-            _func_map=m._func_map;
+           // _func_map=m._func_map;
+            map_x=m.map_x;
+            map_y=m.map_y;
+            map_const=m.map_const;
             _rel_obj_val=m._rel_obj_val;
             num_cuts=m.num_cuts;
             return *this;

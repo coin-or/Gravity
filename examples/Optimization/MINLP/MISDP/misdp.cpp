@@ -48,9 +48,9 @@ using namespace gravity;
 using namespace std;
 
 int main(int argc, char * argv[]){
-   // string fname=string(prj_dir)+"/data_sets/MISDP/2x3_3bars.cbf";
+    string fname=string(prj_dir)+"/data_sets/MISDP/2x3_3bars.cbf";
     //string fname=string(prj_dir)+"/data_sets/MISDP/2x7_3bars.cbf";
-    string fname=string(prj_dir)+"/data_sets/MISDP/2x4_2scen_3bars.cbf";
+    //string fname=string(prj_dir)+"/data_sets/MISDP/2x4_2scen_3bars.cbf";
     //string fname=string(prj_dir)+"/data_sets/MISDP/coloncancer_1_100_5.cbf";
     //string fname=string(prj_dir)+"/data_sets/MISDP/2g_4_164_k3_5_6.cbf";
 

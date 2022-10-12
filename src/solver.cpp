@@ -700,6 +700,10 @@ vector<vector<double>> Model<type>::cutting_planes_soc(double active_tol, int& s
     int nb_added_cuts = 0;
     vector<vector<double>> res;
     vector<double> cut;
+    var<double> x=get_var<double>("x");
+    var<int> y=get_var<int>("y");
+    auto index_x=x.get_id();
+    auto index_y=y.get_id();
     for (auto &con: _cons_vec)
     {
         if(!con->is_linear() && con->_callback && (con->is_rotated_soc() || con->check_soc())) {
@@ -723,7 +727,7 @@ vector<vector<double>> Model<type>::cutting_planes_soc(double active_tol, int& s
                 fk=con->eval(i);
                 if((fk >= active_tol && con->_ctype==leq) || (fk <= -active_tol && con->_ctype==geq)){
                     constr_viol=true;
-                   
+                    vector<string> key;
                     soc_viol++;
                     xnow.resize(3,0);
                     /*Avoid divide by zero*/
@@ -744,7 +748,7 @@ vector<vector<double>> Model<type>::cutting_planes_soc(double active_tol, int& s
                 
                             
                         
-                            func<> fcut;
+                            
                             c_val.resize(3,0);
          
                             scale=1.0;
@@ -774,36 +778,57 @@ vector<vector<double>> Model<type>::cutting_planes_soc(double active_tol, int& s
                                 for (auto &v_p: con->get_vars()){
                                     auto vid=v_p.second.first->get_id() + v_p.second.first->get_id_inst(i);
                                     auto keys_vec=*(v_p.second.first->_indices->_keys);
-                                    auto key=keys_vec[v_p.second.first->get_id_inst(i)];
+                                    key.push_back(keys_vec[v_p.second.first->get_id_inst(i)]);
                                     cost+= xcurrent[j]*c_val[j]*scale;
                                     //_func_map.at(key).print();
-                                    fcut+=_func_map.at(key)*c_val[j]*scale;
+                                    
                                     j++;
                                 }
                                 //cut.push_back(c0_val*scale);
                                 cost+=c0_val*scale;
-                                fcut+=c0_val*scale;
+                           
+                                
                                 if(cost>=1e-6){
                                     min_coef=1e6;
                                     max_coef=-1e6;
-                                    for (auto& it1: fcut.get_lterms()) {
-
-                                            auto coef = fcut.eval(it1.second._coef);
-                                            auto index = it1.second._p->get_id() + it1.second._p->get_id_inst();
-                                        if (!it1.second._sign) {
-                                            coef *= -1;
+                                    map<string, double> coef_x;
+                                    map<string, double> coef_y;
+                                    double coef_const=0;
+                                    for(auto i=0;i<c_val.size();i++){
+                                        if(map_x.find(key[i])!=map_x.end()){
+                                            for(auto p:map_x[key[i]]){
+                                                coef_x[p.first]+=p.second*c_val[i]*scale;
+                                            }
                                         }
-                                        if(std::abs(coef)!=0 && std::abs(coef)<=min_coef){
-                                            min_coef=std::abs(coef);
+                                        if(map_y.find(key[i])!=map_y.end()){
+                                            for(auto p:map_y[key[i]]){
+                                                coef_y[p.first]+=p.second*c_val[i]*scale;
+                                            }
                                         }
-                                        if(std::abs(coef)>=min_coef){
-                                            max_coef=std::abs(coef);
+                                        if(map_const.find(key[i])!=map_const.end()){
+                                            coef_const+=map_const[key[i]]*c_val[i]*scale;
                                         }
-                                        
-                                        cut.push_back(index);
-                                        cut.push_back(coef);
-                                        }
-                                    cut.push_back(fcut.eval(fcut.get_cst()));
+                                    }
+                                    coef_const+=c0_val*scale;
+                                    for(auto it=coef_x.begin();it!=coef_x.end();it++){
+                                        cut.push_back(index_x+x._indices->_keys_map->at(it->first));
+                                        cut.push_back(it->second);
+                                        auto absc=std::abs(it->second);
+                                        if(absc!=0 && absc<=min_coef )
+                                            min_coef=absc;
+                                        if(absc>=max_coef )
+                                            max_coef=absc;
+                                    }
+                                    for(auto it=coef_y.begin();it!=coef_y.end();it++){
+                                        cut.push_back(index_y+y._indices->_keys_map->at(it->first));
+                                        cut.push_back(it->second);
+                                        auto absc=std::abs(it->second);
+                                        if(absc!=0 && absc<=min_coef )
+                                            min_coef=absc;
+                                        if(absc>=max_coef )
+                                            max_coef=absc;
+                                    }
+                                    cut.push_back(coef_const);
                                     if(min_coef<=1e-9 && max_coef<=1e3){
                                         scale =1;
                                         if(min_coef>=1e-10 && max_coef<=1e2)
@@ -948,6 +973,10 @@ vector<vector<double>> Model<type>::cuts_eigen_bags(const double active_tol)
         auto idx = X.get_id();
         auto idxij = Xij.get_id();
         vector<int> var_ind;
+        var<double> x=get_var<double>("x");
+        var<int> y=get_var<int>("y");
+        auto index_x=x.get_id();
+        auto index_y=y.get_id();
         auto dim=b.second.size();
         Eigen::MatrixXd mat_X(dim,dim);
         vector<vector<double>> mat(dim, std::vector<double>(dim, 0));
@@ -1068,29 +1097,44 @@ vector<vector<double>> Model<type>::cuts_eigen_bags(const double active_tol)
                    double min_coef=1e6;
                    double max_coef=-1e6;
                 if(cost>=1e-6){
-                    func<> fcut;
+                    map<string, double> coef_x;
+                    map<string, double> coef_y;
+                    double coef_const=0;
                     for(auto i=0;i<c_val.size();i++){
-                        fcut+=_func_map.at(key[i])*c_val[i]*scale;
+                        if(map_x.find(key[i])!=map_x.end()){
+                            for(auto p:map_x[key[i]]){
+                                coef_x[p.first]+=p.second*c_val[i]*scale;
+                            }
+                        }
+                        if(map_y.find(key[i])!=map_y.end()){
+                            for(auto p:map_y[key[i]]){
+                                coef_y[p.first]+=p.second*c_val[i]*scale;
+                            }
+                        }
+                        if(map_const.find(key[i])!=map_const.end()){
+                            coef_const+=map_const[key[i]]*c_val[i]*scale;
+                        }
                     }
-                    fcut+=c0_val*scale;
-                    for (auto& it1: fcut.get_lterms()) {
-
-                            auto coef = fcut.eval(it1.second._coef);
-                            auto index = it1.second._p->get_id() + it1.second._p->get_id_inst();
-                        if (!it1.second._sign) {
-                            coef *= -1;
-                        }
-                        cut.push_back(index);
-                        cut.push_back(coef);
-                        if(std::abs(coef)!=0 && std::abs(coef)<=min_coef){
-                            min_coef=std::abs(coef);
-                        }
-                        if(std::abs(coef)>=min_coef){
-                            max_coef=std::abs(coef);
-                        }
-                        
-                        }
-                    cut.push_back(fcut.eval(fcut.get_cst()));
+                    coef_const+=c0_val*scale;
+                    for(auto it=coef_x.begin();it!=coef_x.end();it++){
+                        cut.push_back(index_x+x._indices->_keys_map->at(it->first));
+                        cut.push_back(it->second);
+                        auto absc=std::abs(it->second);
+                        if(absc!=0 && absc<=min_coef )
+                            min_coef=absc;
+                        if(absc>=max_coef )
+                            max_coef=absc;
+                    }
+                    for(auto it=coef_y.begin();it!=coef_y.end();it++){
+                        cut.push_back(index_y+y._indices->_keys_map->at(it->first));
+                        cut.push_back(it->second);
+                        auto absc=std::abs(it->second);
+                        if(absc!=0 && absc<=min_coef )
+                            min_coef=absc;
+                        if(absc>=max_coef )
+                            max_coef=absc;
+                    }
+                    cut.push_back(coef_const);
                     if(min_coef<=1e-9 && max_coef<=1e3){
                         scale =1;
                         if(min_coef>=1e-10 && max_coef<=1e2)
@@ -1152,9 +1196,12 @@ vector<vector<double>> Model<type>::cuts_eigen_full(const double active_tol)
     var<double> X=get_var<double>("X");
     var<double> Xij=get_var<double>("Xij");
     auto idx = X.get_id();
-         auto idxij = Xij.get_id();
-         vector<int> var_ind;
-                 
+    auto idxij = Xij.get_id();
+    vector<int> var_ind;
+    var<double> x=get_var<double>("x");
+    var<int> y=get_var<int>("y");
+    auto index_x=x.get_id();
+    auto index_y=y.get_id();
     int dim_full=X._indices->_keys->size();
     
     Eigen::MatrixXd mat_full(dim_full,dim_full);
@@ -1281,29 +1328,44 @@ vector<vector<double>> Model<type>::cuts_eigen_full(const double active_tol)
                 if(cost>=1e-9){
                     double min_coef=1e6;
                     double max_coef=-1e6;
-                    func<> fcut;
+                    map<string, double> coef_x;
+                    map<string, double> coef_y;
+                    double coef_const=0;
                     for(auto i=0;i<c_val.size();i++){
-                        fcut+=_func_map.at(key[i])*c_val[i]*scale;
+                        if(map_x.find(key[i])!=map_x.end()){
+                            for(auto p:map_x[key[i]]){
+                                coef_x[p.first]+=p.second*c_val[i]*scale;
+                            }
+                        }
+                        if(map_y.find(key[i])!=map_y.end()){
+                            for(auto p:map_y[key[i]]){
+                                coef_y[p.first]+=p.second*c_val[i]*scale;
+                            }
+                        }
+                        if(map_const.find(key[i])!=map_const.end()){
+                            coef_const+=map_const[key[i]]*c_val[i]*scale;
+                        }
                     }
-                    fcut+=c0_val*scale;
-                    for (auto& it1: fcut.get_lterms()) {
-
-                            auto coef = fcut.eval(it1.second._coef);
-                            auto index = it1.second._p->get_id() + it1.second._p->get_id_inst();
-                        if (!it1.second._sign) {
-                            coef *= -1;
-                        }
-                        cut.push_back(index);
-                        cut.push_back(coef);
-                        if(std::abs(coef)!=0 && std::abs(coef)<=min_coef){
-                            min_coef=std::abs(coef);
-                        }
-                        if(std::abs(coef)>=min_coef){
-                            max_coef=std::abs(coef);
-                        }
-                        
-                        }
-                    cut.push_back(fcut.eval(fcut.get_cst()));
+                    coef_const+=c0_val*scale;
+                    for(auto it=coef_x.begin();it!=coef_x.end();it++){
+                        cut.push_back(index_x+x._indices->_keys_map->at(it->first));
+                        cut.push_back(it->second);
+                        auto absc=std::abs(it->second);
+                        if(absc!=0 && absc<=min_coef )
+                            min_coef=absc;
+                        if(absc>=max_coef )
+                            max_coef=absc;
+                    }
+                    for(auto it=coef_y.begin();it!=coef_y.end();it++){
+                        cut.push_back(index_y+y._indices->_keys_map->at(it->first));
+                        cut.push_back(it->second);
+                        auto absc=std::abs(it->second);
+                        if(absc!=0 && absc<=min_coef )
+                            min_coef=absc;
+                        if(absc>=max_coef )
+                            max_coef=absc;
+                    }
+                    cut.push_back(coef_const);
                     //if(min_coef>=1e-9 && max_coef<=1e4){
                     if(min_coef<=1e-9 && max_coef<=1e3){
                         scale =1;
@@ -1334,10 +1396,10 @@ vector<vector<double>> Model<type>::cuts_eigen_full(const double active_tol)
                 cut.clear();
                 key.clear();
                 }
-                else{
-                    if(cost<=1e-9)
-                        DebugOff("cost "<<cost<<endl);
-                }
+//                else{
+//                    if(cost<=1e-9)
+//                        DebugOff("cost "<<cost<<endl);
+//                }
                 cut.clear();
             }
             else{

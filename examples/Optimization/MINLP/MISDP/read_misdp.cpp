@@ -498,7 +498,10 @@ Net CBF_read(const char *file, shared_ptr<Model<double>>& m, bool add_3d) {
         
         map<string, func<>> func_map;
         map<string, func<>> func_map_bounds;
-        map<string, map<int,double>> map_triples;
+        map<string, vector<pair<string, double>>> map_x;
+        map<string, vector<pair<string, double>>> map_y;
+        map<string, double> map_const;
+        
         for(auto k:*node_pairs._keys){
             func_map[k]=Xij(k);
         }
@@ -521,11 +524,13 @@ Net CBF_read(const char *file, shared_ptr<Model<double>>& m, bool add_3d) {
             if(C.has_key(ind)){
                 // func_map.at(func_name)-=coef*x(ind);
                 func_map_bounds[func_name]+=coef*x(ind);
+                map_x[func_name].push_back(make_pair(ind, coef));
             }
             else{
                 // func_map.at(func_name)-=coef*y(ind);
                 func_map_bounds[func_name]+=coef*y(ind);
-                map_triples[func_name][j]=coef;
+                map_y[func_name].push_back(make_pair(ind, coef));
+                
             }
         }
         for(auto i=0;i<data.dnnz;i++){
@@ -540,42 +545,11 @@ Net CBF_read(const char *file, shared_ptr<Model<double>>& m, bool add_3d) {
             }
             //  func_map.at(func_name)-=coef;
             func_map_bounds[func_name]+=coef;
+            map_const[func_name]+=coef;
         }
         double maxlu=0, scale;
         for(auto it=func_map_bounds.begin();it!=func_map_bounds.end();it++){
             func_map_bounds.at(it->first).eval_all();
-            if(func_map_bounds.at(it->first)._lterms->size()>=3 && func_map_bounds.at(it->first)._lterms->size()%3==0 && false){
-                double coa,cob,coc;
-                double func_max=0, func_min=0;
-                auto it1=map_triples[it->first].begin();
-                while(it1!=map_triples[it->first].end()){
-                    coa=it1->second;
-                    it1=next(it1,1);
-                    cob=it1->second;
-                    it1=next(it1,1);
-                    coc=it1->second;
-                    it1=next(it1,1);
-                    double maxc=std::max(std::max(coa,cob),coc);
-                    double minc=std::min(std::min(coa,cob),coc);
-                    if(minc>=0)
-                        minc=0;
-                    if(maxc<=0)
-                        maxc=0;
-                    func_max+=maxc;
-                    func_min+=minc;
-                }
-                func_min += func_map_bounds.at(it->first).eval(func_map_bounds.at(it->first).get_cst());
-                func_max += func_map_bounds.at(it->first).eval(func_map_bounds.at(it->first).get_cst());
-                if(it->first.find(",")!=std::string::npos){
-                    Xij.set_lb(it->first, func_min);
-                    Xij.set_ub(it->first, func_max);
-                }
-                else{
-                    X.set_lb(it->first, std::max(0.0, func_min));
-                    X.set_ub(it->first, func_max);
-                }
-            }
-            else{
                 maxlu+=std::max(abs(func_map_bounds.at(it->first)._range->first), abs(func_map_bounds.at(it->first)._range->second));
                 if(it->first.find(",")!=std::string::npos){
                     Xij.set_lb(it->first, func_map_bounds.at(it->first)._range->first);
@@ -586,7 +560,7 @@ Net CBF_read(const char *file, shared_ptr<Model<double>>& m, bool add_3d) {
                     X.set_lb(it->first, std::max(0.0, func_map_bounds.at(it->first)._range->first));
                     X.set_ub(it->first, func_map_bounds.at(it->first)._range->second);
                 }
-            }
+            
         }
         //scale=0.1;
         scale=1;
@@ -798,7 +772,10 @@ Net CBF_read(const char *file, shared_ptr<Model<double>>& m, bool add_3d) {
                 }
        
         m->_bag_names=_bag_names;
-        m->_func_map=func_map_bounds;
+        //m->_func_map=func_map_bounds;
+        m->map_x=map_x;
+        m->map_y=map_y;
+        m->map_const=map_const;
         
         count=0;
         
