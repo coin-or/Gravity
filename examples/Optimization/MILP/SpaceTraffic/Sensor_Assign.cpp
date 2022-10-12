@@ -29,11 +29,11 @@ int main(int argc, const char * argv[]) {
     m.writeGreedySol(); //writing greedy sol to a file to load it to sensor_assign2
     auto stop = high_resolution_clock::now();
     auto duration1 = duration_cast<seconds>(stop - start);
-    cout << "Init + greedy time: " << duration1.count() << endl;
+    cout << "Init + greedy time: " << duration1.count() << "seconds" << endl;
     m.mSolve(run_MIP);
     auto stop2 = high_resolution_clock::now();
     auto duration2 = duration_cast<seconds>(stop2 - stop);
-    cout << m.N << " " << m.M << " " << m.K << " " << duration1.count() + duration2.count() << endl; //prints num sensors; num objetcs; num agents; total time after reading input (init + greedy + solver)
+//    cout << m.N << " " << m.M << " " << m.K << " " << duration1.count() + duration2.count() << endl; //prints num sensors; num objetcs; num agents; total time after reading input (init + greedy + solver)
     return 0;
 }
 
@@ -736,7 +736,12 @@ void myModel::GreedyStart(const param<double> &w0, const param<double> &w_own, c
         psum_wt_own = parSum(wt_own);
         psum_wt_bought = parSum(wt_bought);
     }
-    
+   
+    DebugOn("parSum(wt0) = " << psum_wt0 << endl);
+    DebugOn("parSum(wt_own) = " << psum_wt_own << endl);
+    DebugOn("parSum(wt_bought) = " << psum_wt_bought << endl);
+    DebugOn("----------------------------------------" << endl);
+    DebugOn("Computing fair prices..." << endl); 
     /*set prices*/
     double y1 = 0; //Seller_lb1
     double y2 = 0; //Seller_lb2
@@ -746,6 +751,7 @@ void myModel::GreedyStart(const param<double> &w0, const param<double> &w_own, c
     string t; //var for replaced sensor
     for (int i = 0; i < N; i++) {
         auto sensor_name = sensors.get_key(i);
+	DebugOn("Computing fair price for " << sensor_name << endl);
         auto sensor_node = graph.get_node(sensor_name);
         auto agent_name = agents.get_key(owner[i]);
         for (const Arc* a : sensor_node->get_out()) {
