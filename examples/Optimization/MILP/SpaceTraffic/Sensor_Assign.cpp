@@ -29,7 +29,7 @@ int main(int argc, const char * argv[]) {
     m.writeGreedySol(); //writing greedy sol to a file to load it to sensor_assign2
     auto stop = high_resolution_clock::now();
     auto duration1 = duration_cast<seconds>(stop - start);
-    cout << "Init + greedy time: " << duration1.count() << "seconds" << endl;
+    cout << "Init + greedy time: " << duration1.count() << " seconds." << endl;
     m.mSolve(run_MIP);
     auto stop2 = high_resolution_clock::now();
     auto duration2 = duration_cast<seconds>(stop2 - stop);
