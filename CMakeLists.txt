@@ -4,6 +4,8 @@ project(Gravity)
 
 enable_testing()
 
+include(ExternalProject)
+
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${PROJECT_SOURCE_DIR}/cmake)
 set(MACOSX_RPATH 1) 
 # Debug mode
@@ -18,8 +20,8 @@ option(PcapPlusPlus "Link to PcapPlusPlus libraries" OFF)
 # Find GUROBI (optional)
 option(Gurobi "Link to GUROBI libraries" OFF)
 
-# Find HIGHS (optional)
-option(Highs "Link to HIGHS libraries" OFF)
+# Find HiGHS (optional)
+option(HiGHS "Link to HiGHS libraries" OFF)
 
 # Find IPOPT (optional)
 option(Ipopt "Link to IPOPT libraries" ON)
@@ -123,28 +125,7 @@ if (Gurobi)
     set(LIBS ${LIBS} ${GUROBI_LIBRARIES})
 endif()
 
-# Find Highs?
-if (Highs)
-    message(STATUS "Enable HIGHS")
-    add_definitions(-DUSE_HIGHS)
-    find_package(HIGHS)
-if (HIGHS_FOUND)
-    message("-- Found HIGHS: ${HIGHS_INCLUDE_DIRS}")
-    include_directories(${HIGHS_INCLUDE_DIRS})
-    set(LIBS ${LIBS} ${HIGHS_LIBRARIES})
-else(HIGHS_FOUND)
-    set(ADD_HIGHS TRUE)
-    message(STATUS "Will download HIGHS library from https://github.com/ERGO-Code/HiGHS")
-    include(ExternalHIGHS)
-    if(APPLE)
-        set(HIGHS_LIBRARY ${THIRDPARTY_INSTALL_PATH}/Install/HIGHS/lib/libhighs.dylib)
-        elseif(UNIX)
-            set(HIGHS_LIBRARY ${THIRDPARTY_INSTALL_PATH}/Install/HIGHS/lib/libhighs.so)
-        elseif(WIN32)
-            set(HIGHS_LIBRARY ${THIRDPARTY_INSTALL_PATH}/Install/HIGHS/build/lib/libhighs.lib)
-    endif(APPLE)
-endif(HIGHS_FOUND)
-endif(Highs)
+
 
 # Find CLP?
 if (Clp)
@@ -197,7 +178,7 @@ set_directory_properties(PROPERTIES EP_BASE ${CMAKE_BINARY_DIR}/third_party)
 get_directory_property(THIRDPARTY_BASE_PATH EP_BASE)
 
 set(THIRDPARTY_INSTALL_PATH ${THIRDPARTY_BASE_PATH})
-include(ExternalProject)
+
 
 if(NOT WIN32)
 #CoinUtils
@@ -237,6 +218,29 @@ else(MP_FOUND)
  set(MP_LIBRARY ${THIRDPARTY_INSTALL_PATH}/Install/MP/build/lib/libmp.a)
 endif()
 endif()
+
+# Find HiGHS?
+if (HiGHS)
+    message(STATUS "Enable HiGHS")
+    add_definitions(-DUSE_HiGHS)
+    find_package(HiGHS)
+if (HiGHS_FOUND)
+    message("-- Found HiGHS: ${HiGHS_INCLUDE_DIRS}")
+    include_directories(${HiGHS_INCLUDE_DIRS})
+    set(LIBS ${LIBS} ${HiGHS_LIBRARIES})
+else(HiGHS_FOUND)
+    set(ADD_HiGHS TRUE)
+    message(STATUS "Will download HiGHS library from https://github.com/ERGO-Code/HiGHS")
+    include(ExternalHiGHS)
+    if(APPLE)
+        set(HiGHS_LIBRARIES ${THIRDPARTY_INSTALL_PATH}/Install/HiGHS/build/lib/libhighs.dylib)
+        elseif(UNIX)
+            set(HiGHS_LIBRARIES ${THIRDPARTY_INSTALL_PATH}/Install/HiGHS/build/lib/libhighs.so)
+        elseif(WIN32)
+            set(HiGHS_LIBRARIES ${THIRDPARTY_INSTALL_PATH}/Install/HiGHS/build/lib/libhighs.lib)
+    endif(APPLE)
+endif(HiGHS_FOUND)
+endif(HiGHS)
 
 endif()
 if(Ipopt)

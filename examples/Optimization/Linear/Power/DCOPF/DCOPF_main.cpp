@@ -61,8 +61,17 @@ int main (int argc, char * argv[])
         projected = true;
     }
 #else
-    if(argc==2){
+    if(argc>=2){
         fname=argv[1];
+    }
+    if(argc>=3){
+        solver_str=argv[2];
+        if (solver_str.compare("gurobi")==0) {
+            use_gurobi = true;
+        }
+        else if(solver_str.compare("cplex")==0) {
+            use_cplex = true;
+        }
     }
     else{
         fname=string(prj_dir)+"/data_sets/Power/nesta_case5_pjm.m";
@@ -207,15 +216,15 @@ int main (int argc, char * argv[])
         solve_time = solver_time_end - solver_time_start;
         total_time = total_time_end - total_time_start;
     }
-    //    else if (use_gurobi) {
-    //        solver DCOPF_GRB(DCOPF, gurobi);
-    //        auto solver_time_start = get_wall_time();
-    //        DCOPF_GRB.run(output, relax = false, tol = 1e-6);
-    //        solver_time_end = get_wall_time();
-    //        total_time_end = get_wall_time();
-    //        solve_time = solver_time_end - solver_time_start;
-    //        total_time = total_time_end - total_time_start;
-    //    }
+    else if (use_gurobi) {
+        solver<> DCOPF_GRB(DCOPF, gurobi);
+        auto solver_time_start = get_wall_time();
+        DCOPF_GRB.run(output, tol = 1e-6);
+        solver_time_end = get_wall_time();
+        total_time_end = get_wall_time();
+        solve_time = solver_time_end - solver_time_start;
+        total_time = total_time_end - total_time_start;
+    }
     else {
         solver<> DCOPF_IPT(DCOPF,ipopt);
         auto solver_time_start = get_wall_time();
