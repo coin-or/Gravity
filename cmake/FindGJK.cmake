@@ -10,15 +10,17 @@ if(APPLE)
 find_library(GJK_LIBRARY 
 	libopenGJKlib.dylib
 	HINTS /usr/local/lib
+	HINTS ${GJK_ROOT_DIR}/build
 	HINTS ${GJK_ROOT_DIR}/build/lib
-	message("Looking for GJKLib in ${GJK_ROOT_DIR}/build/lib")
+	HINTS ${GJK_ROOT_DIR}/lib
 )
 elseif(UNIX)
 find_library(GJK_LIBRARY 
 	libopenGJKlib.so
 	HINTS /usr/local/lib
+	HINTS ${GJK_ROOT_DIR}/build
 	HINTS ${GJK_ROOT_DIR}/build/lib
-	message("Looking for GJKLib in ${GJK_ROOT_DIR}/build/lib")
+	HINTS ${GJK_ROOT_DIR}/lib
 )
 endif()
 
