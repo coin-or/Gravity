@@ -7,6 +7,7 @@ include_directories(${GJK_INCLUDE_DIRS})
 find_path(GJK_INCLUDE_DIRS
 	NAMES openGJK.h
 	HINTS ${GJK_ROOT_DIR}/lib/include/openGJK
+	HINTS ${GJK_ROOT_DIR}/../lib/include/openGJK
 	HINTS ${GJK_ROOT_DIR}/include/openGJK
 	HINTS /usr/local/include/
 )
