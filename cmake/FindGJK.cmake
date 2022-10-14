@@ -8,7 +8,7 @@ set(GJK_INCLUDE_DIRS ${GJK_ROOT_DIR}/lib/include/openGJK)
 
 if(APPLE)
 find_library(GJK_LIBRARY 
-	libopenGJKlib.dylib
+	libopenGJKlib
 	HINTS /usr/local/lib
 	HINTS ${GJK_ROOT_DIR}/build
 	HINTS ${GJK_ROOT_DIR}/build/lib
@@ -16,7 +16,7 @@ find_library(GJK_LIBRARY
 )
 elseif(UNIX)
 find_library(GJK_LIBRARY 
-	libopenGJKlib.so
+	libopenGJKlib
 	HINTS /usr/local/lib
 	HINTS ${GJK_ROOT_DIR}/build
 	HINTS ${GJK_ROOT_DIR}/build/lib
