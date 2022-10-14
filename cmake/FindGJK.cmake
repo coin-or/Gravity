@@ -4,7 +4,7 @@ message("Looking for GJK in ${GJK_ROOT_DIR}")
 list(APPEND GLOBAL_THIRDPARTY_LIB_ARGS "-DGJK_ROOT_DIR:PATH=${GJK_ROOT_DIR}")
 include_directories(${GJK_INCLUDE_DIRS})
 
-find_path(HiGHS_INCLUDE_DIRS
+find_path(GJK_INCLUDE_DIRS
 	NAMES openGJK.h
 	HINTS ${GJK_ROOT_DIR}/lib/include/openGJK
 	HINTS ${GJK_ROOT_DIR}/include/openGJK
