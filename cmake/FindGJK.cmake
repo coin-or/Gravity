@@ -43,4 +43,6 @@ message("GJK_Library is ${GJK_LIBRARY}")
 
 set(GJK_LIBRARIES ${GJK_LIBRARY})
 set(LIBS ${LIBS} ${GJK_LIBRARIES})
-
+include_directories(${GJK_INCLUDE_DIRS})
+include(FindPackageHandleStandardArgs)
+find_package_handle_standard_args(GJK DEFAULT_MSG GJK_LIBRARIES GJK_INCLUDE_DIRS)
