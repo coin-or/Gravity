@@ -513,7 +513,7 @@ bool GurobiProgram::solve(bool relax, double mipgap, double time_limit){
     auto ts=get_wall_time();
 //    double sol_new=grb_mod->get(GRB_DoubleAttr_ObjVal);
 //    double sol_old=-1e6;
-    while(not_sdp && count<=1000){
+    while(not_sdp && count<=3000){
 //        var<double> X=_model->get_var<double>("X");
 //        var<double> Xij=_model->get_var<double>("Xij");
 //        int dim_full=X._indices->_keys->size();

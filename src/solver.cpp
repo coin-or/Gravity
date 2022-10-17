@@ -235,9 +235,9 @@ int run_parallel_new(const std::vector<std::string> objective_models, std::vecto
         models[s]->reset_constrs();
         models[s]->reset();
         models[s]->_status=0;
-//        models[s]->print();
-//        models[s]->print_solution();
-//        models[s]->print_constraints_stats(1e-6);
+        //        models[s]->print();
+        //        models[s]->print_solution();
+        //        models[s]->print_constraints_stats(1e-6);
         DebugOff("to create solver"<<endl);
         auto solverk = make_shared<solver<double>>(models[s], stype);
         if(stype==gurobi && initialize_primal){
@@ -607,9 +607,9 @@ vector<vector<double>> Model<type>::cutting_planes_solution(const Model<type>& i
     vector<double> cut;
     for (auto &con: _cons_vec)
     {
-   
+        
         if(!con->is_linear() && con->_callback && !((con->is_rotated_soc() || con->check_soc()))) {
-           
+            
             // if(con->_name!="limit_neg"){
             auto cnb_inst=con->get_nb_inst();
             for(auto i=0;i<cnb_inst;i++){
@@ -619,19 +619,19 @@ vector<vector<double>> Model<type>::cutting_planes_solution(const Model<type>& i
                 con->uneval();
                 auto cname=con->_name;
                 xcurrent=con->get_x(i);
-                    fk=con->eval(i);
-                    if((fk >= active_tol && con->_ctype==leq) || (fk <= -active_tol && con->_ctype==geq)){
-                        constr_viol=true;
-                        //ToDo fix interior status and check for it
-                       
-                            auto con_interior=interior.get_constraint(cname);
-                            xinterior=con_interior->get_x_ignore(i, "eta_interior"); /** ignore the Eta (slack) variable */
-                            auto res_search=con->binary_line_search(xinterior, i);
-                            if(res_search){
-                                oa_cut=true;
-                                //oa_cut=false;
-                            }
+                fk=con->eval(i);
+                if((fk >= active_tol && con->_ctype==leq) || (fk <= -active_tol && con->_ctype==geq)){
+                    constr_viol=true;
+                    //ToDo fix interior status and check for it
+                    
+                    auto con_interior=interior.get_constraint(cname);
+                    xinterior=con_interior->get_x_ignore(i, "eta_interior"); /** ignore the Eta (slack) variable */
+                    auto res_search=con->binary_line_search(xinterior, i);
+                    if(res_search){
+                        oa_cut=true;
+                        //oa_cut=false;
                     }
+                }
                 
                 if(oa_cut){
                     oa_cut=false;
@@ -643,7 +643,7 @@ vector<vector<double>> Model<type>::cutting_planes_solution(const Model<type>& i
                         //get_row_scaling(c_val, scale, oa_cut, zero_tol, 1e-9, 1000);
                         double max_coef=-1000;
                         for (auto j = 0; j<c_val.size(); j++) {
-                           // c_val[j]*=scale;
+                            // c_val[j]*=scale;
                             if(std::abs(c_val[j])>=max_coef)
                                 max_coef=std::abs(c_val[j]);
                         }
@@ -658,7 +658,7 @@ vector<vector<double>> Model<type>::cutting_planes_solution(const Model<type>& i
                 }
                 if(oa_cut){
                     auto j=0;
-                 
+                    
                     for (auto &v_p: con->get_vars()){
                         auto vid=v_p.second.first->get_id() + v_p.second.first->get_id_inst(i);
                         cut.push_back(vid);
@@ -720,10 +720,10 @@ vector<vector<double>> Model<type>::cutting_planes_soc(double active_tol, int& s
                 xc[0]=xcurrent[0];
                 xc[1]=xcurrent[1];
                 xc[2]=xcurrent[2];
-           
-//                con->eval_all();
-//                DebugOff(con->_name<<"\t"<<con->eval(i)<<endl);
-//                con->uneval();
+                
+                //                con->eval_all();
+                //                DebugOff(con->_name<<"\t"<<con->eval(i)<<endl);
+                //                con->uneval();
                 fk=con->eval(i);
                 if((fk >= active_tol && con->_ctype==leq) || (fk <= -active_tol && con->_ctype==geq)){
                     constr_viol=true;
@@ -742,130 +742,134 @@ vector<vector<double>> Model<type>::cutting_planes_soc(double active_tol, int& s
                         xnow[1]=xc[1];
                         xnow[2]=xc[2];
                     }
-                 
-                        oa_cut=true;
-
-                
+                    
+                    oa_cut=true;
+                    
+                    
+                    
+                    
+                    
+                    c_val.resize(3,0);
+                    
+                    scale=1.0;
+                    c_val[0]=-xnow[1];
+                    c_val[1]=-xnow[0];
+                    c_val[2]=2*xnow[2];
+                    c0_val=0;
+                    //get_row_scaling(c_val, scale, oa_cut, zero_tol, 1e-9, 1000);
+                    double max_coef=-100000;
+                    double min_coef=1000000;
+                    for (auto j = 0; j<c_val.size(); j++) {
+                        c_val[j]*=scale;
+                        if(std::abs(c_val[j])>=max_coef)
+                            max_coef=std::abs(c_val[j]);
+                        if(std::abs(c_val[j])!=0 && std::abs(c_val[j])<=min_coef)
+                            min_coef=std::abs(c_val[j]);
+                    }
+                    c0_val*=scale;
+                    scale=1.0;
+                    //                            if(max_coef>=1e3)
+                    //                                scale=1000.0/max_coef;
+                    //                            min_coef*=scale;
+                    //                            max_coef*=scale;
+                    if(true || min_coef>=1e-9 && max_coef<=1e4){
+                        int j=0;
+                        double cost=0;
+                        for (auto &v_p: con->get_vars()){
+                            auto vid=v_p.second.first->get_id() + v_p.second.first->get_id_inst(i);
+                            auto keys_vec=*(v_p.second.first->_indices->_keys);
+                            key.push_back(keys_vec[v_p.second.first->get_id_inst(i)]);
+                            cost+= xcurrent[j]*c_val[j]*scale;
+                            //_func_map.at(key).print();
                             
+                            j++;
+                        }
+                        //cut.push_back(c0_val*scale);
+                        cost+=c0_val*scale;
                         
-                            
-                            c_val.resize(3,0);
-         
-                            scale=1.0;
-                            c_val[0]=-xnow[1];
-                            c_val[1]=-xnow[0];
-                            c_val[2]=2*xnow[2];
-                            c0_val=0;
-                            //get_row_scaling(c_val, scale, oa_cut, zero_tol, 1e-9, 1000);
-                            double max_coef=-100000;
-                            double min_coef=1000000;
-                            for (auto j = 0; j<c_val.size(); j++) {
-                                c_val[j]*=scale;
-                                if(std::abs(c_val[j])>=max_coef)
-                                    max_coef=std::abs(c_val[j]);
-                                if(std::abs(c_val[j])!=0 && std::abs(c_val[j])<=min_coef)
-                                    min_coef=std::abs(c_val[j]);
-                            }
-                            c0_val*=scale;
-                            scale=1.0;
-//                            if(max_coef>=1e3)
-//                                scale=1000.0/max_coef;
-//                            min_coef*=scale;
-//                            max_coef*=scale;
-                            if(true || min_coef>=1e-9 && max_coef<=1e4){
-                                int j=0;
-                                double cost=0;
-                                for (auto &v_p: con->get_vars()){
-                                    auto vid=v_p.second.first->get_id() + v_p.second.first->get_id_inst(i);
-                                    auto keys_vec=*(v_p.second.first->_indices->_keys);
-                                    key.push_back(keys_vec[v_p.second.first->get_id_inst(i)]);
-                                    cost+= xcurrent[j]*c_val[j]*scale;
-                                    //_func_map.at(key).print();
-                                    
-                                    j++;
+                        
+                        if(cost>=1e-6){
+                            min_coef=1e6;
+                            max_coef=-1e6;
+                            map<string, double> coef_x;
+                            map<string, double> coef_y;
+                            double coef_const=0;
+                            for(auto i=0;i<c_val.size();i++){
+                                if(map_x.find(key[i])!=map_x.end()){
+                                    for(auto p:map_x[key[i]]){
+                                        coef_x[p.first]+=p.second*c_val[i]*scale;
+                                    }
                                 }
-                                //cut.push_back(c0_val*scale);
-                                cost+=c0_val*scale;
-                           
-                                
-                                if(cost>=1e-6){
-                                    min_coef=1e6;
-                                    max_coef=-1e6;
-                                    map<string, double> coef_x;
-                                    map<string, double> coef_y;
-                                    double coef_const=0;
-                                    for(auto i=0;i<c_val.size();i++){
-                                        if(map_x.find(key[i])!=map_x.end()){
-                                            for(auto p:map_x[key[i]]){
-                                                coef_x[p.first]+=p.second*c_val[i]*scale;
-                                            }
-                                        }
-                                        if(map_y.find(key[i])!=map_y.end()){
-                                            for(auto p:map_y[key[i]]){
-                                                coef_y[p.first]+=p.second*c_val[i]*scale;
-                                            }
-                                        }
-                                        if(map_const.find(key[i])!=map_const.end()){
-                                            coef_const+=map_const[key[i]]*c_val[i]*scale;
-                                        }
+                                if(map_y.find(key[i])!=map_y.end()){
+                                    for(auto p:map_y[key[i]]){
+                                        coef_y[p.first]+=p.second*c_val[i]*scale;
                                     }
-                                    coef_const+=c0_val*scale;
-                                    for(auto it=coef_x.begin();it!=coef_x.end();it++){
-                                        cut.push_back(index_x+x._indices->_keys_map->at(it->first));
-                                        cut.push_back(it->second);
-                                        auto absc=std::abs(it->second);
-                                        if(absc!=0 && absc<=min_coef )
-                                            min_coef=absc;
-                                        if(absc>=max_coef )
-                                            max_coef=absc;
-                                    }
-                                    for(auto it=coef_y.begin();it!=coef_y.end();it++){
-                                        cut.push_back(index_y+y._indices->_keys_map->at(it->first));
-                                        cut.push_back(it->second);
-                                        auto absc=std::abs(it->second);
-                                        if(absc!=0 && absc<=min_coef )
-                                            min_coef=absc;
-                                        if(absc>=max_coef )
-                                            max_coef=absc;
-                                    }
-                                    cut.push_back(coef_const);
-                                    if(min_coef<=1e-9 && max_coef<=1e3){
-                                        scale =1;
-                                        if(min_coef>=1e-10 && max_coef<=1e2)
-                                            scale =10;
-                                        if(min_coef>=1e-11 && max_coef<=1e2)
-                                            scale =10;
-                                        if(min_coef>=1e-12 && max_coef<=10)
-                                            scale =100;
-                                    
-                                    auto s=cut.size();
-                                    cut[s-1]*=scale;
-                                    for(auto i=1;i<cut.size();i+=2){
-                                        cut[i]*=scale;
-                                        if(std::abs(cut[i])<=1e-9){
-                                            if(cut[i]>=0){
-                                                cut[i]=0;
-                                            }
-                                            else{
-                                                cut[s-1]+=cut[i];
-                                                cut[i]=0;
-                                            }
-                                        }
-                                    }
-                                    }
-                                    
-                                    res.push_back(cut);
-                                    cut.clear();
+                                }
+                                if(map_const.find(key[i])!=map_const.end()){
+                                    coef_const+=map_const[key[i]]*c_val[i]*scale;
                                 }
                             }
-                        
-                        soc_added++;
-                        con->set_x(i, xcurrent);
-                        xcurrent.clear();
-                        xinterior.clear();
-                        cut.clear();
-                        c0_val=0;
-                        c_val.clear();
+                            coef_const+=c0_val*scale;
+                            for(auto it=coef_x.begin();it!=coef_x.end();it++){
+                                cut.push_back(index_x+x._indices->_keys_map->at(it->first));
+                                cut.push_back(it->second);
+                                auto absc=std::abs(it->second);
+                                if(absc!=0 && absc<=min_coef )
+                                    min_coef=absc;
+                                if(absc>=max_coef )
+                                    max_coef=absc;
+                            }
+                            for(auto it=coef_y.begin();it!=coef_y.end();it++){
+                                cut.push_back(index_y+y._indices->_keys_map->at(it->first));
+                                cut.push_back(it->second);
+                                auto absc=std::abs(it->second);
+                                if(absc!=0 && absc<=min_coef )
+                                    min_coef=absc;
+                                if(absc>=max_coef )
+                                    max_coef=absc;
+                            }
+                            cut.push_back(coef_const);
+                            scale=1;
+                            if(max_coef>=1e3){
+                                scale=1e3/max_coef;
+                                max_coef=1e3;
+                                min_coef*=scale;
+                            }
+                            if(min_coef<=1e-9 && min_coef>=1e-10 && max_coef<=1e2)
+                                scale*=10;
+                            else if(min_coef<=1e-9 && min_coef>=1e-11 && max_coef<=1e2)
+                                scale*=10;
+                            else if(min_coef<=1e-9 && min_coef>=1e-12 && max_coef<=10)
+                                scale*=100;
+                            
+                            auto s=cut.size();
+                            cut[s-1]*=scale;
+                            for(auto i=1;i<cut.size();i+=2){
+                                cut[i]*=scale;
+                                if(std::abs(cut[i])<=1e-9){
+                                    if(cut[i]>=0){
+                                        cut[i]=0;
+                                    }
+                                    else{
+                                        cut[s-1]+=cut[i];
+                                        cut[i]=0;
+                                    }
+                                }
+                            }
+                            
+                            
+                            res.push_back(cut);
+                            cut.clear();
+                        }
+                    }
+                    
+                    soc_added++;
+                    con->set_x(i, xcurrent);
+                    xcurrent.clear();
+                    xinterior.clear();
+                    cut.clear();
+                    c0_val=0;
+                    c_val.clear();
                 }
             }
         }
@@ -896,55 +900,55 @@ vector<vector<double>> Model<type>::cutting_planes_eigen(const double active_tol
                 con->eval_all();
                 xcurrent=con->get_x(i);
                 DebugOff(con->_name<<"\t"<<con->eval(i)<<endl);
-
-                    //ToDo fix interior status and check for it
+                
+                //ToDo fix interior status and check for it
+                
+                auto xres=con->get_x(i);
+                SelfAdjointEigenSolver<MatrixXd> es;
+                int matrix_size=0;
+                if(xres.size()==6){
+                    Eigen::MatrixXd H(3,3);
+                    H(0,0)=xres[0];H(1,1)=xres[1];H(2,2)=xres[2];
+                    H(0,1)=xres[3];H(0,2)=xres[5];H(1,2)=xres[4];
+                    H(1,0)=xres[3];H(2,0)=xres[5];H(2,1)=xres[4];
                     
-                    auto xres=con->get_x(i);
-                    SelfAdjointEigenSolver<MatrixXd> es;
-                    int matrix_size=0;
-                    if(xres.size()==6){
-                        Eigen::MatrixXd H(3,3);
-                        H(0,0)=xres[0];H(1,1)=xres[1];H(2,2)=xres[2];
-                        H(0,1)=xres[3];H(0,2)=xres[5];H(1,2)=xres[4];
-                        H(1,0)=xres[3];H(2,0)=xres[5];H(2,1)=xres[4];
-                        
-                        es.compute(H);
-                        matrix_size=3;
-                    }
-                    for(auto m=0;m<matrix_size;m++){
-                        //                           cout<<es.eigenvalues()[m].real();
-                        if(es.eigenvalues()[m]<=-active_tol){
-                            vector<double> eig_vec;
-                            for(auto n=0;n<matrix_size;n++){
-                                eig_vec.push_back(es.eigenvectors().col(m)[n]);
-                            }
-                            for(auto n=0;n<matrix_size;n++){
-                                if(std::abs(eig_vec[n]*eig_vec[n])<=1e-12){
-                                    c_val.push_back(0);
-                                }
-                                else{
-                                c_val.push_back(eig_vec[n]*eig_vec[n]*(-1));
-                                }
-                            }
-                            
-                            c_val.push_back(eig_vec[0]*eig_vec[1]*(-2));
-                            if(xres.size()==6){
-                                c_val.push_back(eig_vec[1]*eig_vec[2]*(-2));
-                                c_val.push_back(eig_vec[2]*eig_vec[0]*(-2));
-                            }
-                           
-                            int j=0;
-                            for (auto &v_p: con->get_vars()){
-                                auto vid=v_p.second.first->get_id() + v_p.second.first->get_id_inst(i);
-                                cut.push_back(vid);
-                                cut.push_back(c_val[j++]);
-                            }
-                            cut.push_back(c0_val);
-                            res.push_back(cut);
-                            cut.clear();
-                            c_val.clear();
+                    es.compute(H);
+                    matrix_size=3;
+                }
+                for(auto m=0;m<matrix_size;m++){
+                    //                           cout<<es.eigenvalues()[m].real();
+                    if(es.eigenvalues()[m]<=-active_tol){
+                        vector<double> eig_vec;
+                        for(auto n=0;n<matrix_size;n++){
+                            eig_vec.push_back(es.eigenvectors().col(m)[n]);
                         }
+                        for(auto n=0;n<matrix_size;n++){
+                            if(std::abs(eig_vec[n]*eig_vec[n])<=1e-12){
+                                c_val.push_back(0);
+                            }
+                            else{
+                                c_val.push_back(eig_vec[n]*eig_vec[n]*(-1));
+                            }
+                        }
+                        
+                        c_val.push_back(eig_vec[0]*eig_vec[1]*(-2));
+                        if(xres.size()==6){
+                            c_val.push_back(eig_vec[1]*eig_vec[2]*(-2));
+                            c_val.push_back(eig_vec[2]*eig_vec[0]*(-2));
+                        }
+                        
+                        int j=0;
+                        for (auto &v_p: con->get_vars()){
+                            auto vid=v_p.second.first->get_id() + v_p.second.first->get_id_inst(i);
+                            cut.push_back(vid);
+                            cut.push_back(c_val[j++]);
+                        }
+                        cut.push_back(c0_val);
+                        res.push_back(cut);
+                        cut.clear();
+                        c_val.clear();
                     }
+                }
             }
             
         }
@@ -992,7 +996,7 @@ vector<vector<double>> Model<type>::cuts_eigen_bags(const double active_tol)
             for(auto j=i+1;j<b.second.size();j++){
                 mat_X(i,j)=Xij.eval(b.second[i]+","+b.second[j]);
                 //if(std::abs(mat_X(i,j))<=1e-12)
-                  //  mat_X(i,j)=0;
+                //  mat_X(i,j)=0;
                 mat_X(j,i)=mat_X(i,j);
                 mat[i][j]=mat_X(i, j);
                 mat[j][i]=mat[i][j];
@@ -1010,9 +1014,9 @@ vector<vector<double>> Model<type>::cuts_eigen_bags(const double active_tol)
                 vector<double> eig_vec;
                 for(auto n=0;n<dim;n++){
                     if(std::abs(es.eigenvectors().col(m)[n])<=1e-5)
-                      eig_vec.push_back(0);
+                        eig_vec.push_back(0);
                     else
-                    eig_vec.push_back(es.eigenvectors().col(m)[n]);
+                        eig_vec.push_back(es.eigenvectors().col(m)[n]);
                     
                 }
                 double minc=10000;
@@ -1020,20 +1024,20 @@ vector<vector<double>> Model<type>::cuts_eigen_bags(const double active_tol)
                 for(auto n=0;n<dim;n++){
                     double c=eig_vec[n]*eig_vec[n]*(-1);
                     key.push_back(b.second[n]);
-                        if(X.get_ub(b.second[n])-X.get_lb(b.second[n])<=1e-6){
-                            c_val.push_back(0);
-                            c0_val+=c*X.get_ub(b.second[n]);
-                        }
-//                   else if(std::abs(c)<=1e-12){
-//                        c_val.push_back(0);
-//                    }
-                        else{
-                            c_val.push_back(eig_vec[n]*eig_vec[n]*(-1));
-                            if(std::abs(c_val.back())!=0 && std::abs(c_val.back())<=minc)
-                                minc=std::abs(c_val.back());
-                            if(std::abs(c_val.back())>=maxc)
-                                maxc=std::abs(c_val.back());
-                        }
+                    if(X.get_ub(b.second[n])-X.get_lb(b.second[n])<=1e-6){
+                        c_val.push_back(0);
+                        c0_val+=c*X.get_ub(b.second[n]);
+                    }
+                    //                   else if(std::abs(c)<=1e-12){
+                    //                        c_val.push_back(0);
+                    //                    }
+                    else{
+                        c_val.push_back(eig_vec[n]*eig_vec[n]*(-1));
+                        if(std::abs(c_val.back())!=0 && std::abs(c_val.back())<=minc)
+                            minc=std::abs(c_val.back());
+                        if(std::abs(c_val.back())>=maxc)
+                            maxc=std::abs(c_val.back());
+                    }
                 }
                 for(auto n=0;n<dim;n++){
                     for(auto o=n+1;o<dim;o++){
@@ -1050,126 +1054,131 @@ vector<vector<double>> Model<type>::cuts_eigen_bags(const double active_tol)
                                 c0_val+=c*ub;
                             }
                         }
-//                        else if(std::abs(c)<=1e-12){
-//                            c_val.push_back(0);
-//                        }
+                        //                        else if(std::abs(c)<=1e-12){
+                        //                            c_val.push_back(0);
+                        //                        }
                         else {
-                                c_val.push_back(eig_vec[n]*eig_vec[o]*(-2));
-                                if(std::abs(c_val.back())!=0 && std::abs(c_val.back())<=minc)
-                                    minc=std::abs(c_val.back());
-                                if(std::abs(c_val.back())>=maxc)
-                                    maxc=std::abs(c_val.back());
-                            }
+                            c_val.push_back(eig_vec[n]*eig_vec[o]*(-2));
+                            if(std::abs(c_val.back())!=0 && std::abs(c_val.back())<=minc)
+                                minc=std::abs(c_val.back());
+                            if(std::abs(c_val.back())>=maxc)
+                                maxc=std::abs(c_val.back());
+                        }
                     }
                 }
                 double cost=0;
                 for(auto i=0;i<c_val.size();i++){
                     cost+=xsol[var_ind[i]]*c_val[i];
                 }
-              
+                
                 cost+=c0_val;
                 double scale=1;
                 
-//                if(minc<=1e-6 && maxc<=1){
-//                    scale=1e3;
-//                    maxc*=scale;
-//                    minc*=scale;
-//                    if(minc<=1e-12){
-//                        DebugOn("small"<<endl);
-//                    }
-//                    DebugOff("scaling "<<scale<<endl);
-//                }
-//                else if(cost<=1e-6){
-//                    if(maxc<=1)
-//                    scale=1e3;
-//                    else if(maxc<=10)
-//                        scale=1e2;
-//                    else if(maxc<=100)
-//                        scale=1e1;
-//                   //else if(maxc<=1000)
-//             //    scale=10;
-//                    maxc*=scale;
-//                    minc*=scale;
-//                }
+                //                if(minc<=1e-6 && maxc<=1){
+                //                    scale=1e3;
+                //                    maxc*=scale;
+                //                    minc*=scale;
+                //                    if(minc<=1e-12){
+                //                        DebugOn("small"<<endl);
+                //                    }
+                //                    DebugOff("scaling "<<scale<<endl);
+                //                }
+                //                else if(cost<=1e-6){
+                //                    if(maxc<=1)
+                //                    scale=1e3;
+                //                    else if(maxc<=10)
+                //                        scale=1e2;
+                //                    else if(maxc<=100)
+                //                        scale=1e1;
+                //                   //else if(maxc<=1000)
+                //             //    scale=10;
+                //                    maxc*=scale;
+                //                    minc*=scale;
+                //                }
                 cost*=scale;
-               
+                
                 if(true || minc>=1e-9 && maxc<=1e4){
-                   double min_coef=1e6;
-                   double max_coef=-1e6;
-                if(cost>=1e-6){
-                    map<string, double> coef_x;
-                    map<string, double> coef_y;
-                    double coef_const=0;
-                    for(auto i=0;i<c_val.size();i++){
-                        if(map_x.find(key[i])!=map_x.end()){
-                            for(auto p:map_x[key[i]]){
-                                coef_x[p.first]+=p.second*c_val[i]*scale;
+                    double min_coef=1e6;
+                    double max_coef=-1e6;
+                    if(cost>=1e-6){
+                        map<string, double> coef_x;
+                        map<string, double> coef_y;
+                        double coef_const=0;
+                        for(auto i=0;i<c_val.size();i++){
+                            if(map_x.find(key[i])!=map_x.end()){
+                                for(auto p:map_x[key[i]]){
+                                    coef_x[p.first]+=p.second*c_val[i]*scale;
+                                }
+                            }
+                            if(map_y.find(key[i])!=map_y.end()){
+                                for(auto p:map_y[key[i]]){
+                                    coef_y[p.first]+=p.second*c_val[i]*scale;
+                                }
+                            }
+                            if(map_const.find(key[i])!=map_const.end()){
+                                coef_const+=map_const[key[i]]*c_val[i]*scale;
                             }
                         }
-                        if(map_y.find(key[i])!=map_y.end()){
-                            for(auto p:map_y[key[i]]){
-                                coef_y[p.first]+=p.second*c_val[i]*scale;
+                        coef_const+=c0_val*scale;
+                        for(auto it=coef_x.begin();it!=coef_x.end();it++){
+                            cut.push_back(index_x+x._indices->_keys_map->at(it->first));
+                            cut.push_back(it->second);
+                            auto absc=std::abs(it->second);
+                            if(absc!=0 && absc<=min_coef )
+                                min_coef=absc;
+                            if(absc>=max_coef )
+                                max_coef=absc;
+                        }
+                        for(auto it=coef_y.begin();it!=coef_y.end();it++){
+                            cut.push_back(index_y+y._indices->_keys_map->at(it->first));
+                            cut.push_back(it->second);
+                            auto absc=std::abs(it->second);
+                            if(absc!=0 && absc<=min_coef )
+                                min_coef=absc;
+                            if(absc>=max_coef )
+                                max_coef=absc;
+                        }
+                        cut.push_back(coef_const);
+                        scale=1;
+                        if(max_coef>=1e3){
+                            scale=1e3/max_coef;
+                            max_coef=1e3;
+                            min_coef*=scale;
+                        }
+                        if(min_coef<=1e-9 && min_coef>=1e-10 && max_coef<=1e2)
+                            scale*=10;
+                        else if(min_coef<=1e-9 && min_coef>=1e-11 && max_coef<=1e2)
+                            scale*=10;
+                        else if(min_coef<=1e-9 && min_coef>=1e-12 && max_coef<=10)
+                            scale*=100;
+                        
+                        
+                        auto s=cut.size();
+                        cut[s-1]*=scale;
+                        for(auto i=1;i<cut.size();i+=2){
+                            cut[i]*=scale;
+                            if(std::abs(cut[i])<=1e-9){
+                                if(cut[i]>=0){
+                                    cut[i]=0;
+                                }
+                                else{
+                                    cut[s-1]+=cut[i];
+                                    cut[i]=0;
+                                }
                             }
                         }
-                        if(map_const.find(key[i])!=map_const.end()){
-                            coef_const+=map_const[key[i]]*c_val[i]*scale;
-                        }
+                        
+                        
+                        res.push_back(cut);
+                        cut.clear();
+                        key.clear();
                     }
-                    coef_const+=c0_val*scale;
-                    for(auto it=coef_x.begin();it!=coef_x.end();it++){
-                        cut.push_back(index_x+x._indices->_keys_map->at(it->first));
-                        cut.push_back(it->second);
-                        auto absc=std::abs(it->second);
-                        if(absc!=0 && absc<=min_coef )
-                            min_coef=absc;
-                        if(absc>=max_coef )
-                            max_coef=absc;
+                    else{
+                        if(cost<=1e-9)
+                            DebugOff("cost "<<cost<<endl);
                     }
-                    for(auto it=coef_y.begin();it!=coef_y.end();it++){
-                        cut.push_back(index_y+y._indices->_keys_map->at(it->first));
-                        cut.push_back(it->second);
-                        auto absc=std::abs(it->second);
-                        if(absc!=0 && absc<=min_coef )
-                            min_coef=absc;
-                        if(absc>=max_coef )
-                            max_coef=absc;
-                    }
-                    cut.push_back(coef_const);
-                    if(min_coef<=1e-9 && max_coef<=1e3){
-                        scale =1;
-                        if(min_coef>=1e-10 && max_coef<=1e2)
-                            scale =10;
-                        if(min_coef>=1e-11 && max_coef<=1e2)
-                            scale =10;
-                        if(min_coef>=1e-12 && max_coef<=10)
-                            scale =100;
-                    
-                    auto s=cut.size();
-                    cut[s-1]*=scale;
-                    for(auto i=1;i<cut.size();i+=2){
-                        cut[i]*=scale;
-                        if(std::abs(cut[i])<=1e-9){
-                            if(cut[i]>=0){
-                                cut[i]=0;
-                            }
-                            else{
-                                cut[s-1]+=cut[i];
-                                cut[i]=0;
-                            }
-                        }
-                    }
-                    }
-                    
-                    res.push_back(cut);
                     cut.clear();
-                    key.clear();
                 }
-                else{
-                    if(cost<=1e-9)
-                        DebugOff("cost "<<cost<<endl);
-                }
-                cut.clear();
-            }
             }
             else{
                 break;
@@ -1230,44 +1239,44 @@ vector<vector<double>> Model<type>::cuts_eigen_full(const double active_tol)
             }
         }
     }
-        SelfAdjointEigenSolver<MatrixXd> es;
-        es.compute(mat_full);
-        for(auto m=0;m<1;m++){
-            if(es.eigenvalues()[m]<=-active_tol){
-                vector<double> c_val;
-                vector<string> key;
-                c0_val=0;
-                vector<double> eig_vec;
-                for(auto n=0;n<dim_full;n++){
-                    if(std::abs(es.eigenvectors().col(m)[n])<=1e-5)
-                      eig_vec.push_back(0);
-                    else
+    SelfAdjointEigenSolver<MatrixXd> es;
+    es.compute(mat_full);
+    for(auto m=0;m<1;m++){
+        if(es.eigenvalues()[m]<=-active_tol){
+            vector<double> c_val;
+            vector<string> key;
+            c0_val=0;
+            vector<double> eig_vec;
+            for(auto n=0;n<dim_full;n++){
+                if(std::abs(es.eigenvectors().col(m)[n])<=1e-5)
+                    eig_vec.push_back(0);
+                else
                     eig_vec.push_back(es.eigenvectors().col(m)[n]);
-                    
+                
+            }
+            double minc=10000;
+            double maxc=-10000;
+            for(auto n=0;n<dim_full;n++){
+                double c=eig_vec[n]*eig_vec[n]*(-1);
+                key.push_back(all_names[n]);
+                if(X.get_ub(all_names[n])-X.get_lb(all_names[n])<=1e-6){
+                    c_val.push_back(0);
+                    c0_val+=c*X.get_ub(all_names[n]);
                 }
-                double minc=10000;
-                double maxc=-10000;
-                for(auto n=0;n<dim_full;n++){
-                    double c=eig_vec[n]*eig_vec[n]*(-1);
-                    key.push_back(all_names[n]);
-                        if(X.get_ub(all_names[n])-X.get_lb(all_names[n])<=1e-6){
-                            c_val.push_back(0);
-                            c0_val+=c*X.get_ub(all_names[n]);
-                        }
-//                   else if(std::abs(c)<=1e-12){
-//                        c_val.push_back(0);
-//                    }
-                        else{
-                            c_val.push_back(eig_vec[n]*eig_vec[n]*(-1));
-                            if(std::abs(c_val.back())!=0 && std::abs(c_val.back())<=minc)
-                                minc=std::abs(c_val.back());
-                            if(std::abs(c_val.back())>=maxc)
-                                maxc=std::abs(c_val.back());
-                        }
+                //                   else if(std::abs(c)<=1e-12){
+                //                        c_val.push_back(0);
+                //                    }
+                else{
+                    c_val.push_back(eig_vec[n]*eig_vec[n]*(-1));
+                    if(std::abs(c_val.back())!=0 && std::abs(c_val.back())<=minc)
+                        minc=std::abs(c_val.back());
+                    if(std::abs(c_val.back())>=maxc)
+                        maxc=std::abs(c_val.back());
                 }
-                for(auto n=0;n<dim_full;n++){
-                    for(auto o=n+1;o<dim_full;o++){
-                        if (Xij._indices->has_key(all_names[n]+","+all_names[o])){
+            }
+            for(auto n=0;n<dim_full;n++){
+                for(auto o=n+1;o<dim_full;o++){
+                    if (Xij._indices->has_key(all_names[n]+","+all_names[o])){
                         key.push_back(all_names[n]+","+all_names[o]);
                         double c=(eig_vec[n]*eig_vec[o]*(-2));
                         double lb=Xij.get_lb(all_names[n]+","+all_names[o]);
@@ -1281,131 +1290,134 @@ vector<vector<double>> Model<type>::cuts_eigen_full(const double active_tol)
                                 c0_val+=c*ub;
                             }
                         }
-//                        else if(std::abs(c)<=1e-12){
-//                            c_val.push_back(0);
-//                        }
+                        //                        else if(std::abs(c)<=1e-12){
+                        //                            c_val.push_back(0);
+                        //                        }
                         else {
-                                c_val.push_back(eig_vec[n]*eig_vec[o]*(-2));
-                                if(std::abs(c_val.back())!=0 && std::abs(c_val.back())<=minc)
-                                    minc=std::abs(c_val.back());
-                                if(std::abs(c_val.back())>=maxc)
-                                    maxc=std::abs(c_val.back());
-                            }
+                            c_val.push_back(eig_vec[n]*eig_vec[o]*(-2));
+                            if(std::abs(c_val.back())!=0 && std::abs(c_val.back())<=minc)
+                                minc=std::abs(c_val.back());
+                            if(std::abs(c_val.back())>=maxc)
+                                maxc=std::abs(c_val.back());
+                        }
                     }
                 }
-                }
-                double cost=0;
+            }
+            double cost=0;
+            for(auto i=0;i<c_val.size();i++){
+                cost+=xsol[var_ind[i]]*c_val[i];
+            }
+            
+            cost+=c0_val;
+            double scale=1;
+            //
+            //                if(minc<=1e-6 && maxc<=1){
+            //                    scale=1e3;
+            //                    maxc*=scale;
+            //                    minc*=scale;
+            //                    if(minc<=1e-12){
+            //                        DebugOn("small"<<endl);
+            //                    }
+            //                    DebugOff("scaling "<<scale<<endl);
+            //                }
+            //                else if(cost<=1e-6){
+            //                    if(maxc<=1)
+            //                    scale=1e3;
+            //                    else if(maxc<=10)
+            //                        scale=1e2;
+            //                    else if(maxc<=100)
+            //                        scale=1e1;
+            //             //else if(maxc<=1000)
+            //               //   scale=10;
+            //                    maxc*=scale;
+            //                    minc*=scale;
+            //                }
+            cost*=scale;
+            //if(cost>=1e-9 && minc>=1e-9 && maxc<=1e4){
+            if(cost>=1e-9){
+                double min_coef=1e6;
+                double max_coef=-1e6;
+                map<string, double> coef_x;
+                map<string, double> coef_y;
+                double coef_const=0;
                 for(auto i=0;i<c_val.size();i++){
-                    cost+=xsol[var_ind[i]]*c_val[i];
+                    if(map_x.find(key[i])!=map_x.end()){
+                        for(auto p:map_x[key[i]]){
+                            coef_x[p.first]+=p.second*c_val[i]*scale;
+                        }
+                    }
+                    if(map_y.find(key[i])!=map_y.end()){
+                        for(auto p:map_y[key[i]]){
+                            coef_y[p.first]+=p.second*c_val[i]*scale;
+                        }
+                    }
+                    if(map_const.find(key[i])!=map_const.end()){
+                        coef_const+=map_const[key[i]]*c_val[i]*scale;
+                    }
                 }
-              
-                cost+=c0_val;
-                double scale=1;
-//
-//                if(minc<=1e-6 && maxc<=1){
-//                    scale=1e3;
-//                    maxc*=scale;
-//                    minc*=scale;
-//                    if(minc<=1e-12){
-//                        DebugOn("small"<<endl);
-//                    }
-//                    DebugOff("scaling "<<scale<<endl);
-//                }
-//                else if(cost<=1e-6){
-//                    if(maxc<=1)
-//                    scale=1e3;
-//                    else if(maxc<=10)
-//                        scale=1e2;
-//                    else if(maxc<=100)
-//                        scale=1e1;
-//             //else if(maxc<=1000)
-//               //   scale=10;
-//                    maxc*=scale;
-//                    minc*=scale;
-//                }
-                cost*=scale;
-                //if(cost>=1e-9 && minc>=1e-9 && maxc<=1e4){
-                if(cost>=1e-9){
-                    double min_coef=1e6;
-                    double max_coef=-1e6;
-                    map<string, double> coef_x;
-                    map<string, double> coef_y;
-                    double coef_const=0;
-                    for(auto i=0;i<c_val.size();i++){
-                        if(map_x.find(key[i])!=map_x.end()){
-                            for(auto p:map_x[key[i]]){
-                                coef_x[p.first]+=p.second*c_val[i]*scale;
-                            }
+                coef_const+=c0_val*scale;
+                for(auto it=coef_x.begin();it!=coef_x.end();it++){
+                    cut.push_back(index_x+x._indices->_keys_map->at(it->first));
+                    cut.push_back(it->second);
+                    auto absc=std::abs(it->second);
+                    if(absc!=0 && absc<=min_coef )
+                        min_coef=absc;
+                    if(absc>=max_coef )
+                        max_coef=absc;
+                }
+                for(auto it=coef_y.begin();it!=coef_y.end();it++){
+                    cut.push_back(index_y+y._indices->_keys_map->at(it->first));
+                    cut.push_back(it->second);
+                    auto absc=std::abs(it->second);
+                    if(absc!=0 && absc<=min_coef )
+                        min_coef=absc;
+                    if(absc>=max_coef )
+                        max_coef=absc;
+                }
+                cut.push_back(coef_const);
+                //if(min_coef>=1e-9 && max_coef<=1e4){
+                scale=1;
+                if(max_coef>=1e3){
+                    scale=1e3/max_coef;
+                    max_coef=1e3;
+                    min_coef*=scale;
+                }
+                if(min_coef<=1e-9 && min_coef>=1e-10 && max_coef<=1e2)
+                    scale*=10;
+                else if(min_coef<=1e-9 && min_coef>=1e-11 && max_coef<=1e2)
+                    scale*=10;
+                else if(min_coef<=1e-9 && min_coef>=1e-12 && max_coef<=10)
+                    scale*=100;
+                
+                auto s=cut.size();
+                cut[s-1]*=scale;
+                for(auto i=1;i<cut.size();i+=2){
+                    cut[i]*=scale;
+                    if(std::abs(cut[i])<=1e-9){
+                        if(cut[i]>=0){
+                            cut[i]=0;
                         }
-                        if(map_y.find(key[i])!=map_y.end()){
-                            for(auto p:map_y[key[i]]){
-                                coef_y[p.first]+=p.second*c_val[i]*scale;
-                            }
-                        }
-                        if(map_const.find(key[i])!=map_const.end()){
-                            coef_const+=map_const[key[i]]*c_val[i]*scale;
-                        }
-                    }
-                    coef_const+=c0_val*scale;
-                    for(auto it=coef_x.begin();it!=coef_x.end();it++){
-                        cut.push_back(index_x+x._indices->_keys_map->at(it->first));
-                        cut.push_back(it->second);
-                        auto absc=std::abs(it->second);
-                        if(absc!=0 && absc<=min_coef )
-                            min_coef=absc;
-                        if(absc>=max_coef )
-                            max_coef=absc;
-                    }
-                    for(auto it=coef_y.begin();it!=coef_y.end();it++){
-                        cut.push_back(index_y+y._indices->_keys_map->at(it->first));
-                        cut.push_back(it->second);
-                        auto absc=std::abs(it->second);
-                        if(absc!=0 && absc<=min_coef )
-                            min_coef=absc;
-                        if(absc>=max_coef )
-                            max_coef=absc;
-                    }
-                    cut.push_back(coef_const);
-                    //if(min_coef>=1e-9 && max_coef<=1e4){
-                    if(min_coef<=1e-9 && max_coef<=1e3){
-                        scale =1;
-                        if(min_coef>=1e-10 && max_coef<=1e2)
-                            scale =10;
-                        if(min_coef>=1e-11 && max_coef<=1e2)
-                            scale =10;
-                        if(min_coef>=1e-12 && max_coef<=10)
-                            scale =100;
-                    
-                    auto s=cut.size();
-                    cut[s-1]*=scale;
-                    for(auto i=1;i<cut.size();i+=2){
-                        cut[i]*=scale;
-                        if(std::abs(cut[i])<=1e-9){
-                            if(cut[i]>=0){
-                                cut[i]=0;
-                            }
-                            else{
-                                cut[s-1]+=cut[i];
-                                cut[i]=0;
-                            }
+                        else{
+                            cut[s-1]+=cut[i];
+                            cut[i]=0;
                         }
                     }
-                    }
-                    res.push_back(cut);
+                }
+                res.push_back(cut);
                 //}
                 cut.clear();
                 key.clear();
-                }
-//                else{
-//                    if(cost<=1e-9)
-//                        DebugOff("cost "<<cost<<endl);
-//                }
-                cut.clear();
             }
-            else{
-                break;
-            }
+            //                else{
+            //                    if(cost<=1e-9)
+            //                        DebugOff("cost "<<cost<<endl);
+            //                }
+            cut.clear();
         }
+        else{
+            break;
+        }
+    }
     
     
     //DebugOn("eig"<<endl);
@@ -1414,73 +1426,73 @@ vector<vector<double>> Model<type>::cuts_eigen_full(const double active_tol)
 template<typename type>
 template<typename T>
 double Model<type>::check_PSD(){
-var<double> X=get_var<double>("X");
-var<double> Xij=get_var<double>("Xij");
-int dim_full=X._indices->_keys->size();
-
-Eigen::MatrixXd mat_full(dim_full,dim_full);
-int count=0;
-vector<string> all_names;
-for(auto k:*X._indices->_keys){
-    mat_full(count, count)=X.eval(k);
-    all_names.push_back(k);
-    count++;
-}
-
-for(auto i=0;i<all_names.size()-1;i++){
-    for(auto j=i+1;j<all_names.size();j++){
-        auto k=all_names[i]+","+all_names[j];
-        if (Xij._indices->has_key(k)){
-            mat_full(i, j)=Xij.eval(k);
-            mat_full(j, i)=Xij.eval(k);
-        }
-        else{
-            mat_full(i, j)=0;
-            mat_full(j, i)=0;
+    var<double> X=get_var<double>("X");
+    var<double> Xij=get_var<double>("Xij");
+    int dim_full=X._indices->_keys->size();
+    
+    Eigen::MatrixXd mat_full(dim_full,dim_full);
+    int count=0;
+    vector<string> all_names;
+    for(auto k:*X._indices->_keys){
+        mat_full(count, count)=X.eval(k);
+        all_names.push_back(k);
+        count++;
+    }
+    
+    for(auto i=0;i<all_names.size()-1;i++){
+        for(auto j=i+1;j<all_names.size();j++){
+            auto k=all_names[i]+","+all_names[j];
+            if (Xij._indices->has_key(k)){
+                mat_full(i, j)=Xij.eval(k);
+                mat_full(j, i)=Xij.eval(k);
+            }
+            else{
+                mat_full(i, j)=0;
+                mat_full(j, i)=0;
+            }
         }
     }
-}
-Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> es1;
-es1.compute(mat_full);
-
-for(auto m=0;m<dim_full;m++){
-    DebugOn(std::setprecision(12)<<es1.eigenvalues()[m]<<" ");
-}
-DebugOn(endl<<"full"<<endl);
-
-//  for(auto b:g._bags){
-//      auto dim=b.second.size();
-//      vector<string> node_names;
-//      vector<vector<double>> mat_X(dim, std::vector<double>(dim, 0));
-//      Eigen::MatrixXd mat(dim,dim);
-//      int count=0;
-//      for(auto n:b.second){
-//          node_names.push_back(n->_name);
-//          mat_X[count][count]=X.eval(n->_name);
-//          mat(count,count)=mat_X[count][count];
-//          count++;
-//          DebugOn(n->_name<<" ");
-//      }
-//      DebugOn(endl);
-//      for(auto i=0;i<node_names.size()-1;i++){
-//          for(auto j=i+1;j<node_names.size();j++){
-//              mat_X[i][j]=Xij.eval(node_names[i]+","+node_names[j]);
-//              mat_X[j][i]=Xij.eval(node_names[i]+","+node_names[j]);
-//              mat(i,j)=mat_X[i][j];
-//              mat(j,i)=mat_X[i][j];
-//          }
-//      }
-//     // double det=determinant(mat_X, dim);
-//      Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> es;
-//      es.compute(mat);
-//      DebugOn("clique "<<dim<<endl);
-//      for(auto m=0;m<dim;m++){
-//          //                           cout<<es.eigenvalues()[m].real();
-//          DebugOn(std::setprecision(12)<<es.eigenvalues()[m]<<" ");
-//      }
-//      DebugOn(endl);
-//      //DebugOn("Determinant "<<std::setprecision(12)<<det<<" clique size "<<dim<<endl);
-//  }
+    Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> es1;
+    es1.compute(mat_full);
+    
+    for(auto m=0;m<dim_full;m++){
+        DebugOn(std::setprecision(12)<<es1.eigenvalues()[m]<<" ");
+    }
+    DebugOn(endl<<"full"<<endl);
+    
+    //  for(auto b:g._bags){
+    //      auto dim=b.second.size();
+    //      vector<string> node_names;
+    //      vector<vector<double>> mat_X(dim, std::vector<double>(dim, 0));
+    //      Eigen::MatrixXd mat(dim,dim);
+    //      int count=0;
+    //      for(auto n:b.second){
+    //          node_names.push_back(n->_name);
+    //          mat_X[count][count]=X.eval(n->_name);
+    //          mat(count,count)=mat_X[count][count];
+    //          count++;
+    //          DebugOn(n->_name<<" ");
+    //      }
+    //      DebugOn(endl);
+    //      for(auto i=0;i<node_names.size()-1;i++){
+    //          for(auto j=i+1;j<node_names.size();j++){
+    //              mat_X[i][j]=Xij.eval(node_names[i]+","+node_names[j]);
+    //              mat_X[j][i]=Xij.eval(node_names[i]+","+node_names[j]);
+    //              mat(i,j)=mat_X[i][j];
+    //              mat(j,i)=mat_X[i][j];
+    //          }
+    //      }
+    //     // double det=determinant(mat_X, dim);
+    //      Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> es;
+    //      es.compute(mat);
+    //      DebugOn("clique "<<dim<<endl);
+    //      for(auto m=0;m<dim;m++){
+    //          //                           cout<<es.eigenvalues()[m].real();
+    //          DebugOn(std::setprecision(12)<<es.eigenvalues()[m]<<" ");
+    //      }
+    //      DebugOn(endl);
+    //      //DebugOn("Determinant "<<std::setprecision(12)<<det<<" clique size "<<dim<<endl);
+    //  }
     return(es1.eigenvalues()[0]);
 }
 /*Adds row(or new instance) of a linear constraint to a model by linearizing a nonlinear constraint con
