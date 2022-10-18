@@ -597,11 +597,37 @@ Net CBF_read(const char *file, shared_ptr<Model<double>>& m, bool add_3d) {
             auto u=sqrt(u1*u2);
             Xij.set_lb(k, std::max(-u, Xij.get_lb(k)));
             Xij.set_ub(k, std::min(u, Xij.get_ub(k)));
-//            if(Xij.get_ub(k)<=-1e-6 || Xij.get_lb(k)>=1e-6){
-//                auto a=std::min(Xij.get_ub(k)*Xij.get_ub(k), Xij.get_lb(k)*Xij.get_lb(k));
-//                X.set_lb(n1_name, std::max(a/u2,X.get_lb(n1_name)));
-//                X.set_lb(n2_name, std::max(a/u1,X.get_lb(n2_name)));
-//            }
+            if(Xij.get_ub(k)<=-1e-6 || Xij.get_lb(k)>=1e-6){
+                auto a=std::min(Xij.get_ub(k)*Xij.get_ub(k), Xij.get_lb(k)*Xij.get_lb(k));
+                if(map_y.find(n1_name)==map_y.end() && map_const.find(n1_name)==map_const.end() && m->_cons_name.find("x_ineq"+n1_name)==m->_cons_name.end()){
+                    Constraint<> x_ineq("x_ineq"+n1_name);
+                    for(auto p:map_x[n1_name]){
+                        x_ineq-=p.second*x(p.first);
+                    }
+                    m->add(x_ineq<=a/u2*(-1));
+                }
+                if(map_y.find(n2_name)==map_y.end() && map_const.find(n2_name)==map_const.end() && m->_cons_name.find("x_ineq"+n2_name)==m->_cons_name.end()){
+                    Constraint<> x_ineq("x_ineq"+n2_name);
+                    for(auto p:map_x[n2_name]){
+                        x_ineq-=p.second*x(p.first);
+                    }
+                    m->add(x_ineq<=a/u1*(-1));
+                }
+                if(map_x.find(n1_name)==map_x.end() && map_const.find(n1_name)==map_const.end() && m->_cons_name.find("y_ineq"+n1_name)==m->_cons_name.end()){
+                    Constraint<> y_ineq("y_ineq"+n1_name);
+                    for(auto p:map_y[n1_name]){
+                        y_ineq-=y(p.first);
+                    }
+                    m->add(y_ineq<=-1);
+                }
+                if(map_x.find(n2_name)==map_x.end() && map_const.find(n2_name)==map_const.end() && m->_cons_name.find("y_ineq"+n2_name)==m->_cons_name.end()){
+                    Constraint<> y_ineq("y_ineq"+n2_name);
+                    for(auto p:map_y[n2_name]){
+                        y_ineq-=y(p.first);
+                    }
+                    m->add(y_ineq<=-1);
+                }
+            }
         }
         for(auto k:*(node_pairs_chord._keys)){
             if(!node_pairs.has_key(k)){

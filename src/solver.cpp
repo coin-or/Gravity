@@ -846,11 +846,11 @@ vector<vector<double>> Model<type>::cutting_planes_soc(double active_tol, int& s
                             cut[s-1]*=scale;
                             for(auto i=1;i<cut.size();i+=2){
                                 cut[i]*=scale;
-                                if(std::abs(cut[i])<=1e-9){
+                                if(std::abs(cut[i])<=1e-9 && cut[i]!=0){
                                     if(cut[i]>=0){
                                         cut[i]=0;
                                     }
-                                    else{
+                                    else{/*ASSUMPTION in scaling upper bound of variable in cuts is 1*/
                                         cut[s-1]+=cut[i];
                                         cut[i]=0;
                                     }
@@ -1157,11 +1157,11 @@ vector<vector<double>> Model<type>::cuts_eigen_bags(const double active_tol)
                         cut[s-1]*=scale;
                         for(auto i=1;i<cut.size();i+=2){
                             cut[i]*=scale;
-                            if(std::abs(cut[i])<=1e-9){
+                            if(std::abs(cut[i])<=1e-9 && cut[i]!=0){
                                 if(cut[i]>=0){
                                     cut[i]=0;
                                 }
-                                else{
+                                else{/*ASSUMPTION in scaling upper bound of variable in cuts is 1*/
                                     cut[s-1]+=cut[i];
                                     cut[i]=0;
                                 }
@@ -1393,11 +1393,11 @@ vector<vector<double>> Model<type>::cuts_eigen_full(const double active_tol)
                 cut[s-1]*=scale;
                 for(auto i=1;i<cut.size();i+=2){
                     cut[i]*=scale;
-                    if(std::abs(cut[i])<=1e-9){
+                    if(std::abs(cut[i])<=1e-9 && cut[i]!=0){
                         if(cut[i]>=0){
                             cut[i]=0;
                         }
-                        else{
+                        else{/*ASSUMPTION in scaling upper bound of variable in cuts is 1*/
                             cut[s-1]+=cut[i];
                             cut[i]=0;
                         }

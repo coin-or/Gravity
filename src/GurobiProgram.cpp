@@ -97,8 +97,7 @@ protected:
                                 DebugOff("soc cut at ");
                                 for(j=0;j<res[i].size()-1;j+=2){
                                     int c=res[i][j];
-                                    if(std::abs(c)>=0)
-                                        expr += res[i][j+1]*vars[c];
+                                    expr += res[i][j+1]*vars[c];
                                     DebugOff(to_string_with_precision(vec_x[c],10)<<" "<<to_string_with_precision(c,10)<<" "<<to_string_with_precision(res[i][j+1],10)<<" ");
                                 }
                                 expr += res[i][j];
@@ -240,8 +239,7 @@ protected:
                                 DebugOff("soc cut at ");
                                 for(j=0;j<res[i].size()-1;j+=2){
                                     int c=res[i][j];
-                                    if(std::abs(c)>=0)
-                                        expr += res[i][j+1]*vars[c];
+                                    expr += res[i][j+1]*vars[c];
                                     DebugOff(to_string_with_precision(vec_x[c],10)<<" "<<to_string_with_precision(c,10)<<" "<<to_string_with_precision(res[i][j+1],10)<<" ");
                                 }
                                 expr += res[i][j];
@@ -445,17 +443,17 @@ bool GurobiProgram::solve(bool relax, double mipgap, double time_limit){
     //    relax_model();
     grb_mod->set(GRB_DoubleParam_MIPGap, 1e-6);
     grb_mod->set(GRB_DoubleParam_FeasibilityTol, 1e-9);
-    grb_mod->set(GRB_DoubleParam_OptimalityTol, 1e-6);
+    grb_mod->set(GRB_DoubleParam_OptimalityTol, 1e-9);
     // grb_mod->set(GRB_IntParam_StartNodeLimit, -3);
     //    grb_mod->getEnv().set(GRB_IntParam_DualReductions, 0);
     //    grb_mod->getEnv().set(GRB_IntParam_PreCrush, 1);
     //        grb_mod->getEnv().set(GRB_IntParam_Method, 1);
     //    grb_mod->getEnv().set(GRB_IntParam_NodeMethod, 1);
     grb_mod->getEnv().set(GRB_IntParam_LazyConstraints, 1);
-    grb_mod->set(GRB_IntParam_Threads, 8);
+    grb_mod->set(GRB_IntParam_Threads, 1);
         grb_mod->set(GRB_DoubleParam_IntFeasTol, 1e-9);
-    //   grb_mod->set(GRB_IntParam_NumericFocus,3);
-   //  grb_mod->set(GRB_IntParam_Presolve,2);
+       grb_mod->set(GRB_IntParam_NumericFocus,3);
+     grb_mod->set(GRB_IntParam_PreCrush,0);
     grb_mod->set(GRB_IntParam_MIPFocus,3);
     //    grb_mod->set(GRB_IntParam_IntegralityFocus,1);
     //    grb_mod->set(GRB_IntParam_MIPFocus,2);
@@ -569,11 +567,10 @@ bool GurobiProgram::solve(bool relax, double mipgap, double time_limit){
             if(res2.size()>=1){
                 for(auto i=0;i<res2.size();i++){
                     GRBLinExpr expr = 0;
-                    int j;
+                    int j=0;
                     for(j=0;j<res2[i].size()-1;j+=2){
                         int c=res2[i][j];
-                        if(std::abs(c)!=0)
-                            expr += res2[i][j+1]*_grb_vars[c];
+                        expr += res2[i][j+1]*_grb_vars[c];
                     }
                     expr += res2[i][j];
                     grb_mod->addConstr(expr, GRB_LESS_EQUAL, 0);
@@ -601,8 +598,14 @@ bool GurobiProgram::solve(bool relax, double mipgap, double time_limit){
             if(not_sdp){
                 grb_mod->update();
                 grb_mod->optimize();
-                if(grb_mod->get(GRB_IntAttr_Status)!=2)
+                if(grb_mod->get(GRB_IntAttr_Status)!=2){
+                    DebugOn("status "<<grb_mod->get(GRB_IntAttr_Status)<<endl);
+                    grb_mod->computeIIS();
+                    grb_mod->write("b.mps");
+                    grb_mod->write("a.ilp");
                     break;
+                }
+                    
                 if(grb_mod->get(GRB_IntAttr_SolCount)>0)
                     update_solution();
 //                sol_old=sol_new;
@@ -684,9 +687,9 @@ void GurobiProgram::update_solution(){
         for (auto i = 0; i < dim; i++) {
             auto vid = idx + v->get_id_inst(i);
             gvar = _grb_vars.at(vid);
-            if(v->is_integer()||v->is_binary()||v->_is_relaxed)
-                v->set_double_val(i,std::round(gvar.get(GRB_DoubleAttr_X)));
-            else
+//            if(v->is_integer()||v->is_binary()||v->_is_relaxed)
+//                v->set_double_val(i,std::round(gvar.get(GRB_DoubleAttr_X)));
+//            else
                 v->set_double_val(i,gvar.get(GRB_DoubleAttr_X));
         }
     }
