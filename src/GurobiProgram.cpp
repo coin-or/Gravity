@@ -127,7 +127,7 @@ protected:
                                     }
                                     DebugOff(to_string_with_precision(res1[i][j],10));
                                     DebugOff(endl);
-                                    if(std::abs(res1[i][j])>=1e-12)
+//                                    if(std::abs(res1[i][j])>=1e-12)
                                         expr += res1[i][j];
                                     addLazy(expr, GRB_LESS_EQUAL, 0);
                                     m->num_cuts[1]++;
@@ -149,7 +149,7 @@ protected:
                                             int c=res2[i][j];
                                             expr += res2[i][j+1]*vars[c];
                                         }
-                                        if(std::abs(res2[i][j])>=1e-12)
+//                                        if(std::abs(res2[i][j])>=1e-12)
                                             expr += res2[i][j];
                                         addLazy(expr, GRB_LESS_EQUAL, 0);
                                         m->num_cuts[2]++;
@@ -265,7 +265,7 @@ protected:
                                     }
                                     DebugOff(to_string_with_precision(res1[i][j],10));
                                     DebugOff(endl);
-                                    if(std::abs(res1[i][j])>=1e-12)
+                                  //  if(std::abs(res1[i][j])>=1e-12)
                                         expr += res1[i][j];
                                     addLazy(expr, GRB_LESS_EQUAL, 0);
                                     m->num_cuts[4]++;
@@ -286,7 +286,7 @@ protected:
                                             int c=res2[i][j];
                                             expr += res2[i][j+1]*vars[c];
                                         }
-                                        if(std::abs(res2[i][j])>=1e-12)
+                                  //      if(std::abs(res2[i][j])>=1e-12)
                                             expr += res2[i][j];
                                         addLazy(expr, GRB_LESS_EQUAL, 0);
                                         m->num_cuts[5]++;
@@ -443,17 +443,17 @@ bool GurobiProgram::solve(bool relax, double mipgap, double time_limit){
     //    relax_model();
     grb_mod->set(GRB_DoubleParam_MIPGap, 1e-6);
     grb_mod->set(GRB_DoubleParam_FeasibilityTol, 1e-9);
-    grb_mod->set(GRB_DoubleParam_OptimalityTol, 1e-9);
+    grb_mod->set(GRB_DoubleParam_OptimalityTol, 1e-6);
     // grb_mod->set(GRB_IntParam_StartNodeLimit, -3);
     //    grb_mod->getEnv().set(GRB_IntParam_DualReductions, 0);
     //    grb_mod->getEnv().set(GRB_IntParam_PreCrush, 1);
     //        grb_mod->getEnv().set(GRB_IntParam_Method, 1);
     //    grb_mod->getEnv().set(GRB_IntParam_NodeMethod, 1);
     grb_mod->getEnv().set(GRB_IntParam_LazyConstraints, 1);
-    grb_mod->set(GRB_IntParam_Threads, 1);
+    grb_mod->set(GRB_IntParam_Threads, 8);
         grb_mod->set(GRB_DoubleParam_IntFeasTol, 1e-9);
-       grb_mod->set(GRB_IntParam_NumericFocus,3);
-     grb_mod->set(GRB_IntParam_PreCrush,0);
+//       grb_mod->set(GRB_IntParam_NumericFocus,3);
+//     grb_mod->set(GRB_IntParam_PreCrush,0);
     grb_mod->set(GRB_IntParam_MIPFocus,3);
     //    grb_mod->set(GRB_IntParam_IntegralityFocus,1);
     //    grb_mod->set(GRB_IntParam_MIPFocus,2);
@@ -599,10 +599,10 @@ bool GurobiProgram::solve(bool relax, double mipgap, double time_limit){
                 grb_mod->update();
                 grb_mod->optimize();
                 if(grb_mod->get(GRB_IntAttr_Status)!=2){
-                    DebugOn("status "<<grb_mod->get(GRB_IntAttr_Status)<<endl);
-                    grb_mod->computeIIS();
-                    grb_mod->write("b.mps");
-                    grb_mod->write("a.ilp");
+//                    DebugOn("status "<<grb_mod->get(GRB_IntAttr_Status)<<endl);
+//                    grb_mod->computeIIS();
+//                    grb_mod->write("b.mps");
+//                    grb_mod->write("a.ilp");
                     break;
                 }
                     
