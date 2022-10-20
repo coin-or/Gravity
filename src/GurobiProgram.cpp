@@ -159,58 +159,6 @@ protected:
                                 }
                             }
                         }
-                        
-                        //auto res=m->cutting_planes_solution(interior, 1e-6);
-                        /*auto res=m->cutting_planes_solution(interior, 1e-9, soc_viol, soc_found, soc_added, det_viol, det_found, det_added);
-                         if(res.size()>=1){
-                         for(i=0;i<res.size();i++){
-                         GRBLinExpr expr = 0;
-                         for(j=0;j<res[i].size()-1;j+=2){
-                         int c=res[i][j];
-                         expr += res[i][j+1]*vars[c];
-                         }
-                         if(abs(res[i][j])>=1e-6){
-                         DebugOff("pos resij");
-                         }
-                         expr+=res[i][j];
-                         // vec_expi.push_back(expr);
-                         //addLazy(expr, GRB_LESS_EQUAL, 0);
-                         }
-                         }
-                         auto res1=m->cutting_planes_eigen(1e-9);
-                         if(res1.size()>=1){
-                         for(i=0;i<res1.size();i++){
-                         GRBLinExpr expr = 0;
-                         for(j=0;j<res1[i].size()-1;j+=2){
-                         int c=res1[i][j];
-                         expr += res1[i][j+1]*vars[c];
-                         }
-                         if(abs(res1[i][j])>=1e-6){
-                         DebugOff("pos resij");
-                         }
-                         expr+=res1[i][j];
-                         //addLazy(expr, GRB_LESS_EQUAL, 0);
-                         }
-                         }
-                         m->set_solution(vec_x);
-                         auto res2=m->cuts_eigen(1e-10);
-                         if(res2.size()>=1){
-                         for(i=0;i<res2.size();i++){
-                         GRBLinExpr expr = 0;
-                         for(j=0;j<res2[i].size()-1;j+=2){
-                         int c=res2[i][j];
-                         expr += res2[i][j+1]*vars[c];
-                         }
-                         if(abs(res2[i][j])>=1e-6){
-                         DebugOff("pos resij");
-                         }
-                         expr+=res2[i][j];
-                         addLazy(expr, GRB_LESS_EQUAL, 0);
-                         vec_expi.push_back(expr);
-                         }*/
-                        // }
-                        
-                        
                     }
                 }
             }
