@@ -54,7 +54,7 @@ int main(int argc, char * argv[]){
     //string fname=string(prj_dir)+"/data_sets/MISDP/coloncancer_1_100_5.cbf";
     //string fname=string(prj_dir)+"/data_sets/MISDP/2g_4_164_k3_5_6.cbf";
 
-    bool root_refine = true;
+    bool root_refine = false;
     if(argc>=2){
         fname=argv[1];
     }
