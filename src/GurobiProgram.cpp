@@ -35,7 +35,7 @@ protected:
         try {
             bool incumbent=true;
             bool mipnode=true;
-            bool hierarc = true;
+            bool hierarc = false;
             if(incumbent){
                 if (where == GRB_CB_MIPSOL) {
                     /* Found an integer feasible solution */
@@ -166,7 +166,7 @@ protected:
                 if (where == GRB_CB_MIPNODE) {
                     if(getIntInfo(GRB_CB_MIPNODE_STATUS)==2 ){
                         int nc= getDoubleInfo(GRB_CB_MIPNODE_NODCNT);
-                        //                        if(nc%100==0){
+                                                if(true){
                         // Found an integer feasible solution - does it visit every node?
                         double *x = new double[n];
                         vector<double> vec_x;
@@ -264,6 +264,7 @@ protected:
                  }*/
                 //                    }}
             }
+	    }
             
         } catch (GRBException e) {
             cout << "Error number: " << e.getErrorCode() << endl;
@@ -635,9 +636,9 @@ void GurobiProgram::update_solution(){
         for (auto i = 0; i < dim; i++) {
             auto vid = idx + v->get_id_inst(i);
             gvar = _grb_vars.at(vid);
-//            if(v->is_integer()||v->is_binary()||v->_is_relaxed)
-//                v->set_double_val(i,std::round(gvar.get(GRB_DoubleAttr_X)));
-//            else
+            if(v->is_integer()||v->is_binary()||v->_is_relaxed)
+                v->set_double_val(i,std::round(gvar.get(GRB_DoubleAttr_X)));
+            else
                 v->set_double_val(i,gvar.get(GRB_DoubleAttr_X));
         }
     }
