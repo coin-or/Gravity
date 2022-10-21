@@ -514,36 +514,84 @@ namespace gravity {
         res.imag(extended_plus(extended_mult(x.real(),y.imag()),extended_mult(x.imag(),y.real())));
         return res;
     }
+
+template<class T1, class T2, typename enable_if<is_same<T1, Cpx>::value && is_same<T2, Cpx>::value>::type* = nullptr>
+shared_ptr<pair<T1,T1>> get_product_range(shared_ptr<pair<T1,T1>> x, shared_ptr<pair<T2,T2>> y){
+    shared_ptr<pair<T1,T1>> res = make_shared<pair<T1,T1>>();
+    T1 x1 = x->first;
+    T1 x2 = x->second;
+    T1 y1 = y->first;
+    T1 y2 = y->second;
+    T1 min1 = gravity::min(extended_mult(x1,y1), extended_mult(x1,y2));
+    T1 min2 = gravity::min(extended_mult(x2,y1), extended_mult(x2,y2));
+    T1 max1 = gravity::max(extended_mult(x1,y1), extended_mult(x1,y2));
+    T1 max2 = gravity::max(extended_mult(x2,y1), extended_mult(x2,y2));
+    res->first = gravity::min(min1,min2);
+    res->second = gravity::max(max1,max2);
+    return res;
+}
+
+template<class T1, class T2, typename enable_if<is_arithmetic<T1>::value && is_same<T2, Cpx>::value>::type* = nullptr>
+shared_ptr<pair<T2,T2>> get_product_range(shared_ptr<pair<T1,T1>> x, shared_ptr<pair<T2,T2>> y){
+    shared_ptr<pair<T2,T2>> res = make_shared<pair<T2,T2>>();
+    T2 x1 = Cpx(x->first,0);
+    T2 x2 = Cpx(x->second,0);
+    T2 y1 = y->first;
+    T2 y2 = y->second;
+    T2 min1 = gravity::min(extended_mult(x1,y1), extended_mult(x1,y2));
+    T2 min2 = gravity::min(extended_mult(x2,y1), extended_mult(x2,y2));
+    T2 max1 = gravity::max(extended_mult(x1,y1), extended_mult(x1,y2));
+    T2 max2 = gravity::max(extended_mult(x2,y1), extended_mult(x2,y2));
+    res->first = gravity::min(min1,min2);
+    res->second = gravity::max(max1,max2);
+    return res;
+}
+
+template<class T1, class T2, typename enable_if<is_arithmetic<T1>::value && is_same<T2, Cpx>::value>::type* = nullptr>
+shared_ptr<pair<T2,T2>> get_product_range(shared_ptr<pair<T2,T2>> y, shared_ptr<pair<T1,T1>> x){
+    shared_ptr<pair<T2,T2>> res = make_shared<pair<T2,T2>>();
+    T2 x1 = Cpx(x->first,0);
+    T2 x2 = Cpx(x->second,0);
+    T2 y1 = y->first;
+    T2 y2 = y->second;
+    T2 min1 = gravity::min(extended_mult(x1,y1), extended_mult(x1,y2));
+    T2 min2 = gravity::min(extended_mult(x2,y1), extended_mult(x2,y2));
+    T2 max1 = gravity::max(extended_mult(x1,y1), extended_mult(x1,y2));
+    T2 max2 = gravity::max(extended_mult(x2,y1), extended_mult(x2,y2));
+    res->first = gravity::min(min1,min2);
+    res->second = gravity::max(max1,max2);
+    return res;
+}
     
-    template<class T1, class T2, typename enable_if<is_convertible<T2, T1>::value && sizeof(T2) <= sizeof(T1)>::type* = nullptr>
+    template<class T1, class T2, typename enable_if<is_arithmetic<T1>::value && is_arithmetic<T2>::value && is_convertible<T2, T1>::value && sizeof(T2) <= sizeof(T1)>::type* = nullptr>
     shared_ptr<pair<T1,T1>> get_product_range(shared_ptr<pair<T1,T1>> x, shared_ptr<pair<T2,T2>> y){
         shared_ptr<pair<T1,T1>> res = make_shared<pair<T1,T1>>();
         T1 x1 = x->first;
         T1 x2 = x->second;
         T1 y1 = y->first;
         T1 y2 = y->second;
-        T1 min1 = gravity::min(extended_mult(x1,y1), extended_mult(x1,y2));
-        T1 min2 = gravity::min(extended_mult(x2,y1), extended_mult(x2,y2));
-        T1 max1 = gravity::max(extended_mult(x1,y1), extended_mult(x1,y2));
-        T1 max2 = gravity::max(extended_mult(x2,y1), extended_mult(x2,y2));
-        res->first = gravity::min(min1,min2);
-        res->second = gravity::max(max1,max2);
+        T1 min1 = std::min(extended_mult(x1,y1), extended_mult(x1,y2));
+        T1 min2 = std::min(extended_mult(x2,y1), extended_mult(x2,y2));
+        T1 max1 = std::max(extended_mult(x1,y1), extended_mult(x1,y2));
+        T1 max2 = std::max(extended_mult(x2,y1), extended_mult(x2,y2));
+        res->first = std::min(min1,min2);
+        res->second = std::max(max1,max2);
         return res;
     }
     
-    template<class T1, class T2, typename enable_if<is_convertible<T1, T2>::value && sizeof(T1) < sizeof(T2)>::type* = nullptr>
+    template<class T1, class T2, typename enable_if<is_arithmetic<T1>::value && is_arithmetic<T2>::value && is_convertible<T1, T2>::value && sizeof(T1) < sizeof(T2)>::type* = nullptr>
     shared_ptr<pair<T2,T2>> get_product_range(shared_ptr<pair<T1,T1>> x, shared_ptr<pair<T2,T2>> y){
         shared_ptr<pair<T2,T2>> res = make_shared<pair<T2,T2>>();
         T2 x1 = x->first;
         T2 x2 = x->second;
         T2 y1 = y->first;
         T2 y2 = y->second;
-        T2 min1 = gravity::min(extended_mult(x1,y1), extended_mult(x1,y2));
-        T2 min2 = gravity::min(extended_mult(x2,y1), extended_mult(x2,y2));
-        T2 max1 = gravity::max(extended_mult(x1,y1), extended_mult(x1,y2));
-        T2 max2 = gravity::max(extended_mult(x2,y1), extended_mult(x2,y2));
-        res->first = gravity::min(min1,min2);
-        res->second = gravity::max(max1,max2);
+        T2 min1 = std::min(extended_mult(x1,y1), extended_mult(x1,y2));
+        T2 min2 = std::min(extended_mult(x2,y1), extended_mult(x2,y2));
+        T2 max1 = std::max(extended_mult(x1,y1), extended_mult(x1,y2));
+        T2 max2 = std::max(extended_mult(x2,y1), extended_mult(x2,y2));
+        res->first = std::min(min1,min2);
+        res->second = std::max(max1,max2);
         return res;
     }
     
@@ -2263,8 +2311,8 @@ namespace gravity {
                         else{
                             res.insert(lt.second._sign, expo*p_cst, *newl);
                         }
-                        pterm_range.first = gravity::min(pterm_range.first*p_cst.eval(), pterm_range.second*p_cst.eval());
-                        pterm_range.second = gravity::max(pterm_range.first*p_cst.eval(), pterm_range.second*p_cst.eval());
+                        pterm_range.first = std::min(pterm_range.first*p_cst.eval(), pterm_range.second*p_cst.eval());
+                        pterm_range.second = std::max(pterm_range.first*p_cst.eval(), pterm_range.second*p_cst.eval());
                     }
                     if(lt.second._sign){
                         res._range = get_plus_range(res._range, make_shared<pair<type,type>>(pterm_range));
@@ -2981,7 +3029,7 @@ namespace gravity {
             if(is_matrix_indexed()){
                 for(auto i = 0; i<_indices->_ids->size();i++){
                     for(auto j = 0; j<_indices->_ids->at(i).size();j++){
-                        _dim[0] = max(_dim[0],_indices->_ids->at(i).at(j)+1);
+                        _dim[0] = std::max(_dim[0],_indices->_ids->at(i).at(j)+1);
                     }
                 }
             }
@@ -4047,8 +4095,8 @@ namespace gravity {
             if(is_matrix()){
                 throw invalid_argument("Cannot call func::add_val(type val) on matrix");
             }
-            _dim[0] = gravity::max(_dim[0],i+1);
-            _val->resize(gravity::max(_val->size(),i+1));
+            _dim[0] = std::max(_dim[0],i+1);
+            _val->resize(std::max(_val->size(),i+1));
             _val->at(i) = val;
             update_range(val);
         }
@@ -4086,8 +4134,8 @@ namespace gravity {
             auto index = _indices->size();
             auto pp = _indices->_keys_map->insert(make_pair<>(key,index));
             if (pp.second) {//new index inserted
-                _val->resize(gravity::max(_val->size(),index+1));
-                _dim[0] = gravity::max(_dim[0],_val->size());
+                _val->resize(std::max(_val->size(),index+1));
+                _dim[0] = std::max(_dim[0],_val->size());
                 _indices->_keys->resize(_val->size());
                 _indices->_keys->at(index) = key;
                 _val->at(index) = val;
@@ -4104,10 +4152,10 @@ namespace gravity {
         
         void add_val(size_t i, size_t j, type val) {
             _is_vector = true;
-            _dim[0] = gravity::max(_dim[0],i+1);
-            _dim[1] = gravity::max(_dim[1],j+1);
+            _dim[0] = std::max(_dim[0],i+1);
+            _dim[1] = std::max(_dim[1],j+1);
             auto index = _dim[1]*i+j;
-            _val->resize(gravity::max(_val->size(),index+1));
+            _val->resize(std::max(_val->size(),index+1));
             _val->at(index) = val;
             update_range(val);
         }
@@ -5802,10 +5850,10 @@ namespace gravity {
                     return exp->_coef*(powl(lval,rval));
                     break;
                 case min_:
-                    return exp->_coef*(gravity::min(lval,rval));
+                    return exp->_coef*(std::min(lval,rval));
                     break;
                 case max_:
-                    return exp->_coef*(gravity::max(lval,rval));
+                    return exp->_coef*(std::max(lval,rval));
                     break;
                 default:
                     throw invalid_argument("Unsupported binary operator");
@@ -5982,10 +6030,10 @@ namespace gravity {
                     return exp->_coef*(powl(lval,rval));
                     break;
                 case min_:
-                    return exp->_coef*(gravity::min(lval,rval));
+                    return exp->_coef*(std::min(lval,rval));
                     break;
                 case max_:
-                    return exp->_coef*(gravity::max(lval,rval));
+                    return exp->_coef*(std::max(lval,rval));
                     break;
                 default:
                     throw invalid_argument("Unsupported binary operator");
@@ -8438,14 +8486,14 @@ namespace gravity {
     template<class T1>
     constant<T1> min(const constant<T1>& p1,const constant<T1>& p2){
         constant<T1> res(p1);
-        res.set_val(gravity::min(res.eval(),p2.eval()));
+        res.set_val(std::min(res.eval(),p2.eval()));
         return res;
     }
     
     template<class T1>
     constant<T1> max(const constant<T1>& p1,const constant<T1>& p2){
         constant<T1> res(p1);
-        res.set_val(gravity::max(res.eval(),p2.eval()));
+        res.set_val(std::max(res.eval(),p2.eval()));
         return res;
     }
     
@@ -8618,8 +8666,8 @@ namespace gravity {
 //        func<T> res(bexpr<T>(min_, p1.copy(), p2.copy()));
 //        res._all_sign = std::min(p1.get_all_sign(),p2.get_all_sign());
 //        res._all_convexity = undet_;
-//        res._range->first = gravity::min(p1._range->first,p2._range->first);
-//        res._range->second = gravity::min(p1._range->second,p2._range->second);
+//        res._range->first = std::min(p1._range->first,p2._range->first);
+//        res._range->second = std::min(p1._range->second,p2._range->second);
 //        res._expr->_range->first = res._range->first;
 //        res._expr->_range->second = res._range->second;
 //        res._expr->_all_convexity = res._all_convexity;
@@ -8632,8 +8680,8 @@ namespace gravity {
 //        func<T> res(bexpr<T>(max_, p1.copy(), p2.copy()));
 //        res._all_sign = std::max(p1.get_all_sign(),p2.get_all_sign());
 //        res._all_convexity = undet_;
-//        res._range->first = gravity::max(p1._range->first,p2._range->first);
-//        res._range->second = gravity::max(p1._range->second,p2._range->second);
+//        res._range->first = std::max(p1._range->first,p2._range->first);
+//        res._range->second = std::max(p1._range->second,p2._range->second);
 //        res._expr->_range->first = res._range->first;
 //        res._expr->_range->second = res._range->second;
 //        res._expr->_all_convexity = res._all_convexity;
@@ -8646,8 +8694,8 @@ namespace gravity {
 //        func<T> res(bexpr<T>(min_, p1.copy(), p2.copy()));
 //        res._all_sign = std::min(p1.get_all_sign(),p2.get_all_sign());
 //        res._all_convexity = undet_;
-//        res._range->first = gravity::min(p1._range->first,p2._range->first);
-//        res._range->second = gravity::min(p1._range->second,p2._range->second);
+//        res._range->first = std::min(p1._range->first,p2._range->first);
+//        res._range->second = std::min(p1._range->second,p2._range->second);
 //        res._expr->_range->first = res._range->first;
 //        res._expr->_range->second = res._range->second;
 //        res._expr->_all_convexity = res._all_convexity;
@@ -8660,8 +8708,8 @@ namespace gravity {
 //        func<T> res(bexpr<T>(min_, p1.copy(), p2.copy()));
 //        res._all_sign = std::min(p1.get_all_sign(),p2.get_all_sign());
 //        res._all_convexity = undet_;
-//        res._range->first = gravity::min(p1._range->first,p2._range->first);
-//        res._range->second = gravity::min(p1._range->second,p2._range->second);
+//        res._range->first = std::min(p1._range->first,p2._range->first);
+//        res._range->second = std::min(p1._range->second,p2._range->second);
 //        res._expr->_range->first = res._range->first;
 //        res._expr->_range->second = res._range->second;
 //        res._expr->_all_convexity = res._all_convexity;
@@ -8674,8 +8722,8 @@ namespace gravity {
 //        func<T> res(bexpr<T>(max_, p1.copy(), p2.copy()));
 //        res._all_sign = std::max(p1.get_all_sign(),p2.get_all_sign());
 //        res._all_convexity = undet_;
-//        res._range->first = gravity::max(p1._range->first,p2._range->first);
-//        res._range->second = gravity::max(p1._range->second,p2._range->second);
+//        res._range->first = std::max(p1._range->first,p2._range->first);
+//        res._range->second = std::max(p1._range->second,p2._range->second);
 //        res._expr->_range->first = res._range->first;
 //        res._expr->_range->second = res._range->second;
 //        res._expr->_all_convexity = res._all_convexity;
@@ -8688,8 +8736,8 @@ namespace gravity {
 //        func<T> res(bexpr<T>(max_, p1.copy(), p2.copy()));
 //        res._all_sign = std::max(p1.get_all_sign(),p2.get_all_sign());
 //        res._all_convexity = undet_;
-//        res._range->first = gravity::max(p1._range->first,p2._range->first);
-//        res._range->second = gravity::max(p1._range->second,p2._range->second);
+//        res._range->first = std::max(p1._range->first,p2._range->first);
+//        res._range->second = std::max(p1._range->second,p2._range->second);
 //        res._expr->_range->first = res._range->first;
 //        res._expr->_range->second = res._range->second;
 //        res._expr->_all_convexity = res._all_convexity;
@@ -8702,8 +8750,8 @@ namespace gravity {
 //        func<T> res(bexpr<T>(max_, p1.copy(), p2.copy()));
 //        res._all_sign = std::max(p1.get_all_sign(),p2.get_all_sign());
 //        res._all_convexity = undet_;
-//        res._range->first = gravity::max(p1._range->first,p2._range->first);
-//        res._range->second = gravity::max(p1._range->second,p2._range->second);
+//        res._range->first = std::max(p1._range->first,p2._range->first);
+//        res._range->second = std::max(p1._range->second,p2._range->second);
 //        res._expr->_range->first = res._range->first;
 //        res._expr->_range->second = res._range->second;
 //        res._expr->_all_convexity = res._all_convexity;
@@ -8716,8 +8764,8 @@ namespace gravity {
 //        func<T> res(bexpr<T>(min_, p1.copy(), p2.copy()));
 //        res._all_sign = std::min(p1.get_all_sign(),p2.get_all_sign());
 //        res._all_convexity = undet_;
-//        res._range->first = gravity::min(p1._range->first,p2._range->first);
-//        res._range->second = gravity::min(p1._range->second,p2._range->second);
+//        res._range->first = std::min(p1._range->first,p2._range->first);
+//        res._range->second = std::min(p1._range->second,p2._range->second);
 //        res._expr->_range->first = res._range->first;
 //        res._expr->_range->second = res._range->second;
 //        res._expr->_all_convexity = res._all_convexity;
@@ -8897,8 +8945,8 @@ namespace gravity {
             res._all_convexity = conv_sign.first;
         }
         res._all_sign = conv_sign.second;
-        res._range->first = gravity::min(std::cos(p1._range->first),std::cos(p1._range->second));
-        res._range->second = gravity::max(std::cos(p1._range->first),std::cos(p1._range->second));
+        res._range->first = std::min(std::cos(p1._range->first),std::cos(p1._range->second));
+        res._range->second = std::max(std::cos(p1._range->first),std::cos(p1._range->second));
         if(p1._range->first <0 && p1._range->second >0){
             res._range->second = 1;
         }
@@ -8924,8 +8972,8 @@ namespace gravity {
             res._all_convexity = conv_sign.first;
         }
         res._all_sign = conv_sign.second;
-        res._range->first = gravity::min(std::sin(p1._range->first),std::sin(p1._range->second));
-        res._range->second = gravity::max(std::sin(p1._range->first),std::sin(p1._range->second));
+        res._range->first = std::min(std::sin(p1._range->first),std::sin(p1._range->second));
+        res._range->second = std::max(std::sin(p1._range->first),std::sin(p1._range->second));
         if(shifted_range.first <0 && shifted_range.second >0){
             res._range->second = 1;
         }
@@ -8977,7 +9025,7 @@ namespace gravity {
         return res;
     }
     
-    template<class T1>
+    template<class T1, typename enable_if<is_arithmetic<T1>::value>::type* = nullptr>
     func<T1> ReLU(const param<T1>& p1){
         func<T1> res(uexpr<T1>(relu_, p1.copy()));
         if (p1.is_var()) {
@@ -8989,7 +9037,7 @@ namespace gravity {
             res._all_sign = pos_;
             res._range->first = p1._range->first;
         }
-        res._range->second = gravity::max(zero<T1>().eval(),p1._range->second);
+        res._range->second = std::max(zero<T1>().eval(),p1._range->second);
         res._expr->_range->first = res._range->first;
         res._expr->_range->second = res._range->second;
         res._expr->_all_convexity = res._all_convexity;
@@ -8998,7 +9046,7 @@ namespace gravity {
         return res;
     }
     
-    template<class T1>
+    template<class T1, typename enable_if<is_arithmetic<T1>::value>::type* = nullptr>
     func<T1> abs(const param<T1>& p1){
         func<T1> res(uexpr<T1>(abs_, p1.copy()));
         if (p1.is_var()) {
@@ -9010,7 +9058,7 @@ namespace gravity {
             res._all_sign = pos_;
             res._range->first = p1._range->first;
         }
-        res._range->second = gravity::max(zero<T1>().eval(),p1._range->second);
+        res._range->second = std::max(zero<T1>().eval(),p1._range->second);
         res._expr->_range->first = res._range->first;
         res._expr->_range->second = res._range->second;
         res._expr->_all_convexity = res._all_convexity;
@@ -9019,7 +9067,63 @@ namespace gravity {
         return res;
     }
     
-    template<class T>
+    template<class T, typename enable_if<is_arithmetic<T>::value>::type* = nullptr>
+    func<T> pow(const param<T>& p1, int exp){
+        if(exp<0){
+            func<T> res;
+            if(!p1.is_negative() && !p1.is_positive()){
+                throw invalid_argument("Calling pow() with a negative exponent on an argument that  can be zero");
+            }
+            res.insert(p1,exp);
+            return res;
+        }
+        if(exp==0){
+            return func<T>();
+        }
+        if(exp==1){
+            return func<T>(p1);
+        }
+        if(exp==2){
+            return p1*p1;
+        }
+        else {
+            func<T> res;
+            res.insert(p1,exp);
+            res.set_max_dim(p1);
+            res._range->first = std::min(std::pow(p1._range->first,exp),std::pow(p1._range->second,exp));
+            res._range->second = std::max(std::pow(p1._range->first,exp),std::pow(p1._range->second,exp));
+            if(exp%2==0) {
+                res._all_sign = non_neg_;
+                if(p1.is_positive()){
+                    res._all_sign = pos_;
+                }
+                if(p1._range->first <0 && p1._range->second >0){
+                    res._range->first = 0;
+                }
+            }
+            else {
+                res._all_sign = p1.get_all_sign();
+            }
+            if (p1.is_var()) {
+                if(exp%2==0) {
+                    res._all_convexity = convex_;
+                }
+                else if(p1.is_non_negative()){
+                    res._all_convexity = convex_;
+                }
+                else if(p1.is_non_positive()){
+                    res._all_convexity = concave_;
+                }
+                else {
+                    res._all_convexity = undet_;
+                }
+            }
+            res._indices = p1._indices;
+            return res;
+        }
+    }
+
+    template<class T, typename enable_if<is_same<T,Cpx>::value>::type* = nullptr>
     func<T> pow(const param<T>& p1, int exp){
         if(exp<0){
             func<T> res;
@@ -9264,8 +9368,8 @@ namespace gravity {
             res._range->second = 1;
         }
         else {
-            res._range->first = gravity::min(std::cos(f._range->first),std::cos(f._range->second));
-            res._range->second = gravity::max(std::cos(f._range->first),std::cos(f._range->second));
+            res._range->first = std::min(std::cos(f._range->first),std::cos(f._range->second));
+            res._range->second = std::max(std::cos(f._range->first),std::cos(f._range->second));
         }
         if(f._range->first <0 && f._range->second >0){
             res._range->second = 1;
@@ -9334,8 +9438,8 @@ namespace gravity {
             res._range->second = 1;
         }
         else {
-            res._range->first = gravity::min(std::sin(f._range->first),std::sin(f._range->second));
-            res._range->second = gravity::max(std::sin(f._range->first),std::sin(f._range->second));
+            res._range->first = std::min(std::sin(f._range->first),std::sin(f._range->second));
+            res._range->second = std::max(std::sin(f._range->first),std::sin(f._range->second));
             shifted_range.first += pi/2.;
             shifted_range.second += pi/2.;
             if(shifted_range.first <0 && shifted_range.second >0){
@@ -9550,7 +9654,7 @@ namespace gravity {
             res._all_sign = pos_;
             res._range->first = f._range->first;
         }
-        res._range->second = gravity::max(zero<T1>().eval(),f._range->second);
+        res._range->second = std::max(zero<T1>().eval(),f._range->second);
         res._expr->_range->first = res._range->first;
         res._expr->_range->second = res._range->second;
         res._expr->_all_convexity = res._all_convexity;
@@ -9574,7 +9678,7 @@ namespace gravity {
             res._all_sign = pos_;
             res._range->first = f._range->first;
         }
-        res._range->second = gravity::max(zero<T1>().eval(),f._range->second);
+        res._range->second = std::max(zero<T1>().eval(),f._range->second);
         res._expr->_range->first = res._range->first;
         res._expr->_range->second = res._range->second;
         res._expr->_all_convexity = res._all_convexity;
@@ -9607,8 +9711,8 @@ namespace gravity {
                 res._range->second = numeric_limits<T>::max();
             }
             else {
-                res._range->first = gravity::min(std::pow(f._range->first,exp),std::pow(f._range->second,exp));
-                res._range->second = gravity::max(std::pow(f._range->first,exp),std::pow(f._range->second,exp));
+                res._range->first = std::min(std::pow(f._range->first,exp),std::pow(f._range->second,exp));
+                res._range->second = std::max(std::pow(f._range->first,exp),std::pow(f._range->second,exp));
             }
             if(exp%2==0) {
                 res._all_sign = non_neg_;

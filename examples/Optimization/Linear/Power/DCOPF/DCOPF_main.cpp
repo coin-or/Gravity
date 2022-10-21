@@ -17,7 +17,7 @@ using namespace gravity;
 int main (int argc, char * argv[])
 {
     int output = 0;
-    bool projected = false, use_cplex = false, use_gurobi = false;
+    bool projected = false, use_cplex = false, use_gurobi = false, use_highs = false;
     double tol = 1e-6;
     double solver_time_end, total_time_end, solve_time, total_time;
     string mehrotra = "no", log_level="0";
@@ -32,7 +32,7 @@ int main (int argc, char * argv[])
     auto options = readOptions(argc, argv);
     options.add_option("f", "file", "Input file name", fname);
     options.add_option("p", "project", "Project the power flow variables", proj_str);
-    options.add_option("s", "solver", "Solvers: ipopt/cplex/gurobi, default = ipopt", solver_str);
+    options.add_option("s", "solver", "Solvers: Ipopt/Cplex/Gurobi/Highs, default = Ipopt", solver_str);
     
     /** Parse the options and verify that all went well. If not, errors and help will be shown */
     bool correct_parsing = options.parse_options(argc, argv);
@@ -66,11 +66,14 @@ int main (int argc, char * argv[])
     }
     if(argc>=3){
         solver_str=argv[2];
-        if (solver_str.compare("gurobi")==0) {
+        if (solver_str=="Gurobi") {
             use_gurobi = true;
         }
-        else if(solver_str.compare("cplex")==0) {
+        else if(solver_str=="Cplex") {
             use_cplex = true;
+        }
+        else if(solver_str=="Highs") {
+            use_highs = true;
         }
     }
     else{
@@ -220,6 +223,15 @@ int main (int argc, char * argv[])
         solver<> DCOPF_GRB(DCOPF, gurobi);
         auto solver_time_start = get_wall_time();
         DCOPF_GRB.run(output, tol = 1e-6);
+        solver_time_end = get_wall_time();
+        total_time_end = get_wall_time();
+        solve_time = solver_time_end - solver_time_start;
+        total_time = total_time_end - total_time_start;
+    }
+    else if (use_highs) {
+        solver<> DCOPF_HIGHS(DCOPF, highs);
+        auto solver_time_start = get_wall_time();
+        DCOPF_HIGHS.run(output, tol = 1e-6);
         solver_time_end = get_wall_time();
         total_time_end = get_wall_time();
         solve_time = solver_time_end - solver_time_start;

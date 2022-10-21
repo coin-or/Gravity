@@ -760,7 +760,7 @@ int PowerNet::readgrid(const string& fname, bool reverse_arcs) {
         Bus* bus_s = (Bus*)(arc->_src);
         Bus* bus_d = (Bus*)(arc->_dest);
         
-        arc->smax = gravity::max(
+        arc->smax = std::max(
                                  pow(bus_s->vbound.max,2)*(arc->g*arc->g + arc->b*arc->b)*(pow(bus_s->vbound.max,2) + pow(bus_d->vbound.max,2)),
                                  pow(bus_d->vbound.max,2)*(arc->g*arc->g+arc->b*arc->b)*(pow(bus_d->vbound.max,2) + pow(bus_s->vbound.max,2))
                                  );
@@ -783,7 +783,7 @@ int PowerNet::readgrid(const string& fname, bool reverse_arcs) {
         b_tf.add_val(name,(-arc->b*arc->cc + arc->g*arc->dd)/(pow(arc->cc, 2) + pow(arc->dd, 2)));
         
         ch.add_val(name,arc->ch);
-        //        S_max.add_val(name,gravity::min(arc->limit,max(2.*total_p_load, 2.*total_q_load)));
+        //        S_max.add_val(name,std::min(arc->limit,max(2.*total_p_load, 2.*total_q_load)));
         S_max.add_val(name,arc->limit);
         Smax.add_val(name,Cpx(arc->limit,arc->limit));
         pf_from_max.add_val(name, arc->limit);
@@ -826,8 +826,8 @@ int PowerNet::readgrid(const string& fname, bool reverse_arcs) {
             
         }
         else {
-            th_min.set_val(name,gravity::max(th_min.eval(name), arc->tbound.min));
-            th_max.set_val(name,gravity::min(th_max.eval(name), arc->tbound.max));
+            th_min.set_val(name,std::max(th_min.eval(name), arc->tbound.min));
+            th_max.set_val(name,std::min(th_max.eval(name), arc->tbound.max));
             tan_th_min.set_val(name,tan(th_min.eval(name)));
             tan_th_max.set_val(name,tan(th_max.eval(name)));
         }
@@ -845,7 +845,7 @@ int PowerNet::readgrid(const string& fname, bool reverse_arcs) {
         }
         if (arc->tbound.min < 0 && arc->tbound.max > 0) {
             wr_max.add_val(name,bus_s->vbound.max*bus_d->vbound.max);
-            wr_min.add_val(name,bus_s->vbound.min*bus_d->vbound.min*gravity::min(cos(th_min.eval(name)), cos(th_max.eval(name))));
+            wr_min.add_val(name,bus_s->vbound.min*bus_d->vbound.min*std::min(cos(th_min.eval(name)), cos(th_max.eval(name))));
             wi_max.add_val(name,bus_s->vbound.max*bus_d->vbound.max*sin(th_max.eval(name)));
             wi_min.add_val(name,bus_s->vbound.max*bus_d->vbound.max*sin(th_min.eval(name)));
         }
@@ -1005,10 +1005,10 @@ void PowerNet::update_net(){
                 cos_min_ = -1;
             } else if (m_theta_lb < 0 && m_theta_ub > 0){
                 cos_max_ = 1;
-                cos_min_ = gravity::min(cos(m_theta_lb), cos(m_theta_ub));
+                cos_min_ = std::min(cos(m_theta_lb), cos(m_theta_ub));
             } else{
-                cos_max_ = gravity::max(cos(m_theta_lb),cos(m_theta_ub));
-                cos_min_ = gravity::min(cos(m_theta_lb), cos(m_theta_ub));
+                cos_max_ = std::max(cos(m_theta_lb),cos(m_theta_ub));
+                cos_min_ = std::min(cos(m_theta_lb), cos(m_theta_ub));
             }
             w_max_ = bus_s->vbound.max*bus_d->vbound.max;
             w_min_ = bus_s->vbound.min*bus_d->vbound.min;
@@ -3089,10 +3089,10 @@ indices PowerNet::get_node_pairs_chord(const vector<pair<string,vector<Node*>>>&
         cos_min_ = -1;
     } else if (m_theta_lb < 0 && m_theta_ub > 0){
         cos_max_ = 1;
-        cos_min_ = gravity::min(cos(m_theta_lb), cos(m_theta_ub));
+        cos_min_ = std::min(cos(m_theta_lb), cos(m_theta_ub));
     } else{
-        cos_max_ = gravity::max(cos(m_theta_lb),cos(m_theta_ub));
-        cos_min_ = gravity::min(cos(m_theta_lb), cos(m_theta_ub));
+        cos_max_ = std::max(cos(m_theta_lb),cos(m_theta_ub));
+        cos_min_ = std::min(cos(m_theta_lb), cos(m_theta_ub));
     }
     if(m_theta_lb < -1.57 && m_theta_ub > 1.57){
         sin_max_ = 1;
@@ -3166,10 +3166,10 @@ indices PowerNet::get_node_pairs_chord_bags(std::vector<pair<string,vector<Node*
         cos_min_ = -1;
     } else if (m_theta_lb < 0 && m_theta_ub > 0){
         cos_max_ = 1;
-        cos_min_ = gravity::min(cos(m_theta_lb), cos(m_theta_ub));
+        cos_min_ = std::min(cos(m_theta_lb), cos(m_theta_ub));
     } else{
-        cos_max_ = gravity::max(cos(m_theta_lb),cos(m_theta_ub));
-        cos_min_ = gravity::min(cos(m_theta_lb), cos(m_theta_ub));
+        cos_max_ = std::max(cos(m_theta_lb),cos(m_theta_ub));
+        cos_min_ = std::min(cos(m_theta_lb), cos(m_theta_ub));
     }
     if(m_theta_lb < -1.57 && m_theta_ub > 1.57){
         sin_max_ = 1;
@@ -3371,10 +3371,10 @@ void PowerNet::fill_wbnds(){
                 cos_min_ = -1;
             } else if (m_theta_lb < 0 && m_theta_ub > 0) {
                 cos_max_ = 1;
-                cos_min_ = gravity::min(cos(m_theta_lb), cos(m_theta_ub));
+                cos_min_ = std::min(cos(m_theta_lb), cos(m_theta_ub));
             } else {
-                cos_max_ = gravity::max(cos(m_theta_lb), cos(m_theta_ub));
-                cos_min_ = gravity::min(cos(m_theta_lb), cos(m_theta_ub));
+                cos_max_ = std::max(cos(m_theta_lb), cos(m_theta_ub));
+                cos_min_ = std::min(cos(m_theta_lb), cos(m_theta_ub));
             }
             w_max_ = bus_s->vbound.max * bus_d->vbound.max;
             w_min_ = bus_s->vbound.min * bus_d->vbound.min;

@@ -10,7 +10,7 @@ HiGHSProgram::HiGHSProgram(){
 
 
 HiGHSProgram::HiGHSProgram(Model<>* m) {
-    Highs_mod = make_shared<HighsModel>();
+//    Highs_mod = make_shared<HighsModel>();
 //    grb_env = new GRBEnv();
 //    grb_env->set(GRB_IntParam_Presolve,0);
 //    //grb_env->set(GRB_DoubleParam_NodeLimit,1);
@@ -67,6 +67,8 @@ void HiGHSProgram::reset_model(){
 }
 
 bool HiGHSProgram::solve(bool relax, double mipgap){
+    Highs_inst.passModel(Highs_mod);
+    Highs_inst.run();
     //cout << "\n Presolve = " << grb_env->get(GRB_IntParam_Presolve) << endl;
 //    print_constraints();
 //    if (relax) relax_model();

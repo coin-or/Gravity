@@ -7754,35 +7754,63 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
         string _status;
     };
     
-    template<class T>
+    template<class T, typename std::enable_if<is_arithmetic<T>::value>::type* = nullptr>
     func<T> min(const param<T>& p1, const param<T>& p2){
         func<T> res(bexpr<T>(min_, p1.copy(), p2.copy()));
         res._all_sign = std::min(p1.get_all_sign(),p2.get_all_sign());
         res._all_convexity = undet_;
-        res._range->first = gravity::min(p1._range->first,p2._range->first);
-        res._range->second = gravity::min(p1._range->second,p2._range->second);
+        res._range->first = std::min(p1._range->first,p2._range->first);
+        res._range->second = std::min(p1._range->second,p2._range->second);
         res._expr->_range->first = res._range->first;
         res._expr->_range->second = res._range->second;
         res._expr->_all_convexity = res._all_convexity;
         res._expr->_all_sign = res._all_sign;
         return res;
     }
+
+template<class T, typename std::enable_if<is_same<T, Cpx>::value>::type* = nullptr>
+func<T> min(const param<T>& p1, const param<T>& p2){
+    func<T> res(bexpr<T>(min_, p1.copy(), p2.copy()));
+    res._all_sign = std::min(p1.get_all_sign(),p2.get_all_sign());
+    res._all_convexity = undet_;
+    res._range->first = gravity::min(p1._range->first,p2._range->first);
+    res._range->second = gravity::min(p1._range->second,p2._range->second);
+    res._expr->_range->first = res._range->first;
+    res._expr->_range->second = res._range->second;
+    res._expr->_all_convexity = res._all_convexity;
+    res._expr->_all_sign = res._all_sign;
+    return res;
+}
     
-    template<class T>
+    template<class T, typename std::enable_if<is_arithmetic<T>::value>::type* = nullptr>
     func<T> max(const param<T>& p1, const param<T>& p2){
         func<T> res(bexpr<T>(max_, p1.copy(), p2.copy()));
         res._all_sign = std::max(p1.get_all_sign(),p2.get_all_sign());
         res._all_convexity = undet_;
-        res._range->first = gravity::max(p1._range->first,p2._range->first);
-        res._range->second = gravity::max(p1._range->second,p2._range->second);
+        res._range->first = std::max(p1._range->first,p2._range->first);
+        res._range->second = std::max(p1._range->second,p2._range->second);
         res._expr->_range->first = res._range->first;
         res._expr->_range->second = res._range->second;
         res._expr->_all_convexity = res._all_convexity;
         res._expr->_all_sign = res._all_sign;
         return res;
     }
+
+    template<class T, typename std::enable_if<is_same<T, Cpx>::value>::type* = nullptr>
+    func<T> max(const param<T>& p1, const param<T>& p2){
+    func<T> res(bexpr<T>(max_, p1.copy(), p2.copy()));
+    res._all_sign = std::max(p1.get_all_sign(),p2.get_all_sign());
+    res._all_convexity = undet_;
+    res._range->first = gravity::max(p1._range->first,p2._range->first);
+    res._range->second = gravity::max(p1._range->second,p2._range->second);
+    res._expr->_range->first = res._range->first;
+    res._expr->_range->second = res._range->second;
+    res._expr->_all_convexity = res._all_convexity;
+    res._expr->_all_sign = res._all_sign;
+    return res;
+}
     
-    template<class T>
+    template<class T, typename std::enable_if<is_same<T, Cpx>::value>::type* = nullptr>
     func<T> min(const param<T>& p1, const func<T>& p2){
         func<T> res(bexpr<T>(min_, p1.copy(), p2.copy()));
         res._all_sign = std::min(p1.get_all_sign(),p2.get_all_sign());
@@ -7796,14 +7824,29 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
         res.update_vars();
         return res;
     }
-    
+
+    template<class T, typename std::enable_if<is_arithmetic<T>::value>::type* = nullptr>
+    func<T> min(const param<T>& p1, const func<T>& p2){
+        func<T> res(bexpr<T>(min_, p1.copy(), p2.copy()));
+        res._all_sign = std::min(p1.get_all_sign(),p2.get_all_sign());
+        res._all_convexity = undet_;
+        res._range->first = std::min(p1._range->first,p2._range->first);
+        res._range->second = std::min(p1._range->second,p2._range->second);
+        res._expr->_range->first = res._range->first;
+        res._expr->_range->second = res._range->second;
+        res._expr->_all_convexity = res._all_convexity;
+        res._expr->_all_sign = res._all_sign;
+        res.update_vars();
+        return res;
+    }
+
     template<class T>
     func<T> min(const func<T>& p1, const param<T>& p2){
         func<T> res(bexpr<T>(min_, p1.copy(), p2.copy()));
         res._all_sign = std::min(p1.get_all_sign(),p2.get_all_sign());
         res._all_convexity = undet_;
-        res._range->first = gravity::min(p1._range->first,p2._range->first);
-        res._range->second = gravity::min(p1._range->second,p2._range->second);
+        res._range->first = std::min(p1._range->first,p2._range->first);
+        res._range->second = std::min(p1._range->second,p2._range->second);
         res._expr->_range->first = res._range->first;
         res._expr->_range->second = res._range->second;
         res._expr->_all_convexity = res._all_convexity;
@@ -7817,8 +7860,8 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
         func<T> res(bexpr<T>(max_, p1.copy(), p2.copy()));
         res._all_sign = std::max(p1.get_all_sign(),p2.get_all_sign());
         res._all_convexity = undet_;
-        res._range->first = gravity::max(p1._range->first,p2._range->first);
-        res._range->second = gravity::max(p1._range->second,p2._range->second);
+        res._range->first = std::max(p1._range->first,p2._range->first);
+        res._range->second = std::max(p1._range->second,p2._range->second);
         res._expr->_range->first = res._range->first;
         res._expr->_range->second = res._range->second;
         res._expr->_all_convexity = res._all_convexity;
@@ -7831,8 +7874,8 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
         func<T> res(bexpr<T>(max_, p1.copy(), p2.copy()));
         res._all_sign = std::max(p1.get_all_sign(),p2.get_all_sign());
         res._all_convexity = undet_;
-        res._range->first = gravity::max(p1._range->first,p2._range->first);
-        res._range->second = gravity::max(p1._range->second,p2._range->second);
+        res._range->first = std::max(p1._range->first,p2._range->first);
+        res._range->second = std::max(p1._range->second,p2._range->second);
         res._expr->_range->first = res._range->first;
         res._expr->_range->second = res._range->second;
         res._expr->_all_convexity = res._all_convexity;
@@ -7845,8 +7888,8 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
         func<T> res(bexpr<T>(max_, p1.copy(), p2.copy()));
         res._all_sign = std::max(p1.get_all_sign(),p2.get_all_sign());
         res._all_convexity = undet_;
-        res._range->first = gravity::max(p1._range->first,p2._range->first);
-        res._range->second = gravity::max(p1._range->second,p2._range->second);
+        res._range->first = std::max(p1._range->first,p2._range->first);
+        res._range->second = std::max(p1._range->second,p2._range->second);
         res._expr->_range->first = res._range->first;
         res._expr->_range->second = res._range->second;
         res._expr->_all_convexity = res._all_convexity;
@@ -7862,8 +7905,8 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
 //        auto rson = static_ptr_cast<func<T>>(res.get_rson());
         res._all_sign = std::min(p1.get_all_sign(),p2.get_all_sign());
         res._all_convexity = undet_;
-        res._range->first = gravity::min(p1._range->first,p2._range->first);
-        res._range->second = gravity::min(p1._range->second,p2._range->second);
+        res._range->first = std::min(p1._range->first,p2._range->first);
+        res._range->second = std::min(p1._range->second,p2._range->second);
         res._expr->_range->first = res._range->first;
         res._expr->_range->second = res._range->second;
         res._expr->_all_convexity = res._all_convexity;

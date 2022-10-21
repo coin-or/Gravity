@@ -1120,8 +1120,8 @@ namespace gravity {
             if(is_matrix()){
                 throw invalid_argument("Cannot call param::add_val(type val) on matrix");
             }
-            _dim[0] = max(_dim[0],i+1);
-            _val->resize(max(_val->size(),i+1));
+            _dim[0] = std::max(_dim[0],i+1);
+            _val->resize(std::max(_val->size(),i+1));
             _off.push_back(false);
             _val->at(i) = val;
             update_range(val);
@@ -1188,7 +1188,7 @@ namespace gravity {
                 _indices->_keys->resize(_val->size());
                 _indices->_keys->at(index) = key;
                 _val->at(index) = val;
-                _off.resize(max(_off.size(),index+1), false);
+                _off.resize(std::max(_off.size(),index+1), false);
                 update_range(val);
                 if(_indices->_ids){
                     _indices->_ids->at(0).push_back(index);
@@ -1210,10 +1210,10 @@ namespace gravity {
 
         void add_val(size_t i, size_t j, type val) {
             _is_vector = true;
-            _dim[0] = max(_dim[0],i+1);
-            _dim[1] = max(_dim[1],j+1);
+            _dim[0] = std::max(_dim[0],i+1);
+            _dim[1] = std::max(_dim[1],j+1);
             auto index = _dim[1]*i+j;
-            _val->resize(max(_val->size(),index+1));
+            _val->resize(std::max(_val->size(),index+1));
             _val->at(index) = val;
             update_range(val);
         }

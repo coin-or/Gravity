@@ -90,16 +90,16 @@ namespace gravity{
         return res;
     }
     
-    template<class T, typename enable_if<is_arithmetic<T>::value>::type* = nullptr>
-    T min (const T& a, const T& b){
-        return std::min(a,b);
-    }
-    
-    
-    template<class T, typename enable_if<is_arithmetic<T>::value>::type* = nullptr>
-    T max(const T& a, const T& b){
-        return std::max(a,b);
-    }
+//    template<class T, typename enable_if<is_arithmetic<T>::value>::type* = nullptr>
+//    T min (const T& a, const T& b){
+//        return std::min(a,b);
+//    }
+//    
+//    
+//    template<class T, typename enable_if<is_arithmetic<T>::value>::type* = nullptr>
+//    T max(const T& a, const T& b){
+//        return std::max(a,b);
+//    }
 }
 
 #endif

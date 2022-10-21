@@ -51,6 +51,9 @@ using Ipopt::SolveStatistics;
 #ifdef USE_CLP
 #include <gravity/ClpProgram.h>
 #endif
+#ifdef USE_HiGHS
+#include <gravity/HiGHSProgram.h>
+#endif
 //#ifdef USE_SDPA
 //#include "SdpaProgram.h"
 //#endif
@@ -58,18 +61,7 @@ using Ipopt::SolveStatistics;
 #include "MosekProgram.h"
 #endif
 
-
-void gurobiNotAvailable();
-
-void cplexNotAvailable();
-
-void bonminNotAvailable();
-
-void ipoptNotAvailable();
-
-void mosekNotAvailable();
-
-void ClpNotAvailable();
+void SolverNotAvailable(const string& sname);
 
 namespace gravity {
     
@@ -137,7 +129,7 @@ namespace gravity {
                 }
                 _prog = make_shared<IpoptProgram<type>>(_model);
 #else
-                ipoptNotAvailable();
+                SolverNotAvailable("Ipopt");
 #endif
             }
             else if(_stype==gurobi)
@@ -145,7 +137,15 @@ namespace gravity {
 #ifdef USE_GUROBI
                 _prog = make_shared<GurobiProgram>(_model);
 #else
-                gurobiNotAvailable();
+                SolverNotAvailable("Gurobi");
+#endif
+            }
+            else if(_stype==highs)
+            {
+#ifdef USE_HiGHS
+                _prog = make_shared<HiGHSProgram>(_model);
+#else
+                SolverNotAvailable("HiGHS");
 #endif
             }
             else if(_stype==cplex)
@@ -153,7 +153,7 @@ namespace gravity {
 #ifdef USE_CPLEX
                 _prog = make_shared<CplexProgram>(_model);
 #else
-                cplexNotAvailable();
+                SolverNotAvailable("Cplex");
 #endif
             }
             else if(_stype == _mosek)
@@ -161,7 +161,7 @@ namespace gravity {
 #ifdef USE_MOSEK
                 _prog = make_shared<MosekProgram>(_model);
 #else
-                mosekNotAvailable();
+                SolverNotAvailable("Mosek");
 #endif
             }
             else if(_stype==bonmin) {
@@ -172,7 +172,7 @@ namespace gravity {
                 }
                 _prog = make_shared<BonminProgram>(_model);
 #else
-                bonminNotAvailable();
+                SolverNotAvailable("Bonmin");
 #endif
             }
             else if (_stype == clp){
@@ -180,7 +180,7 @@ namespace gravity {
                 _model->replace_integers();
                 _prog = make_shared<ClpProgram>(_model);
 #else
-                ClpNotAvailable();
+                SolverNotAvailable("Clp");
 #endif
             }
         }
@@ -348,7 +348,7 @@ namespace gravity {
                     }
                     return_status = optimal ? 0 : -1;
 #else
-                    ipoptNotAvailable();
+                    SolverNotAvailable("Ipopt");
 #endif
                 }
                 else if (_stype == clp){
@@ -358,7 +358,7 @@ namespace gravity {
                     optimal = clp_prog->solve();
                     
 #else
-                    ClpNotAvailable();
+                    SolverNotAvailable("Clp");
 #endif
                 }
                 else if(_stype==gurobi)
@@ -377,7 +377,23 @@ namespace gravity {
                         cerr << e.getMessage() << endl;
                     }
 #else
-                    gurobiNotAvailable();
+                    SolverNotAvailable("Gurobi");
+#endif
+                }
+                else if(_stype==highs)
+                {
+#ifdef USE_HiGHS
+                    try{
+                        auto highs_prog = (HiGHSProgram*)(_prog.get());
+                        
+                        optimal = highs_prog->solve(relax,mipgap);
+                        return_status = optimal ? 0 : -1;
+                    }
+                    catch(exception e) {
+                        cerr << "\nCaught following error: " << e.what() << endl;
+                    }
+#else
+                    SolverNotAvailable("HiGHS");
 #endif
                 }
                 else if(_stype==cplex)
@@ -395,7 +411,7 @@ namespace gravity {
                         cerr << e.getMessage() << endl;
                     }
 #else
-                    cplexNotAvailable();
+                    SolverNotAvailable("Cplex");
 #endif
                 }
                 else if(_stype == _mosek)
@@ -412,7 +428,7 @@ namespace gravity {
                         cerr << e.toString() << endl;
                     }
 #else
-                    mosekNotAvailable();
+                    SolverNotAvailable("Mosek");
 #endif
                 }
                 else if(_stype==bonmin) {
@@ -493,7 +509,7 @@ namespace gravity {
                     
                     return_status = ok ? 0 : -1;
 #else
-                    bonminNotAvailable();
+                    SolverNotAvailable("Bonmin");
 #endif
                 }
                 if (optimal) {

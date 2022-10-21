@@ -285,10 +285,10 @@ namespace gravity {
          */
         template<typename... Args>
         void set_max_dim(const constant_& p1, Args&&... ps){
-            _dim[0] = max(_dim[0], p1._dim[0]);
+            _dim[0] = std::max(_dim[0], p1._dim[0]);
             list<constant_*> list = {forward<constant_*>((constant_*)&ps)...};
             for(auto &p: list){
-                _dim[0] = max(_dim[0], p->_dim[0]);
+                _dim[0] = std::max(_dim[0], p->_dim[0]);
             }
         }
         virtual bool is_matrix_indexed() const{return false;};

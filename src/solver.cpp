@@ -16,45 +16,14 @@
 using namespace gravity;
 using namespace std;
 
-void gurobiNotAvailable()
+
+void SolverNotAvailable(const string& sname)
 {
-    cerr << "Can't use Gurobi as a solver: this version of Gravity "
-    "was compiled without Gurobi support." << endl;
-    exit(1);
-}
-void cplexNotAvailable()
-{
-    cerr << "Can't use Cplex as a solver: this version of Gravity "
-    "was compiled without Cplex support." << endl;
+    cerr << "Can't use "<< sname << " as a solver: this version of Gravity "
+    "was compiled without this solver, please recompile with: cmake -D"<<sname<<"=ON." << endl;
     exit(1);
 }
 
-void bonminNotAvailable()
-{
-    cerr << "Can't use Bonmin as a solver: this version of Gravity "
-    "was compiled without Bonmin support." << endl;
-    exit(1);
-}
-void ipoptNotAvailable()
-{
-    cerr << "Can't use Ipopt as a solver: this version of Gravity "
-    "was compiled without Ipopt support." << endl;
-    exit(1);
-}
-
-
-void mosekNotAvailable()
-{
-    cerr << "Can't use Mosek as a solver: this version of Gravity "
-    "was compiled without Mosek support." << endl;
-    exit(1);
-}
-void ClpNotAvailable()
-{
-    cerr << "Can't use Clp as a solver: this version of Gravity "
-    "was compiled without Clp support." << endl;
-    exit(1);
-}
 
 namespace gravity {
 /** Outer approximation of model. Throws exception if model has nonlinear equality constraints

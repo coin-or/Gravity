@@ -11,12 +11,12 @@ using namespace gravity;
 class HiGHSProgram: public Program<>{
 private:
 
-    shared_ptr<HighsModel> Highs_mod;/**< Highs model */
-    Highs Highs_inst;/**< Highs instance */
+    HighsModel          Highs_mod;/**< Highs model */
+    Highs               Highs_inst;/**< Highs instance */
     
 public:
-    Model<>*    _model;
-    int         _output;
+    Model<>*            _model;
+    int                 _output;
     HiGHSProgram();
     HiGHSProgram(Model<>* m);
     HiGHSProgram(const shared_ptr<Model<>>& m);
