@@ -490,13 +490,14 @@ Net CBF_read(const char *file, shared_ptr<Model<double>>& m, bool add_3d) {
         auto bags_3d=g.decompose_bags_3d();
         auto node_pairs_chord = g.get_node_pairs_chord(bags_3d);
         var<> X("X", 0, 1000);
+        X._psd=true;
         m->add(X.in(nodes));
         var<> Xij("Xij", -2000, 2000);
+        Xij._psd=true;
         m->add(Xij.in(node_pairs_chord));
         
         count=0;
-        std::vector<var<double>> Z;
-        std::vector<var<double>> Zij;
+
         
         map<string, func<>> func_map;
         map<string, func<>> func_map_bounds;

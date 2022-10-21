@@ -1191,6 +1191,194 @@ vector<vector<double>> Model<type>::cuts_eigen_bags(const double active_tol)
 }
 template<typename type>
 template<typename T>
+vector<vector<double>> Model<type>::cuts_eigen_bags_primal_complex(const double active_tol, string diag_name, string off_diag_real, string off_diag_imag)
+{
+    
+    vector<vector<double>> res;
+    vector<double> cut;
+    double c0_val=0;
+    int nb_added_cuts = 0;
+    
+    int nv=_nb_vars;
+    vector<double> xsol(nv,0);
+    get_solution(xsol);
+    for(auto b:_bag_names){
+        int num=b.first;
+        var<double> X=get_var<double>(diag_name);
+        var<double> RXij=get_var<double>(off_diag_real);
+        var<double> IXij=get_var<double>(off_diag_imag);
+        auto idx = X.get_id();
+        auto idrxij = RXij.get_id();
+        auto idixij = IXij.get_id();
+        vector<int> var_ind;
+        auto dim=b.second.size();
+        Eigen::MatrixXcd mat_X(dim,dim);
+        double zero=0.0;
+        int count=0;
+        std::complex<double> temp;
+        for(auto n:b.second){
+            temp.real(X.eval(n));
+            temp.imag(zero);
+            mat_X(count,count)=temp;
+            auto it = X._indices->_keys_map->at(n);
+            var_ind.push_back(idx+it);
+            count++;
+        }
+        for(auto i=0;i<b.second.size()-1;i++){
+            for(auto j=i+1;j<b.second.size();j++){
+                temp.real(RXij.eval(b.second[i]+","+b.second[j]));
+                temp.imag(IXij.eval(b.second[i]+","+b.second[j]));
+                mat_X(j,i)=conj(temp);
+                auto it = RXij._indices->_keys_map->at(b.second[i]+","+b.second[j]);
+                var_ind.push_back(idrxij+it);
+                auto it1 = IXij._indices->_keys_map->at(b.second[i]+","+b.second[j]);
+                var_ind.push_back(idixij+it1);
+            }
+        }
+        SelfAdjointEigenSolver<MatrixXcd> es;
+        es.compute(mat_X);
+        for(auto m=0;m<1;m++){
+            if(es.eigenvalues()[m]<=-active_tol){
+                vector<double> c_val;
+                c0_val=0;
+                vector<double> real_eig_vec;
+                vector<double> imag_eig_vec;
+                for(auto n=0;n<dim;n++){
+                    if(std::abs(es.eigenvectors().col(m)[n].real())<=1e-5){
+                        real_eig_vec.push_back(0);
+                    }
+                    else{
+                        real_eig_vec.push_back(es.eigenvectors().col(m)[n].real());
+                    }
+                    if(std::abs(es.eigenvectors().col(m)[n].imag())<=1e-5){
+                        imag_eig_vec.push_back(0);
+                    }
+                    else{
+                        imag_eig_vec.push_back(es.eigenvectors().col(m)[n].imag());
+                    }
+                    
+                }
+                double minc=10000;
+                double maxc=-10000;
+                for(auto n=0;n<dim;n++){
+                    double c=(real_eig_vec[n]*real_eig_vec[n]+imag_eig_vec[n]*imag_eig_vec[n])*(-1);
+                    if(X.get_ub(b.second[n])-X.get_lb(b.second[n])<=1e-6){
+                        c_val.push_back(0);
+                        c0_val+=c*X.get_ub(b.second[n]);
+                    }
+                    else{
+                        double abc=std::abs(c);
+                        c_val.push_back(c);
+                        if(abc!=0 && std::abs(c_val.back())<=minc)
+                            minc=abc;
+                        if(abc>=maxc)
+                            maxc=abc;
+                    }
+                }
+                for(auto n=0;n<dim;n++){
+                    for(auto o=n+1;o<dim;o++){
+                        double rc=(real_eig_vec[n]*real_eig_vec[o]+imag_eig_vec[n]*imag_eig_vec[o])*(-2);
+                        double ic=(imag_eig_vec[n]*real_eig_vec[o]-imag_eig_vec[o]*real_eig_vec[n])*(-2);
+                        double lb=RXij.get_lb(b.second[n]+","+b.second[o]);
+                        double ub=RXij.get_ub(b.second[n]+","+b.second[o]);
+                        if(ub-lb<=1e-6){
+                            c_val.push_back(0);
+                            if(-rc<=0){
+                                c0_val+=rc*lb;
+                            }
+                            else{
+                                c0_val+=rc*ub;
+                            }
+                        }
+                        else {
+                            c_val.push_back(rc);
+                            double arc=std::abs(rc);
+                            if(arc!=0 && arc<=minc)
+                                minc=arc;
+                            if(arc>=maxc)
+                                maxc=arc;
+                        }
+                        lb=IXij.get_lb(b.second[n]+","+b.second[o]);
+                        ub=IXij.get_ub(b.second[n]+","+b.second[o]);
+                        if(ub-lb<=1e-6){
+                            c_val.push_back(0);
+                            if(-ic<=0){
+                                c0_val+=ic*lb;
+                            }
+                            else{
+                                c0_val+=ic*ub;
+                            }
+                        }
+                        else {
+                            c_val.push_back(ic);
+                            double aic=std::abs(ic);
+                            if(aic!=0 && aic<=minc)
+                                minc=aic;
+                            if(aic>=maxc)
+                                maxc=aic;
+                        }
+                    }
+                }
+                double cost=0;
+                for(auto i=0;i<c_val.size();i++){
+                    cost+=xsol[var_ind[i]]*c_val[i];
+                }
+                cost+=c0_val;
+                double scale=1;
+
+                cost*=scale;
+                
+                if(minc<=1e-6 && maxc<=1){
+                    scale=1e3;
+                    maxc*=scale;
+                    minc*=scale;
+                    if(minc<=1e-12){
+                        DebugOn("small"<<endl);
+                    }
+                    DebugOff("scaling "<<scale<<endl);
+                }
+                else if(cost<=1e-6){
+                    if(maxc<=1)
+                    scale=1e3;
+                    else if(maxc<=10)
+                        scale=1e2;
+                    else if(maxc<=100)
+                        scale=1e1;
+                   //else if(maxc<=1000)
+             //    scale=10;
+                    maxc*=scale;
+                    minc*=scale;
+                }
+                cost*=scale;
+                if(minc>=1e-9 && maxc<=1e4){
+                if(cost>=1e-6){
+                    for(auto i=0;i<c_val.size();i++){
+                        cut.push_back(var_ind[i]);
+                        cut.push_back(c_val[i]*scale);
+                    }
+                    cut.push_back(c0_val*scale);
+                    res.push_back(cut);
+                    DebugOff("posc "<<cost<<endl);
+                }
+                else{
+                    if(cost<=1e-9)
+                        DebugOff("cost "<<cost<<endl);
+                }
+                cut.clear();
+            }
+
+            }
+            else{
+                break;
+            }
+        }
+    }
+    
+    //DebugOn("eig"<<endl);
+    return res;
+}
+template<typename type>
+template<typename T>
 vector<vector<double>> Model<type>::cuts_eigen_full(const double active_tol)
 {
     
@@ -2253,6 +2441,7 @@ template vector<vector<double>> Model<double>::cutting_planes_solution(const Mod
 template vector<vector<double>> Model<double>::cutting_planes_eigen(const double active_tol);
 template vector<vector<double>> Model<double>::cuts_eigen_full(const double active_tol);
 template vector<vector<double>> Model<double>::cuts_eigen_bags(const double active_tol);
+template vector<vector<double>> Model<double>::cuts_eigen_bags_primal_complex(const double active_tol,string diag_name, string off_diag_real, string off_diag_imag);
 template vector<vector<double>> Model<double>::cutting_planes_soc(double active_tol, int& soc_viol,int& soc_added);
 template double Model<double>::check_PSD();
 }

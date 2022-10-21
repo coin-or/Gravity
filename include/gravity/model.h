@@ -6487,6 +6487,8 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
         template<typename T=type>
         vector<vector<double>> cuts_eigen_bags(const double active_tol);
         template<typename T=type>
+        vector<vector<double>> cuts_eigen_bags_primal_complex(const double active_tol, string diag_name, string off_diag_real, string off_diag_imag);
+        template<typename T=type>
         double check_PSD();
         template<typename T=type>   
         vector<vector<double>> cutting_planes_soc(double active_tol, int& soc_viol,int& soc_added);

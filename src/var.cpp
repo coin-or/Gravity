@@ -48,6 +48,7 @@ var<type> var<type>::deep_copy() const{
     res._lb->deep_copy(*_lb);
     res._ub->deep_copy(*_ub);
     res._lift=_lift;
+    res._psd=_psd;
     return res;
 }
 
@@ -63,6 +64,7 @@ template<typename type> var<type>& var<type>::operator=(const var<type>& v) {
     _num_partns = v._num_partns;
     _cur_partn = v._cur_partn;
     _original_vars = v._original_vars;
+    _psd=v._psd;
     return *this;
 };
 
@@ -78,6 +80,7 @@ template<typename type> var<type>& var<type>::operator=(var<type>&& v) {
     _num_partns = v._num_partns;
     _cur_partn = v._cur_partn;
     _original_vars = move(v._original_vars);
+    _psd=v._psd;
     return *this;
 };
 
