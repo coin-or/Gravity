@@ -278,10 +278,10 @@ protected:
                                     for(j=0;j<res1[i].size()-1;j+=2){
                                         int c=res1[i][j];
                                         expr += res1[i][j+1]*vars[c];
-                                        DebugOn(to_string_with_precision(vec_x[c],10)<<" "<<to_string_with_precision(c,10)<<" "<<to_string_with_precision(res1[i][j+1],10)<<" ");
+                                        DebugOff(to_string_with_precision(vec_x[c],10)<<" "<<to_string_with_precision(c,10)<<" "<<to_string_with_precision(res1[i][j+1],10)<<" ");
                                     }
-                                    DebugOn(to_string_with_precision(res1[i][j],10));
-                                    DebugOn(endl);
+                                    DebugOff(to_string_with_precision(res1[i][j],10));
+                                    DebugOff(endl);
 //                                    if(std::abs(res1[i][j])>=1e-12)
                                         expr += res1[i][j];
                                     addLazy(expr, GRB_LESS_EQUAL, 0);
@@ -294,25 +294,6 @@ protected:
                             
                             m->set_solution(vec_x);
                             
-                            if(res1.size()==0 || !hierarc){
-                                auto res2=m->cuts_eigen_full(1e-9);
-                                if(res2.size()>=1){
-                                    for(auto i=0;i<res2.size();i++){
-                                        GRBLinExpr expr = 0;
-                                        int j;
-                                        for(j=0;j<res2[i].size()-1;j+=2){
-                                            int c=res2[i][j];
-                                            expr += res2[i][j+1]*vars[c];
-                                        }
-//                                        if(std::abs(res2[i][j])>=1e-12)
-                                            expr += res2[i][j];
-                                        addLazy(expr, GRB_LESS_EQUAL, 0);
-                                        m->num_cuts[2]++;
-                                        //                            addCut(expr, GRB_LESS_EQUAL, 0);
-                                        //vec_expi.push_back(expr);
-                                    }
-                                }
-                            }
                         }
                     }
                 }
