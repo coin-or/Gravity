@@ -115,6 +115,7 @@ namespace gravity {
         virtual void scale(double unit){};
         virtual double get_scale_factor(double unit){return 0;};
         virtual void print(){};
+        virtual bool is_psd() const{return false;};
         
         /** let this share the bounds of p */
         virtual void share_bounds(shared_ptr<param_> p){};

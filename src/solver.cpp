@@ -1426,6 +1426,18 @@ vector<vector<double>> Model<type>::cuts_eigen_full(const double active_tol)
 template<typename type>
 template<typename T>
 double Model<type>::check_PSD(){
+    bool has_psd = false;
+    for (auto &it: _vars)
+    {
+        auto v = it.second;
+        if(v->is_psd()){
+            has_psd = true;
+            break;
+        }
+    }
+    if(!has_psd){
+        return 0;
+    }
     var<double> X=get_var<double>("X");
     var<double> Xij=get_var<double>("Xij");
     int dim_full=X._indices->_keys->size();

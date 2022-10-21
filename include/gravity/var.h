@@ -145,6 +145,9 @@ namespace gravity {
         
         //@}
         
+        bool is_psd() const{
+            return _psd;
+        }
         
         Sign get_all_sign() const{
             return get_all_sign_();
