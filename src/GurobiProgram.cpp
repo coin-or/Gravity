@@ -278,10 +278,10 @@ protected:
                                     for(j=0;j<res1[i].size()-1;j+=2){
                                         int c=res1[i][j];
                                         expr += res1[i][j+1]*vars[c];
-                                        DebugOff(to_string_with_precision(vec_x[c],10)<<" "<<to_string_with_precision(c,10)<<" "<<to_string_with_precision(res1[i][j+1],10)<<" ");
+                                        DebugOn(to_string_with_precision(vec_x[c],10)<<" "<<to_string_with_precision(c,10)<<" "<<to_string_with_precision(res1[i][j+1],10)<<" ");
                                     }
-                                    DebugOff(to_string_with_precision(res1[i][j],10));
-                                    DebugOff(endl);
+                                    DebugOn(to_string_with_precision(res1[i][j],10));
+                                    DebugOn(endl);
 //                                    if(std::abs(res1[i][j])>=1e-12)
                                         expr += res1[i][j];
                                     addLazy(expr, GRB_LESS_EQUAL, 0);
@@ -483,7 +483,7 @@ bool GurobiProgram::solve(bool relax, double mipgap, double time_limit){
     //interior.print_solution();
     //cuts cb = cuts(_grb_vars, n, _model, interior);
     //vector<GRBLinExpr> vec_expr;
-        cuts cb(_grb_vars, n, _model, interior);
+        cuts_primal cb(_grb_vars, n, _model, interior);
         grb_mod->setCallback(&cb);
         grb_mod->update();
     
