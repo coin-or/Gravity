@@ -221,6 +221,8 @@ Net CBF_read(const char *file, shared_ptr<Model<double>>& m, bool add_3d) {
         }
     }
     
+    if(I.empty())
+        I.insert(to_string(data.varnum));
     param<> x_ub("x-ub"), x_lb("x-lb");
     param<int> y_ub("y-ub"), y_lb("y-lb");
     x_ub.in(C);x_lb.in(C);
@@ -238,12 +240,12 @@ Net CBF_read(const char *file, shared_ptr<Model<double>>& m, bool add_3d) {
     
     
     
-    if(!C.empty()){
+    //if(!C.empty()){
         m->add(x.in(C));
-    }
-    if(!I.empty()){
+    //}
+    //if(!I.empty()){
         m->add(y.in(I));
-    }
+    //}
     int count=0;
     for (auto i=0; i<(data.varstacknum); ++i) {
         if(data.varstackdomain[i]==1){
