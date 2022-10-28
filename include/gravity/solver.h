@@ -573,7 +573,7 @@ public:
                 violated_constraints = res.first;
                 solver_violated=res.second;
                 if (violated_constraints||(_stype==ipopt && solver_violated && _bool_options["check_violation"])) {
-                    _model->reindex();
+//                    _model->reindex();
                     //                        _model->print();
                     //                        _model->print_symbolic();
                     //                Constraint obj_cstr("obj_cstr_"+to_string(nb_it));

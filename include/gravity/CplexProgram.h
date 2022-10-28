@@ -30,7 +30,7 @@ private:
     shared_ptr<IloCplex>            _cplex;
     vector<IloNumVarArray>          _cplex_vars; /*< Mapping variables to Cplex variables */
     IloObjective                    _cplex_obj;
-    CplexCallback                   _cplex_callback; /*< Instantiating a callback object */
+//    CplexCallback                   _cplex_callback; /*< Instantiating a callback object */
     
 public:
     Model<>* _model;

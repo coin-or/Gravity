@@ -102,4 +102,9 @@ CplexCallback::~CplexCallback(){
        delete workers[w];
     }
     workers.clear();
+    /* Delete all the model copies */
+    for(auto i = 1; i<_models.size(); i++){
+        delete _models[i];
+    }
+    _models.clear();
  }

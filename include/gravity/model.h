@@ -2670,6 +2670,151 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
             DebugOff("Total percentage of active constraints = (" << nb_active_all << "/" << nb_ineq << ") "  << to_string_with_precision(100.*nb_active_all/nb_ineq,3) << "%\n");
             return violated;
         }
+
+        /** @brief Returns the most violated constraint
+         @param[in] tol: numerical tolerance
+         @param[in] ignore_eq: ignore equality constraints
+         @return pair<pointer to symbolic constraint, index of constraint instance>
+         @note This function will only consider constraints tagged as lazy or in callback
+         */
+        template<typename T=type,typename std::enable_if<is_arithmetic<T>::value>::type* = nullptr>
+            std::pair<shared_ptr<Constraint<type>>,size_t> get_most_violated(type tol, bool ignore_eq = true){
+                size_t nb_inst = 0, nb_viol = 0, nb_viol_all = 0, inst_star = 0;
+                size_t nb_active = 0, nb_active_all = 0;
+                double diff = 0, max_viol = 0;
+                shared_ptr<Constraint<type>> c = nullptr, c_star = nullptr;
+                bool violated = false;
+                bool solver_violated=false;
+                for(auto& c_p: _cons_name)
+                {
+                    c = c_p.second;
+                    if (!*c->_all_lazy && !c->_callback) {
+                        continue;//Constraint is not lazy or in callback
+                    }
+                    nb_inst = c->get_nb_inst();
+                    nb_viol = 0;
+                    nb_active = 0;
+                    c->_all_satisfied = true;
+                    c->_violated.resize(nb_inst);
+                    c->_active.resize(nb_inst);
+                    switch (c->get_ctype()) {
+                        case eq:
+                            if(ignore_eq)
+                                continue;
+                            for (size_t inst=0; inst<nb_inst; inst++) {
+                                c->_violated[inst] = false;
+                                diff = std::abs(c->eval(inst));
+                                if(diff > tol) {
+                                    if(diff > max_viol){
+                                        c_star = c;
+                                        inst_star = inst;
+                                    }
+                                    DebugOff("Violated equation: ");
+                                    //                        c->print(inst);
+                                    DebugOff(", violation = "<< diff << endl);
+                                    nb_viol++;
+                                    //                        violated = true;
+                                    if (*c->_all_lazy) {
+                                        c->_all_satisfied = false;
+                                        c->_violated[inst] = true;
+                                        violated = true;
+                                        c->_lazy[inst] = false;
+                                    }
+                                    else {
+                                        solver_violated=true;
+                                        //                            throw runtime_error("Non-lazy constraint is violated, solution declared optimal by solver!\n" + c->to_str(inst));
+                                    }
+                                    //                        c->_violated[inst] = true;
+                                }
+                                else {
+                                    //                        c->_violated[inst] = false;
+                                }
+                                //                    nb_active++;
+                            }
+                            break;
+                        case leq:
+                            for (size_t inst=0; inst<nb_inst; inst++) {
+                                c->_violated[inst] = false;
+                                diff = c->eval(inst);
+                                if(diff > tol) {
+                                    if(diff > max_viol){
+                                        c_star = c;
+                                        inst_star = inst;
+                                    }
+                                    DebugOff("Violated inequality: ");
+                                    //                                c->print(inst);
+                                    DebugOff(", violation = "<< diff << endl);
+                                    nb_viol++;
+                                    //                        violated = true;
+                                    if (*c->_all_lazy) {
+                                        //                                    *c->_all_lazy = false;
+                                        c->_all_satisfied = false;
+                                        c->_violated[inst] = true;
+                                        violated = true;
+                                        c->_lazy[inst] = false;
+                                    }
+                                    else {
+                                        solver_violated=true;
+                                        //                                    violated = true;
+                                        //                            throw runtime_error("Non-lazy constraint is violated, solution declared optimal by solver!\n" + c->to_str(inst));
+                                    }
+                                }
+                                else if (std::abs(diff)>tol) {
+                                    c->_active[inst] = false;
+                                    //                        if (*c->_all_lazy) {
+                                    //                            c->_lazy[inst] = true;
+                                    //                        }
+                                }
+                                else {
+                                    nb_active++;
+                                }
+                            }
+                            break;
+                        case geq:
+                            for (size_t inst=0; inst<nb_inst; inst++) {
+                                c->_violated[inst] = false;
+                                diff = c->eval(inst);
+                                if(diff < -tol) {
+                                    if(std::abs(diff) > max_viol){
+                                        c_star = c;
+                                        inst_star = inst;
+                                    }
+                                    DebugOff("Violated inequality: ");
+                                    //                        c->print(inst);
+                                    DebugOff(", violation = "<< diff << endl);
+                                    nb_viol++;
+                                    //                        violated = true;
+                                    if (*c->_all_lazy) {
+                                        //                                    *c->_all_lazy = false;
+                                        c->_all_satisfied = false;
+                                        c->_violated[inst] = true;
+                                        violated = true;
+                                        c->_lazy[inst] = false;
+                                    }
+                                    else {
+                                        solver_violated=true;
+                                        //                                    violated = true;
+                                        //                            throw runtime_error("Non-lazy constraint is violated, solution declared optimal by solver!\n" + c->to_str(inst));
+                                    }
+                                }
+                                else if (std::abs(diff)> tol) {
+                                    c->_active[inst] = false;
+                                    //                        if (*c->_all_lazy) {
+                                    //                            c->_lazy[inst] = true;
+                                    //                        }
+                                }
+                                else {
+                                    nb_active++;
+                                }
+                            }
+                            break;
+                            
+                        default:
+                            break;
+                    }
+                }
+                return {c_star,inst_star};
+            }
         
         template<typename T=type,typename std::enable_if<is_arithmetic<T>::value>::type* = nullptr>
             std::pair<bool,bool> has_violated_constraints(type tol){/*<< Returns true if some constraints are violated by the current solution with tolerance tol */
