@@ -183,11 +183,11 @@ bool CplexProgram::solve(bool relax, double mipgap) {
         int numThreads = _cplex->getNumCores();
         // Set up the callback to be used for separating Benders' cuts
         auto cplex_callback  = CplexCallback(numThreads,_model,make_shared<vector<IloNumVarArray>>(_cplex_vars));
-        CPXLONG contextmask = IloCplex::Callback::Context::Id::Candidate
+        CPXLONG contextmask = IloCplex::Callback::Context::Id::Relaxation | IloCplex::Callback::Context::Id::Candidate
                               | IloCplex::Callback::Context::Id::ThreadUp
                               | IloCplex::Callback::Context::Id::ThreadDown;
-        if ( true )
-           contextmask |= IloCplex::Callback::Context::Id::Relaxation;
+//        if ( true )
+//           contextmask |= IloCplex::Callback::Context::Id::Relaxation;
         _cplex->use(&cplex_callback, contextmask);
         _cplex->solve();
         if (_cplex->getStatus() == IloAlgorithm::Infeasible) {

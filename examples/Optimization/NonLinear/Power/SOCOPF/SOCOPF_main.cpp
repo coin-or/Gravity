@@ -195,8 +195,9 @@ int main (int argc, char * argv[])
     
     /* Thermal Limit Constraints */
     Constraint<> Thermal_Limit_from("Thermal_Limit_from");
-    Thermal_Limit_from = pow(Pf_from, 2) + pow(Qf_from, 2);
-    Thermal_Limit_from <= pow(grid.S_max,2);
+//    Thermal_Limit_from = pow(Pf_from, 2) + pow(Qf_from, 2);
+    Thermal_Limit_from = Pf_from + Qf_from - 0.05;
+    Thermal_Limit_from <= grid.S_max;
     SOCP.add_lazy(Thermal_Limit_from.in(arcs));
     
     
@@ -251,7 +252,7 @@ int main (int argc, char * argv[])
         solve_time = solver_time_end - solver_time_start;
         total_time = total_time_end - total_time_start;
     }
-//    SOCP.print_solution(12);
+    SOCP.print_solution(6);
     /** Uncomment next line to print expanded model */
     /* SOCP.print(); */
     SOCP.print_constraints_stats(1e-6);

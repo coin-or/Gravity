@@ -22,25 +22,26 @@ using namespace gravity;
 class Worker
 {
 public:
+    IloEnv* env = nullptr;
     Model<>* _model = nullptr;
-    Worker(Model<>* m): _model(m){}
+    Worker(Model<>* m, shared_ptr<vector<IloNumVarArray>> cvars = nullptr): _model(m), _cplex_vars(cvars){}
     ~Worker()
     {
        // Free all memory associated to env
-       env.end();
+//       env.end();
     }
     // This routine separates cuts violated by the current x solution.
-    IloBool separate(const IloNumVarArray& x, const IloNumArray& xSol, IloExpr& cutLhs, IloNum& cutRhs, double tol)
+    IloBool separate(IloExpr& cutLhs, IloNum& cutRhs, double tol)
     {
         IloBool violatedCutFound = IloFalse;
         cutLhs.clear();
         cutRhs = 0.0;
 
        // A violated cut is available iff the solution status is feasible
-        if ( cplex.getStatus() == IloAlgorithm::Feasible ) {
+        if ( true || cplex.getStatus() == IloAlgorithm::Feasible ) {
             
-            IloNumVarArray var(env);
-            IloNumArray val(env);
+//            IloNumVarArray var(*env);
+//            IloNumArray val(*env);
             
             // Get the most violated cut
             auto most_viol = _model->get_most_violated(tol);
@@ -50,31 +51,31 @@ public:
             auto i = most_viol.second;// Instance of most violated constraint
             if(!c)// No violated cuts found
                 return IloFalse;
-            IloNumExpr cc(env);
-            for (auto& it_qterm: c->get_qterms()) {
-                IloNumExpr qterm(env);
-                idx1 = it_qterm.second._p->first->get_vec_id();
-                idx2 = it_qterm.second._p->second->get_vec_id();
-                if (it_qterm.second._p->first->_is_vector) {
-                    auto dim = it_qterm.second._p->first->get_dim(i);
-                    for (size_t j = 0; j<dim; j++) {
-                        qterm += c->eval(it_qterm.second._coef,i,j)*_cplex_vars->at(idx1)[it_qterm.second._p->first->get_id_inst(i,j)]*_cplex_vars->at(idx2)[it_qterm.second._p->second->get_id_inst(i,j)];
-                    }
-                }
-                else {
-                    idx_inst1 = it_qterm.second._p->first->get_id_inst(i);
-                    idx_inst2 = it_qterm.second._p->second->get_id_inst(i);
-                    qterm += c->eval(it_qterm.second._coef, i)*_cplex_vars->at(idx1)[idx_inst1]*_cplex_vars->at(idx2)[idx_inst2];
-                }
-                if (!it_qterm.second._sign) {
-                    qterm *= -1;
-                }
-                cc += qterm;
-                qterm.end();
-            }
+            IloNumExpr cc(*env);
+//            for (auto& it_qterm: c->get_qterms()) {
+//                IloNumExpr qterm(*env);
+//                idx1 = it_qterm.second._p->first->get_vec_id();
+//                idx2 = it_qterm.second._p->second->get_vec_id();
+//                if (it_qterm.second._p->first->_is_vector) {
+//                    auto dim = it_qterm.second._p->first->get_dim(i);
+//                    for (size_t j = 0; j<dim; j++) {
+//                        qterm += c->eval(it_qterm.second._coef,i,j)*_cplex_vars->at(idx1)[it_qterm.second._p->first->get_id_inst(i,j)]*_cplex_vars->at(idx2)[it_qterm.second._p->second->get_id_inst(i,j)];
+//                    }
+//                }
+//                else {
+//                    idx_inst1 = it_qterm.second._p->first->get_id_inst(i);
+//                    idx_inst2 = it_qterm.second._p->second->get_id_inst(i);
+//                    qterm += c->eval(it_qterm.second._coef, i)*_cplex_vars->at(idx1)[idx_inst1]*_cplex_vars->at(idx2)[idx_inst2];
+//                }
+//                if (!it_qterm.second._sign) {
+//                    qterm *= -1;
+//                }
+//                cc += qterm;
+//                qterm.end();
+//            }
             
             for (auto& it_lterm: c->get_lterms()) {
-                IloNumExpr lterm(env);
+                IloNumExpr lterm(*env);
                 idx = it_lterm.second._p->get_vec_id();
                 if (it_lterm.second._p->_is_vector || it_lterm.second._p->is_matrix_indexed() || it_lterm.second._coef->is_matrix()) {
                     auto dim = it_lterm.second._p->get_dim(i);
@@ -98,14 +99,13 @@ public:
             if(c->get_ctype()==leq) {
                 cutLhs *= -1;
             }
-            var.end();
-            val.end();
-            return violatedCutFound;
+//            var.end();
+//            val.end();
+            return IloTrue;
         }
         return IloFalse;
     } // END separate
  private:
-    IloEnv env;
     IloCplex cplex;
     shared_ptr<vector<IloNumVarArray>>          _cplex_vars; /*< Mapping variables to Cplex variables */
  };
@@ -128,7 +128,7 @@ public:
        // setup
        if (context.inThreadUp()) {
           delete workers[threadNo];
-          workers[threadNo] = new Worker(_model);
+          workers[threadNo] = new Worker(_model,_cplex_vars);
           return;
        }
 
@@ -143,17 +143,26 @@ public:
         IloNumArray xSol;
 
        // Get the current x solution
-        IloNumVarArray x(env,_cplex_vars->size());
+//        IloNumVarArray x(env,_cplex_vars->size());
+//        IloIntVarArray x_int(env,_cplex_vars->size());
+        
        switch (context.getId()) {
        case IloCplex::Callback::Context::Id::Candidate:
           if ( !context.isCandidatePoint() ) // The model is always bounded
              throw IloCplex::Exception(-1, "Unbounded solution");
-             xSol = IloNumArray(env,_cplex_vars->size());
-             context.getCandidatePoint(x, xSol);
+//           return;
+           for (auto i = 0; i < _cplex_vars->size(); i++) {
+               for (auto j = 0; j < _model->_vars[i]->get_dim(); j++) {
+                   _model->_vars[i]->set_double_val(j,context.getCandidatePoint(_cplex_vars->at(i)[j]));
+               }
+           }
           break;
        case IloCplex::Callback::Context::Id::Relaxation:
-         xSol = IloNumArray(env,_cplex_vars->size());
-         context.getRelaxationPoint(x, xSol);
+           for (auto i = 0; i < _cplex_vars->size(); i++) {
+               for (auto j = 0; j < _model->_vars[i]->get_dim(); j++) {
+                   _model->_vars[i]->set_double_val(j,context.getRelaxationPoint(_cplex_vars->at(i)[j]));
+               }
+           }
           break;
        default:
           // Free memory
@@ -163,11 +172,11 @@ public:
 
        // Get the right worker
        Worker* worker = workers[threadNo];
-
+        worker->env = &env;
        // Separate cut
        IloExpr cutLhs(env);
        IloNum cutRhs;
-       IloBool sepStat = worker->separate(x, xSol, cutLhs, cutRhs, 1e-6);
+       IloBool sepStat = worker->separate(cutLhs, cutRhs, 1e-6);
 
        // Free memory
        xSol.end();
