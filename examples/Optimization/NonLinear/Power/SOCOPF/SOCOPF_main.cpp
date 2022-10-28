@@ -252,7 +252,7 @@ int main (int argc, char * argv[])
         solve_time = solver_time_end - solver_time_start;
         total_time = total_time_end - total_time_start;
     }
-    SOCP.print_solution(6);
+//    SOCP.print_solution(6);
     /** Uncomment next line to print expanded model */
     /* SOCP.print(); */
     SOCP.print_constraints_stats(1e-6);

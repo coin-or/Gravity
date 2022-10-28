@@ -14,7 +14,6 @@ void CplexProgram::update_model(){
     _model->compute_funcs();
     fill_in_cplex_vars();
     create_cplex_constraints();
-    create_callback();
     set_cplex_objective();
 }
 
@@ -180,15 +179,14 @@ bool CplexProgram::solve(bool relax, double mipgap) {
             }
         }
         _cplex->setStart(vals, 0, vars, 0, 0, 0);
+        /* Create callback */
         int numThreads = _cplex->getNumCores();
-        // Set up the callback to be used for separating Benders' cuts
         auto cplex_callback  = CplexCallback(numThreads,_model,make_shared<vector<IloNumVarArray>>(_cplex_vars));
         CPXLONG contextmask = IloCplex::Callback::Context::Id::Relaxation | IloCplex::Callback::Context::Id::Candidate
                               | IloCplex::Callback::Context::Id::ThreadUp
                               | IloCplex::Callback::Context::Id::ThreadDown;
-//        if ( true )
-//           contextmask |= IloCplex::Callback::Context::Id::Relaxation;
         _cplex->use(&cplex_callback, contextmask);
+        /* Done with callback */
         _cplex->solve();
         if (_cplex->getStatus() == IloAlgorithm::Infeasible) {
             _cplex_env->out() << "No Solution" << endl;
@@ -480,25 +478,10 @@ void CplexProgram::create_cplex_constraints() {
     }    
 }
 
-void CplexProgram::create_callback(){
-    bool separateFracSols = true;
-    int numThreads = _cplex->getNumCores();
-    IloCplex masterCplex(*_cplex_model);
-    // Set up the callback to be used for separating Benders' cuts
-    auto cplex_callback  = CplexCallback(numThreads,_model,make_shared<vector<IloNumVarArray>>(_cplex_vars));
-    CPXLONG contextmask = IloCplex::Callback::Context::Id::Candidate
-                          | IloCplex::Callback::Context::Id::ThreadUp
-                          | IloCplex::Callback::Context::Id::ThreadDown;
-    if ( separateFracSols )
-       contextmask |= IloCplex::Callback::Context::Id::Relaxation;
-    masterCplex.use(&cplex_callback, contextmask);
-}
-
 
 void CplexProgram::prepare_model() {
     fill_in_cplex_vars();
     create_cplex_constraints();
-//    create_callback();
     set_cplex_objective();
 //    IloCplex cplex(*_cplex_model);
     
