@@ -772,7 +772,7 @@ vector<vector<double>> Model<type>::cutting_planes_soc(double active_tol, int& s
                     //                                scale=1000.0/max_coef;
                     //                            min_coef*=scale;
                     //                            max_coef*=scale;
-                    if(true || min_coef>=1e-9 && max_coef<=1e4){
+                    if(true){
                         int j=0;
                         double cost=0;
                         for (auto &v_p: con->get_vars()){
@@ -868,6 +868,90 @@ vector<vector<double>> Model<type>::cutting_planes_soc(double active_tol, int& s
                     xcurrent.clear();
                     xinterior.clear();
                     cut.clear();
+                    c0_val=0;
+                    c_val.clear();
+                }
+            }
+        }
+    }
+    //DebugOn("soc"<<endl);
+    return res;
+    
+}
+/*Generates and creates a vector of cuts when any solution is violated by the model this . The curent model solution is set to obbt_solution and OA cuts are generated for the nonlinear constraints in the current model at the obbt_solution point. These cuts are added to model lin.
+ @param[in] interior model: Model which can give interior point of current model
+ @param[in] obbt_solution: Point at which constraints are linearized. For non-convex constraints that define a convex region, the point is shifted to an active point of that constraint and its instance
+ @param[in] lin: Model to which linear cuts are added
+ @param[in] nb_oacuts: When a cut is added nb_oacuts is incremented
+ @param[in] active_tol: the obbt_solution x is said to violate a nonlinear constraint g in current model if abs(g(x))> active_tol */
+//vector<vector<double>> Model<type>::cutting_planes_solution(const Model<type>& interior, double active_tol, int soc_viol, int soc_added, int det_viol, int soc_found, int det_found, int det_added)
+template<typename type>
+template<typename T>
+vector<vector<double>> Model<type>::cutting_planes_square(double active_tol)
+{
+    
+    vector<double> xsolution(_nb_vars);
+    vector<double> xinterior(_nb_vars);
+    vector<double> xcurrent, c_val,xnow;
+    const double active_tol_sol=1e-9, zero_tol=1e-9;
+    double c0_val, scale=1.0, fk;
+    bool constr_viol=false, oa_cut=true, convex_region=true, add_new=false;
+    int nb_added_cuts = 0;
+    vector<vector<double>> res;
+    vector<double> cut;
+
+    for (auto &con: _cons_vec)
+    {
+        DebugOn("con->_callback "<<con->_callback<<endl);
+        DebugOn("con->_name "<<con->_name<<endl);
+        if(con->_callback && (con->_name.find("squared")!=std::string::npos)) {
+            // if(con->_name!="limit_neg"){
+            auto cnb_inst=con->get_nb_inst();
+            con->uneval();
+            for(auto i=0;i<cnb_inst;i++){
+                oa_cut=false;
+                c0_val=0;
+                c_val.resize(con->_nb_vars,0);
+                auto cname=con->_name;
+                xcurrent=con->get_x(i);
+                
+                
+                //                con->eval_all();
+                //                DebugOff(con->_name<<"\t"<<con->eval(i)<<endl);
+                //                con->uneval();
+                fk=con->eval(i);
+                DebugOn("fk "<<fk<<endl);
+                if((fk >= active_tol && con->_ctype==leq) || (fk <= -active_tol && con->_ctype==geq)){
+                    constr_viol=true;
+                    vector<string> key;
+                    
+                
+                    c_val.resize(2,0);
+                    
+                    
+                    //get_row_scaling(c_val, scale, oa_cut, zero_tol, 1e-9, 1000);
+                
+                        int j=0;
+                        double cost=0;
+                        for (auto &v_p: con->get_vars()){
+                            auto vid=v_p.second.first->get_id() + v_p.second.first->get_id_inst(i);
+                            cut.push_back(vid);
+                            if(v_p.first.find("Lift")!=std::string::npos){
+                                c_val[j]=-1;
+                            }
+                            else{
+                                c_val[j]=2*xcurrent[j];
+                                c0_val-=xcurrent[j]*xcurrent[j];
+                            }
+                            cut.push_back(c_val[j]);
+                            j++;
+                        }
+                    cut.push_back(c0_val);
+                    res.push_back(cut);
+                    cut.clear();
+              
+                    xcurrent.clear();
+                   
                     c0_val=0;
                     c_val.clear();
                 }
@@ -1097,7 +1181,7 @@ vector<vector<double>> Model<type>::cuts_eigen_bags(const double active_tol)
                 //                }
                 cost*=scale;
                 
-                if(true || minc>=1e-9 && maxc<=1e4){
+                if(true){
                     double min_coef=1e6;
                     double max_coef=-1e6;
                     if(cost>=1e-6){
@@ -1202,6 +1286,7 @@ vector<vector<double>> Model<type>::cuts_eigen_bags_primal_complex(const double 
     int nv=_nb_vars;
     vector<double> xsol(nv,0);
     get_solution(xsol);
+    bool cut_add=false;
     for(auto b:_bag_names){
         int num=b.first;
         var<double> X=get_var<double>(diag_name);
@@ -1359,6 +1444,7 @@ vector<vector<double>> Model<type>::cuts_eigen_bags_primal_complex(const double 
                     cut.push_back(c0_val*scale);
                     res.push_back(cut);
                     DebugOff("posc "<<cost<<endl);
+                    cut_add=true;
                 }
                 else{
                     if(cost<=1e-9)
@@ -1371,6 +1457,9 @@ vector<vector<double>> Model<type>::cuts_eigen_bags_primal_complex(const double 
             else{
                 break;
             }
+        }
+        if(cut_add){
+           // break;
         }
     }
     
@@ -2444,6 +2533,7 @@ template vector<vector<double>> Model<double>::cuts_eigen_bags(const double acti
 template vector<vector<double>> Model<double>::cuts_eigen_bags_primal_complex(const double active_tol,string diag_name, string off_diag_real, string off_diag_imag);
 template vector<vector<double>> Model<double>::cutting_planes_soc(double active_tol, int& soc_viol,int& soc_added);
 template double Model<double>::check_PSD();
+template vector<vector<double>> Model<double>::cutting_planes_square(double active_tol);
 }
 
 

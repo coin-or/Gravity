@@ -209,6 +209,7 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
         map<string, vector<pair<string, double>>>               map_x;
         map<string, vector<pair<string, double>>>               map_y;
         map<string, double>                                     map_const;
+        bool                                                    sdp_dual;
          template<typename T=type>
         void merge_vars(const shared_ptr<expr<T>>& e, bool share_bounds = false){/**<  Transfer all variables and parameters to the model. */
             switch (e->get_type()) {
@@ -631,6 +632,7 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
             map_x=m.map_x;
             map_y=m.map_y;
             map_const=m.map_const;
+            sdp_dual=m.sdp_dual;
             _rel_obj_val=m._rel_obj_val;
             num_cuts=m.num_cuts;
             return *this;
@@ -1016,6 +1018,18 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
             return _cons_name.at(cname);
         }
         
+        template <typename T>
+         shared_ptr<var<T>> get_ptr_var(const string& vname) const{
+             auto it = _vars_name.find(vname);
+             if (it==_vars_name.end()) {
+                 throw invalid_argument("In function: Model::get_var(const string& vname) const, unable to find variable with given name");
+             }
+             auto v = static_pointer_cast<var<T>>(it->second);
+             if(v){
+                 return v;
+             }
+             throw invalid_argument("In function: Model::get_var<T>(const string& vname) const, cannot cast variable, make sure to use the right numerical type T");
+         }
         
         shared_ptr<param_> get_var_ptr(const string& vname) const{
             auto it = _vars_name.find(vname);
@@ -2064,7 +2078,7 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
                         Constraint<type> c_ccve(*newc);
                         c_ccve._name = newc->_name+"_concave";
                         c_ccve._relaxed = true;
-                        add_constraint(c_ccve >= 0);
+                       // add_constraint(c_ccve >= 0);
                     }
                     
                     /* Call the lift function and add corresponding constraints */
@@ -3673,14 +3687,14 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
                 add(MC4.in(*vlift._indices));
             }
             else {
+                bool lin=true;
                 if (vlift._lift_ub){
                 Constraint<type> MC4(name+"_Secant");
                 MC4 += vlift;
                 MC4 -= (ub1_+lb1_)*v1 - ub1_*lb1_;
                 MC4 <= 0;
-                add(MC4.in(*vlift._indices));
+               // add(MC4.in(*vlift._indices));
                 }
-                
                 if (vlift._lift_lb){
                 Constraint<type> MC5(name+"_McCormick_squared");
                     MC5 += vlift;
@@ -3688,9 +3702,13 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
                     MC5 -= v1*v1;
                     
                     MC5 >= 0;
+                    if(lin){
+                        MC5.add_to_callback();
+                    }
                     MC5._relaxed = true; /* MC5 is a relaxation of a non-convex constraint */
                     add(MC5.in(*vlift._indices));
                 }
+             
                 
                 }
             }
@@ -6488,6 +6506,8 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
         vector<vector<double>> cuts_eigen_bags(const double active_tol);
         template<typename T=type>
         vector<vector<double>> cuts_eigen_bags_primal_complex(const double active_tol, string diag_name, string off_diag_real, string off_diag_imag);
+        template<typename T=type>
+        vector<vector<double>> cutting_planes_square(double active_tol);
         template<typename T=type>
         double check_PSD();
         template<typename T=type>   

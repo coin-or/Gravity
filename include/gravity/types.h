@@ -748,8 +748,6 @@ public:
                 _name += excluded.substr(0,excluded.size()-1) + "}";
             }
         }
-    
-    /* Delete indices where keep[i] is false. */
     void filter_refs(const vector<bool>& keep){
         string excluded = "\\{";
         if(_type == matrix_){/* If ids is matrix indexed */
@@ -760,7 +758,7 @@ public:
             auto nb_rows = this->get_nb_rows();
             new_ids->resize(nb_rows);
             size_t idx = 0;
-            for (size_t i = 0; i<nb_rows; i++) {                
+            for (size_t i = 0; i<nb_rows; i++) {
                 for (size_t j = 0; j<this->_ids->at(i).size(); j++) {
                     if(keep[idx++]==true){
                         new_ids->at(i).push_back(_ids->at(i).at(j));
@@ -811,6 +809,68 @@ public:
             _name += excluded.substr(0,excluded.size()-1) + "}";
         }
     }
+    /* Delete indices where keep[i] is false. */
+//    void filter_refs(const vector<bool>& keep){
+//        string excluded = "\\{";
+//        if(_type == matrix_){/* If ids is matrix indexed */
+//            if(keep.size()!=nb_keys()){
+//                throw invalid_argument("in filter_refs(const vector<bool>& keep): keep has a different size than index set");
+//            }
+//            shared_ptr<vector<vector<size_t>>> new_ids = make_shared<vector<vector<size_t>>>();
+//            auto nb_rows = this->get_nb_rows();
+//            new_ids->resize(nb_rows);
+//            size_t idx = 0;
+//            for (size_t i = 0; i<nb_rows; i++) {                
+//                for (size_t j = 0; j<this->_ids->at(i).size(); j++) {
+//                    if(keep[idx++]==true){
+//                        new_ids->at(i).push_back(_ids->at(i).at(j));
+//                    }
+//                }
+//            }
+////            shared_ptr<vector<vector<size_t>>> nnz_ids = make_shared<vector<vector<size_t>>>();
+////            for (size_t i = 0; i<nb_rows; i++) {
+////                if(new_ids->at(i).size()>0){
+////                    nnz_ids->push_back(new_ids->at(i));
+////                }
+////            }
+//            _ids = new_ids;
+//            remove_empty_rows();
+//        }
+//        else if(_ids){
+//            if(keep.size()!=_ids->at(0).size()){
+//                throw invalid_argument("in filter_refs(const vector<bool>& keep): keep has a different size than index set");
+//            }
+//            vector<vector<size_t>> new_ids;
+//            new_ids.resize(1);
+//            for (auto idx = 0; idx<keep.size();idx++) {
+//                if(keep[idx]){
+//                    new_ids.at(0).push_back(_ids->at(0).at(idx));
+//                }
+//                else {
+//                    excluded += "("+_keys->at(_ids->at(0).at(idx)) +"),";
+//                }
+//            }
+//            *_ids = new_ids;
+//            _name += excluded.substr(0,excluded.size()-1) + "}";
+//        }
+//        else {
+//            if(keep.size()!=_keys->size()){
+//                throw invalid_argument("in filter_refs(const vector<bool>& keep): keep has a different size than index set");
+//            }
+//            shared_ptr<vector<vector<size_t>>> new_ids = make_shared<vector<vector<size_t>>>();
+//            new_ids->resize(1);
+//            for (auto idx = 0; idx<keep.size();idx++) {
+//                if(keep[idx]){
+//                    new_ids->at(0).push_back(idx);
+//                }
+//                else {
+//                    excluded += "("+_keys->at(idx) +"),";
+//                }
+//            }
+//            _ids = new_ids;
+//            _name += excluded.substr(0,excluded.size()-1) + "}";
+//        }
+//    }
     
     bool is_matrix_indexed() const{
         return _type == matrix_;

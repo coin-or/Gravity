@@ -1364,17 +1364,46 @@ namespace gravity {
             return (_range->first == Cpx(1,0) && _range->second == Cpx(1,0));
         }
 
-
         bool is_zero() const{
-            return is_zero_();
-        }
-        
+                  return is_zero_();
+              }
+              
+              bool is_all_zero() const{
+                  return is_all_zero_();
+              }
+              
+              bool has_zero() const{
+                  if(_indices){
+                      for (size_t i = 0; i < _indices->size(); i++) {
+                          if(_val->at(get_id_inst(i))==zero<type>().eval())
+                              return true;
+                      }
+                  }
+                  else {
+                      for (size_t i = 0; i < _val->size(); i++) {
+                          if(_val->at(i)==zero<type>().eval())
+                              return true;
+                      }
+                  }
+                  return false;
+              }
+      
         template<class T=type, typename enable_if<is_arithmetic<T>::value>::type* = nullptr> bool is_zero_() const { /**< Returns true if all values of this paramter are 0 **/
 //            return (get_dim()==0 || (_range->first == 0 && _range->second == 0));
             return (get_dim()==0);
         }
 
         template<class T=type, class = typename enable_if<is_same<T, Cpx>::value>::type> bool is_zero_() const{
+            return (get_dim()==0 || (_range->first == Cpx(0,0) && _range->second == Cpx(0,0)));
+        }
+        
+        template<class T=type, typename enable_if<is_arithmetic<T>::value>::type* = nullptr> bool is_all_zero_() const { /**< Returns true if all values of this paramter are 0 **/
+            return (get_dim()==0 || (std::abs(_range->first) < 1e-12 && std::abs(_range->second) < 1e-12 && _name.find("lb") == string::npos && _name.find("ub") == string::npos));
+//            return (get_dim()==0 || (std::abs(_range->first) == 0 && std::abs(_range->second) == 0 && _name.find("lb") == string::npos && _name.find("ub") == string::npos));
+//            return (get_dim()==0);
+        }
+
+        template<class T=type, class = typename enable_if<is_same<T, Cpx>::value>::type> bool is_all_zero_() const{
             return (get_dim()==0 || (_range->first == Cpx(0,0) && _range->second == Cpx(0,0)));
         }
         

@@ -486,6 +486,7 @@ Net CBF_read(const char *file, shared_ptr<Model<double>>& m, bool add_3d) {
         auto node_pairs=g.get_node_pairs();
         g.get_tree_decomp_bags();
         std::vector<pair<int,std::vector<string>>> _bag_names;
+        m->sdp_dual=true;
     
         auto bags_3d=g.decompose_bags_3d();
         auto node_pairs_chord = g.get_node_pairs_chord(bags_3d);

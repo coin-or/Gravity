@@ -264,7 +264,20 @@ protected:
                     }
                     m->set_solution(vec_x);
                     if(  true ){
-
+                        auto res1=m->cutting_planes_square(1e-6);
+                        if(res1.size()>=1){
+                            for(auto i=0;i<res1.size();i++){
+                                GRBLinExpr expr = 0;
+                                int j=0;
+                                for(j=0;j<res1[i].size()-1;j+=2){
+                                    int c=res1[i][j];
+                                    expr += res1[i][j+1]*vars[c];
+                                    DebugOff(res1[i][j+1]<<" ");
+                                }
+                                 expr+=res1[i][j];
+                                addLazy(expr, GRB_LESS_EQUAL, 0);
+                            }
+                        }
                         
                         if(true){
                             m->set_solution(vec_x);
@@ -462,11 +475,18 @@ bool GurobiProgram::solve(bool relax, double mipgap, double time_limit){
     
     //interior=lin->add_outer_app_solution(*_model);
     //interior.print_solution();
-    //cuts cb = cuts(_grb_vars, n, _model, interior);
+    cuts cb = cuts(_grb_vars, n, _model, interior);
     //vector<GRBLinExpr> vec_expr;
+    if(!_model->sdp_dual){
         cuts_primal cb(_grb_vars, n, _model, interior);
         grb_mod->setCallback(&cb);
         grb_mod->update();
+    }
+    else{
+        //cuts cb(_grb_vars, n, _model, interior);
+        grb_mod->setCallback(&cb);
+        grb_mod->update();
+    }
     
     //grb_mod->set(GRB_IntParam_RINS,1);
     // grb_mod->set(GRB_DoubleParam_Heuristics, 0.5);
@@ -484,7 +504,11 @@ bool GurobiProgram::solve(bool relax, double mipgap, double time_limit){
     if(grb_mod->get(GRB_IntAttr_SolCount)>0)
         update_solution();
     bool not_sdp=false;
-    if(_model->check_PSD()<=-1e-9  && grb_mod->get(GRB_IntAttr_Status)==2){
+    if(_model->check_PSD()<=-1e-9  && grb_mod->get(GRB_IntAttr_Status)==2 && _model->sdp_dual){
+        not_sdp=true;
+        grb_mod->setCallback(NULL);
+    }
+    else if( grb_mod->get(GRB_DoubleAttr_ObjVal)<=0.99){
         not_sdp=true;
         grb_mod->setCallback(NULL);
     }
@@ -492,44 +516,7 @@ bool GurobiProgram::solve(bool relax, double mipgap, double time_limit){
     
     int count=0;
     auto ts=get_wall_time();
-//    double sol_new=grb_mod->get(GRB_DoubleAttr_ObjVal);
-//    double sol_old=-1e6;
-    while(not_sdp && count<=3000){
-//        var<double> X=_model->get_var<double>("X");
-//        var<double> Xij=_model->get_var<double>("Xij");
-//        int dim_full=X._indices->_keys->size();
-//
-//        Eigen::MatrixXd mat_full(dim_full,dim_full);
-//        int counti=0;
-//        vector<string> all_names;
-//        for(auto k:*X._indices->_keys){
-//            mat_full(count, count)=X.eval(k);
-//            all_names.push_back(k);
-//            counti++;
-//        }
-//
-//        for(auto i=0;i<all_names.size()-1;i++){
-//            for(auto j=i+1;j<all_names.size();j++){
-//                auto k=all_names[i]+","+all_names[j];
-//                if (Xij._indices->has_key(k)){
-//                    mat_full(i, j)=Xij.eval(k);
-//                    mat_full(j, i)=Xij.eval(k);
-//                }
-//                else{
-//                    mat_full(i, j)=0;
-//                    mat_full(j, i)=0;
-//                }
-//            }
-//        }
-//        Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> es1;
-//        es1.compute(mat_full);
-        
-        //        for(auto m=0;m<dim_full;m++){
-        //            DebugOn(std::setprecision(12)<<es1.eigenvalues()[m]<<" ");
-        //        }
-        //        DebugOn(endl<<"full"<<endl);
-        
-        //grb_mod->setCallback(NULL);
+    while(not_sdp && count<=3000 && _model->sdp_dual){
         int soc_viol=0, soc_added=0;
         auto res=_model->cutting_planes_soc(1e-6,soc_viol, soc_added);
         if(res.size()>=1){
@@ -597,8 +584,64 @@ bool GurobiProgram::solve(bool relax, double mipgap, double time_limit){
 
         count++;
     }
+    while(not_sdp && count<=1e9 && !_model->sdp_dual){
+        int soc_viol=0, soc_added=0;
+        auto res1=_model->cutting_planes_square(1e-6);
+        if(res1.size()>=1){
+            for(auto i=0;i<res1.size();i++){
+                GRBLinExpr expr = 0;
+                int j=0;
+                for(j=0;j<res1[i].size()-1;j+=2){
+                    int c=res1[i][j];
+                    expr += res1[i][j+1]*_grb_vars[c];
+                    DebugOff(res1[i][j+1]<<" ");
+                }
+                 expr+=res1[i][j];
+                grb_mod->addConstr(expr, GRB_LESS_EQUAL, 0);
+            }
+        }
+        if(true){
+        auto res=_model->cuts_eigen_bags_primal_complex(1e-6, "Wii", "R_Wij", "Im_Wij");
+        if(res.size()>=1){
+            for(auto i=0;i<res.size();i++){
+                GRBLinExpr expr = 0;
+                int j=0;
+                for(j=0;j<res[i].size()-1;j+=2){
+                    int c=res[i][j];
+                    expr += res[i][j+1]*_grb_vars[c];
+                    DebugOff(res[i][j+1]<<" ");
+                }
+                 expr+=res[i][j];
+                grb_mod->addConstr(expr, GRB_LESS_EQUAL, 0);
+            }
+        }
+        if(res.size()==0 && res1.size()==0){
+            not_sdp=false;
+        }
+        }
+        if(not_sdp){
+            grb_mod->update();
+            grb_mod->optimize();
+            if(grb_mod->get(GRB_IntAttr_Status)!=2){
+//                    DebugOn("status "<<grb_mod->get(GRB_IntAttr_Status)<<endl);
+//                    grb_mod->computeIIS();
+//                    grb_mod->write("b.mps");
+//                    grb_mod->write("a.ilp");
+                break;
+            }
+        }
+                
+            if(grb_mod->get(GRB_IntAttr_SolCount)>0)
+                update_solution();
+        if(grb_mod->get(GRB_DoubleAttr_ObjVal)>=0.99)
+            break;
+    
+
+        count++;
+    }
     auto tf=get_wall_time();
     DebugOn("While loop Count "<<count<<" in time "<<tf-ts<<endl);
+
     // grb_mod->update();
     // grb_mod->optimize();
     //        for(auto i=0;i<cb.vec_expi.size();i++){

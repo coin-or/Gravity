@@ -63,6 +63,8 @@ public:
     bool _tree = false;
     /** Indices */
     gravity::indices node_pairs = gravity::indices("node_pairs"), node_pairs_chord = gravity::indices("node_pairs_chordal");
+    
+    std::vector<pair<string,vector<Node*>>> decompose_bags_3d_linear(bool print_bags, bool only_3d);
 
     bool duplicate(std::string name1, std::string name2, int id1);
 
