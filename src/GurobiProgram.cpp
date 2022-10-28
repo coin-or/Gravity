@@ -928,7 +928,7 @@ void GurobiProgram::create_grb_constraints(){
                 if(c->_indices)
                     grb_mod->addQConstr(quadlhs,sense,0,c->get_name()+"("+c->_indices->_keys->at(i)+")");
                 else
-                    grb_mod->addQConstr(quadlhs,sense,0,c->get_name());
+                    grb_mod->addQConstr(quadlhs,sense,0,c->get_name());                
                 //                grb_mod->re
                 //    }
                 

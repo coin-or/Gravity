@@ -24,7 +24,7 @@ int main (int argc, char * argv[])
     string fname = string(prj_dir)+"/data_sets/Power/nesta_case5_pjm.m";
     
     string path = argv[0];
-    string solver_str="Mosek";
+    string solver_str="ipopt";
 #ifdef USE_OPT_PARSER
     /** Create a OptionParser with options */
     op::OptionParser opt;
@@ -122,6 +122,9 @@ int main (int argc, char * argv[])
     var<> Qf_to("Qf_to", -1*grid.S_max,grid.S_max);
     SOCP.add(Pf_from.in(arcs), Qf_from.in(arcs), Pf_to.in(arcs), Qf_to.in(arcs));
     
+    var<int> dummy("dummy", 0,1);
+    SOCP.add(dummy.in(range(0, 0)));
+    
     /* Real part of Wij = ViVj */
 //    var<>  R_Wij("R_Wij", grid.wr_min, grid.wr_max);
 //    /* Imaginary part of Wij = ViVj */
@@ -142,7 +145,8 @@ int main (int argc, char * argv[])
     
 
     /**  Objective */
-    auto obj = product(c1,Pg) + product(c2,pow(Pg,2)) + sum(c0);
+//    auto obj = product(c1,Pg) + product(c2,pow(Pg,2)) + sum(c0);
+    auto obj = product(c1,Pg) + sum(c0) + dummy;
     SOCP.min(obj);
     
     /** Constraints */
@@ -193,7 +197,7 @@ int main (int argc, char * argv[])
     Constraint<> Thermal_Limit_from("Thermal_Limit_from");
     Thermal_Limit_from = pow(Pf_from, 2) + pow(Qf_from, 2);
     Thermal_Limit_from <= pow(grid.S_max,2);
-    SOCP.add(Thermal_Limit_from.in(arcs));
+    SOCP.add_lazy(Thermal_Limit_from.in(arcs));
     
     
     Constraint<> Thermal_Limit_to("Thermal_Limit_to");
@@ -250,6 +254,7 @@ int main (int argc, char * argv[])
 //    SOCP.print_solution(12);
     /** Uncomment next line to print expanded model */
     /* SOCP.print(); */
+    SOCP.print_constraints_stats(1e-6);
     string out = "DATA_OPF, " + grid._name + ", " + to_string(nb_buses) + ", " + to_string(nb_lines) +", " + to_string_with_precision(SOCP.get_obj_val(),10) + ", " + to_string(-numeric_limits<double>::infinity()) + ", " + to_string(solve_time) + ", GlobalOptimal, " + to_string(total_time);
     DebugOn(out <<endl);
     double gap = 100*(upper_bound - SOCP.get_obj_val())/upper_bound;

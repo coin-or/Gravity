@@ -240,6 +240,8 @@ int main (int argc, char * argv[])
     }
     /** Uncomment next line to print expanded model */
     /* DCOPF.print(); */
+    DCOPF.print();
+    DCOPF.print_constraints_stats(1e-6);
     string out = "DATA_OPF, " + grid._name + ", " + to_string(nb_buses) + ", " + to_string(nb_lines) +", " + to_string(DCOPF.get_obj_val()) + ", " + to_string(-numeric_limits<double>::infinity()) + ", " + to_string(solve_time) + ", GlobalOptimal, " + to_string(total_time);
     DebugOn(out <<endl);
     return 0;
