@@ -279,7 +279,7 @@ endif()
 
 # Eigen
 if(!WIN32)
-find_package(Eigen QUIET)
+find_package(Eigen3)
 if (EIGEN_FOUND)
  message("-- Found Eigen version ${EIGEN_VERSION}: ${EIGEN_INCLUDE_DIRS}")
 else(EIGEN_FOUND)
@@ -290,6 +290,9 @@ else(EIGEN_FOUND)
 endif (EIGEN_FOUND)
 include_directories(${EIGEN_INCLUDE_DIR})
 endif()
+else (EIGEN_FOUND)
+ message("Cannot find Eigen, will try pulling it from github.")
+endif(EIGEN_FOUND)
 # cpp_option_parser
 if (OPT_PARSER)
 	set(OPT_PARSER_VERSION v1.0)
