@@ -3838,7 +3838,7 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
                 MC4 += vlift;
                 MC4 -= (ub1_+lb1_)*v1 - ub1_*lb1_;
                 MC4 <= 0;
-               // add(MC4.in(*vlift._indices));
+                add(MC4.in(*vlift._indices));
                 }
                 if (vlift._lift_lb){
                 Constraint<type> MC5(name+"_McCormick_squared");
@@ -4859,7 +4859,7 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
                 //        c->print();
                 if (c->_new) {
                     c->compute_derivatives();
-                    //            if (_type==nlin_m) {
+                if (_type==nlin_m) {
                     for (auto &df_p:*c->get_dfdx()) {
                         auto df = static_pointer_cast<func<type>>(df_p.second);
                         DebugOff(df->to_str() << endl);
@@ -4875,7 +4875,7 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
                             embed(df);
                         }
                     }
-                    //            }
+                }
                     if (!c->is_linear()) {
                         
                         for (auto &vi_p: c->get_vars()) {
