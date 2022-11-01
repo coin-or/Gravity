@@ -1,6 +1,10 @@
-cmake_minimum_required(VERSION 3.2)
+cmake_minimum_required(VERSION 3.16)
 
 project(Gravity)
+
+enable_testing()
+
+include(ExternalProject)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${PROJECT_SOURCE_DIR}/cmake)
 set(MACOSX_RPATH 1) 
@@ -9,37 +13,22 @@ option(Debug "Turn on debug mode" OFF)
 
 # Coverage
 option(Cov "Turn on coverage" OFF)
-set(CMAKE_CXX_STANDARD 14)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_EXTENSIONS OFF)
 
-option(Matplot "Link to Matplotlib libraries" OFF)
-if (Matplot)
- add_definitions(-DUSE_MATPLOT)
- find_package(Python3 COMPONENTS Development NumPy)
-endif()
-#set(Eigen_DIR "/opt/local/include/eigen3")
-#set(PCL_DIR "/Users/l297598/Utils/pcl/build")
-#find_package(PCL 1.3 REQUIRED)
-#include_directories(${PCL_INCLUDE_DIRS})
-#message("PCL include dir: ${PCL_INCLUDE_DIRS}")
-#link_directories(${PCL_LIBRARY_DIRS})
-#add_definitions(${PCL_DEFINITIONS})
+# Find PcapPlusPlus (optional)
+option(PcapPlusPlus "Link to PcapPlusPlus libraries" OFF)
 
 # Find GUROBI (optional)
-option(Gurobi "Link to GUROBI libraries" ON)
+option(Gurobi "Link to GUROBI libraries" OFF)
 
-# Find IPOPT (REQUIRED)
+# Find HiGHS (optional)
+option(HiGHS "Link to HiGHS libraries" OFF)
+
+# Find IPOPT (optional)
 option(Ipopt "Link to IPOPT libraries" ON)
 
-#Find Eigen3 (REQUIRED)
-option(Eigen3 "Link to Eigen3 libraries" ON)
+option(MP "Link to AMPL MP libraries" OFF)
 
-# Find LASlib (optional)
-option(LASlib "Link to LASlib libraries" OFF)
-
-# Find QHULL (optional)
-option(QHULL "Link to QHULL libraries" OFF)
+option(CoinUtils "Link to CoinUtils libraries" OFF)
 
 # Find XLNT (optional)
 option(Xlnt "Link to XLNT libraries" OFF)
@@ -80,38 +69,17 @@ if (OpenMPI)
 #   find_package(OpenMPI REQUIRED)
 #   include_directories(${OpenMPI_INCLUDE_DIRS})
 #   set(LIBS ${LIBS} ${OpenMPI_LIBRARIES})
-endif()
+endif(OpenMPI)
 
 
-# Find LASlib.
-if (LASlib)
-        message(STATUS "Enable LASlib")
-        add_definitions(-DUSE_LASlib)
-        find_package(LASlib REQUIRED)
-        include_directories(${LASlib_INCLUDE_DIRS})
-        set(LIBS ${LIBS} ${LASlib_LIBRARIES})
-endif()
+if (PcapPlusPlus)
+    message(STATUS "Enable PcapPlusPlus")
+    add_definitions(-DUSE_PcapPlusPlus)
+    find_package(PcapPlusPlus REQUIRED)
+    include_directories(${PcapPlusPlus_INCLUDE_DIRS}/pcapplusplus)
+    set(LIBS ${LIBS} ${PcapPlusPlus_LIBRARIES})
+endif(PcapPlusPlus)
 
-
-# Find Eigen3.
-if (Eigen3)
-        message(STATUS "Enable Eigen")
-        add_definitions(-DUSE_EIGEN)
-        find_package(Eigen REQUIRED)
-        message("including ${EIGEN_INCLUDE_DIRS}")
-#        set(ADD_Eigen3 TRUE)
-        include_directories(${EIGEN_INCLUDE_DIRS})
-endif()
-
-
-# Find Ipopt.
-if (Ipopt)
-	message(STATUS "Enable IPOPT")
-	add_definitions(-DUSE_IPOPT)
-	find_package(IPOPT REQUIRED)
-	include_directories(${IPOPT_INCLUDE_DIRS}/..)
-	set(LIBS ${LIBS} ${IPOPT_LIBRARIES})
-endif()
 
 # Find xlnt
 if (Xlnt)
@@ -120,7 +88,7 @@ if (Xlnt)
 	find_package(XLNT REQUIRED)
 	include_directories(${XLNT_INCLUDE_DIRS}/..)
 	set(LIBS ${LIBS} ${XLNT_LIBRARIES})
-endif()
+endif(Xlnt)
 
 
 # Find SDPA.
@@ -132,7 +100,7 @@ if (Sdpa)
 	set(LIBS ${LIBS} ${SDPA_LIBRARIES})
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -funroll-all-loops -Wall -fPIC -funroll-all-loops")
     set(CMAKE_Fortran_FLAGS "-g -O2 -Wall -fPIC -funroll-all-loops")
-endif()
+endif(Sdpa)
 
 # Find MOSEK.
 if (Mosek)
@@ -146,7 +114,7 @@ if (Mosek)
     link_directories(${MOSEK_ROOT_DIR}/bin)
     link_directories(${MOSEK_ROOT_DIR}/src/fusion_cxx)
 
-endif()
+endif(Mosek)
 
 # Find gurobi?
 if (Gurobi)
@@ -155,7 +123,9 @@ if (Gurobi)
     find_package(GUROBI)
     include_directories(${GUROBI_INCLUDE_DIRS})
     set(LIBS ${LIBS} ${GUROBI_LIBRARIES})
-endif()
+endif(Gurobi)
+
+
 
 # Find CLP?
 if (Clp)
@@ -165,17 +135,16 @@ if (Clp)
     include_directories(${CLP_INCLUDE_DIRS}/)
     set(LIBS ${LIBS} ${CLP_LIBRARIES})
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -lCoinUtils -lClp")
-endif()
+endif(Clp)
 
 # Find BONMIN?
 if (Bonmin)
     message(STATUS "Enable BONMIN")
     add_definitions(-DUSE_BONMIN)
     find_package(BONMIN)
-    include_directories(${BONMIN_INCLUDE_DIRS})
     include_directories(${BONMIN_INCLUDE_DIRS}/..)
     set(LIBS ${LIBS} ${BONMIN_LIBRARIES})
-endif()
+endif(Bonmin)
 
 # Find CPLEX?
 if (Cplex)
@@ -185,7 +154,7 @@ if (Cplex)
     include_directories(${CPLEX_INCLUDE_DIRS})
     set(LIBS ${LIBS} ${CPLEX_LIBRARIES})
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC -DNDEBUG -DIL_STD")
-endif()
+endif(Cplex)
 
 
 # Find BOOST?
@@ -194,7 +163,7 @@ if (Boost)
     add_definitions(-DUSE_BOOST)
     include_directories("/usr/local/include/")
     set(LIBS ${LIBS} "usr/local/lib/")
-endif()
+endif(Boost)
 
 
 set(UNZIPPED OFF CACHE BOOL "Already unzipped")
@@ -204,53 +173,123 @@ if(NOT UNZIPPED)
     COMMAND ${CMAKE_COMMAND} -E tar xzf ${PROJECT_SOURCE_DIR}/data_sets/Classification/Archive.tar.gz
     WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/data_sets/Classification
      )
-endif()
+endif(NOT UNZIPPED)
 set_directory_properties(PROPERTIES EP_BASE ${CMAKE_BINARY_DIR}/third_party)
 get_directory_property(THIRDPARTY_BASE_PATH EP_BASE)
 
 set(THIRDPARTY_INSTALL_PATH ${THIRDPARTY_BASE_PATH})
 
 
-include(ExternalProject)
+if(NOT WIN32)
+#CoinUtils
+if (CoinUtils)
+message(STATUS "Enable CoinUtils")
+add_definitions(-DUSE_CoinUtils)
+find_package(CoinUtils QUIET)
+if (CoinUtils_FOUND)
+ message("-- Found CoinUtils: ${CoinUtils_INCLUDE_DIRS}")
+ include_directories(${CoinUtils_INCLUDE_DIRS})
+ set(LIBS ${LIBS} ${CoinUtils_LIBRARIES})
+else(CoinUtils_FOUND)
+ set(ADD_CoinUtils TRUE)
+ message(STATUS "Will download CoinUtils library from https://github.com/coin-or/CoinUtils")
+ include(ExternalCoinUtils)
+ if(APPLE)
+  set(CoinUtils_LIBRARY ${THIRDPARTY_INSTALL_PATH}/Install/CoinUtils/build/lib/libCoinUtils.dylib)
+ elseif(UNIX)
+  set(CoinUtils_LIBRARY ${THIRDPARTY_INSTALL_PATH}/Install/CoinUtils/build/lib/libCoinUtils.so)
+ endif(APPLE)
+endif(CoinUtils_FOUND)
+endif(CoinUtils)
+
+#MP
+if (MP)
+message(STATUS "Enable AMPL MP")
+add_definitions(-DUSE_MP)
+find_package(MP QUIET)
+if (MP_FOUND)
+ message("-- Found AMPL MP: ${MP_INCLUDE_DIRS}")
+ include_directories(${MP_INCLUDE_DIRS}/..)
+ set(LIBS ${LIBS} ${MP_LIBRARIES})
+else(MP_FOUND)
+ set(ADD_MP TRUE)
+ message(STATUS "Will download AMPL MP library from https://github.com/ampl/mp.git")
+ include(ExternalMP)
+ set(MP_LIBRARY ${THIRDPARTY_INSTALL_PATH}/Install/MP/build/lib/libmp.a)
+endif(MP_FOUND)
+endif(MP)
+endif(NOT WIN32)
+
+# Find HiGHS?
+if (HiGHS)
+    message(STATUS "Enable HiGHS")
+    add_definitions(-DUSE_HiGHS)
+    find_package(HiGHS)
+if (HiGHS_FOUND)
+    message("-- Found HiGHS: ${HiGHS_INCLUDE_DIRS}")
+    include_directories(${HiGHS_INCLUDE_DIRS})
+    set(LIBS ${LIBS} ${HiGHS_LIBRARIES})
+else(HiGHS_FOUND)
+    set(ADD_HiGHS TRUE)
+    message(STATUS "Will download HiGHS library from https://github.com/ERGO-Code/HiGHS")
+    include(ExternalHiGHS)
+    if(APPLE)
+        set(HiGHS_LIBRARIES ${THIRDPARTY_INSTALL_PATH}/Install/HiGHS/build/lib/libhighs.dylib)
+        elseif(UNIX)
+            set(HiGHS_LIBRARIES ${THIRDPARTY_INSTALL_PATH}/Install/HiGHS/build/lib/libhighs.so)
+        elseif(WIN32)
+            set(HiGHS_LIBRARIES ${THIRDPARTY_INSTALL_PATH}/Install/HiGHS/build/lib/libhighs.lib)
+    endif(APPLE)
+endif(HiGHS_FOUND)
+endif(HiGHS)
+
+
+if(Ipopt)
+# Add Ipopt include dir and link to libraries
+if(WIN32)
+# include_directories("${PROJECT_SOURCE_DIR}/thirdparty/Ipopt")
+include_directories("${PROJECT_SOURCE_DIR}/thirdparty/Ipopt/include/coin-or")
+# add_subdirectory(thirdparty/Ipopt)
+# find_library(IPOPT_LIBRARIES 
+#     ipopt.dll
+# 	HINTS /usr/local/lib
+# 	HINTS ${PROJECT_SOURCE_DIR}/thirdparty/Ipopt
+# 	HINTS ${IPOPT_ROOT_DIR}/lib
+# )
+endif(WIN32)
+
+message(STATUS "Enable IPOPT")
+add_definitions(-DUSE_IPOPT)
+find_package(IPOPT QUIET)
+if (IPOPT_FOUND)
+ message("-- Found IPOPT: ${IPOPT_INCLUDE_DIRS}")
+ include_directories(${IPOPT_INCLUDE_DIRS})
+ set(LIBS ${LIBS} ${IPOPT_LIBRARIES})
+else(IPOPT_FOUND)
+set(ADD_IPOPT TRUE)
+if(APPLE)
+ set(IPOPT_LIBRARIES ${THIRDPARTY_INSTALL_PATH}/Install/ipopt/build/lib/libipopt.dylib)
+elseif(UNIX)
+	set(IPOPT_LIBRARIES ${PROJECT_SOURCE_DIR}/thirdparty/Ipopt/libipopt.so)
+elseif(WIN32) 
+ set(IPOPT_LIBRARIES ${PROJECT_SOURCE_DIR}/thirdparty/Ipopt/libipopt-3.lib)
+endif(APPLE)
+include(ExternalIpopt)
+endif (IPOPT_FOUND)
+endif(Ipopt)
+
 # Eigen
-#find_package(Eigen QUIET)
-#if (EIGEN_FOUND)
-# message("-- Found Eigen version ${EIGEN_VERSION}: ${EIGEN_INCLUDE_DIRS}")
-#else(EIGEN_FOUND)
-# set(EIGEN_VERSION 3.3.7)
-# include(ExternalEigen)
-# set(EIGEN_INCLUDE_DIR ${THIRDPARTY_INSTALL_PATH}/Install/eigen)
-# set(ADD_EIGEN TRUE)
-#endif (EIGEN_FOUND)
-#include_directories(${EIGEN_INCLUDE_DIR})
+find_package(Eigen)
+if (EIGEN_FOUND)
+ message("-- Found Eigen version ${EIGEN_VERSION}: ${EIGEN_INCLUDE_DIRS}")
+else(EIGEN_FOUND)
+ set(EIGEN_VERSION 3.3.7)
+ include(ExternalEigen)
+ set(EIGEN_INCLUDE_DIR ${THIRDPARTY_INSTALL_PATH}/Install/eigen)
+ set(ADD_EIGEN TRUE)
+endif (EIGEN_FOUND)
 
-#find_package(GoICP QUIET)
-#if (GoICP_FOUND)
-# message("-- Found GoICP: ${EIGEN_INCLUDE_DIRS}")
-#else(GoICP_FOUND)
-# include(ExternalGoICP)
-# set(GoICP_INCLUDE_DIR ${THIRDPARTY_INSTALL_PATH}/Install/GoICP)
-# set(ADD_GoICP TRUE)
-#endif (GoICP_FOUND)
-#include_directories(${GoICP_INCLUDE_DIR})
-
-if (QHULL)
-message(STATUS "Enable QHULL")
-add_definitions(-DUSE_QHULL)
-find_package(QHULL QUIET)
-if (QHULL_FOUND)
- message("-- Found QHULL: ${QHULL_INCLUDE_DIRS}")
- include_directories(${QHULL_INCLUDE_DIRS})
- set(LIBS ${LIBS} ${QHULL_LIBRARIES})
-else(QHULL_FOUND)
- set(ADD_QHULL TRUE)
- message(STATUS "Will download QHULL library from http://www.qhull.org/download")
- include(ExternalQHULL)
- #set(QHULL_LIBRARIES ${THIRDPARTY_INSTALL_PATH}/Install/QHULL/build/libqhullcpp.a ${THIRDPARTY_INSTALL_PATH}/Install/QHULL/build/libqhullstatic.a ${THIRDPARTY_INSTALL_PATH}/Install/QHULL/build/libqhullstatic_r.a)
- set(QHULL_LIBRARIES ${THIRDPARTY_INSTALL_PATH}/Install/qhull/build/libqhullcpp.a ${THIRDPARTY_INSTALL_PATH}/Install/qhull/build/libqhullstatic_r.a)
-endif()
-endif()
-
+include_directories(${EIGEN_INCLUDE_DIR})
 # cpp_option_parser
 if (OPT_PARSER)
 	set(OPT_PARSER_VERSION v1.0)
@@ -262,7 +301,7 @@ if (OPT_PARSER)
 	link_directories(${THIRDPARTY_INSTALL_PATH}/Build/opt_parser/Debug)
 	include_directories(${OPT_PARSER_INCLUDE_DIR})
 	include_directories(${THIRDPARTY_INSTALL_PATH}/include)
-endif()
+endif(OPT_PARSER)
 
 
 
@@ -275,19 +314,16 @@ execute_process(
   )
     add_definitions(-DUSE_QPP)
     include_directories(${PROJECT_SOURCE_DIR}/third_party/qpp-1.0/include)
-endif()
+endif(Qpp AND NOT UNZIPPED)
 
 set(UNZIPPED ON CACHE BOOL "Already unzipped" FORCE)
-# Inlude dir
-include_directories(${PROJECT_SOURCE_DIR}/third_party)
 
 # Include Power dirs
 include_directories(${PROJECT_SOURCE_DIR}/examples/Optimization/NonLinear/Power)
-include_directories(${PROJECT_SOURCE_DIR}/solvers)
+# include_directories(${PROJECT_SOURCE_DIR}/solvers)
 
 # Include ML dirs
 include_directories(${PROJECT_SOURCE_DIR}/examples/MachineLearning)
-include_directories(${PROJECT_SOURCE_DIR}/examples/MachineLearning/Supervised/LiDAR/LASlib)
 
 set(LIBS ${LIBS} ${PROJECT_SOURCE_DIR}/lib ${PROJECT_SOURCE_DIR}/lib/Release ${PROJECT_SOURCE_DIR}/lib/Debug)
 # Compiler options
@@ -311,18 +347,21 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fprofile-arcs -ftest-coverage")
 set(CMAKE_LINKER_FLAGS "${CMAKE_LINKER_FLAGS} -fprofile-arcs -lgcov")
 endif()
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Wno-absolute-value")
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,-rpath,'\$ORIGIN/lib'")
 
 
-if(LINUX)
+if(UNIX)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread")
+  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -pthread")
+  set(CMAKE_LINKER_FLAGS "${CMAKE_LINKER_FLAGS} -pthread")
 endif()
 
 
 add_subdirectory(src)
 add_subdirectory(examples)
-add_subdirectory(solvers)
+# add_subdirectory(solvers)
 
 #Get user defined configuration including passing project source directory into c++ code
 configure_file(GravityConfig.h.in ${PROJECT_SOURCE_DIR}/include/gravity/GravityConfig.h)
+install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/gravity DESTINATION include)
