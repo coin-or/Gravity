@@ -56,6 +56,8 @@ public:
     /** Vector of cycles forming a cycle basis */
     std::vector<Path*> cycle_basis;
     
+    bool sdp_3d_cuts=true;
+    
     /** Horton subnetwork */
     Net* horton_net = nullptr;
     
@@ -89,7 +91,7 @@ public:
     void add_node(Node* n, size_t pos);
     bool add_arc(Arc* a);
     void add_undirected_arc(Arc* a);
-    void remove_duplicate_bags();
+    void remove_redundant_bags();
 
     /* Accessors */
     Node* get_node(std::string name) const;

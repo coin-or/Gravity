@@ -485,6 +485,7 @@ Net CBF_read(const char *file, shared_ptr<Model<double>>& m, bool add_3d) {
         }
         
         auto node_pairs=g.get_node_pairs();
+        g.sdp_3d_cuts=false;
         g.get_tree_decomp_bags();
         std::vector<pair<int,std::vector<string>>> _bag_names;
         m->sdp_dual=true;
@@ -645,8 +646,8 @@ Net CBF_read(const char *file, shared_ptr<Model<double>>& m, bool add_3d) {
         for(auto b:g._bags){
             pair<int,vector<string>> bn;
             bn.first=count++;
-            DebugOn("bag "<<count<<endl);
             if(b.second.size()>=3){
+                DebugOn("bag "<<count<<endl);
                 for(auto n:b.second){
                     bn.second.push_back(n->_name);
                     DebugOn(n->_name <<"\t");

@@ -203,7 +203,7 @@ int main (int argc, char * argv[]) {
     SDPa->_bag_names=_bag_names;
     SDPa->sdp_dual=false;
     solver<> LBnonlin_solver(SDPa,ipopt);
-    LBnonlin_solver.run(output = 0 , 1e-6, "ma57");
+    LBnonlin_solver.run(output = 5 , 1e-6, "ma57");
     int while_count=0;
     if(solv_type==ipopt){
         count=0;
