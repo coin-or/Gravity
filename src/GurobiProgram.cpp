@@ -41,15 +41,12 @@ protected:
                     /* Found an integer feasible solution */
                     double *x = new double[n];
                     vector<double> vec_x;
-                    // double obj=getDoubleInfo(GRB_CB_MIPSOL_OBJ);
                     int i,j;
                     x=getSolution(vars.data(),n);
                     for(i=0;i<n;i++){
                         vec_x.push_back(x[i]);
                     }
-                    m->set_solution(vec_x);
-                    if(  true ){
-                        
+                    if(true ){
                         m->set_solution(vec_x);
                         auto res= m->cutting_planes_soc(1e-9, soc_found, soc_added);
                         if(res.size()>=1){
@@ -65,17 +62,11 @@ protected:
                                 expr += res[i][j];
                                 DebugOff(endl);
                                 addLazy(expr, GRB_LESS_EQUAL, 0);
-                                //                                  addCut(expr, GRB_LESS_EQUAL, 0);
-                                
-                                //vec_expi.push_back(expr);
                                 m->num_cuts[0]++;
                             }
                         }
-                        
-                        
                         if(res.size()==0 || !hierarc){
                             m->set_solution(vec_x);
-                            //                            if(true || res.size()==0){
                             auto res1=m->cuts_eigen_bags(1e-9);
                             if(res1.size()>=1){
                                 for(auto i=0;i<res1.size();i++){
@@ -85,106 +76,12 @@ protected:
                                     for(j=0;j<res1[i].size()-1;j+=2){
                                         int c=res1[i][j];
                                         expr += res1[i][j+1]*vars[c];
-                                        DebugOff(to_string_with_precision(vec_x[c],10)<<" "<<to_string_with_precision(c,10)<<" "<<to_string_with_precision(res1[i][j+1],10)<<" ");
                                     }
-                                    DebugOff(to_string_with_precision(res1[i][j],10));
-                                    DebugOff(endl);
-//                                    if(std::abs(res1[i][j])>=1e-12)
-                                        expr += res1[i][j];
+                                    expr += res1[i][j];
                                     addLazy(expr, GRB_LESS_EQUAL, 0);
                                     m->num_cuts[1]++;
-                                    //                                addCut(expr, GRB_LESS_EQUAL, 0);
-                                    //vec_expi.push_back(expr);
                                 }
                             }
-                            
-                            
-                            m->set_solution(vec_x);
-                            
-                            if(res1.size()==0 || !hierarc){
-                                auto res2=m->cuts_eigen_full(1e-9);
-                                if(res2.size()>=1){
-                                    for(auto i=0;i<res2.size();i++){
-                                        GRBLinExpr expr = 0;
-                                        int j;
-                                        for(j=0;j<res2[i].size()-1;j+=2){
-                                            int c=res2[i][j];
-                                            expr += res2[i][j+1]*vars[c];
-                                        }
-//                                        if(std::abs(res2[i][j])>=1e-12)
-                                            expr += res2[i][j];
-                                        addLazy(expr, GRB_LESS_EQUAL, 0);
-                                        m->num_cuts[2]++;
-                                        //                            addCut(expr, GRB_LESS_EQUAL, 0);
-                                        //vec_expi.push_back(expr);
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            if(true){
-                if (where == GRB_CB_MIPNODE) {
-                    if(getIntInfo(GRB_CB_MIPNODE_STATUS)==2 ){
-                        int nc= getDoubleInfo(GRB_CB_MIPNODE_NODCNT);
-                                                if(true){
-                        // Found an integer feasible solution - does it visit every node?
-                        double *x = new double[n];
-                        vector<double> vec_x;
-                        // double obj=getDoubleInfo(GRB_CB_MIPSOL_OBJ);
-                        int i,j;
-                        x=getNodeRel(vars.data(),n);
-                        //x=getSolution(vars.data(),n);
-                        for(i=0;i<n;i++){
-                            vec_x.push_back(x[i]);
-                        }
-                        m->set_solution(vec_x);
-                        
-                        auto res= m->cutting_planes_soc(1e-9, soc_found, soc_added);
-                        if(res.size()>=1){
-                            for(auto i=0;i<res.size();i++){
-                                GRBLinExpr expr = 0;
-                                int j;
-                                DebugOff("soc cut at ");
-                                for(j=0;j<res[i].size()-1;j+=2){
-                                    int c=res[i][j];
-                                    expr += res[i][j+1]*vars[c];
-                                    DebugOff(to_string_with_precision(vec_x[c],10)<<" "<<to_string_with_precision(c,10)<<" "<<to_string_with_precision(res[i][j+1],10)<<" ");
-                                }
-                                expr += res[i][j];
-                                DebugOff(endl);
-                                addLazy(expr, GRB_LESS_EQUAL, 0);
-//                                addCut(expr, GRB_LESS_EQUAL, 0);
-                                m->num_cuts[3]++;
-                                //vec_expi.push_back(expr);
-                            }
-                        }
-                        if(res.size()==0 || !hierarc){
-                            m->set_solution(vec_x);
-                            auto res1=m->cuts_eigen_bags(1e-9);
-                            if(res1.size()>=1){
-                                for(auto i=0;i<res1.size();i++){
-                                    GRBLinExpr expr = 0;
-                                    int j;
-                                    DebugOff("eig cut at");
-                                    for(j=0;j<res1[i].size()-1;j+=2){
-                                        int c=res1[i][j];
-                                        expr += res1[i][j+1]*vars[c];
-                                        DebugOff(to_string_with_precision(vec_x[c],10)<<" "<<to_string_with_precision(c,10)<<" "<<to_string_with_precision(res1[i][j+1],10)<<" ");
-                                    }
-                                    DebugOff(to_string_with_precision(res1[i][j],10));
-                                    DebugOff(endl);
-                                  //  if(std::abs(res1[i][j])>=1e-12)
-                                        expr += res1[i][j];
-                                    addLazy(expr, GRB_LESS_EQUAL, 0);
-                                    m->num_cuts[4]++;
-//                                    addCut(expr, GRB_LESS_EQUAL, 0);
-                                    //vec_expi.push_back(expr);
-                                }
-                            }
-                            
-                            
                             if(res1.size()==0 || !hierarc){
                                 m->set_solution(vec_x);
                                 auto res2=m->cuts_eigen_full(1e-9);
@@ -196,12 +93,75 @@ protected:
                                             int c=res2[i][j];
                                             expr += res2[i][j+1]*vars[c];
                                         }
-                                  //      if(std::abs(res2[i][j])>=1e-12)
+                                            expr += res2[i][j];
+                                        addLazy(expr, GRB_LESS_EQUAL, 0);
+                                        m->num_cuts[2]++;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            if(true){
+                if (where == GRB_CB_MIPNODE) {
+                    if(getIntInfo(GRB_CB_MIPNODE_STATUS)==2 ){
+                        int nc= getDoubleInfo(GRB_CB_MIPNODE_NODCNT);
+                    if(true){
+                        double *x = new double[n];
+                        vector<double> vec_x;
+                        // double obj=getDoubleInfo(GRB_CB_MIPSOL_OBJ);
+                        int i,j;
+                        x=getNodeRel(vars.data(),n);
+                        for(i=0;i<n;i++){
+                            vec_x.push_back(x[i]);
+                        }
+                        m->set_solution(vec_x);
+                        
+                        auto res= m->cutting_planes_soc(1e-9, soc_found, soc_added);
+                        if(res.size()>=1){
+                            for(auto i=0;i<res.size();i++){
+                                GRBLinExpr expr = 0;
+                                int j;
+                                for(j=0;j<res[i].size()-1;j+=2){
+                                    int c=res[i][j];
+                                    expr += res[i][j+1]*vars[c];
+                                }
+                                expr += res[i][j];
+                                addLazy(expr, GRB_LESS_EQUAL, 0);
+                                m->num_cuts[3]++;
+                            }
+                        }
+                        if(res.size()==0 || !hierarc){
+                            m->set_solution(vec_x);
+                            auto res1=m->cuts_eigen_bags(1e-9);
+                            if(res1.size()>=1){
+                                for(auto i=0;i<res1.size();i++){
+                                    GRBLinExpr expr = 0;
+                                    int j;
+                                    for(j=0;j<res1[i].size()-1;j+=2){
+                                        int c=res1[i][j];
+                                        expr += res1[i][j+1]*vars[c];
+                                    }
+                                        expr += res1[i][j];
+                                    addLazy(expr, GRB_LESS_EQUAL, 0);
+                                    m->num_cuts[4]++;
+                                }
+                            }
+                            if(res1.size()==0 || !hierarc){
+                                m->set_solution(vec_x);
+                                auto res2=m->cuts_eigen_full(1e-9);
+                                if(res2.size()>=1){
+                                    for(auto i=0;i<res2.size();i++){
+                                        GRBLinExpr expr = 0;
+                                        int j;
+                                        for(j=0;j<res2[i].size()-1;j+=2){
+                                            int c=res2[i][j];
+                                            expr += res2[i][j+1]*vars[c];
+                                        }
                                             expr += res2[i][j];
                                         addLazy(expr, GRB_LESS_EQUAL, 0);
                                         m->num_cuts[5]++;
-                                        //                                    addCut(expr, GRB_LESS_EQUAL, 0);
-                                        //vec_expi.push_back(expr);
                                     }
                                 }
                             }
