@@ -50,6 +50,8 @@ if (EIGEN_INCLUDE_DIR)
   endif (NOT EXISTS ${EIGEN_VERSION_FILE})
 endif (EIGEN_INCLUDE_DIR)
 
+include(FindPackageHandleStandardArgs)
+find_package_handle_standard_args(Eigen DEFAULT_MSG EIGEN_INCLUDE_DIR)
 # Set standard CMake FindPackage variables if found.
 if (EIGEN_FOUND)
   set(EIGEN_INCLUDE_DIRS ${EIGEN_INCLUDE_DIR})

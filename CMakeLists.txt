@@ -69,7 +69,7 @@ if (OpenMPI)
 #   find_package(OpenMPI REQUIRED)
 #   include_directories(${OpenMPI_INCLUDE_DIRS})
 #   set(LIBS ${LIBS} ${OpenMPI_LIBRARIES})
-endif()
+endif(OpenMPI)
 
 
 if (PcapPlusPlus)
@@ -78,7 +78,7 @@ if (PcapPlusPlus)
     find_package(PcapPlusPlus REQUIRED)
     include_directories(${PcapPlusPlus_INCLUDE_DIRS}/pcapplusplus)
     set(LIBS ${LIBS} ${PcapPlusPlus_LIBRARIES})
-endif()
+endif(PcapPlusPlus)
 
 
 # Find xlnt
@@ -88,7 +88,7 @@ if (Xlnt)
 	find_package(XLNT REQUIRED)
 	include_directories(${XLNT_INCLUDE_DIRS}/..)
 	set(LIBS ${LIBS} ${XLNT_LIBRARIES})
-endif()
+endif(Xlnt)
 
 
 # Find SDPA.
@@ -100,7 +100,7 @@ if (Sdpa)
 	set(LIBS ${LIBS} ${SDPA_LIBRARIES})
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -funroll-all-loops -Wall -fPIC -funroll-all-loops")
     set(CMAKE_Fortran_FLAGS "-g -O2 -Wall -fPIC -funroll-all-loops")
-endif()
+endif(Sdpa)
 
 # Find MOSEK.
 if (Mosek)
@@ -114,7 +114,7 @@ if (Mosek)
     link_directories(${MOSEK_ROOT_DIR}/bin)
     link_directories(${MOSEK_ROOT_DIR}/src/fusion_cxx)
 
-endif()
+endif(Mosek)
 
 # Find gurobi?
 if (Gurobi)
@@ -123,7 +123,7 @@ if (Gurobi)
     find_package(GUROBI)
     include_directories(${GUROBI_INCLUDE_DIRS})
     set(LIBS ${LIBS} ${GUROBI_LIBRARIES})
-endif()
+endif(Gurobi)
 
 
 
@@ -135,7 +135,7 @@ if (Clp)
     include_directories(${CLP_INCLUDE_DIRS}/)
     set(LIBS ${LIBS} ${CLP_LIBRARIES})
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -lCoinUtils -lClp")
-endif()
+endif(Clp)
 
 # Find BONMIN?
 if (Bonmin)
@@ -144,7 +144,7 @@ if (Bonmin)
     find_package(BONMIN)
     include_directories(${BONMIN_INCLUDE_DIRS}/..)
     set(LIBS ${LIBS} ${BONMIN_LIBRARIES})
-endif()
+endif(Bonmin)
 
 # Find CPLEX?
 if (Cplex)
@@ -154,7 +154,7 @@ if (Cplex)
     include_directories(${CPLEX_INCLUDE_DIRS})
     set(LIBS ${LIBS} ${CPLEX_LIBRARIES})
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC -DNDEBUG -DIL_STD")
-endif()
+endif(Cplex)
 
 
 # Find BOOST?
@@ -163,7 +163,7 @@ if (Boost)
     add_definitions(-DUSE_BOOST)
     include_directories("/usr/local/include/")
     set(LIBS ${LIBS} "usr/local/lib/")
-endif()
+endif(Boost)
 
 
 set(UNZIPPED OFF CACHE BOOL "Already unzipped")
@@ -173,7 +173,7 @@ if(NOT UNZIPPED)
     COMMAND ${CMAKE_COMMAND} -E tar xzf ${PROJECT_SOURCE_DIR}/data_sets/Classification/Archive.tar.gz
     WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/data_sets/Classification
      )
-endif()
+endif(NOT UNZIPPED)
 set_directory_properties(PROPERTIES EP_BASE ${CMAKE_BINARY_DIR}/third_party)
 get_directory_property(THIRDPARTY_BASE_PATH EP_BASE)
 
@@ -199,8 +199,8 @@ else(CoinUtils_FOUND)
  elseif(UNIX)
   set(CoinUtils_LIBRARY ${THIRDPARTY_INSTALL_PATH}/Install/CoinUtils/build/lib/libCoinUtils.so)
  endif(APPLE)
-endif()
-endif()
+endif(CoinUtils_FOUND)
+endif(CoinUtils)
 
 #MP
 if (MP)
@@ -216,8 +216,9 @@ else(MP_FOUND)
  message(STATUS "Will download AMPL MP library from https://github.com/ampl/mp.git")
  include(ExternalMP)
  set(MP_LIBRARY ${THIRDPARTY_INSTALL_PATH}/Install/MP/build/lib/libmp.a)
-endif()
-endif()
+endif(MP_FOUND)
+endif(MP)
+endif(NOT WIN32)
 
 # Find HiGHS?
 if (HiGHS)
@@ -242,7 +243,7 @@ else(HiGHS_FOUND)
 endif(HiGHS_FOUND)
 endif(HiGHS)
 
-endif()
+
 if(Ipopt)
 # Add Ipopt include dir and link to libraries
 if(WIN32)
@@ -275,20 +276,19 @@ elseif(WIN32)
 endif(APPLE)
 include(ExternalIpopt)
 endif (IPOPT_FOUND)
-endif()
+endif(Ipopt)
 
 # Eigen
-if(!WIN32)
 find_package(Eigen)
 if (EIGEN_FOUND)
  message("-- Found Eigen version ${EIGEN_VERSION}: ${EIGEN_INCLUDE_DIRS}")
 else(EIGEN_FOUND)
- message("Cannot find Eigen, will try pulling it from github.")
  set(EIGEN_VERSION 3.3.7)
  include(ExternalEigen)
  set(EIGEN_INCLUDE_DIR ${THIRDPARTY_INSTALL_PATH}/Install/eigen)
  set(ADD_EIGEN TRUE)
 endif (EIGEN_FOUND)
+
 include_directories(${EIGEN_INCLUDE_DIR})
 # cpp_option_parser
 if (OPT_PARSER)
@@ -301,7 +301,7 @@ if (OPT_PARSER)
 	link_directories(${THIRDPARTY_INSTALL_PATH}/Build/opt_parser/Debug)
 	include_directories(${OPT_PARSER_INCLUDE_DIR})
 	include_directories(${THIRDPARTY_INSTALL_PATH}/include)
-endif()
+endif(OPT_PARSER)
 
 
 
@@ -314,7 +314,7 @@ execute_process(
   )
     add_definitions(-DUSE_QPP)
     include_directories(${PROJECT_SOURCE_DIR}/third_party/qpp-1.0/include)
-endif()
+endif(Qpp AND NOT UNZIPPED)
 
 set(UNZIPPED ON CACHE BOOL "Already unzipped" FORCE)
 
