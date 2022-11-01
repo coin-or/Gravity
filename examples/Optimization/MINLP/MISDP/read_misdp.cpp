@@ -228,8 +228,8 @@ Net CBF_read(const char *file, shared_ptr<Model<double>>& m, bool add_3d) {
     x_ub.in(C);x_lb.in(C);
     y_ub.in(I);y_lb.in(I);
     for (int i = 0; i<C.size(); i++) {
-        x_lb.set_val(i, -100);
-        x_ub.set_val(i, 100);
+        x_lb.set_val(i, -1000);
+        x_ub.set_val(i, 1000);
     }
     for (int i = 0; i<I.size(); i++) {
         y_lb.set_val(i, -100);
@@ -241,10 +241,10 @@ Net CBF_read(const char *file, shared_ptr<Model<double>>& m, bool add_3d) {
     
     
     //if(!C.empty()){
-        m->add(x.in(C));
+    m->add(x.in(C));
     //}
     //if(!I.empty()){
-        m->add(y.in(I));
+    m->add(y.in(I));
     //}
     int count=0;
     for (auto i=0; i<(data.varstacknum); ++i) {
@@ -432,10 +432,11 @@ Net CBF_read(const char *file, shared_ptr<Model<double>>& m, bool add_3d) {
             }
         }
     }
-//    x.reset_range();
-//    y.reset_range();
+    //    x.reset_range();
+    //    y.reset_range();
     if(data.psdmapnum==1){
         int nnodes=data.psdmapdim[0];
+        DebugOn("PSD matrix dimension "<<nnodes<<endl);
         indices nodes;
         Node* n1 = nullptr;
         Node* n2 = nullptr;
@@ -487,7 +488,7 @@ Net CBF_read(const char *file, shared_ptr<Model<double>>& m, bool add_3d) {
         g.get_tree_decomp_bags();
         std::vector<pair<int,std::vector<string>>> _bag_names;
         m->sdp_dual=true;
-    
+        
         auto bags_3d=g.decompose_bags_3d();
         auto node_pairs_chord = g.get_node_pairs_chord(bags_3d);
         var<> X("X", 0, 1000);
@@ -498,7 +499,7 @@ Net CBF_read(const char *file, shared_ptr<Model<double>>& m, bool add_3d) {
         m->add(Xij.in(node_pairs_chord));
         
         count=0;
-
+        
         
         map<string, func<>> func_map;
         map<string, func<>> func_map_bounds;
@@ -526,12 +527,10 @@ Net CBF_read(const char *file, shared_ptr<Model<double>>& m, bool add_3d) {
                 func_name=(to_string(k));
             }
             if(C.has_key(ind)){
-                // func_map.at(func_name)-=coef*x(ind);
                 func_map_bounds[func_name]+=coef*x(ind);
                 map_x[func_name].push_back(make_pair(ind, coef));
             }
             else{
-                // func_map.at(func_name)-=coef*y(ind);
                 func_map_bounds[func_name]+=coef*y(ind);
                 map_y[func_name].push_back(make_pair(ind, coef));
                 
@@ -547,31 +546,28 @@ Net CBF_read(const char *file, shared_ptr<Model<double>>& m, bool add_3d) {
             if(k==l){
                 func_name=(to_string(k));
             }
-            //  func_map.at(func_name)-=coef;
             func_map_bounds[func_name]+=coef;
             map_const[func_name]+=coef;
         }
         double maxlu=0, scale;
         for(auto it=func_map_bounds.begin();it!=func_map_bounds.end();it++){
             func_map_bounds.at(it->first).eval_all();
-                maxlu+=std::max(abs(func_map_bounds.at(it->first)._range->first), abs(func_map_bounds.at(it->first)._range->second));
-                if(it->first.find(",")!=std::string::npos){
-                    Xij.set_lb(it->first, func_map_bounds.at(it->first)._range->first);
-                    Xij.set_ub(it->first, func_map_bounds.at(it->first)._range->second);
-                    
-                }
-                else{
-                    X.set_lb(it->first, std::max(0.0, func_map_bounds.at(it->first)._range->first));
-                    X.set_ub(it->first, func_map_bounds.at(it->first)._range->second);
-                }
+            maxlu+=std::max(abs(func_map_bounds.at(it->first)._range->first), abs(func_map_bounds.at(it->first)._range->second));
+            if(it->first.find(",")!=std::string::npos){
+                Xij.set_lb(it->first, func_map_bounds.at(it->first)._range->first);
+                Xij.set_ub(it->first, func_map_bounds.at(it->first)._range->second);
+                
+            }
+            else{
+                X.set_lb(it->first, std::max(0.0, func_map_bounds.at(it->first)._range->first));
+                X.set_ub(it->first, func_map_bounds.at(it->first)._range->second);
+            }
             
         }
-        //scale=0.1;
         scale=1;
         
         for(auto it=func_map_bounds.begin();it!=func_map_bounds.end();it++){
             auto name=it->first;
-            // scale=1.0;
             auto f=func_map_bounds.at(name)*scale;
             func_map.at(name)-=f;
             if(name.find(",")!=std::string::npos){
@@ -582,15 +578,6 @@ Net CBF_read(const char *file, shared_ptr<Model<double>>& m, bool add_3d) {
                 X.set_lb(name, X.get_lb(name)*scale);
                 X.set_ub(name, X.get_ub(name)*scale);
             }
-            //            auto lt=*func_map_bounds.at(name)._lterms;
-            //                            for(auto it1:lt){
-            //                                auto coeff = func_map_bounds.at(name).eval(it1.second._coef);
-            //                                if(!it1.second._sign)
-            //                                    coeff*=-1;
-            //                                coeff/=maxlu;
-            //                                auto ind=it1.second._p->get_id();
-            //                                func_map.at(name)-=coeff*
-            //                            }
         }
         for(auto k:*(node_pairs._keys)){
             auto pos = k.find_first_of(",");
@@ -637,10 +624,10 @@ Net CBF_read(const char *file, shared_ptr<Model<double>>& m, bool add_3d) {
             if(!node_pairs.has_key(k)){
                 Xij.set_lb(k,0);
                 Xij.set_ub(k,0);
-                    }
-                }
+            }
+        }
         
-      
+        
         
         
         for(auto it=func_map.begin();it!=func_map.end();it++){
@@ -654,153 +641,29 @@ Net CBF_read(const char *file, shared_ptr<Model<double>>& m, bool add_3d) {
         SOC.add_to_callback();
         m->add(SOC.in(node_pairs) <= 0);
         
-                Constraint<> aSOC("aSOC");
-                aSOC = 2*Xij - X.from(node_pairs)-X.to(node_pairs);
-                //m->add(aSOC.in(node_pairs) <= 0);
-        
-        Constraint<> bSOC("bSOC");
-        bSOC = 2*Xij + X.from(node_pairs)+X.to(node_pairs);
-       // m->add(bSOC.in(node_pairs) >= 0);
-        
         count=0;
         for(auto b:g._bags){
-              pair<int,vector<string>> bn;
-              bn.first=count++;
-  //            indices zk_nodes;
-  //            param<double> midk("midk"+to_string(count));
+            pair<int,vector<string>> bn;
+            bn.first=count++;
+            DebugOn("bag "<<count<<endl);
             if(b.second.size()>=3){
-              for(auto n:b.second){
-                  bn.second.push_back(n->_name);
-             }
-            _bag_names.push_back(bn);
+                for(auto n:b.second){
+                    bn.second.push_back(n->_name);
+                    DebugOn(n->_name <<"\t");
+                }
+                DebugOn(endl);
+                _bag_names.push_back(bn);
             }
         }
-                
         
-//        for(auto b:g._bags){
-//            for(auto n:b.second){
-//                bn.second.push_back(n->_name);
-//                DebugOn(n->_name<<" ");
-//                zk_nodes.insert(n->_name);
-//            }
-//        }
-//        for(auto b:g._bags){
-//            pair<int,vector<string>> bn;
-//            bn.first=count;
-//            indices zk_nodes;
-//            param<double> midk("midk"+to_string(count));
-//            for(auto n:b.second){
-//                bn.second.push_back(n->_name);
-//                DebugOn(n->_name<<" ");
-//                zk_nodes.insert(n->_name);
-//                auto ubx=X.get_ub(n->_name);
-//                midk.add_val(n->_name, ubx*0.5);
-//            }
-//            indices zk_nodepairs_chord;
-//            indices zk_nodepairs;
-//            for(auto i=0;i<bn.second.size()-1;i++){
-//                for(auto j=i+1;j<bn.second.size();j++){
-//                    string key=bn.second[i]+","+bn.second[j];
-//                    zk_nodepairs_chord.insert(key);
-//                    if(node_pairs.has_key(key)){
-//                        zk_nodepairs.insert(key);
-//                    }
-//                }
-//            }
-//
-//            var<double> Zk("Zk"+to_string(count));
-//            m->add(Zk.in(zk_nodes));
-//            Z.push_back(Zk);
-//            var<double> Zkij("Zkij"+to_string(count));
-//            m->add(Zkij.in(zk_nodepairs_chord));
-//            Zij.push_back(Zkij);
-//            Constraint<> SOCVa("SOCVa"+to_string(count));
-//            SOCVa = 2*Zkij - (Zk.from(zk_nodepairs_chord)+Zk.to(zk_nodepairs_chord));
-//           // m->add(SOCVa.in(zk_nodepairs_chord)<=0);
-//
-//            Constraint<> SOCVb("SOCVb"+to_string(count));
-//            SOCVb = -2*Zkij - (Zk.from(zk_nodepairs_chord)+Zk.to(zk_nodepairs_chord));
-//           // m->add(SOCVb.in(zk_nodepairs_chord)<=0);
-//
-//            Constraint<> SOCmida("SOCmida"+to_string(count));
-//            SOCmida = 2*sqrt(midk.to(zk_nodepairs_chord)*midk.from(zk_nodepairs_chord))*Zkij - (midk.to(zk_nodepairs_chord)*Zk.from(zk_nodepairs_chord)+midk.from(zk_nodepairs_chord)*Zk.to(zk_nodepairs_chord));
-//            //m->add(SOCmida.in(zk_nodepairs_chord)<=0);
-//
-//            Constraint<> SOCmidb("SOCmidb"+to_string(count));
-//            SOCmidb = (-2)*sqrt(midk.to(zk_nodepairs_chord)*midk.from(zk_nodepairs_chord))*Zkij - (midk.to(zk_nodepairs_chord)*Zk.from(zk_nodepairs_chord)+midk.from(zk_nodepairs_chord)*Zk.to(zk_nodepairs_chord));
-//           // m->add(SOCmidb.in(zk_nodepairs_chord)<=0);
-//
-//            Constraint<> SOC("SOC"+to_string(count));
-//            SOC = pow(Zkij, 2) - Zk.from(zk_nodepairs_chord)*Zk.to(zk_nodepairs_chord);
-//            SOC.add_to_callback();
-//           // m->add(SOC.in(zk_nodepairs_chord)<=0);
-//            if(b.second.size()>=3){
-//
-//            auto b3d=g.decompose_bag_3d(b);
-//
-//            auto Wij_ = Zkij.pairs_in_bags(b3d, 3);
-//            auto Wii_ = Zk.in_bags(b3d, 3);
-//
-//            Constraint<> SDP3a("SDP_3D"+to_string(count));
-//
-//            SDP3a += (pow(Wij_[0], 2)) * Wii_[2];
-//            SDP3a += (pow(Wij_[1], 2)) * Wii_[0];
-//            SDP3a += (pow(Wij_[2], 2)) * Wii_[1];
-//            SDP3a -= 2 * Wij_[0] * (Wij_[1] * Wij_[2]);
-//            SDP3a -= Wii_[0] * Wii_[1] * Wii_[2];
-//            SDP3a.add_to_callback();
-//            //m->add(SDP3a.in(range(0, b3d.size()-1)) <= 0);
-//            }
-//            _bag_names.push_back(bn);
-//            count++;
-//            DebugOn(endl);
-//        }
-//
-//        map<string, func<>> func_map_XZ;
-//        for(auto k:*nodes._keys)
-//        {
-//            func_map_XZ[k]=X(k);
-//            auto ubx=X.get_ub(k);
-//        for(auto b:_bag_names){
-//            int num=b.first;
-//            indices zk_nodes;
-//            for(auto n:b.second){
-//                if(k==n){
-//                    func_map_XZ[k]-=Z[num](k);
-//                    Z[num].set_lb(k, 0);
-//                    Z[num].set_ub(k, ubx);
-//                }
-//            }
-//        }
-//    }
-//
-//        map<string, func<>> func_map_XZij;
-//        for(auto k:*node_pairs_chord._keys)
-//        {
-//            func_map_XZij[k]=Xij(k);
-//            auto ubx=Xij.get_ub(k);
-//            auto lbx=Xij.get_lb(k);
-//        for(auto b:_bag_names){
-//            int num=b.first;
-//            for(auto i=0;i<b.second.size()-1;i++){
-//                for(auto j=i+1;j<b.second.size();j++){
-//                    string key=b.second[i]+","+b.second[j];
-//                    if(key==k){
-//                        func_map_XZij[k]-=Zij[num](k);
-//                        Zij[num].set_lb(k, lbx);
-//                        Zij[num].set_ub(k, ubx);
-//                    }
-//                }
-//            }
-//        }
-//    }
+        
         func<> emp=0;
         for(auto k:*(node_pairs_chord._keys)){
             if(!node_pairs.has_key(k)){
                 func_map_bounds[k]=emp;
-                    }
-                }
-       
+            }
+        }
+        
         m->_bag_names=_bag_names;
         //m->_func_map=func_map_bounds;
         m->map_x=map_x;
@@ -810,54 +673,9 @@ Net CBF_read(const char *file, shared_ptr<Model<double>>& m, bool add_3d) {
         count=0;
         
         
-      
-        
-       
-//        for(auto it=func_map_XZ.begin();it!=func_map_XZ.end();it++){
-//            Constraint<> def_XZ("def_XZ_"+it->first);
-//            def_XZ=it->second;
-//            m->add(def_XZ==0);
-//        }
-//        for(auto it=func_map_XZij.begin();it!=func_map_XZij.end();it++){
-//            Constraint<> def_XZij("def_XZij_"+it->first);
-//            def_XZij=it->second;
-//            m->add(def_XZij==0);
-//        }
-//
-//
-//        Constraint<> pos_diag("pos_diag");
-//        pos_diag =  X*(-1);
-//        // m->add(pos_diag.in(nodes) <= 0);
-        
-        
-
         int ndisc=10;
         count=0;
-//        for(auto k:*(node_pairs_chord._keys)){
-//            if(!node_pairs.has_key(k) || true){
-//                auto pos = k.find_first_of(",");
-//                auto n1_name = k.substr(0,pos);
-//                auto n2_name= k.substr(pos+1);
-//                auto u1=X.get_ub(n1_name);
-//                auto u2=X.get_ub(n2_name);
-//                for(auto i=1;i<ndisc;i++){
-//                    for(auto j=1;j<ndisc;j++){
-//                        if(j!=i){
-//                            double x1=i*u1/ndisc;
-//                            double x2=j*u2/ndisc;
-//                            double x12=sqrt(x1*x2);
-//                            Constraint<> soc_lina("soc_lina_"+to_string(count));
-//                            soc_lina=2*x12*Xij(k)-x2*X(n1_name)-x1*X(n2_name);
-//                            //m->add(soc_lina<=0);
-//                            Constraint<> soc_linb("soc_linb_"+to_string(count));
-//                            soc_linb=(-2)*x12*Xij(k)-x2*X(n1_name)-x1*X(n2_name);
-//                           // m->add(soc_linb<=0);
-//                            count++;
-//                        }
-//                    }
-//                }
-//            }
-//        }
+        
         if(add_3d){
             auto bag_size = bags_3d.size();
             auto Wij_ = Xij.pairs_in_bags(bags_3d, 3);
@@ -872,10 +690,8 @@ Net CBF_read(const char *file, shared_ptr<Model<double>>& m, bool add_3d) {
             SDP3 -= Wii_[0] * Wii_[1] * Wii_[2]*0.001;
             SDP3.add_to_callback();
             m->add(SDP3.in(range(0, bag_size-1)) <= 0);
-       
+            
         }
-     
-       // Xij.param<>::set_val("2,3", 1);
     }
     else{
         throw invalid_argument("only 1 psd constraint supported now");
@@ -883,13 +699,13 @@ Net CBF_read(const char *file, shared_ptr<Model<double>>& m, bool add_3d) {
     
     func<> obj=0;
     for(auto i=0;i<data.objannz;i++){
-        auto ind=data.objasubj[i];
+        auto ind=to_string(data.objasubj[i]);
         auto coef=data.objaval[i];
-        if(C.has_key(to_string(i))){
-            obj+=coef*x(i);
+        if(C.has_key(ind)){
+            obj+=coef*x(ind);
         }
         else{
-            obj+=coef*y(i);
+            obj+=coef*y(ind);
         }
     }
     if(obj_const)
@@ -900,10 +716,7 @@ Net CBF_read(const char *file, shared_ptr<Model<double>>& m, bool add_3d) {
     else{
         m->max(obj);
     }
- 
-   
     
-  
     return g;
 }
 

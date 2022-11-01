@@ -48,13 +48,13 @@ using namespace gravity;
 using namespace std;
 
 int main(int argc, char * argv[]){
-    //string fname=string(prj_dir)+"/data_sets/MISDP/2x3_3bars.cbf";
-    string fname=string(prj_dir)+"/data_sets/MISDP/2x7_3bars.cbf";
+    string fname=string(prj_dir)+"/data_sets/MISDP/2x3_3bars.cbf";
+    //string fname=string(prj_dir)+"/data_sets/MISDP/2x7_3bars.cbf";
     //string fname=string(prj_dir)+"/data_sets/MISDP/2x4_2scen_3bars.cbf";
     //string fname=string(prj_dir)+"/data_sets/MISDP/coloncancer_1_100_5.cbf";
     //string fname=string(prj_dir)+"/data_sets/MISDP/2g_4_164_k3_5_6.cbf";
 
-    bool root_refine = true;
+    bool root_refine = false;
     if(argc>=2){
         fname=argv[1];
     }
@@ -65,76 +65,16 @@ int main(int argc, char * argv[]){
     
     auto g=CBF_read(fname.c_str(), m);
     m->print();
-    //    g.print();
-    // m->print();
-//    auto rel=make_shared<Model<double>>("misdp_rel");
-//    auto g2=CBF_read(fname.c_str(), rel);
     double ub_solver_tol=1e-6, lb_solver_tol=1e-6, range_tol=1e-4, opt_rel_tol=1e-2, opt_abs_tol=1e6;
     unsigned max_iter=1e3;
     SolverType ub_solver_type = ipopt, lb_solver_type = gurobi;
     
     double max_time = 300;
     DebugOn("Instance "<<fname<<endl);
-    //    rel->replace_integers();
-    //    m->replace_integers();
-    //    m->set_name("Before");
-    //    m->write();
-    //    auto res=m->run_obbt(rel, max_time, max_iter, opt_rel_tol, opt_abs_tol, 3, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol);
-    //    m->set_name("After");
-    //    m->write();
-    ////    rel->print();
-    //    int soc_viol=0, soc_added=0;
-    //m->print_solution();
-    //m->cutting_planes_soc(1e-9, soc_viol,soc_added);
     
-    //m->cuts_eigen_bags(1e-9);
-    //    neg=true;
-    //    while(res.size()==0){
-    //        solver<> s(m,gurobi);
-    //        s.run(5, 1e-9);
-    //        auto res= m->cuts_eigen(1e-9);
-    //        DebugOn("cuts found "<<res.size()<<endl);
-    //    }
-    
-    //    auto m=make_shared<Model<double>>("misdp_test");
-    //    auto g=CBF_read(fname.c_str(), m);
-    //    m->copy_bounds(m_init);
-    //    m->copy_solution(m_init);
-    //    m->print();
-    //    auto y = m->get_var<int>("y");
-    //    y.set_ub(0);
-    //    y.set_lb("3", 1);
-    //    y.set_ub("3", 1);
-    //    y.set_lb("21", 1);
-    //    y.set_ub("21", 1);
-    //    y.set_lb("30", 1);
-    //    y.set_ub("30", 1);
-    //    y.set_lb("48", 1);
-    //    y.set_ub("48", 1);
-    //    y.set_lb("54", 1);
-    //    y.set_ub("54", 1);
-    //    y.set_lb("75", 1);
-    //    y.set_ub("75", 1);
-    //    y.set_lb("78", 1);
-    //    y.set_ub("78", 1);
-    //    y.set_lb("87", 1);
-    //    y.set_ub("87", 1);
-    //    y.set_lb("93", 1);
-    //    y.set_ub("93", 1);
-    //    y.set_lb("111", 1);
-    //    y.set_ub("111", 1);
-    //    y.set_lb("132", 1);
-    //    y.set_ub("132", 1);
-    //    y.set_lb("141", 1);
-    //    y.set_ub("141", 1);
-    //    y.set_lb("165", 1);
-    //    y.set_ub("165", 1);
-    //    auto x = m->get_var<double>("x");
-    //    x.set_lb(0.1);
     m->reset();
     bool upper_bound_heur=false;
-    
-    
+
     if(upper_bound_heur){
         vector<double> sol(m->_nb_vars);
         auto m2=m->copy();
@@ -172,8 +112,6 @@ int main(int argc, char * argv[]){
             m1->get_solution(sol);
         }
     }
-    
-    //m->set_solution(sol);
     solver<> sc(m,gurobi);
     bool relax = false;
     auto ts=get_wall_time();
@@ -211,22 +149,6 @@ int main(int argc, char * argv[]){
     sc.run(relax=false);
     auto tf=get_wall_time();
     m->print_solution();
-    /*  m->round_solution();
-     m->_obj->uneval();
-     DebugOn("Rounded solution objective = " << m->_obj->eval() << endl);*/
-    // m->print_constraints_stats(1e-5);
-    
-    // auto lin_model=m->buildOA();
-    // auto interior_model=lin_model->add_outer_app_solution(*m);
-    
-    //    int soc_viol=0,soc_found=0,soc_added=0,det_viol=0,det_found=0,det_added=0;
-    //    auto res=m->cutting_planes_solution(interior_model, 1e-9,soc_viol, soc_found,soc_added,det_viol, det_found, det_added);
-    
-    
-    //    solver<> s(m, gurobi);
-    //    s.run(5,1e-9);
-    // m->print_solution();
-    //m->cuts_eigen(1e-10);
     m->print_constraints_stats(1e-9);
     
     auto eig_value=m->check_PSD();

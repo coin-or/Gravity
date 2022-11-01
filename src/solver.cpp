@@ -707,7 +707,6 @@ vector<vector<double>> Model<type>::cutting_planes_soc(double active_tol, int& s
     for (auto &con: _cons_vec)
     {
         if(!con->is_linear() && con->_callback && (con->is_rotated_soc() || con->check_soc())) {
-            // if(con->_name!="limit_neg"){
             auto cnb_inst=con->get_nb_inst();
             con->uneval();
             for(auto i=0;i<cnb_inst;i++){
@@ -720,10 +719,6 @@ vector<vector<double>> Model<type>::cutting_planes_soc(double active_tol, int& s
                 xc[0]=xcurrent[0];
                 xc[1]=xcurrent[1];
                 xc[2]=xcurrent[2];
-                
-                //                con->eval_all();
-                //                DebugOff(con->_name<<"\t"<<con->eval(i)<<endl);
-                //                con->uneval();
                 fk=con->eval(i);
                 if((fk >= active_tol && con->_ctype==leq) || (fk <= -active_tol && con->_ctype==geq)){
                     constr_viol=true;
@@ -742,12 +737,6 @@ vector<vector<double>> Model<type>::cutting_planes_soc(double active_tol, int& s
                         xnow[1]=xc[1];
                         xnow[2]=xc[2];
                     }
-                    
-                    oa_cut=true;
-                    
-                    
-                    
-                    
                     
                     c_val.resize(3,0);
                     
@@ -768,10 +757,6 @@ vector<vector<double>> Model<type>::cutting_planes_soc(double active_tol, int& s
                     }
                     c0_val*=scale;
                     scale=1.0;
-                    //                            if(max_coef>=1e3)
-                    //                                scale=1000.0/max_coef;
-                    //                            min_coef*=scale;
-                    //                            max_coef*=scale;
                     if(true){
                         int j=0;
                         double cost=0;
@@ -780,14 +765,9 @@ vector<vector<double>> Model<type>::cutting_planes_soc(double active_tol, int& s
                             auto keys_vec=*(v_p.second.first->_indices->_keys);
                             key.push_back(keys_vec[v_p.second.first->get_id_inst(i)]);
                             cost+= xcurrent[j]*c_val[j]*scale;
-                            //_func_map.at(key).print();
-                            
                             j++;
                         }
-                        //cut.push_back(c0_val*scale);
                         cost+=c0_val*scale;
-                        
-                        
                         if(cost>=1e-6){
                             min_coef=1e6;
                             max_coef=-1e6;
@@ -850,19 +830,16 @@ vector<vector<double>> Model<type>::cutting_planes_soc(double active_tol, int& s
                                     if(cut[i]>=0){
                                         cut[i]=0;
                                     }
-                                    else{/*ASSUMPTION in scaling upper bound of variable in cuts is 1*/
-                                        cut[s-1]+=cut[i];
-                                        cut[i]=0;
-                                    }
+//                                    else{/*ASSUMPTION in scaling upper bound of variable in cuts is 1*/
+//                                        cut[s-1]+=cut[i];
+//                                        cut[i]=0;
+//                                    }
                                 }
                             }
-                            
-                            
                             res.push_back(cut);
                             cut.clear();
                         }
                     }
-                    
                     soc_added++;
                     con->set_x(i, xcurrent);
                     xcurrent.clear();
@@ -958,7 +935,6 @@ vector<vector<double>> Model<type>::cutting_planes_square(double active_tol)
             }
         }
     }
-    //DebugOn("soc"<<endl);
     return res;
     
 }
@@ -1079,8 +1055,6 @@ vector<vector<double>> Model<type>::cuts_eigen_bags(const double active_tol)
         for(auto i=0;i<b.second.size()-1;i++){
             for(auto j=i+1;j<b.second.size();j++){
                 mat_X(i,j)=Xij.eval(b.second[i]+","+b.second[j]);
-                //if(std::abs(mat_X(i,j))<=1e-12)
-                //  mat_X(i,j)=0;
                 mat_X(j,i)=mat_X(i,j);
                 mat[i][j]=mat_X(i, j);
                 mat[j][i]=mat[i][j];
@@ -1112,9 +1086,6 @@ vector<vector<double>> Model<type>::cuts_eigen_bags(const double active_tol)
                         c_val.push_back(0);
                         c0_val+=c*X.get_ub(b.second[n]);
                     }
-                    //                   else if(std::abs(c)<=1e-12){
-                    //                        c_val.push_back(0);
-                    //                    }
                     else{
                         c_val.push_back(eig_vec[n]*eig_vec[n]*(-1));
                         if(std::abs(c_val.back())!=0 && std::abs(c_val.back())<=minc)
@@ -1138,9 +1109,6 @@ vector<vector<double>> Model<type>::cuts_eigen_bags(const double active_tol)
                                 c0_val+=c*ub;
                             }
                         }
-                        //                        else if(std::abs(c)<=1e-12){
-                        //                            c_val.push_back(0);
-                        //                        }
                         else {
                             c_val.push_back(eig_vec[n]*eig_vec[o]*(-2));
                             if(std::abs(c_val.back())!=0 && std::abs(c_val.back())<=minc)
@@ -1157,30 +1125,7 @@ vector<vector<double>> Model<type>::cuts_eigen_bags(const double active_tol)
                 
                 cost+=c0_val;
                 double scale=1;
-                
-                //                if(minc<=1e-6 && maxc<=1){
-                //                    scale=1e3;
-                //                    maxc*=scale;
-                //                    minc*=scale;
-                //                    if(minc<=1e-12){
-                //                        DebugOn("small"<<endl);
-                //                    }
-                //                    DebugOff("scaling "<<scale<<endl);
-                //                }
-                //                else if(cost<=1e-6){
-                //                    if(maxc<=1)
-                //                    scale=1e3;
-                //                    else if(maxc<=10)
-                //                        scale=1e2;
-                //                    else if(maxc<=100)
-                //                        scale=1e1;
-                //                   //else if(maxc<=1000)
-                //             //    scale=10;
-                //                    maxc*=scale;
-                //                    minc*=scale;
-                //                }
                 cost*=scale;
-                
                 if(true){
                     double min_coef=1e6;
                     double max_coef=-1e6;
@@ -1245,10 +1190,10 @@ vector<vector<double>> Model<type>::cuts_eigen_bags(const double active_tol)
                                 if(cut[i]>=0){
                                     cut[i]=0;
                                 }
-                                else{/*ASSUMPTION in scaling upper bound of variable in cuts is 1*/
-                                    cut[s-1]+=cut[i];
-                                    cut[i]=0;
-                                }
+//                                else{/*ASSUMPTION in scaling upper bound of variable in cuts is 1*/
+//                                    cut[s-1]+=cut[i];
+//                                    cut[i]=0;
+//                                }
                             }
                         }
                         
@@ -1674,10 +1619,10 @@ vector<vector<double>> Model<type>::cuts_eigen_full(const double active_tol)
                         if(cut[i]>=0){
                             cut[i]=0;
                         }
-                        else{/*ASSUMPTION in scaling upper bound of variable in cuts is 1*/
-                            cut[s-1]+=cut[i];
-                            cut[i]=0;
-                        }
+//                        else{/*ASSUMPTION in scaling upper bound of variable in cuts is 1*/
+//                            cut[s-1]+=cut[i];
+//                            cut[i]=0;
+//                        }
                     }
                 }
                 res.push_back(cut);
