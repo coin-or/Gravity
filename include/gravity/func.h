@@ -176,6 +176,7 @@ namespace gravity {
         void decr_occ_param(string str, int nb=1);/**< Decreases the number of occurences the parameter has in this function by nb. */
         
         
+        
         map<string, lterm>& get_lterms() const{
             return *_lterms;
         }
@@ -709,6 +710,88 @@ namespace gravity {
          @param[in] keep_ids vector of booleans, specifying which ids to keep
          */
         void update_indices(const vector<bool>& keep_ids);
+        
+        
+        /**
+         @brief return the sparsity degree (number of non-zero variables) appearing at the ith instance or row of this function
+         @param[in] i: instance number
+         @return sparsity degree
+         */
+        int get_row_sparsity(int i) const{
+            int res = 0;
+            if(!_lterms->empty()){
+                for (auto &pair:*_lterms) {
+                    if (pair.second._coef->_is_transposed || pair.second._coef->is_matrix() || pair.second._p->is_matrix_indexed()) {
+                        auto dim = pair.second._p->get_dim(i);
+                        for (size_t j = 0; j<dim; j++) {
+                            res++;
+                        }
+                    }
+                    else {
+                        res++;
+                    }
+                }
+            }
+            if(!_qterms->empty()){
+                for (auto &pair:*_qterms) {
+                    type qval = 0;
+                    if (pair.second._coef_p1_tr) { // qterm = (coef*p1)^T*p2
+                        for (auto i = 0; i<pair.second._p->first->_dim[0]; i++) {
+                            for (auto j = 0; j<pair.second._p->first->_dim[0]; j++) {
+                                res++;
+                            }
+                        }
+                    }
+                    else if(pair.second._coef->_is_transposed || pair.second._p->first->is_matrix_indexed()|| pair.second._p->second->is_matrix_indexed()){/* C*element_wise(X.Y)^T */
+                        auto dim = pair.second._p->first->get_dim(i);
+                        for (size_t j = 0; j<dim; j++) {
+                            res++;
+                        }
+                    }
+                    else if (pair.second._p->first->is_matrix() && !pair.second._p->second->is_matrix() && !pair.second._p->second->_is_transposed) {//matrix * vect
+                        for (size_t j = 0; j<pair.second._p->second->_dim[0]; j++) {
+                            res++;
+                        }
+                    }
+                    else if (!pair.second._p->first->is_matrix() && pair.second._p->first->_is_transposed && pair.second._p->second->is_matrix() ) {//transposed vect * matrix
+                        for (size_t j = 0; j<pair.second._p->first->_dim[0]; j++) {
+                            res++;
+                        }
+                    }
+                    else if (!pair.second._p->first->is_matrix() && pair.second._p->first->_is_transposed && !pair.second._p->second->is_matrix() && i==0) {//TODO: what is this??
+                        for (size_t j = 0; j<pair.second._p->first->_dim[1]; j++) {
+                            res++;
+                        }
+                    }
+                    else if (!pair.second._coef->is_matrix() && pair.second._coef->_is_transposed && !pair.second._p->first->is_matrix()) {//transposed vect * vec, a dot product of two vectors
+                        for (size_t j = 0; j<pair.second._p->first->_dim[0]; j++) {
+                            res++;
+                        }
+                    }
+                    else {
+                        res++;
+                    }
+                }
+            }
+            if(!_pterms->empty()){
+                for (auto &pair:*_pterms) {
+                    if (pair.second._coef->_is_transposed) {//transposed vect * vec, a dot product of two vectors
+                        for (size_t j = 0; j<pair.second._coef->_dim[1]; j++) {
+                            res++;
+                        }
+                    }
+                    else {
+                        type pval = unit<type>().eval();
+                        for (auto &vpair: *pair.second._l) {
+                            res++;
+                        }
+                    }
+                }
+            }
+            if(_expr)
+                res += _expr->get_row_sparsity(i);
+            return res;
+        }
         
         /**
          Update the function indexing and its variables/parameters using the keep_ids vector of bool, only keep a row if it corresponding entry in keep_id is true.

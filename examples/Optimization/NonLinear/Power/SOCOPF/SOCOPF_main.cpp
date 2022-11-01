@@ -103,7 +103,7 @@ int main (int argc, char * argv[])
     auto c2 = grid.c2.in(gens);
     auto c0 = grid.c0.in(gens);
     
-    double upper_bound = grid.solve_acopf(ACRECT);
+    double upper_bound = grid.solve_acopf(ACRECT)*1e3;
     
     
     /** MODEL DECLARATION */

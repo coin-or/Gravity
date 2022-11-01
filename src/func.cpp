@@ -4999,6 +4999,7 @@ unsigned func_::nb_linear_terms() const{
 //        set_max_dim(*p);
         _params->insert(make_pair<>(p->get_name(false,false), make_pair<>(p, nb)));
     }
+
     
 template<>
 func<double> func<double>:: get_OA_symbolic(const vector<param<double>>& c, const param<double>& c0, const indices& Pert){ /**< Returns an outer-approximation of the function using the current value of the variables **/

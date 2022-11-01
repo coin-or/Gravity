@@ -39,6 +39,20 @@
 using namespace std;
 
 namespace gravity {
+
+/** This function is used to rank constraints based on violation first and then sparsity second
+ @param[in] tuple<double, int, int, int> the first element in the tuple represents the violation magnitude, the second is the sparsity degree of the contraint,  the third is the constraint id, and the last is the instance id
+ */
+template<typename type>
+const bool cstr_viol_compare(const tuple<double, int, shared_ptr<Constraint<type>>, size_t>& c1, const tuple<double, int, shared_ptr<Constraint<type>>, size_t>& c2) {
+    if(get<0>(c1) - get<0>(c2) >= 1e-6)// First, rank based on violation, higher violations lead to higher ranking.
+        return true;
+    if(get<0>(c2) - get<0>(c1) >= 1e-6)
+        return false;
+    // If violation difference is less than 1e-6, they are considered equal violations
+    return(get<1>(c1) < get<1>(c2));// Second, rank based on increasing sparsity, lower sparsity lead to higher ranking.
+}
+
     template<typename type>
     const bool cstr_compare(const shared_ptr<Constraint<type>>& c1, const shared_ptr<Constraint<type>>& c2) {
         if(c1->get_nb_inst() > c2->get_nb_inst())
@@ -2033,9 +2047,9 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
             }
             if (_cons_name.count(c.get_name())==0) {
                 auto newc = make_shared<Constraint<type>>(c);
-                for (auto &vp: *newc->_vars) {
-                    _v_in_cons[vp.second.first->_name].insert(newc);
-                }
+//                for (auto &vp: *newc->_vars) {
+//                    _v_in_cons[vp.second.first->_name].insert(newc);
+//                }
                 newc->_val = c._val;
                 newc->check_soc();
                 newc->check_rotated_soc();
@@ -2297,17 +2311,21 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
                 }
             }
         }
-        
+        /**
+         @brief Returns a sorted vector of violated constraints, ranked based on violationg magnitude first and sparsity degree second
+         @return tuple<double, int, int, int> the first element in the tuple represents the violation magnitude, the second is the sparsity degree of the contraint,  the third is a pointer to the constraint, and the last is the instance id
+         */
         template<typename T=type,typename std::enable_if<is_arithmetic<T>::value>::type* = nullptr>
-        vector<tuple<double, int, int>> sorted_nonzero_constraints(double tol, bool only_relaxed = false, bool print_name = false) const{
-            // the tuple has the following form <value, constraint_id, instance_id>
-            
-            vector<tuple<double, int, int>> v;
+        vector<tuple<double, int, shared_ptr<Constraint<type>>,size_t>> sort_violated_constraints(double tol, bool only_relaxed = false, bool print_name = false) const{
+            vector<tuple<double, int, shared_ptr<Constraint<type>>,size_t>> v;
             size_t nb_inst = 0;
             shared_ptr<Constraint<type>> c = nullptr;
             for(auto& c_p: _cons_name)
             {
                 c = c_p.second;
+                if (!*c->_all_lazy && !c->_callback) {
+                    continue;//Constraint is not lazy or in callback
+                }
                 if(only_relaxed && !c->_relaxed){
                     continue;
                 }
@@ -2317,7 +2335,7 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
                         for (size_t inst=0; inst<nb_inst; inst++) {
                             auto diff = std::abs(c->eval(inst));
                             if(diff>tol){
-                                v.push_back(make_tuple(std::abs(diff), c->_id, inst));
+                                v.push_back(make_tuple(std::abs(diff), c->get_row_sparsity(inst), c, inst));
                                 if(print_name) DebugOn(" Non-zero >= inequality: " << c->_name << " instance: " << to_string(inst) << ", value = "<< std::abs(diff) << endl);
                             }
                         }
@@ -2325,8 +2343,8 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
                     case leq:
                         for (size_t inst=0; inst<nb_inst; inst++) {
                             auto diff = c->eval(inst);
-                            if(diff < -tol) {
-                                v.push_back(make_tuple(std::abs(diff), c->_id, inst));
+                            if(diff > tol) {
+                                v.push_back(make_tuple(diff, c->get_row_sparsity(inst), c, inst));
                                 if(print_name) DebugOn(" Non-zero >= inequality: " << c->_name << " instance: " << to_string(inst) << ", value = "<< std::abs(diff) << endl);
                             }
                         }
@@ -2334,8 +2352,8 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
                     case geq:
                         for (size_t inst=0; inst<nb_inst; inst++) {
                             auto diff = c->eval(inst);
-                            if(diff > tol) {
-                                v.push_back(make_tuple(std::abs(diff), c->_id, inst));
+                            if(diff < -tol) {
+                                v.push_back(make_tuple(std::abs(diff), c->get_row_sparsity(inst), c, inst));
                                 if(print_name) DebugOn(" Non-zero >= inequality: " << c->_name << " instance: " << to_string(inst) << ", value = "<< std::abs(diff) << endl);
                             }
                         }
@@ -2345,7 +2363,7 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
                         break;
                 }
             }
-            sort(v.begin(), v.end(), std::greater<tuple<double,int,int>>());
+            sort(v.begin(), v.end(), cstr_viol_compare<type>);
             return v;
         }
         
