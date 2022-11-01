@@ -4,15 +4,19 @@ if(EIGEN_ROOT_DIR)
  message("Looking for Eigen in ${EIGEN_ROOT_DIR}")
 else(EIGEN_ROOT_DIR)
  message("EIGEN_ROOT_DIR not provided.")
+ find_package(PkgConfig QUIET)
+ pkg_check_modules(PC_EIGEN eigen3)
 endif(EIGEN_ROOT_DIR)
 
 find_path(EIGEN_INCLUDE_DIR
   NAMES Eigen/Core
+  HINTS ${EIGEN_ROOT_DIR} ${EIGEN_ROOT} ${PC_EIGEN_INCLUDEDIR} ${PC_EIGEN_INCLUDE_DIRS}
   HINTS /usr/local/include
   HINTS /usr/local/include/eigen3
   HINTS /usr/include
   HINTS /usr/include/eigen3
-  HINTS ${THIRDPARTY_INSTALL_PATH}/include)
+  HINTS ${THIRDPARTY_INSTALL_PATH}/include
+  PATH_SUFFIXES eigen3 include/eigen3 include)
 
 # Extract Eigen version from Eigen/src/Core/util/Macros.h
 if (EIGEN_INCLUDE_DIR)
