@@ -768,7 +768,7 @@ vector<vector<double>> Model<type>::cutting_planes_soc(double active_tol, int& s
                             j++;
                         }
                         cost+=c0_val*scale;
-                        if(cost>=1e-6){
+                        if(cost>=1e-9){
                             min_coef=1e6;
                             max_coef=-1e6;
                             map<string, double> coef_x;
@@ -1129,7 +1129,7 @@ vector<vector<double>> Model<type>::cuts_eigen_bags(const double active_tol)
                 if(true){
                     double min_coef=1e6;
                     double max_coef=-1e6;
-                    if(cost>=1e-6){
+                    if(cost>=1e-9){
                         map<string, double> coef_x;
                         map<string, double> coef_y;
                         double coef_const=0;
@@ -1485,9 +1485,6 @@ vector<vector<double>> Model<type>::cuts_eigen_full(const double active_tol)
                     c_val.push_back(0);
                     c0_val+=c*X.get_ub(all_names[n]);
                 }
-                //                   else if(std::abs(c)<=1e-12){
-                //                        c_val.push_back(0);
-                //                    }
                 else{
                     c_val.push_back(eig_vec[n]*eig_vec[n]*(-1));
                     if(std::abs(c_val.back())!=0 && std::abs(c_val.back())<=minc)
@@ -1512,9 +1509,6 @@ vector<vector<double>> Model<type>::cuts_eigen_full(const double active_tol)
                                 c0_val+=c*ub;
                             }
                         }
-                        //                        else if(std::abs(c)<=1e-12){
-                        //                            c_val.push_back(0);
-                        //                        }
                         else {
                             c_val.push_back(eig_vec[n]*eig_vec[o]*(-2));
                             if(std::abs(c_val.back())!=0 && std::abs(c_val.back())<=minc)
@@ -1532,30 +1526,7 @@ vector<vector<double>> Model<type>::cuts_eigen_full(const double active_tol)
             
             cost+=c0_val;
             double scale=1;
-            //
-            //                if(minc<=1e-6 && maxc<=1){
-            //                    scale=1e3;
-            //                    maxc*=scale;
-            //                    minc*=scale;
-            //                    if(minc<=1e-12){
-            //                        DebugOn("small"<<endl);
-            //                    }
-            //                    DebugOff("scaling "<<scale<<endl);
-            //                }
-            //                else if(cost<=1e-6){
-            //                    if(maxc<=1)
-            //                    scale=1e3;
-            //                    else if(maxc<=10)
-            //                        scale=1e2;
-            //                    else if(maxc<=100)
-            //                        scale=1e1;
-            //             //else if(maxc<=1000)
-            //               //   scale=10;
-            //                    maxc*=scale;
-            //                    minc*=scale;
-            //                }
             cost*=scale;
-            //if(cost>=1e-9 && minc>=1e-9 && maxc<=1e4){
             if(cost>=1e-9){
                 double min_coef=1e6;
                 double max_coef=-1e6;
@@ -1597,7 +1568,6 @@ vector<vector<double>> Model<type>::cuts_eigen_full(const double active_tol)
                         max_coef=absc;
                 }
                 cut.push_back(coef_const);
-                //if(min_coef>=1e-9 && max_coef<=1e4){
                 scale=1;
                 if(max_coef>=1e3){
                     scale=1e3/max_coef;
@@ -1630,19 +1600,12 @@ vector<vector<double>> Model<type>::cuts_eigen_full(const double active_tol)
                 cut.clear();
                 key.clear();
             }
-            //                else{
-            //                    if(cost<=1e-9)
-            //                        DebugOff("cost "<<cost<<endl);
-            //                }
             cut.clear();
         }
         else{
             break;
         }
     }
-    
-    
-    //DebugOn("eig"<<endl);
     return res;
 }
 template<typename type>
