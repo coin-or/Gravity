@@ -643,6 +643,8 @@ Net CBF_read(const char *file, shared_ptr<Model<double>>& m, bool add_3d) {
         m->add(SOC.in(node_pairs) <= 0);
         
         count=0;
+        DebugOn("Displaying bags of size 3 and greater "<<endl);
+        /*Bags of size 2 are addressed by SOC cuts*/
         for(auto b:g._bags){
             pair<int,vector<string>> bn;
             bn.first=count++;

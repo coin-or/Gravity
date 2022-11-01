@@ -716,8 +716,8 @@ void Net::get_tree_decomp_bags() {
 void Net::remove_redundant_bags()
 {
     int count=-1;
-    for (auto &b:_bags) {
-        count++;
+    for (auto i=0;i<_bags.size();i++) {
+        auto b=_bags[i];
         vector<string> cv;
         /*all nodes of bag b*/
         for(auto j=0;j<b.second.size();j++){
@@ -761,10 +761,11 @@ void Net::remove_redundant_bags()
 //                DebugOn(c<<"\t");
 //            }
 //            DebugOn(endl);
-            _bags.erase(_bags.begin()+count);
-            count--;
+            _bags.erase(_bags.begin()+i);
+            i--;
         }
     }
+    DebugOn("Total number of bags after removing redundant bags "<<_bags.size()<<endl);
 }
 
 std::vector<pair<string,vector<Node*>>> Net::decompose_bags_3d(bool print_bags){
