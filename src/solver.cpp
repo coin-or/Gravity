@@ -700,6 +700,7 @@ vector<vector<double>> Model<type>::cutting_planes_soc(double active_tol, int& s
     int nb_added_cuts = 0;
     vector<vector<double>> res;
     vector<double> cut;
+    
     var<double> x=get_var<double>("x");
     var<int> y=get_var<int>("y");
     auto index_x=x.get_id();
@@ -713,6 +714,7 @@ vector<vector<double>> Model<type>::cutting_planes_soc(double active_tol, int& s
                 oa_cut=false;
                 c0_val=0;
                 c_val.resize(con->_nb_vars,0);
+                vector<int> var_ind;
                 auto cname=con->_name;
                 xcurrent=con->get_x(i);
                 vector<double> xc(3,0);
@@ -762,6 +764,7 @@ vector<vector<double>> Model<type>::cutting_planes_soc(double active_tol, int& s
                         double cost=0;
                         for (auto &v_p: con->get_vars()){
                             auto vid=v_p.second.first->get_id() + v_p.second.first->get_id_inst(i);
+                            var_ind.push_back(vid);
                             auto keys_vec=*(v_p.second.first->_indices->_keys);
                             key.push_back(keys_vec[v_p.second.first->get_id_inst(i)]);
                             cost+= xcurrent[j]*c_val[j]*scale;
@@ -775,18 +778,31 @@ vector<vector<double>> Model<type>::cutting_planes_soc(double active_tol, int& s
                             map<string, double> coef_y;
                             double coef_const=0;
                             for(auto i=0;i<c_val.size();i++){
+                                bool free_var=true;
                                 if(map_x.find(key[i])!=map_x.end()){
                                     for(auto p:map_x[key[i]]){
                                         coef_x[p.first]+=p.second*c_val[i]*scale;
+                                        free_var=false;
                                     }
                                 }
                                 if(map_y.find(key[i])!=map_y.end()){
                                     for(auto p:map_y[key[i]]){
                                         coef_y[p.first]+=p.second*c_val[i]*scale;
+                                        free_var=false;
                                     }
                                 }
                                 if(map_const.find(key[i])!=map_const.end()){
                                     coef_const+=map_const[key[i]]*c_val[i]*scale;
+                                    free_var=false;
+                                }
+                                if(free_var){/*Var not function of x or y or constant*/
+                                    cut.push_back(var_ind[i]);
+                                    cut.push_back(c_val[i]*scale);
+                                    auto absc=std::abs(c_val[i]*scale);
+                                    if(absc!=0 && absc<=min_coef )
+                                        min_coef=absc;
+                                    if(absc>=max_coef )
+                                        max_coef=absc;
                                 }
                             }
                             coef_const+=c0_val*scale;
@@ -1134,18 +1150,31 @@ vector<vector<double>> Model<type>::cuts_eigen_bags(const double active_tol)
                         map<string, double> coef_y;
                         double coef_const=0;
                         for(auto i=0;i<c_val.size();i++){
+                            bool free_var=true;
                             if(map_x.find(key[i])!=map_x.end()){
                                 for(auto p:map_x[key[i]]){
                                     coef_x[p.first]+=p.second*c_val[i]*scale;
                                 }
+                                free_var=false;
                             }
                             if(map_y.find(key[i])!=map_y.end()){
                                 for(auto p:map_y[key[i]]){
                                     coef_y[p.first]+=p.second*c_val[i]*scale;
                                 }
+                                free_var=false;
                             }
                             if(map_const.find(key[i])!=map_const.end()){
                                 coef_const+=map_const[key[i]]*c_val[i]*scale;
+                                free_var=false;
+                            }
+                            if(free_var){/*Var not function of x or y or constant*/
+                                cut.push_back(var_ind[i]);
+                                cut.push_back(c_val[i]*scale);
+                                auto absc=std::abs(c_val[i]*scale);
+                                if(absc!=0 && absc<=min_coef )
+                                    min_coef=absc;
+                                if(absc>=max_coef )
+                                    max_coef=absc;
                             }
                         }
                         coef_const+=c0_val*scale;
@@ -1534,18 +1563,31 @@ vector<vector<double>> Model<type>::cuts_eigen_full(const double active_tol)
                 map<string, double> coef_y;
                 double coef_const=0;
                 for(auto i=0;i<c_val.size();i++){
+                    bool free_var=true;
                     if(map_x.find(key[i])!=map_x.end()){
                         for(auto p:map_x[key[i]]){
                             coef_x[p.first]+=p.second*c_val[i]*scale;
                         }
+                        free_var=false;
                     }
                     if(map_y.find(key[i])!=map_y.end()){
                         for(auto p:map_y[key[i]]){
                             coef_y[p.first]+=p.second*c_val[i]*scale;
                         }
+                        free_var=false;
                     }
                     if(map_const.find(key[i])!=map_const.end()){
                         coef_const+=map_const[key[i]]*c_val[i]*scale;
+                        free_var=false;
+                    }
+                    if(free_var){/*Var not function of x or y or constant*/
+                        cut.push_back(var_ind[i]);
+                        cut.push_back(c_val[i]*scale);
+                        auto absc=std::abs(c_val[i]*scale);
+                        if(absc!=0 && absc<=min_coef )
+                            min_coef=absc;
+                        if(absc>=max_coef )
+                            max_coef=absc;
                     }
                 }
                 coef_const+=c0_val*scale;

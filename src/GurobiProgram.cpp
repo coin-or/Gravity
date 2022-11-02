@@ -36,6 +36,7 @@ protected:
             bool incumbent=true;
             bool mipnode=true;
             bool hierarc = false;
+            bool add_full=false;
             if(incumbent){
                 if (where == GRB_CB_MIPSOL) {
                     /* Found an integer feasible solution */
@@ -82,7 +83,7 @@ protected:
                                     m->num_cuts[1]++;
                                 }
                             }
-                            if(res1.size()==0 || !hierarc){
+                            if(add_full && (res1.size()==0 || !hierarc)){
                                 m->set_solution(vec_x);
                                 auto res2=m->cuts_eigen_full(1e-9);
                                 if(res2.size()>=1){
@@ -148,7 +149,7 @@ protected:
                                     m->num_cuts[4]++;
                                 }
                             }
-                            if(res1.size()==0 || !hierarc){
+                            if(add_full && (res1.size()==0 || !hierarc)){
                                 m->set_solution(vec_x);
                                 auto res2=m->cuts_eigen_full(1e-9);
                                 if(res2.size()>=1){
@@ -406,7 +407,7 @@ bool GurobiProgram::solve(bool relax, double mipgap, double time_limit){
     //        grb_mod->getEnv().set(GRB_IntParam_Method, 1);
     //    grb_mod->getEnv().set(GRB_IntParam_NodeMethod, 1);
     grb_mod->getEnv().set(GRB_IntParam_LazyConstraints, 1);
-    grb_mod->set(GRB_IntParam_Threads, 8);
+    grb_mod->set(GRB_IntParam_Threads, 4);
         grb_mod->set(GRB_DoubleParam_IntFeasTol, 1e-9);
 //       grb_mod->set(GRB_IntParam_NumericFocus,3);
 //     grb_mod->set(GRB_IntParam_PreCrush,0);
@@ -463,9 +464,9 @@ bool GurobiProgram::solve(bool relax, double mipgap, double time_limit){
     // grb_mod->optimize();
     if(grb_mod->get(GRB_IntAttr_SolCount)>0)
         update_solution();
-    bool not_sdp=false;
-    if(_model->check_PSD()<=-1e-9  && grb_mod->get(GRB_IntAttr_Status)==2 && _model->sdp_dual){
-        not_sdp=true;
+    bool not_sdp=true;
+    if(_model->sdp_dual && _model->check_PSD()<=-1e-9  && grb_mod->get(GRB_IntAttr_Status)==2){
+        not_sdp=false;
         grb_mod->setCallback(NULL);
     }
     else if( grb_mod->get(GRB_DoubleAttr_ObjVal)<=0.99){
@@ -478,6 +479,7 @@ bool GurobiProgram::solve(bool relax, double mipgap, double time_limit){
     auto ts=get_wall_time();
     while(not_sdp && count<=3000 && _model->sdp_dual){
         int soc_viol=0, soc_added=0;
+        bool add_full=false;
         auto res=_model->cutting_planes_soc(1e-6,soc_viol, soc_added);
         if(res.size()>=1){
             for(auto i=0;i<res.size();i++){
@@ -506,7 +508,7 @@ bool GurobiProgram::solve(bool relax, double mipgap, double time_limit){
                     grb_mod->addConstr(expr, GRB_LESS_EQUAL, 0);
                 }
             }
-            if(res2.size()==0){
+            if(res2.size()==0 && add_full){
             auto res3=_model->cuts_eigen_full(1e-6);
             if(res3.size()>=1){
                 for(auto i=0;i<res3.size();i++){
@@ -523,6 +525,11 @@ bool GurobiProgram::solve(bool relax, double mipgap, double time_limit){
             if(res3.size()==0){
                 not_sdp=false;
             }
+            }
+            if(!add_full){
+                if(res2.size()==0){
+                    not_sdp=false;
+                }
             }
         }
             if(not_sdp){
