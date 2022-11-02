@@ -43,6 +43,12 @@ namespace gravity {
         virtual void scale_vars(double unit){};
         virtual void uneval(){};
         virtual void update_double_index(){};
+        /**
+         @brief return the sparsity degree (number of non-zero variables) appearing at the ith instance or row of this expression
+         @param[in] i: instance number
+         @return sparsity degree
+         */
+        virtual int get_row_sparsity(int i) const{return 0;};
         void propagate_dim(size_t d){
             if(_is_transposed){
                 _dim[1] = d;
@@ -124,6 +130,17 @@ namespace gravity {
 //                /* TODO: param or var cases */
 //            }
 //        };
+        
+        int get_row_sparsity(int i) const{
+            if(_son->is_function()){
+                auto f = static_pointer_cast<func<type>>(_son);
+                return f->get_row_sparsity(i);
+            }
+            else if(_son->is_var()) {
+                return 1;
+            }
+            return 0;
+        }
         
         void uneval(){
             _son->uneval();
@@ -453,6 +470,25 @@ namespace gravity {
             }
             _lson->propagate_dim(d);
             _rson->propagate_dim(d);
+        }
+        
+        int get_row_sparsity(int i) const{
+            int res = 0;
+            if(_lson->is_function()){
+                auto f = static_pointer_cast<func<type>>(_lson);
+                res = f->get_row_sparsity(i);
+            }
+            else if(_lson->is_var()) {
+                res = 1;
+            }
+            if(_rson->is_function()){
+                auto f = static_pointer_cast<func<type>>(_rson);
+                res += f->get_row_sparsity(i);
+            }
+            else if(_rson->is_var()) {
+                res += 1;
+            }
+            return res;
         }
         
         void uneval(){

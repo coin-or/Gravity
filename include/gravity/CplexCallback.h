@@ -34,13 +34,14 @@ public:
         cutRhs = 0.0;
         
         // Get the most violated cut
-        auto most_viol = _model->get_most_violated(tol);
+        auto violated_cstr = _model->sort_violated_constraints(tol);
+        if(violated_cstr.empty())// No violated cuts found
+            return IloFalse;
+        auto most_viol = violated_cstr[0];
         size_t idx = 0, idx_inst = 0, idx1 = 0, idx2 = 0, idx_inst1 = 0, idx_inst2 = 0, nb_inst = 0;
         double cval = 0;
-        auto c = most_viol.first;// Most violated symbolic constraint
-        auto i = most_viol.second;// Instance of most violated constraint
-        if(!c)// No violated cuts found
-            return IloFalse;
+        auto c = get<2>(most_viol);// Most violated symbolic constraint
+        auto i = get<3>(most_viol);// Instance of most violated constraint
         IloNumExpr cc(*env);
         for (auto& it_lterm: c->get_lterms()) {
             IloNumExpr lterm(*env);
