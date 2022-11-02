@@ -27,46 +27,46 @@ public:
     Worker(Model<>* m, shared_ptr<vector<IloNumVarArray>> cvars = nullptr): _model(m), _cplex_vars(cvars){};
     ~Worker(){};
     // This routine separates cuts violated by the current solution.
-    IloBool separate(IloExpr& cutLhs, IloNum& cutRhs, double tol)
+    IloBool separate(IloExprArray& cutLhs, double tol)
     {
         IloBool violatedCutFound = IloFalse;
-        cutLhs.clear();
-        cutRhs = 0.0;
         
         // Get the most violated cut
         auto violated_cstr = _model->sort_violated_constraints(tol);
         if(violated_cstr.empty())// No violated cuts found
             return IloFalse;
-        auto most_viol = violated_cstr[0];
-        size_t idx = 0, idx_inst = 0, idx1 = 0, idx2 = 0, idx_inst1 = 0, idx_inst2 = 0, nb_inst = 0;
-        double cval = 0;
-        auto c = get<2>(most_viol);// Most violated symbolic constraint
-        auto i = get<3>(most_viol);// Instance of most violated constraint
-        IloNumExpr cc(*env);
-        for (auto& it_lterm: c->get_lterms()) {
-            IloNumExpr lterm(*env);
-            idx = it_lterm.second._p->get_vec_id();
-            if (it_lterm.second._p->_is_vector || it_lterm.second._p->is_matrix_indexed() || it_lterm.second._coef->is_matrix()) {
-                auto dim = it_lterm.second._p->get_dim(i);
-                for (int j = 0; j<dim; j++) {
-                    lterm += c->eval(it_lterm.second._coef,i,j)*_cplex_vars->at(idx)[it_lterm.second._p->get_id_inst(i,j)];
+        for(int cstr_id = 0; cstr_id<std::min(violated_cstr.size(),(size_t)cutLhs.getSize()); cstr_id++){
+            auto most_viol = violated_cstr[cstr_id];
+            size_t idx = 0, idx_inst = 0, idx1 = 0, idx2 = 0, idx_inst1 = 0, idx_inst2 = 0, nb_inst = 0;
+            double cval = 0;
+            auto c = get<2>(most_viol);// Most violated symbolic constraint
+            auto i = get<3>(most_viol);// Instance of most violated constraint
+            IloNumExpr cc(*env);
+            for (auto& it_lterm: c->get_lterms()) {
+                IloNumExpr lterm(*env);
+                idx = it_lterm.second._p->get_vec_id();
+                if (it_lterm.second._p->_is_vector || it_lterm.second._p->is_matrix_indexed() || it_lterm.second._coef->is_matrix()) {
+                    auto dim = it_lterm.second._p->get_dim(i);
+                    for (int j = 0; j<dim; j++) {
+                        lterm += c->eval(it_lterm.second._coef,i,j)*_cplex_vars->at(idx)[it_lterm.second._p->get_id_inst(i,j)];
+                    }
                 }
+                else {
+                    idx_inst = it_lterm.second._p->get_id_inst(i);
+                    lterm += c->eval(it_lterm.second._coef, i)*_cplex_vars->at(idx)[idx_inst];
+                }
+                if (!it_lterm.second._sign) {
+                    lterm *= -1;
+                }
+                cc += lterm;
+                lterm.end();
             }
-            else {
-                idx_inst = it_lterm.second._p->get_id_inst(i);
-                lterm += c->eval(it_lterm.second._coef, i)*_cplex_vars->at(idx)[idx_inst];
+            cc += c->eval(c->get_cst(), i);
+            
+            cutLhs[cstr_id] = cc;
+            if(c->get_ctype()==leq) {
+                cutLhs[cstr_id] *= -1;
             }
-            if (!it_lterm.second._sign) {
-                lterm *= -1;
-            }
-            cc += lterm;
-            lterm.end();
-        }
-        cc += c->eval(c->get_cst(), i);
-        
-        cutLhs += cc;
-        if(c->get_ctype()==leq) {
-            cutLhs *= -1;
         }
         return IloTrue;
     } // END separate
@@ -138,24 +138,26 @@ public:
         Worker* worker = workers[threadNo];
         worker->env = &env;
         // Separate cut
-        IloExpr cutLhs(env);
-        IloNum cutRhs;
-        IloBool sepStat = worker->separate(cutLhs, cutRhs, 1e-6);
+        int nb_cstr = 1;
+        IloExprArray cutLhs(env, nb_cstr);
+        IloBool sepStat = worker->separate(cutLhs, 1e-6);
         
         
         if (sepStat) {
             // Add the cut
-            IloRange r(env, cutRhs, cutLhs, IloInfinity);/* Adds constraint: infinity >= cutLhs >= cutRhs  */
+            IloRangeArray r(env, 0.0, cutLhs, IloInfinity);/* Adds constraint: infinity >= cutLhs >= cutRhs  */
             
             switch (context.getId()) {
                 case IloCplex::Callback::Context::Id::Candidate:
                     context.rejectCandidate(r);
                     break;
-                case IloCplex::Callback::Context::Id::Relaxation:
-                    context.addUserCut(r,
-                                       IloCplex::UseCutPurge,
-                                       IloFalse);
-                    break;
+                case IloCplex::Callback::Context::Id::Relaxation:{
+                    for(int cstr_id = 0; cstr_id<r.getSize(); cstr_id++){
+                        context.addUserCut(r[cstr_id],
+                                           IloCplex::UseCutPurge,
+                                           IloFalse);
+                    }
+                    break;}
                 default:
                     r.end();
                     throw IloCplex::Exception(-1, "Unexpected contextID");
