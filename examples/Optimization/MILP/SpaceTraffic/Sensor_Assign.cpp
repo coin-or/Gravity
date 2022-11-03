@@ -18,18 +18,22 @@ using namespace hdf5;
 
 int main(int argc, const char * argv[]) {
     bool run_MIP = false;
+    string fname = string(prj_dir)+"/data_sets/sensor/test.h5";
     if(argc<2){
-        DebugOn("Please enter the input file path as first argument\n");
-        return -1;
+        DebugOn("Please enter the input file path as first argument, using the default file test.h5 found under Gravity/datasets/sensor\n");
+    }
+    else{
+        fname = argv[1];
     }
     if(argc>3)
         run_MIP = true;
     myModel m = myModel();
-    auto par = m.readHD5(argv[1]);
+    auto par = m.readHD5(fname);
 //    vector<param<double>> par = m.readData(argc, argv, 1, 2);
     auto start = high_resolution_clock::now();
     m.InitBilevel(par[0], par[1], par[2], 0.001);
     m.GreedyStart(par[0], par[1], par[2]); //comment if no greedy start not needed
+    cout << "Writing solution file." << endl;
     m.writeGreedySol(); //writing greedy sol to a file to load it to sensor_assign2
     auto stop = high_resolution_clock::now();
     auto duration1 = duration_cast<seconds>(stop - start);
@@ -37,6 +41,7 @@ int main(int argc, const char * argv[]) {
     m.mSolve(run_MIP);
     auto stop2 = high_resolution_clock::now();
     auto duration2 = duration_cast<seconds>(stop2 - stop);
+    cout << "Done." << endl;
 //    cout << m.N << " " << m.M << " " << m.K << " " << duration1.count() + duration2.count() << endl; //prints num sensors; num objetcs; num agents; total time after reading input (init + greedy + solver)
     return 0;
 }
