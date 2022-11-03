@@ -18,6 +18,10 @@ using namespace hdf5;
 
 int main(int argc, const char * argv[]) {
     bool run_MIP = false;
+    if(argc<2){
+        DebugOn("Please enter the input file path as first argument\n");
+        return -1;
+    }
     if(argc>3)
         run_MIP = true;
     myModel m = myModel();
@@ -43,12 +47,15 @@ vector<param<double>> myModel::readHD5(const string& fname){
     auto hd5file = file::open(fname);
     auto RootGroup = hd5file.root();
     /* Read agent names */
-    auto agents_set = RootGroup.get_group("agents");
-    auto agents_names = agents_set.get_dataset("agent_name");
+    auto agents_group = RootGroup.get_group("agents");
+    auto agents_names = agents_group.get_dataset("agent_name");
     agents = indices("agents");
     dataspace::Simple Dataspace(agents_names.dataspace());
     auto Dimensions = Dataspace.current_dimensions();
     auto nb_agents = Dimensions[0];
+    budget.resize(nb_agents);
+    auto budget_set = agents_group.get_dataset("budget");
+    budget_set.read(budget);
     auto MaxDimensions = Dataspace.maximum_dimensions();
     std::vector<string> AllElements(Dataspace.size());
     agents_names.read(AllElements);
