@@ -115,6 +115,8 @@ Net g;
 
   Node* node = nullptr;
     indices nodes;
+    DebugOn("nodes "<<Num_nodes<<endl);
+    DebugOn("edges "<<Num_edges<<endl);
 
   for (int i = 0; i < Num_nodes; i++) {
     name = to_string(i + 1);
@@ -193,19 +195,17 @@ def_Xij=Xij-(-1.0/(num_part-1.0)+num_part*1.0/(num_part-1.0)*y);
 m->add(def_Xij.in(node_pairs_chord)==0);
     
     for(auto k:*node_pairs_chord._keys){
-        if(node_pairs.has_key(k)){
-            map_y[k].push_back(make_pair(k, num_part*1.0/(num_part-1.0)));
-            map_const[k]=(-1.0)/(num_part-1.0);
-        }
-        else{
+        if(!node_pairs.has_key(k)){
             w.add_val(k,0.0);
         }
+        map_y[k].push_back(make_pair(k, num_part*1.0/(num_part-1.0)));
+        map_const[k]=(-1.0)/(num_part-1.0);
     }
     
     Constraint<> SOC("SOC");
     SOC = Xij*Xij - X.from(node_pairs_chord)*X.to(node_pairs_chord);
     SOC.add_to_callback();
-    m->add(SOC.in(node_pairs_chord) <= 0);
+    //m->add(SOC.in(node_pairs_chord) <= 0);
     
     int count=0;
     std::vector<pair<int,std::vector<string>>> _bag_names;
@@ -224,8 +224,157 @@ m->add(def_Xij.in(node_pairs_chord)==0);
         }
     }
   
-
 func<> obj=w.tr()*y;
+m->min(obj);
+
+m->print();
+    var<double> x("x", 0, 0);
+    m->add(x.in(range(0,0)));
+    
+    m->map_x=map_x;
+    m->map_y=map_y;
+    m->map_const=map_const;
+    m->_bag_names=_bag_names;
+   
+    
+return g;
+
+}
+Net model_mink_free(string fname, shared_ptr<Model<double>>& m) {
+Net g;
+  int num_part=3;
+  int Num_nodes = 0;
+  int Num_edges = 0;
+  ifstream infile(fname);
+  string sLine;
+
+  if (infile.good()) {
+    getline(infile, sLine);
+    istringstream iss(sLine);
+    iss >> Num_nodes;
+    iss >> Num_edges;
+  } else {
+    fprintf(stderr, "can’t open input file %s\n", fname.c_str());
+    exit(1);
+  }
+  string name;
+    
+    DebugOn("Nodes "<<Num_nodes<<endl);
+    DebugOn("Edges "<<Num_edges<<endl);
+
+  Node* node = nullptr;
+    indices nodes;
+
+  for (int i = 0; i < Num_nodes; i++) {
+    name = to_string(i + 1);
+    node = new Node(name);
+    g.add_node(node);
+    nodes.insert(name);
+  }
+
+  // get arcs
+  Arc* arc = NULL;
+  Arc* arc_clone = NULL;
+  Arc* arc_chordal = NULL;
+
+  // note that src, dest are names of nodes.
+  string src, dest;
+    int src_a, dest_a;
+  double weight;
+param<double> w("w");
+  while (getline(infile, sLine, '\n')) {
+    istringstream iss(sLine);
+    iss >> src_a >> dest_a >> weight;
+    // cout << src  << ", " << dest << ", " << weight << endl;
+    
+      if(src_a<dest_a){
+          src=to_string(src_a);
+          dest=to_string(dest_a);
+      }
+      else{
+          src=to_string(dest_a);
+          dest=to_string(src_a);
+      }
+          
+
+    name = src + "," + dest;  //
+
+    arc = new Arc(name);
+    arc->_src = g.get_node(src);
+    arc->_dest = g.get_node(dest);
+    arc->_weight = weight;
+    g.add_arc(arc);
+    arc->connect();
+    w.add_val(name, weight);
+  }
+infile.close();
+    
+auto node_pairs=g.get_node_pairs();
+
+    
+map<string, vector<pair<string, double>>> map_x;
+map<string, vector<pair<string, double>>> map_y;
+map<string, double> map_const;
+
+
+
+
+g.sdp_3d_cuts=false;
+g.get_tree_decomp_bags();
+m->sdp_dual=true;
+
+//auto node_pairs_chord = g.get_node_pairs_chord;
+auto node_pairs_chord = g.get_node_pairs_chord(g._bags);
+
+var<> X("X", 1, 1);
+X._psd=true;
+m->add(X.in(nodes));
+var<> Xij("Xij", -1.0/(num_part-1.0), 1);
+Xij._psd=true;
+m->add(Xij.in(node_pairs_chord));
+
+
+var<int> y("y",0,1);
+m->add(y.in(node_pairs));
+
+Constraint<> def_Xij("Xij");
+def_Xij=Xij-(-1.0/(num_part-1.0)+num_part*1.0/(num_part-1.0)*y);
+m->add(def_Xij.in(node_pairs)==0);
+    
+    for(auto k:*node_pairs_chord._keys){
+        if(node_pairs.has_key(k)){
+            map_y[k].push_back(make_pair(k, num_part*1.0/(num_part-1.0)));
+            map_const[k]=(-1.0)/(num_part-1.0);
+        }
+//        else{
+//            w.add_val(k,0.0);
+//        }
+    }
+    
+    Constraint<> SOC("SOC");
+    SOC = Xij*Xij - X.from(node_pairs_chord)*X.to(node_pairs_chord);
+   // SOC.add_to_callback();
+   // m->add(SOC.in(node_pairs_chord) <= 0);
+    
+    int count=0;
+    std::vector<pair<int,std::vector<string>>> _bag_names;
+    m->sdp_dual=true;
+    for(auto b:g._bags){
+        pair<int,vector<string>> bn;
+        bn.first=count++;
+        if(b.second.size()>=2){
+            DebugOn("bag "<<count<<endl);
+            for(auto n:b.second){
+                bn.second.push_back(n->_name);
+                DebugOn(n->_name <<"\t");
+            }
+            DebugOn(endl);
+            _bag_names.push_back(bn);
+        }
+    }
+  
+
+func<> obj=w.tr()*y*1e-6;
 m->min(obj);
 
 m->print();
@@ -241,7 +390,6 @@ m->print();
 return g;
 
 }
-
 
 
 #endif /* read_misdp_hpp */

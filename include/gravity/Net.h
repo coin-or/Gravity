@@ -244,6 +244,7 @@ public:
 //     }
     gravity::indices get_node_pairs_chord(const vector<pair<string,vector<Node*>>>& bags)
     {
+        int fill_in=0;
          if(!this->node_pairs_chord.empty()){
              return this->node_pairs_chord;
          }
@@ -262,12 +263,13 @@ public:
                  if (unique_pairs.insert({bag.second[i]->_name+","+bag.second[j]->_name,{bag.second[i],bag.second[j]}}).second) {
                      auto name = bag.second[i]->_name + "," + bag.second[j]->_name;
                      node_pairs_chord.add(name);
+                     fill_in++;
                  }
                  }
              }
-             /* Loop back pair */
        
          }
+        DebugOn("Edges added in chordal extension "<<fill_in<<endl);
          return node_pairs_chord;
      }
     

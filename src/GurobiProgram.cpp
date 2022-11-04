@@ -20,7 +20,7 @@ public:
         m=mn;
         interior=interiorn;
         //vec_expi=vec_exp;
-        m->num_cuts.resize(6,0);
+        m->num_cuts.resize(9,0);
     }
     ~cuts(){
         DebugOn("soc_viol_user "<<soc_viol_user<<" "<<soc_viol<<endl);
@@ -37,17 +37,28 @@ protected:
             bool mipnode=true;
             bool hierarc = false;
             bool add_full=false;
+            bool add_bag=true;
+            bool add_soc=true;
+            if(m->sdp_dual){
+                add_full=true;
+            }
+            if(m->_bag_names.size()==1)
+                add_full=false;
+            bool add_bag_iteration;
+            bool add_full_iteration;
             if(incumbent){
                 if (where == GRB_CB_MIPSOL) {
+                    add_bag_iteration=add_bag;
+                    add_full_iteration=add_full;
                     /* Found an integer feasible solution */
                     double *x = new double[n];
                     vector<double> vec_x;
-                    int i,j;
+                    int i;
                     x=getSolution(vars.data(),n);
                     for(i=0;i<n;i++){
                         vec_x.push_back(x[i]);
                     }
-                    if(true ){
+                    if(add_soc){
                         m->set_solution(vec_x);
                         auto res= m->cutting_planes_soc(1e-9, soc_found, soc_added);
                         if(res.size()>=1){
@@ -66,24 +77,110 @@ protected:
                                 m->num_cuts[0]++;
                             }
                         }
-                        if(res.size()==0 || !hierarc){
+                        if(hierarc && res.size()>=1){
+                            add_bag_iteration=false;
+                            add_full_iteration=false;
+                        }
+                    }
+                    if(add_bag_iteration){
+                        m->set_solution(vec_x);
+                        auto res1=m->cuts_eigen_bags(1e-9);
+                        if(res1.size()>=1){
+                            for(auto i=0;i<res1.size();i++){
+                                GRBLinExpr expr = 0;
+                                int j;
+                                DebugOff("eig cut at");
+                                for(j=0;j<res1[i].size()-1;j+=2){
+                                    int c=res1[i][j];
+                                    expr += res1[i][j+1]*vars[c];
+                                }
+                                expr += res1[i][j];
+                                addLazy(expr, GRB_LESS_EQUAL, 0);
+                                m->num_cuts[1]++;
+                            }
+                        }
+                        if(res1.size()>=1 && hierarc)
+                            add_full_iteration=false;
+                    }
+                    if(add_full_iteration){
+                        m->set_solution(vec_x);
+                        auto res2=m->cuts_eigen_full(1e-9);
+                        if(res2.size()>=1){
+                            for(auto i=0;i<res2.size();i++){
+                                GRBLinExpr expr = 0;
+                                int j;
+                                for(j=0;j<res2[i].size()-1;j+=2){
+                                    int c=res2[i][j];
+                                    expr += res2[i][j+1]*vars[c];
+                                }
+                                expr += res2[i][j];
+                                addLazy(expr, GRB_LESS_EQUAL, 0);
+                                m->num_cuts[2]++;
+                            }
+                        }
+                    }
+                }
+            }
+            if(mipnode){
+                if (where == GRB_CB_MIPNODE) {
+                    if(getIntInfo(GRB_CB_MIPNODE_STATUS)==2 ){
+                        int nc= getDoubleInfo(GRB_CB_MIPNODE_NODCNT);
+                        if(nc%1==0){
+                            add_bag_iteration=add_bag;
+                            add_full_iteration=add_full;
+                            double *x = new double[n];
+                            vector<double> vec_x;
+                            int i;
+                            x=getNodeRel(vars.data(),n);
+                            for(i=0;i<n;i++){
+                                vec_x.push_back(x[i]);
+                            }
                             m->set_solution(vec_x);
-                            auto res1=m->cuts_eigen_bags(1e-9);
-                            if(res1.size()>=1){
-                                for(auto i=0;i<res1.size();i++){
-                                    GRBLinExpr expr = 0;
-                                    int j;
-                                    DebugOff("eig cut at");
-                                    for(j=0;j<res1[i].size()-1;j+=2){
-                                        int c=res1[i][j];
-                                        expr += res1[i][j+1]*vars[c];
+                            if(add_soc){
+                                m->set_solution(vec_x);
+                                auto res= m->cutting_planes_soc(1e-9, soc_found, soc_added);
+                                if(res.size()>=1){
+                                    for(auto i=0;i<res.size();i++){
+                                        GRBLinExpr expr = 0;
+                                        int j;
+                                        DebugOff("soc cut at ");
+                                        for(j=0;j<res[i].size()-1;j+=2){
+                                            int c=res[i][j];
+                                            expr += res[i][j+1]*vars[c];
+                                            DebugOff(to_string_with_precision(vec_x[c],10)<<" "<<to_string_with_precision(c,10)<<" "<<to_string_with_precision(res[i][j+1],10)<<" ");
+                                        }
+                                        expr += res[i][j];
+                                        DebugOff(endl);
+                                        addLazy(expr, GRB_LESS_EQUAL, 0);
+                                        m->num_cuts[0]++;
                                     }
-                                    expr += res1[i][j];
-                                    addLazy(expr, GRB_LESS_EQUAL, 0);
-                                    m->num_cuts[1]++;
+                                }
+                                if(hierarc && res.size()>=1){
+                                    add_bag_iteration=false;
+                                    add_full_iteration=false;
                                 }
                             }
-                            if(add_full && (res1.size()==0 || !hierarc)){
+                            if(add_bag_iteration){
+                                m->set_solution(vec_x);
+                                auto res1=m->cuts_eigen_bags(1e-9);
+                                if(res1.size()>=1){
+                                    for(auto i=0;i<res1.size();i++){
+                                        GRBLinExpr expr = 0;
+                                        int j;
+                                        DebugOff("eig cut at");
+                                        for(j=0;j<res1[i].size()-1;j+=2){
+                                            int c=res1[i][j];
+                                            expr += res1[i][j+1]*vars[c];
+                                        }
+                                        expr += res1[i][j];
+                                        addLazy(expr, GRB_LESS_EQUAL, 0);
+                                        m->num_cuts[1]++;
+                                    }
+                                }
+                                if(res1.size()>=1 && hierarc)
+                                    add_full_iteration=false;
+                            }
+                            if(add_full_iteration){
                                 m->set_solution(vec_x);
                                 auto res2=m->cuts_eigen_full(1e-9);
                                 if(res2.size()>=1){
@@ -94,7 +191,7 @@ protected:
                                             int c=res2[i][j];
                                             expr += res2[i][j+1]*vars[c];
                                         }
-                                            expr += res2[i][j];
+                                        expr += res2[i][j];
                                         addLazy(expr, GRB_LESS_EQUAL, 0);
                                         m->num_cuts[2]++;
                                     }
@@ -103,76 +200,9 @@ protected:
                         }
                     }
                 }
+                
             }
-            if(true){
-                if (where == GRB_CB_MIPNODE) {
-                    if(getIntInfo(GRB_CB_MIPNODE_STATUS)==2 ){
-                        int nc= getDoubleInfo(GRB_CB_MIPNODE_NODCNT);
-                    if(true){
-                        double *x = new double[n];
-                        vector<double> vec_x;
-                        // double obj=getDoubleInfo(GRB_CB_MIPSOL_OBJ);
-                        int i,j;
-                        x=getNodeRel(vars.data(),n);
-                        for(i=0;i<n;i++){
-                            vec_x.push_back(x[i]);
-                        }
-                        m->set_solution(vec_x);
-                        
-                        auto res= m->cutting_planes_soc(1e-9, soc_found, soc_added);
-                        if(res.size()>=1){
-                            for(auto i=0;i<res.size();i++){
-                                GRBLinExpr expr = 0;
-                                int j;
-                                for(j=0;j<res[i].size()-1;j+=2){
-                                    int c=res[i][j];
-                                    expr += res[i][j+1]*vars[c];
-                                }
-                                expr += res[i][j];
-                                addLazy(expr, GRB_LESS_EQUAL, 0);
-                                m->num_cuts[3]++;
-                            }
-                        }
-                        if(res.size()==0 || !hierarc){
-                            m->set_solution(vec_x);
-                            auto res1=m->cuts_eigen_bags(1e-9);
-                            if(res1.size()>=1){
-                                for(auto i=0;i<res1.size();i++){
-                                    GRBLinExpr expr = 0;
-                                    int j;
-                                    for(j=0;j<res1[i].size()-1;j+=2){
-                                        int c=res1[i][j];
-                                        expr += res1[i][j+1]*vars[c];
-                                    }
-                                        expr += res1[i][j];
-                                    addLazy(expr, GRB_LESS_EQUAL, 0);
-                                    m->num_cuts[4]++;
-                                }
-                            }
-                            if(add_full && (res1.size()==0 || !hierarc)){
-                                m->set_solution(vec_x);
-                                auto res2=m->cuts_eigen_full(1e-9);
-                                if(res2.size()>=1){
-                                    for(auto i=0;i<res2.size();i++){
-                                        GRBLinExpr expr = 0;
-                                        int j;
-                                        for(j=0;j<res2[i].size()-1;j+=2){
-                                            int c=res2[i][j];
-                                            expr += res2[i][j+1]*vars[c];
-                                        }
-                                            expr += res2[i][j];
-                                        addLazy(expr, GRB_LESS_EQUAL, 0);
-                                        m->num_cuts[5]++;
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-	    }
-            
-        } catch (GRBException e) {
+        }catch (GRBException e) {
             cout << "Error number: " << e.getErrorCode() << endl;
             cout << e.getMessage() << endl;
         } catch (...) {
@@ -180,7 +210,7 @@ protected:
         }
     }
 };
-class cuts_primal: public GRBCallback
+class cuts_primal_complex: public GRBCallback
 {
 public:
     vector<GRBVar> vars;
@@ -191,7 +221,7 @@ public:
     int soc_viol=0, soc_found=0,soc_added=0,det_viol=0, det_found=0, det_added=0;
     int soc_viol_user=0, soc_found_user=0,soc_added_user=0,det_viol_user=0, det_found_user=0, det_added_user=0;
     //cuts(vector<GRBVar> _grb_vars, int xn, Model<>* mn, Model<> interiorn, vector<GRBLinExpr>& vec_exp) {
-    cuts_primal(vector<GRBVar> _grb_vars, int xn, Model<>* mn, Model<> interiorn) {
+    cuts_primal_complex(vector<GRBVar> _grb_vars, int xn, Model<>* mn, Model<> interiorn) {
         vars = _grb_vars;
         n    = xn;
         m=mn;
@@ -199,7 +229,7 @@ public:
         //vec_expi=vec_exp;
         m->num_cuts.resize(6,0);
     }
-    ~cuts_primal(){
+    ~cuts_primal_complex(){
         DebugOn("soc_viol_user "<<soc_viol_user<<" "<<soc_viol<<endl);
         DebugOn("soc_found_user "<<soc_found_user<<" "<<soc_found<<endl);
         DebugOn("soc_added_user "<<soc_added_user<<" "<<soc_added<<endl);
@@ -235,7 +265,7 @@ protected:
                                     expr += res1[i][j+1]*vars[c];
                                     DebugOff(res1[i][j+1]<<" ");
                                 }
-                                 expr+=res1[i][j];
+                                expr+=res1[i][j];
                                 addLazy(expr, GRB_LESS_EQUAL, 0);
                             }
                         }
@@ -256,8 +286,8 @@ protected:
                                     }
                                     DebugOff(to_string_with_precision(res1[i][j],10));
                                     DebugOff(endl);
-//                                    if(std::abs(res1[i][j])>=1e-12)
-                                        expr += res1[i][j];
+                                    //                                    if(std::abs(res1[i][j])>=1e-12)
+                                    expr += res1[i][j];
                                     addLazy(expr, GRB_LESS_EQUAL, 0);
                                     m->num_cuts[1]++;
                                     //                                addCut(expr, GRB_LESS_EQUAL, 0);
@@ -288,14 +318,14 @@ GurobiProgram::GurobiProgram(){
     grb_env = new GRBEnv();
     //    grb_env->set(GRB_IntParam_Presolve,0);
     //grb_env->set(GRB_DoubleParam_NodeLimit,1);
-//    grb_env->set(GRB_DoubleParam_TimeLimit,9000);
+    //    grb_env->set(GRB_DoubleParam_TimeLimit,9000);
     //    grb_env->set(GRB_DoubleParam_MIPGap,0.01);
     //   grb_env->set(GRB_IntParam_Threads,8);
     //    grb_env->set(GRB_IntParam_Presolve,0);
     //   grb_env->set(GRB_IntParam_NumericFocus,3);
-//    grb_env->set(GRB_IntParam_NonConvex,0);
-//    grb_env->set(GRB_DoubleParam_FeasibilityTol, 1e-9);
-//    grb_env->set(GRB_DoubleParam_OptimalityTol, 1e-9);
+    //    grb_env->set(GRB_IntParam_NonConvex,0);
+    //    grb_env->set(GRB_DoubleParam_FeasibilityTol, 1e-9);
+    //    grb_env->set(GRB_DoubleParam_OptimalityTol, 1e-9);
     
     
     grb_env->set(GRB_IntParam_OutputFlag,1);
@@ -311,15 +341,15 @@ GurobiProgram::GurobiProgram(Model<>* m) {
             grb_env = new GRBEnv();
             //    grb_env->set(GRB_IntParam_Presolve,0);
             //grb_env->set(GRB_DoubleParam_NodeLimit,1);
-//            grb_env->set(GRB_DoubleParam_TimeLimit,9000);
+            //            grb_env->set(GRB_DoubleParam_TimeLimit,9000);
             //   grb_env->set(GRB_IntParam_Threads,8);
             //    grb_env->set(GRB_DoubleParam_MIPGap,0.01);
             //    grb_env->set(GRB_IntParam_Threads,1);
             //    grb_env->set(GRB_IntParam_Presolve,0);
             //     grb_env->set(GRB_IntParam_NumericFocus,3);
-           // grb_env->set(GRB_IntParam_NonConvex,0);
-           // grb_env->set(GRB_DoubleParam_FeasibilityTol, 1e-9);
-           // grb_env->set(GRB_DoubleParam_OptimalityTol, 1e-9);
+            // grb_env->set(GRB_IntParam_NonConvex,0);
+            // grb_env->set(GRB_DoubleParam_FeasibilityTol, 1e-9);
+            // grb_env->set(GRB_DoubleParam_OptimalityTol, 1e-9);
             
             //grb_env->set(GRB_IntParam_OutputFlag,1);
             grb_mod = new GRBModel(*grb_env);
@@ -347,7 +377,7 @@ GurobiProgram::GurobiProgram(const shared_ptr<Model<>>& m) {
             //    grb_env->set(GRB_IntParam_Presolve,0);
             //grb_env->set(GRB_DoubleParam_NodeLimit,1);
             //   grb_env->set(GRB_IntParam_Threads,8);
-//            grb_env->set(GRB_DoubleParam_TimeLimit,9000);
+            //            grb_env->set(GRB_DoubleParam_TimeLimit,9000);
             //    grb_env->set(GRB_DoubleParam_MIPGap,0.01);
             //    grb_env->set(GRB_IntParam_Threads,1);
             //    grb_env->set(GRB_IntParam_Presolve,0);
@@ -394,9 +424,9 @@ void GurobiProgram::reset_model(){
 bool GurobiProgram::solve(bool relax, double mipgap, double time_limit){
     //cout << "\n Presolve = " << grb_env->get(GRB_IntParam_Presolve) << endl;
     //    print_constraints();
-        if (relax) relax_model();
-        else
-            unrelax_model();
+    if (relax) relax_model();
+    else
+        unrelax_model();
     //    relax_model();
     grb_mod->set(GRB_DoubleParam_MIPGap, 1e-6);
     grb_mod->set(GRB_DoubleParam_FeasibilityTol, 1e-9);
@@ -407,13 +437,13 @@ bool GurobiProgram::solve(bool relax, double mipgap, double time_limit){
     //        grb_mod->getEnv().set(GRB_IntParam_Method, 1);
     //    grb_mod->getEnv().set(GRB_IntParam_NodeMethod, 1);
     grb_mod->getEnv().set(GRB_IntParam_LazyConstraints, 1);
-    grb_mod->set(GRB_IntParam_Threads, 4);
-        grb_mod->set(GRB_DoubleParam_IntFeasTol, 1e-9);
-//       grb_mod->set(GRB_IntParam_NumericFocus,3);
-//     grb_mod->set(GRB_IntParam_PreCrush,0);
-    grb_mod->set(GRB_IntParam_MIPFocus,3);
+    grb_mod->set(GRB_IntParam_Threads, 2);
+    grb_mod->set(GRB_DoubleParam_IntFeasTol, 1e-9);
+    //       grb_mod->set(GRB_IntParam_NumericFocus,3);
+    //     grb_mod->set(GRB_IntParam_PreCrush,0);
+    // grb_mod->set(GRB_IntParam_MIPFocus,3);
     //    grb_mod->set(GRB_IntParam_IntegralityFocus,1);
-    //    grb_mod->set(GRB_IntParam_MIPFocus,2);
+    //grb_mod->set(GRB_IntParam_MIPFocus,1);
     //    grb_mod->set(GRB_IntParam_PumpPasses,50);
     //    grb_mod->set(GRB_IntParam_RINS,1000);
     //    grb_mod->set(GRB_IntParam_Cuts,0);
@@ -437,121 +467,151 @@ bool GurobiProgram::solve(bool relax, double mipgap, double time_limit){
     //interior=lin->add_outer_app_solution(*_model);
     //interior.print_solution();
     cuts cb = cuts(_grb_vars, n, _model, interior);
+    cuts_primal_complex cbp=cuts_primal_complex(_grb_vars, n, _model, interior);
     //vector<GRBLinExpr> vec_expr;
-    if(!_model->sdp_dual){
-        cuts_primal cb(_grb_vars, n, _model, interior);
-        grb_mod->setCallback(&cb);
-        grb_mod->update();
+    if(_model->_complex){
+        if(!relax){
+            grb_mod->setCallback(&cbp);
+            grb_mod->update();
+        }
     }
     else{
         //cuts cb(_grb_vars, n, _model, interior);
-        grb_mod->setCallback(&cb);
-        grb_mod->update();
+        if(!relax){
+            grb_mod->setCallback(&cb);
+            grb_mod->update();
+        }
     }
     
     //grb_mod->set(GRB_IntParam_RINS,1);
     // grb_mod->set(GRB_DoubleParam_Heuristics, 0.5);
     //grb_mod->update();
     grb_mod->optimize();
-//    grb_mod->write("out.sol");
-//    _model->print_solution();
-    //    grb_mod->set(GRB_IntParam_MIPFocus,3);
-    //   // grb_mod->set(GRB_DoubleParam_ImproveStartTime,9000);
-    //   // grb_mod->set(GRB_DoubleParam_Heuristics, 0.05);
-    //    grb_mod->set(GRB_DoubleParam_TimeLimit,9000);
-    //    grb_mod->set(GRB_IntParam_RINS,10000);
-    // grb_mod->update();
-    // grb_mod->optimize();
+    
     if(grb_mod->get(GRB_IntAttr_SolCount)>0)
         update_solution();
-    bool not_sdp=true;
-    if(_model->sdp_dual && _model->check_PSD()<=-1e-9  && grb_mod->get(GRB_IntAttr_Status)==2){
-        not_sdp=false;
-        grb_mod->setCallback(NULL);
+    bool not_sdp=false;
+    if(grb_mod->get(GRB_IntAttr_Status)==2){
+        if(!_model->_complex){
+            if(_model->sdp_dual){
+                if(_model->check_PSD()<=-1e-9)
+                    not_sdp=true;
+            }
+            else{
+                if(_model->check_PSD_bags()<=-1e-9)
+                    not_sdp=true;
+            }
+        }
+        else{
+            /*Write Check PSD bags complex case*/
+        }
     }
-    else if( grb_mod->get(GRB_DoubleAttr_ObjVal)<=0.99){
-        not_sdp=true;
-        grb_mod->setCallback(NULL);
-    }
-       // grb_mod->set(GRB_IntParam_OutputFlag,0);
     
     int count=0;
     auto ts=get_wall_time();
-    while(not_sdp && count<=3000 && _model->sdp_dual){
-        int soc_viol=0, soc_added=0;
+    while(not_sdp && count<=3000 && !_model->_complex){
+        int soc_viol=0, soc_added=0, soc_found;
+        bool hierarc = false;
         bool add_full=false;
-        auto res=_model->cutting_planes_soc(1e-6,soc_viol, soc_added);
-        if(res.size()>=1){
-            for(auto i=0;i<res.size();i++){
-                GRBLinExpr expr = 0;
-                int j=0;
-                for(j=0;j<res[i].size()-1;j+=2){
-                    int c=res[i][j];
-                    expr += res[i][j+1]*_grb_vars[c];
-                    DebugOff(res[i][j+1]<<" ");
+        bool add_bag=true;
+        bool add_soc=true;
+        if(_model->sdp_dual){
+            add_full=true;
+        }
+        if(_model->_bag_names.size()==1)
+            add_full=false;
+        bool add_bag_iteration;
+        bool add_full_iteration;
+        add_bag_iteration=add_bag;
+        add_full_iteration=add_full;
+        /* Found an integer feasible solution */
+        bool add_cut=false;
+        if(add_soc){
+            
+            auto res= _model->cutting_planes_soc(1e-6, soc_found, soc_added);
+            if(res.size()>=1){
+                add_cut=true;
+                for(auto i=0;i<res.size();i++){
+                    GRBLinExpr expr = 0;
+                    int j;
+                    DebugOff("soc cut at ");
+                    for(j=0;j<res[i].size()-1;j+=2){
+                        int c=res[i][j];
+                        expr += res[i][j+1]*_grb_vars[c];
+                    }
+                    expr += res[i][j];
+                    
+                    grb_mod->addConstr(expr, GRB_LESS_EQUAL, 0);
+                    _model->num_cuts[0]++;
                 }
-                 expr+=res[i][j];
-                grb_mod->addConstr(expr, GRB_LESS_EQUAL, 0);
+            }
+            if(hierarc && res.size()>=1){
+                add_bag_iteration=false;
+                add_full_iteration=false;
             }
         }
-        if(res.size()==0){
-            auto res2=_model->cuts_eigen_bags(1e-6);
+        if(add_bag_iteration){
+            auto res1=_model->cuts_eigen_bags(1e-6);
+            if(res1.size()>=1){
+                add_cut=true;
+                for(auto i=0;i<res1.size();i++){
+                    GRBLinExpr expr = 0;
+                    int j;
+                    DebugOff("eig cut at");
+                    for(j=0;j<res1[i].size()-1;j+=2){
+                        int c=res1[i][j];
+                        expr += res1[i][j+1]*_grb_vars[c];
+                    }
+                    expr += res1[i][j];
+                    grb_mod->addConstr(expr, GRB_LESS_EQUAL, 0);
+                    _model->num_cuts[1]++;
+                }
+            }
+            if(res1.size()>=1 && hierarc)
+                add_full_iteration=false;
+        }
+        if(add_full_iteration){
+            auto res2=_model->cuts_eigen_full(1e-6);
             if(res2.size()>=1){
+                add_cut=true;
                 for(auto i=0;i<res2.size();i++){
                     GRBLinExpr expr = 0;
-                    int j=0;
+                    int j;
                     for(j=0;j<res2[i].size()-1;j+=2){
                         int c=res2[i][j];
                         expr += res2[i][j+1]*_grb_vars[c];
                     }
                     expr += res2[i][j];
                     grb_mod->addConstr(expr, GRB_LESS_EQUAL, 0);
-                }
-            }
-            if(res2.size()==0 && add_full){
-            auto res3=_model->cuts_eigen_full(1e-6);
-            if(res3.size()>=1){
-                for(auto i=0;i<res3.size();i++){
-                    GRBLinExpr expr = 0;
-                    int j;
-                    for(j=0;j<res3[i].size()-1;j+=2){
-                        int c=res3[i][j];
-                        expr += res3[i][j+1]*_grb_vars[c];
-                    }
-                        expr += res3[i][j];
-                    grb_mod->addConstr(expr, GRB_LESS_EQUAL, 0);
-                }
-            }
-            if(res3.size()==0){
-                not_sdp=false;
-            }
-            }
-            if(!add_full){
-                if(res2.size()==0){
-                    not_sdp=false;
+                    _model->num_cuts[2]++;
                 }
             }
         }
-            if(not_sdp){
-                grb_mod->update();
-                grb_mod->optimize();
-                if(grb_mod->get(GRB_IntAttr_Status)!=2){
-//                    DebugOn("status "<<grb_mod->get(GRB_IntAttr_Status)<<endl);
-//                    grb_mod->computeIIS();
-//                    grb_mod->write("b.mps");
-//                    grb_mod->write("a.ilp");
-                    break;
-                }
-                    
-                if(grb_mod->get(GRB_IntAttr_SolCount)>0)
-                    update_solution();
-//                sol_old=sol_new;
-//                sol_new=grb_mod->get(GRB_DoubleAttr_ObjVal);
+        
+        
+        if(!add_cut)
+            not_sdp=false;
+        
+        if(not_sdp){
+            grb_mod->update();
+            grb_mod->optimize();
+            if(grb_mod->get(GRB_IntAttr_Status)!=2){
+                //                    DebugOn("status "<<grb_mod->get(GRB_IntAttr_Status)<<endl);
+                //                    grb_mod->computeIIS();
+                //                    grb_mod->write("b.mps");
+                //                    grb_mod->write("a.ilp");
+                break;
             }
-
+            
+            if(grb_mod->get(GRB_IntAttr_SolCount)>0)
+                update_solution();
+            //                sol_old=sol_new;
+            //                sol_new=grb_mod->get(GRB_DoubleAttr_ObjVal);
+        }
+        
         count++;
     }
-    while(not_sdp && count<=1e9 && !_model->sdp_dual){
+    while(not_sdp && count<=3000 && _model->_complex){
         int soc_viol=0, soc_added=0;
         auto res1=_model->cutting_planes_square(1e-6);
         if(res1.size()>=1){
@@ -563,52 +623,52 @@ bool GurobiProgram::solve(bool relax, double mipgap, double time_limit){
                     expr += res1[i][j+1]*_grb_vars[c];
                     DebugOff(res1[i][j+1]<<" ");
                 }
-                 expr+=res1[i][j];
+                expr+=res1[i][j];
                 grb_mod->addConstr(expr, GRB_LESS_EQUAL, 0);
             }
         }
         if(true){
-        auto res=_model->cuts_eigen_bags_primal_complex(1e-6, "Wii", "R_Wij", "Im_Wij");
-        if(res.size()>=1){
-            for(auto i=0;i<res.size();i++){
-                GRBLinExpr expr = 0;
-                int j=0;
-                for(j=0;j<res[i].size()-1;j+=2){
-                    int c=res[i][j];
-                    expr += res[i][j+1]*_grb_vars[c];
-                    DebugOff(res[i][j+1]<<" ");
+            auto res=_model->cuts_eigen_bags_primal_complex(1e-6, "Wii", "R_Wij", "Im_Wij");
+            if(res.size()>=1){
+                for(auto i=0;i<res.size();i++){
+                    GRBLinExpr expr = 0;
+                    int j=0;
+                    for(j=0;j<res[i].size()-1;j+=2){
+                        int c=res[i][j];
+                        expr += res[i][j+1]*_grb_vars[c];
+                        DebugOff(res[i][j+1]<<" ");
+                    }
+                    expr+=res[i][j];
+                    grb_mod->addConstr(expr, GRB_LESS_EQUAL, 0);
                 }
-                 expr+=res[i][j];
-                grb_mod->addConstr(expr, GRB_LESS_EQUAL, 0);
             }
-        }
-        if(res.size()==0 && res1.size()==0){
-            not_sdp=false;
-        }
+            if(res.size()==0 && res1.size()==0){
+                not_sdp=false;
+            }
         }
         if(not_sdp){
             grb_mod->update();
             grb_mod->optimize();
             if(grb_mod->get(GRB_IntAttr_Status)!=2){
-//                    DebugOn("status "<<grb_mod->get(GRB_IntAttr_Status)<<endl);
-//                    grb_mod->computeIIS();
-//                    grb_mod->write("b.mps");
-//                    grb_mod->write("a.ilp");
+                //                    DebugOn("status "<<grb_mod->get(GRB_IntAttr_Status)<<endl);
+                //                    grb_mod->computeIIS();
+                //                    grb_mod->write("b.mps");
+                //                    grb_mod->write("a.ilp");
                 break;
             }
         }
-                
-            if(grb_mod->get(GRB_IntAttr_SolCount)>0)
-                update_solution();
+        
+        if(grb_mod->get(GRB_IntAttr_SolCount)>0)
+            update_solution();
         if(grb_mod->get(GRB_DoubleAttr_ObjVal)>=0.99)
             break;
-    
-
+        
+        
         count++;
     }
     auto tf=get_wall_time();
     DebugOn("While loop Count "<<count<<" in time "<<tf-ts<<endl);
-
+    
     // grb_mod->update();
     // grb_mod->optimize();
     //        for(auto i=0;i<cb.vec_expi.size();i++){
@@ -618,7 +678,7 @@ bool GurobiProgram::solve(bool relax, double mipgap, double time_limit){
     //    grb_mod->update();
     //    grb_mod->optimize();
     //    grb_mod->write("mod.lp");
-   
+    
     //    GRBVar* gvars = grb_mod->getVars();
     //    for(int i = 0; i < grb_mod->get(GRB_IntAttr_NumVars); ++i) {
     ////        cout << gvars[i].get(GRB_StringAttr_VarName) << "  " << gvars[i].get(GRB_DoubleAttr_X) << endl;
@@ -645,7 +705,7 @@ bool GurobiProgram::solve(bool relax, double mipgap, double time_limit){
     //    delete[] gvars;
     if (grb_mod->get(GRB_IntAttr_Status) != 2) {
         cerr << "\nModel has not been solved to optimality, error code = " << grb_mod->get(GRB_IntAttr_Status) << endl;
-               return false;
+        return false;
     }
     return true;
 }
@@ -938,7 +998,7 @@ void GurobiProgram::create_grb_constraints(){
                 if(c->_indices)
                     grb_mod->addQConstr(quadlhs,sense,0,c->get_name()+"("+c->_indices->_keys->at(i)+")");
                 else
-                    grb_mod->addQConstr(quadlhs,sense,0,c->get_name());                
+                    grb_mod->addQConstr(quadlhs,sense,0,c->get_name());
                 //                grb_mod->re
                 //    }
                 

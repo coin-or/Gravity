@@ -22,18 +22,15 @@ public:
     GurobiProgram(const shared_ptr<Model<>>& m);
     ~GurobiProgram();
     void reset_model();
-
     bool solve(bool relax = false, double mipgap = 0.01, double tim_limit = 3600);
     void prepare_model();
     void update_model();
     void update_solution();
     void relax_model();
     void unrelax_model();
-
     void fill_in_grb_vmap();
     void create_grb_constraints();
     void set_grb_objective();
-
     void print_constraints();
 };
 

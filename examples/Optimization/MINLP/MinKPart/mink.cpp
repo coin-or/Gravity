@@ -18,8 +18,8 @@ using namespace std;
 
 int main(int argc, char * argv[]){
     //string fname=string(prj_dir)+"/data_sets/MISDP/2x3_3bars.cbf";
-    //string fname=string(prj_dir)+"/data_sets/MISDP/band50_3.txt";
-    string fname=string(prj_dir)+"/data_sets/MISDP/spinglass2g_33.txt";
+    string fname=string(prj_dir)+"/data_sets/MISDP/band50_3.txt";
+    //string fname=string(prj_dir)+"/data_sets/MISDP/spinglass2g_33.txt";
     //string fname=string(prj_dir)+"/data_sets/MISDP/spinglass2g_1111.txt";
     //string fname=string(prj_dir)+"/data_sets/MISDP/2x7_3bars.cbf";
     //string fname=string(prj_dir)+"/data_sets/MISDP/2x4_2scen_3bars.cbf";

@@ -224,6 +224,7 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
         map<string, vector<pair<string, double>>>               map_y;
         map<string, double>                                     map_const;
         bool                                                    sdp_dual;
+        bool                                                    _complex;
          template<typename T=type>
         void merge_vars(const shared_ptr<expr<T>>& e, bool share_bounds = false){/**<  Transfer all variables and parameters to the model. */
             switch (e->get_type()) {
@@ -647,6 +648,7 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
             map_y=m.map_y;
             map_const=m.map_const;
             sdp_dual=m.sdp_dual;
+            _complex=m._complex;
             _rel_obj_val=m._rel_obj_val;
             num_cuts=m.num_cuts;
             return *this;
@@ -6673,6 +6675,8 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
         vector<vector<double>> cutting_planes_square(double active_tol);
         template<typename T=type>
         double check_PSD();
+        template<typename T=type>
+        double check_PSD_bags();
         template<typename T=type>   
         vector<vector<double>> cutting_planes_soc(double active_tol, int& soc_viol,int& soc_added);
         template<typename T=type>
