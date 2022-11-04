@@ -45,8 +45,8 @@ int main(int argc, char * argv[]){
     m->print_solution();
     m->print_constraints_stats(1e-9);
     
-    auto eig_value1=check_PSD_bags(m, 3);
-    auto eig_value=check_PSD_full_mink(m, 3);
+    auto eig_value1=m->check_PSD();
+    //auto eig_value=check_PSD_full_mink(m, 3);
     
     
     
@@ -57,8 +57,8 @@ int main(int argc, char * argv[]){
     auto out_file_name1=out_file_name.substr(0,pos);
     out_file_name=string(prj_dir)+"/results_misdp/"+out_file_name1+".txt";
     ofstream fout(out_file_name.c_str());
-    fout<<out_file_name1<<"&"<<m->get_obj_val()<<"&"<<tf-ts<<"&"<<eig_value<<"&"<<m->_rel_obj_val<<"&"<<m->num_cuts[0]<<"&"<<m->num_cuts[1]<<"&"<<m->num_cuts[2]<<"&"<<m->num_cuts[3]<<"&"<<m->num_cuts[4]<<"&"<<m->num_cuts[5]<<"\n";
+    fout<<out_file_name1<<"&"<<m->get_obj_val()<<"&"<<tf-ts<<"&"<<eig_value1<<"&"<<m->_rel_obj_val<<"&"<<m->num_cuts[0]<<"&"<<m->num_cuts[1]<<"&"<<m->num_cuts[2]<<"&"<<m->num_cuts[3]<<"&"<<m->num_cuts[4]<<"&"<<m->num_cuts[5]<<"\n";
     fout.close();
-    cout<<out_file_name1<<" obj "<<m->get_obj_val()<<" time "<<tf-ts<<" smallest eig "<<eig_value<<" lower bound  "<<m->_rel_obj_val<<endl;
+    cout<<out_file_name1<<" obj "<<m->get_obj_val()<<" time "<<tf-ts<<" smallest eig "<<eig_value1<<" lower bound  "<<m->_rel_obj_val<<endl;
     cout<<"soc incumbent "<<m->num_cuts[0]<<" eig bags incumbent "<<m->num_cuts[1]<<" eig full incumbent "<<m->num_cuts[2]<<" soc mipnode "<<m->num_cuts[3]<<" eig bags mipnode "<<m->num_cuts[4]<<" eig full mipnode "<<m->num_cuts[5]<<"\n";
 }

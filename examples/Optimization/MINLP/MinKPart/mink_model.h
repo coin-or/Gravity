@@ -12,44 +12,6 @@ using namespace gravity;
 using namespace std;
 using namespace Eigen;
 
-double check_PSD_bags(shared_ptr<Model<double>>& m, int num_part)
-{
-    const double active_tol=1e-9;
-    double neg_eig_value=1;
-    for(auto b:m->_bag_names){
-        int num=b.first;
-        var<double> X=m->get_var<double>("X");
-        var<double> Xij=m->get_var<double>("Xij");
-       
-        auto dim=b.second.size();
-    Eigen::MatrixXd mat_X(dim,dim);
-    
-    int count=0;
-    for(auto n:b.second){
-        mat_X(count,count)=X.eval(n);
-        count++;
-    }
-    for(auto i=0;i<b.second.size()-1;i++){
-        for(auto j=i+1;j<b.second.size();j++){
-            mat_X(i,j)=Xij.eval(b.second[i]+","+b.second[j]);
-            mat_X(j,i)=mat_X(i,j);
-        }
-    }
-    Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> es;
-    es.compute(mat_X);
-        DebugOn("bag eig values ");
-    for(auto m=0;m<dim;m++){
-        if(es.eigenvalues()[m]<=-active_tol)
-            DebugOn("negative eigen value "<<endl);
-        if(es.eigenvalues()[m]<=neg_eig_value)
-            neg_eig_value=es.eigenvalues()[m];
-        DebugOn(std::setprecision(12)<<es.eigenvalues()[m]<<"\t");
-        }
-       
-    }
-    DebugOn(endl);
-    return neg_eig_value;
-}
 double check_PSD_full_mink(shared_ptr<Model<double>>& m, int num_part){
     const double active_tol=1e-9;
     var<double> X=m->get_var<double>("X");
@@ -321,7 +283,7 @@ map<string, double> map_const;
 
 g.sdp_3d_cuts=false;
 g.get_tree_decomp_bags();
-m->sdp_dual=true;
+m->sdp_dual=false;
 
 //auto node_pairs_chord = g.get_node_pairs_chord;
 auto node_pairs_chord = g.get_node_pairs_chord(g._bags);
@@ -358,7 +320,7 @@ m->add(def_Xij.in(node_pairs)==0);
     
     int count=0;
     std::vector<pair<int,std::vector<string>>> _bag_names;
-    m->sdp_dual=true;
+    m->sdp_dual=false;
     for(auto b:g._bags){
         pair<int,vector<string>> bn;
         bn.first=count++;

@@ -223,7 +223,7 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
         map<string, vector<pair<string, double>>>               map_x;
         map<string, vector<pair<string, double>>>               map_y;
         map<string, double>                                     map_const;
-        bool                                                    sdp_dual;
+        bool                                                    sdp_dual=false;
         bool                                                    _complex;
          template<typename T=type>
         void merge_vars(const shared_ptr<expr<T>>& e, bool share_bounds = false){/**<  Transfer all variables and parameters to the model. */

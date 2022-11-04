@@ -771,6 +771,10 @@ vector<vector<double>> Model<type>::cutting_planes_soc(double active_tol, int& s
                             j++;
                         }
                         cost+=c0_val*scale;
+//                        if(cost<=1e-9 && cost>=1e-10){
+//                            scale=10;
+//                            cost*=scale;
+//                       }
                         if(cost>=1e-9){
                             min_coef=1e6;
                             max_coef=-1e6;
@@ -849,7 +853,9 @@ vector<vector<double>> Model<type>::cutting_planes_soc(double active_tol, int& s
                                     //                                    else{/*ASSUMPTION in scaling upper bound of variable in cuts is 1*/
                                     //                                        cut[s-1]+=cut[i];
                                     //                                        cut[i]=0;
-                                    //                                    }
+                                    //
+                                    DebugOn("small"<<endl);
+                                //}
                                 }
                             }
                             res.push_back(cut);
@@ -1059,11 +1065,9 @@ vector<vector<double>> Model<type>::cuts_eigen_bags(const double active_tol)
         auto index_y=y.get_id();
         auto dim=b.second.size();
         Eigen::MatrixXd mat_X(dim,dim);
-        vector<vector<double>> mat(dim, std::vector<double>(dim, 0));
         int count=0;
         for(auto n:b.second){
             mat_X(count,count)=X.eval(n);
-            mat[count][count]=mat_X(count, count);
             auto it = X._indices->_keys_map->at(n);
             var_ind.push_back(idx+it);
             count++;
@@ -1072,8 +1076,6 @@ vector<vector<double>> Model<type>::cuts_eigen_bags(const double active_tol)
             for(auto j=i+1;j<b.second.size();j++){
                 mat_X(i,j)=Xij.eval(b.second[i]+","+b.second[j]);
                 mat_X(j,i)=mat_X(i,j);
-                mat[i][j]=mat_X(i, j);
-                mat[j][i]=mat[i][j];
                 auto it = Xij._indices->_keys_map->at(b.second[i]+","+b.second[j]);
                 var_ind.push_back(idxij+it);
             }
@@ -1087,9 +1089,9 @@ vector<vector<double>> Model<type>::cuts_eigen_bags(const double active_tol)
                 c0_val=0;
                 vector<double> eig_vec;
                 for(auto n=0;n<dim;n++){
-                    if(std::abs(es.eigenvectors().col(m)[n])<=1e-5)
-                        eig_vec.push_back(0);
-                    else
+                    //if(std::abs(es.eigenvectors().col(m)[n])<=1e-5)
+                      //  eig_vec.push_back(0);
+                    //else
                         eig_vec.push_back(es.eigenvectors().col(m)[n]);
                     
                 }
@@ -1098,7 +1100,7 @@ vector<vector<double>> Model<type>::cuts_eigen_bags(const double active_tol)
                 for(auto n=0;n<dim;n++){
                     double c=eig_vec[n]*eig_vec[n]*(-1);
                     key.push_back(b.second[n]);
-                    if(X.get_ub(b.second[n])-X.get_lb(b.second[n])<=1e-6){
+                    if(X.get_ub(b.second[n])-X.get_lb(b.second[n])<=1e-9){
                         c_val.push_back(0);
                         c0_val+=c*X.get_ub(b.second[n]);
                     }
@@ -1116,7 +1118,7 @@ vector<vector<double>> Model<type>::cuts_eigen_bags(const double active_tol)
                         double lb=Xij.get_lb(b.second[n]+","+b.second[o]);
                         double ub=Xij.get_ub(b.second[n]+","+b.second[o]);
                         key.push_back(b.second[n]+","+b.second[o]);
-                        if(ub-lb<=1e-6){
+                        if(ub-lb<=1e-9){
                             c_val.push_back(0);
                             if(-c<=0){
                                 c0_val+=c*lb;
@@ -1142,6 +1144,10 @@ vector<vector<double>> Model<type>::cuts_eigen_bags(const double active_tol)
                 cost+=c0_val;
                 double scale=1;
                 cost*=scale;
+//                if(cost<=1e-9 && cost>=1e-10){
+//                    scale=10;
+//                    cost*=scale;
+//               }
                 if(true){
                     double min_coef=1e6;
                     double max_coef=-1e6;
@@ -1178,7 +1184,6 @@ vector<vector<double>> Model<type>::cuts_eigen_bags(const double active_tol)
                             }
                         }
                         coef_const+=c0_val*scale;
-                        cost*=scale;
                         for(auto it=coef_x.begin();it!=coef_x.end();it++){
                             cut.push_back(index_x+x._indices->_keys_map->at(it->first));
                             cut.push_back(it->second);
@@ -1227,9 +1232,9 @@ vector<vector<double>> Model<type>::cuts_eigen_bags(const double active_tol)
                             }
                         }
                         
+                      
                         
-                        
-                        if(cost>=1e-6 || _bag_names.size()==num){
+                        if(true || cost>=1e-6 || _bag_names.size()==num){
                             cut_found=true;
                             res.push_back(cut);
                         }
@@ -1248,8 +1253,9 @@ vector<vector<double>> Model<type>::cuts_eigen_bags(const double active_tol)
                 break;
             }
         }
-        if(cut_found)
-            break;
+        //if(cut_found)
+            //break;
+
     }
     
     //DebugOn("eig"<<endl);
@@ -1441,7 +1447,7 @@ vector<vector<double>> Model<type>::cuts_eigen_bags_primal_complex(const double 
             }
         }
         if(cut_add){
-            // break;
+             //break;
         }
     }
     
@@ -1507,9 +1513,9 @@ vector<vector<double>> Model<type>::cuts_eigen_full(const double active_tol)
             c0_val=0;
             vector<double> eig_vec;
             for(auto n=0;n<dim_full;n++){
-                if(std::abs(es.eigenvectors().col(m)[n])<=1e-5)
-                    eig_vec.push_back(0);
-                else
+               // if(std::abs(es.eigenvectors().col(m)[n])<=1e-5)
+                  //  eig_vec.push_back(0);
+                //else
                     eig_vec.push_back(es.eigenvectors().col(m)[n]);
                 
             }
@@ -1564,6 +1570,10 @@ vector<vector<double>> Model<type>::cuts_eigen_full(const double active_tol)
             cost+=c0_val;
             double scale=1;
             cost*=scale;
+            if(cost<=1e-9 && cost>=1e-10){
+                scale=10;
+                cost*=scale;
+           }
             if(cost>=1e-9){
                 double min_coef=1e6;
                 double max_coef=-1e6;
@@ -1780,7 +1790,7 @@ double Model<type>::check_PSD_bags()
         }
         Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> es;
         es.compute(mat_X);
-        DebugOn("Bag eig values ");
+        DebugOn("Bag eig values "<<endl);
         for(auto m=0;m<dim;m++){
             if(es.eigenvalues()[m]<=-active_tol)
                 DebugOn("negative eigen value "<<endl);
@@ -1788,6 +1798,7 @@ double Model<type>::check_PSD_bags()
                 neg_eig_value=es.eigenvalues()[m];
             DebugOn(std::setprecision(12)<<es.eigenvalues()[m]<<"\t");
         }
+        DebugOn(endl);
         
     }
     DebugOn(endl);
