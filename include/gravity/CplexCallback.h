@@ -81,6 +81,7 @@ private:
     shared_ptr<vector<IloNumVarArray>>          _cplex_vars; /**< Cplex variables */
 public:
     vector<Model<>*> _models;/**< vector storing nb_threads copies of the original model for parallel cut generation */
+    int nb_cstr = 1; /**< @brief number of violated callback constraints to generate each iteration */
     CplexCallback(IloInt numWorkers=1, Model<>* m=nullptr, shared_ptr<vector<IloNumVarArray>> cvars = nullptr)
     : workers(numWorkers, nullptr), _models(numWorkers, nullptr), _cplex_vars(cvars){
         _models[0] = m;
@@ -88,7 +89,12 @@ public:
             _models[i] = new Model<>(*m);
         }
     }
-    
+    /**
+     @brief Set the number of violated callback constraints to generate each iteration
+     */
+    void set_nb_cstr(int nb){
+        nb_cstr = nb;
+    };
     
     void invoke(const IloCplex::Callback::Context& context) ILO_OVERRIDE
     {
@@ -138,7 +144,6 @@ public:
         Worker* worker = workers[threadNo];
         worker->env = &env;
         // Separate cut
-        int nb_cstr = 1;
         IloExprArray cutLhs(env, nb_cstr);
         IloBool sepStat = worker->separate(cutLhs, 1e-6);
         
