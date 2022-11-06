@@ -142,7 +142,7 @@ map<string, double> map_const;
 
 g.sdp_3d_cuts=false;
 g.get_tree_decomp_bags();
-m->sdp_dual=true;
+m->sdp_dual=false;
 
 //auto node_pairs_chord = g.get_node_pairs_chord;
 auto node_pairs_chord = g.get_node_pairs_chord(g._bags);

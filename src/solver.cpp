@@ -1234,10 +1234,10 @@ vector<vector<double>> Model<type>::cuts_eigen_bags(const double active_tol)
                         
                       
                         
-                        if(cost>=1e-6 || _bag_names.size()==num){
+                        //if(cost>=1e-6 || _bag_names.size()==num){
                             cut_found=true;
                             res.push_back(cut);
-                        }
+                       // }
                         
                         cut.clear();
                         key.clear();
@@ -1253,8 +1253,8 @@ vector<vector<double>> Model<type>::cuts_eigen_bags(const double active_tol)
                 break;
             }
         }
-        if(cut_found)
-            break;
+        //if(cut_found)
+          //  break;
 
     }
     

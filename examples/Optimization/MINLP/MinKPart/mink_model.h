@@ -136,7 +136,7 @@ map<string, double> map_const;
 
 g.sdp_3d_cuts=false;
 g.get_tree_decomp_bags();
-m->sdp_dual=true;
+m->sdp_dual=false;
 
 //auto node_pairs_chord = g.get_node_pairs_chord;
 auto node_pairs_chord = g.get_node_pairs_chord(g._bags);
@@ -171,7 +171,7 @@ m->add(def_Xij.in(node_pairs_chord)==0);
     
     int count=0;
     std::vector<pair<int,std::vector<string>>> _bag_names;
-    m->sdp_dual=true;
+    m->sdp_dual=false;
     for(auto b:g._bags){
         pair<int,vector<string>> bn;
         bn.first=count++;
@@ -336,7 +336,7 @@ m->add(def_Xij.in(node_pairs)==0);
     }
   
 
-func<> obj=w.tr()*y*1e-6;
+func<> obj=w.tr()*y;
 m->min(obj);
 
 m->print();
