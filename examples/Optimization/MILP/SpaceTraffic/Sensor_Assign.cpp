@@ -680,6 +680,9 @@ void myModel::GreedyStart(const param<double> &w0, const param<double> &w_own, c
     param<double> wt0 = w0.deep_copy();
     param<double> wt_own = w_own.deep_copy();
     param<double> wt_bought = w_bought.deep_copy();
+
+    /*copying budget to change it in greedy*/
+    auto bdgt_cp = budget;
     
     /*getting vars from model to set values*/
     auto s = model.get_var<int>("s");
@@ -718,19 +721,31 @@ void myModel::GreedyStart(const param<double> &w0, const param<double> &w_own, c
         m1 = wt0.eval(idx1); //max leader's weight
         m2 = wt_own.eval(idx2); //max own weight
         m3 = wt_bought.eval(idx3); //max bought weight
+
         if (m1 >= m2) {
             if (m1 >= m3) {
-                /*assign leader*/
-                DebugOn("assignLeader");
-                assignLeader(idx1, wt0, wt_own, wt_bought);
-                exit(1);
-                p_ub.at(idx1.substr(0, idx1.find(","))) = m1; //price upper bound (for fair price)
+                /*budget check might be too strict as it checs for (w_bought + w_own)/2, the actual price is likely to be lower (but cannot tell at this point)*/
+                if (bdgt_cp[0] >= (m1 + wt_own.eval(idx1.substr(0, idx1.find("a")) + "agent" + to_string(owner[stoi(idx1.substr(7, idx1.find(",")))])))/2) {
+                    /*assign leader*/
+                    DebugOn("assignLeader");
+                    assignLeader(idx1, wt0, wt_own, wt_bought);
+                    exit(1);
+                    p_ub.at(idx1.substr(0, idx1.find(","))) = m1; //price upper bound (for fair price)
+                    bdgt_cp[0] -= (m1 + wt_own.eval(idx1.substr(0, idx1.find("a")) + "agent" + to_string(owner[stoi(idx1.substr(7, idx1.find(",")))])))/2;
+                }
+                else {
+                    wt0(idx1.substr(0, nthOccurrence(idx1, ",", 2))).set_val(0);
+                }
             }
             else {
-                /*assign bought*/
-                assignBought(idx3, wt0, wt_own, wt_bought);
-                //obj += m3;
-                p_ub.at(idx3.substr(0, idx3.find(","))) = m3; //price upper bound (for fair price)
+                if (bdgt_cp[stoi(idx3.substr(idx3.find("agent")+1))] >= (m3 + wt_own.eval(idx3.substr(0, idx3.find("a")) + "agent" + to_string(owner[stoi(idx3.substr(7, idx3.find(",")))])))/2) {
+                    /*assign bought*/
+                    assignBought(idx3, wt0, wt_own, wt_bought);
+                    //obj += m3;
+                    p_ub.at(idx3.substr(0, idx3.find(","))) = m3; //price upper bound (for fair price)
+                }
+                    wt_bought(idx3).set_val(0);
+                    bdgt_cp[stoi(idx3.substr(idx3.find("agent")+1))] -= (m3 + wt_own.eval(idx3.substr(0, idx3.find("a")) + "agent" + to_string(owner[stoi(idx3.substr(7, idx3.find(",")))])))/2;
             }
         }
         else if (m2 >= m3) {
@@ -739,10 +754,14 @@ void myModel::GreedyStart(const param<double> &w0, const param<double> &w_own, c
             //obj += m2;
         }
         else {
-            /*assign bought*/
-            assignBought(idx3, wt0, wt_own, wt_bought);
-            //obj += m3;
-            p_ub.at(idx3.substr(0, idx3.find(","))) = m3; //price upper bound (for fair price)
+            if (bdgt_cp[stoi(idx3.substr(idx3.find("agent")+1))] >= (m3 + wt_own.eval(idx3.substr(0, idx3.find("a")) + "agent" + to_string(owner[stoi(idx3.substr(7, idx3.find(",")))])))/2) {
+                /*assign bought*/
+                assignBought(idx3, wt0, wt_own, wt_bought);
+                //obj += m3;
+                p_ub.at(idx3.substr(0, idx3.find(","))) = m3; //price upper bound (for fair price)
+            }
+                wt_bought(idx3).set_val(0);
+                bdgt_cp[stoi(idx3.substr(idx3.find("agent")+1))] -= (m3 + wt_own.eval(idx3.substr(0, idx3.find("a")) + "agent" + to_string(owner[stoi(idx3.substr(7, idx3.find(",")))])))/2;
         }
         psum_wt0 = parSum(wt0);
         psum_wt_own = parSum(wt_own);
