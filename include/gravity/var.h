@@ -39,11 +39,14 @@ namespace gravity {
         shared_ptr<func<type>>   _ub; /**< Upper Bound */
         bool _in_q_cone = false; /**< Used by Mosek */
         bool _psd = false; /**< Has to be positive semidefinite */
+        bool _psd_diag = false; /**< Is the diagonal elemet of a positive semidefinite matrix */
+        bool _psd_off_diag = false; /**< Is the off diagonal elemet of a positive semidefinite matrix */
         bool _lift = false;/*flag to show if variable is a lifted variable*/
         bool _lift_lb = false;/*flag to show if the lifted variables need lower-bounding function*/
         bool _lift_ub = false;/*flag to show if the lifted variables need upper-bounding function*/
         bool _in_SOC_partn = false;/*flag to show if variable appers in a SOC partition*/
         vector<shared_ptr<var>> _original_vars;/*< If this is a lifted variable, pointers to the corresponding original variables */
+        shared_ptr<param_> _psd_var;/**< If this variable corresponds to the diagonal (off-diagonal) entries of a PSD matrix, _psd_var is a pointer to the corresponding off-diagonal (diagonal) variable */
         /*These should eventually be shared_ptr<int>, or an object with an access to get_id_inst, or eval */
         shared_ptr<int> _num_partns;/*number of partitons*/
         int _cur_partn = 1;/*current partition we are focused on*/
@@ -149,6 +152,25 @@ namespace gravity {
             return _psd;
         }
         
+        bool is_psd_diag() const{
+            return _psd_diag;
+        }
+        
+        bool is_psd_off_diag() const{
+            return _psd_off_diag;
+        }
+        
+        /** Get the diagonal variable corresponding to the current off diagonal one */
+        shared_ptr<param_> get_diag() const{
+            return _psd_var;
+            
+        };
+        
+        /** Get the off diagonal variable corresponding to the current diagonal one */
+        shared_ptr<param_> get_off_diag() const{
+            return _psd_var;
+        };
+
         Sign get_all_sign() const{
             return get_all_sign_();
         }

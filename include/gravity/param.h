@@ -116,6 +116,10 @@ namespace gravity {
         virtual double get_scale_factor(double unit){return 0;};
         virtual void print(){};
         virtual bool is_psd() const{return false;};
+        virtual bool is_psd_diag() const{return false;};
+        virtual bool is_psd_off_diag() const{return false;};
+        virtual shared_ptr<param_> get_diag() const{return nullptr;};/**< Get the diagonal variable corresponding to the current off diagonal one */
+        virtual shared_ptr<param_> get_off_diag() const{return nullptr;};/**< Get the off diagonal variable corresponding to the current diagonal one */
         
         /** let this share the bounds of p */
         virtual void share_bounds(shared_ptr<param_> p){};
