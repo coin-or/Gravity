@@ -682,8 +682,10 @@ void myModel::GreedyStart(const param<double> &w0, const param<double> &w_own, c
     param<double> wt_bought = w_bought.deep_copy();
 
     /*copying budget to change it in greedy*/
-    auto bdgt_cp = budget;
-    
+    map<string,double> bdgt_map;
+    for (int i = 0; i<budget.size(); i++) {
+        bdgt_map[agents.get_key(i)] = budget[i];
+    }
     /*getting vars from model to set values*/
     auto s = model.get_var<int>("s");
     auto sn = model.get_var<int>("sn");
@@ -722,46 +724,45 @@ void myModel::GreedyStart(const param<double> &w0, const param<double> &w_own, c
         m2 = wt_own.eval(idx2); //max own weight
         m3 = wt_bought.eval(idx3); //max bought weight
 
-        if (m1 >= m2) {
-            if (m1 >= m3) {
-                /*budget check might be too strict as it checs for (w_bought + w_own)/2, the actual price is likely to be lower (but cannot tell at this point)*/
-                if (bdgt_cp[0] >= (m1 + wt_own.eval(idx1.substr(0, idx1.find("a")) + "agent" + to_string(owner[stoi(idx1.substr(7, idx1.find(",")))])))/2) {
-                    /*assign leader*/
-                    DebugOn("assignLeader");
-                    assignLeader(idx1, wt0, wt_own, wt_bought);
-                    exit(1);
-                    p_ub.at(idx1.substr(0, idx1.find(","))) = m1; //price upper bound (for fair price)
-                    bdgt_cp[0] -= (m1 + wt_own.eval(idx1.substr(0, idx1.find("a")) + "agent" + to_string(owner[stoi(idx1.substr(7, idx1.find(",")))])))/2;
-                }
-                else {
-                    wt0(idx1.substr(0, nthOccurrence(idx1, ",", 2))).set_val(0);
-                }
+        if (m1 >= m2 && m1 >= m3) {
+            string sensor_name = idx1.substr(0, idx1.find(","));
+            auto sub_idx = idx1.substr(idx1.find(",")+1);
+            string object_name = sub_idx.substr(0, sub_idx.find(","));
+            string agent_name  = sub_idx.substr(sub_idx.find(",")+1);
+            int ownr = owner_map[sensor_name];
+            string owner_name = agents.get_key(ownr);
+            /*budget check might be too strict as it checks for (w_bought + w_own)/2, the actual price is likely to be lower (but cannot tell at this point)*/
+            if (bdgt_map.at(agents.get_key(0)) >= (m1 + wt_own.eval(sensor_name + "," + object_name + "," + owner_name))/2) {
+                /*assign to central authority*/
+                DebugOn("Sensor " + sensor_name + " assigned to Central Authority!\n");
+                assignLeader(idx1, wt0, wt_own, wt_bought);
+                p_ub.at(sensor_name) = m1; //price upper bound (for fair price)
+                bdgt_map.at(agents.get_key(0)) -= (m1 + wt_own.eval(sensor_name + "," + object_name + "," + owner_name))/2;
             }
-            else {
-                if (bdgt_cp[stoi(idx3.substr(idx3.find("agent")+1))] >= (m3 + wt_own.eval(idx3.substr(0, idx3.find("a")) + "agent" + to_string(owner[stoi(idx3.substr(7, idx3.find(",")))])))/2) {
-                    /*assign bought*/
-                    assignBought(idx3, wt0, wt_own, wt_bought);
-                    //obj += m3;
-                    p_ub.at(idx3.substr(0, idx3.find(","))) = m3; //price upper bound (for fair price)
-                }
-                    wt_bought(idx3).set_val(0);
-                    bdgt_cp[stoi(idx3.substr(idx3.find("agent")+1))] -= (m3 + wt_own.eval(idx3.substr(0, idx3.find("a")) + "agent" + to_string(owner[stoi(idx3.substr(7, idx3.find(",")))])))/2;
+            else{
+                wt0(sensor_name).set_val(0);
             }
         }
         else if (m2 >= m3) {
             /*assign own*/
             assignOwn(idx2, wt0, wt_own, wt_bought);
-            //obj += m2;
         }
         else {
-            if (bdgt_cp[stoi(idx3.substr(idx3.find("agent")+1))] >= (m3 + wt_own.eval(idx3.substr(0, idx3.find("a")) + "agent" + to_string(owner[stoi(idx3.substr(7, idx3.find(",")))])))/2) {
+            string sensor_name = idx3.substr(0, idx3.find(","));
+            auto sub_idx = idx3.substr(idx3.find(",")+1);
+            string object_name = sub_idx.substr(0, sub_idx.find(","));
+            string agent_name  = sub_idx.substr(sub_idx.find(",")+1);
+            int ownr = owner_map[sensor_name];
+            string owner_name = agents.get_key(ownr);
+            if (bdgt_map.at(agent_name) >= (m3 + wt_own.eval(sensor_name + "," + object_name + "," + owner_name))/2) {
                 /*assign bought*/
                 assignBought(idx3, wt0, wt_own, wt_bought);
-                //obj += m3;
-                p_ub.at(idx3.substr(0, idx3.find(","))) = m3; //price upper bound (for fair price)
+                p_ub.at(sensor_name) = m3; //price upper bound (for fair price)
+                bdgt_map.at(agent_name) -= (m3 + wt_own.eval(sensor_name + "," + object_name + "," + owner_name))/2;
             }
+            else{
                 wt_bought(idx3).set_val(0);
-                bdgt_cp[stoi(idx3.substr(idx3.find("agent")+1))] -= (m3 + wt_own.eval(idx3.substr(0, idx3.find("a")) + "agent" + to_string(owner[stoi(idx3.substr(7, idx3.find(",")))])))/2;
+            }
         }
         psum_wt0 = parSum(wt0);
         psum_wt_own = parSum(wt_own);
