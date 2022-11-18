@@ -50,7 +50,6 @@ public:
     void assignOwn(string &idx, param<double> &wt0, param<double> &wt_own, param<double> &wt_bought);
     void assignBought(string &idx, param<double> &wt0, param<double> &wt_own, param<double> &wt_bought);
     double parSum(const param<double>& w);
-    string findMax(const param<double> &w);
     int nthOccurrence(const std::string& str, const std::string& findMe, int nth);
     ~myModel(){ };
 };

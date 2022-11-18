@@ -676,10 +676,26 @@ void myModel::mSolve(bool run_mip) {
 void myModel::GreedyStart(const param<double> &w0, const param<double> &w_own, const param<double> &w_bought) {
 
     DebugOn("Running Greedy Algorithm..."<<endl);
-    /*copying params to change them in greedy*/
+    /*copying params and putting them in a queue to change them in greedy*/
     param<double> wt0 = w0.deep_copy();
     param<double> wt_own = w_own.deep_copy();
     param<double> wt_bought = w_bought.deep_copy();
+
+    priority_queue<tuple<double, int, string>> w_q; //tuples compared by first element
+    double wt_sum = 0; //while loop stopping criterion
+
+    for (int i = 0; i < w0.get_dim(); i++) {
+        w_q.push(make_tuple(w0.eval(i), i, "w0"));
+        wt_sum += w0.eval(i);
+    }
+    for (int i = 0; i < w_own.get_dim(); i++) {
+        w_q.push(make_tuple(w_own.eval(i), i, "w_own"));
+        wt_sum += w_own.eval(i);
+    }
+    for (int i = 0; i < w_bought.get_dim(); i++) {
+        w_q.push(make_tuple(w_bought.eval(i), i, "w_bought"));
+        wt_sum += w_bought.eval(i);
+    }
 
     /*copying budget to change it in greedy*/
     map<string,double> bdgt_map;
@@ -697,71 +713,76 @@ void myModel::GreedyStart(const param<double> &w0, const param<double> &w_own, c
     auto y = model.get_var<double>("y");
     
     /*index and value of max weights*/
-    string idx1;
-    string idx2;
-    string idx3;
-    double m1;
-    double m2;
-    double m3;
+    string idx_str;
+    string sensor_name;
+    string object_name;
+    string agent_name;
+    tuple<double, int, string> max_wt;
+    double w;
+    int idx;
 
     //double obj = 0; //used to eval greedy objective
     map<string,double> p_ub; //price upper bound (for fair price)
     for (const auto &sensor_name:*sensors._keys) {
         p_ub[sensor_name] = std::max(w_own._range->second,w_bought._range->second);
     }
+
     double psum_wt0 = parSum(wt0), psum_wt_own = parSum(wt_own), psum_wt_bought = parSum(wt_bought);
     while(psum_wt0 + psum_wt_own + psum_wt_bought > 0) {
-        DebugOn("parSum(wt0) = " << psum_wt0 << endl);
-        DebugOn("parSum(wt_own) = " << psum_wt_own << endl);
-        DebugOn("parSum(wt_bought) = " << psum_wt_bought << endl);
-        DebugOn("----------------------------------------" << endl);
         /*finding max weights (idx) in 3 weight sets*/
-        idx1 = findMax(wt0);
-        idx2 = findMax(wt_own);
-        idx3 = findMax(wt_bought);
-        
-        m1 = wt0.eval(idx1); //max leader's weight
-        m2 = wt_own.eval(idx2); //max own weight
-        m3 = wt_bought.eval(idx3); //max bought weight
+        max_wt = w_q.top();
+        w_q.pop();
 
-        if (m1 >= m2 && m1 >= m3) {
-            string sensor_name = idx1.substr(0, idx1.find(","));
-            auto sub_idx = idx1.substr(idx1.find(",")+1);
-            string object_name = sub_idx.substr(0, sub_idx.find(","));
-            string agent_name  = sub_idx.substr(sub_idx.find(",")+1);
-            int ownr = owner_map[sensor_name];
-            string owner_name = agents.get_key(ownr);
-            /*budget check might be too strict as it checks for (w_bought + w_own)/2, the actual price is likely to be lower (but cannot tell at this point)*/
-            if (bdgt_map.at(agents.get_key(0)) >= (m1 + wt_own.eval(sensor_name + "," + object_name + "," + owner_name))/2) {
-                /*assign to central authority*/
-                DebugOn("Sensor " + sensor_name + " assigned to Central Authority!\n");
-                assignLeader(idx1, wt0, wt_own, wt_bought);
-                p_ub.at(sensor_name) = m1; //price upper bound (for fair price)
-                bdgt_map.at(agents.get_key(0)) -= (m1 + wt_own.eval(sensor_name + "," + object_name + "," + owner_name))/2;
-            }
-            else{
-                wt0(sensor_name).set_val(0);
+        w = get<0>(max_wt);
+        idx = get<1>(max_wt);
+
+        if (get<2>(max_wt) == "w0") {
+            if (wt0.eval(idx) > 0) {
+                idx_str = w0.get_key(idx);
+                sensor_name = idx_str.substr(0, idx_str.find(","));
+                auto sub_idx = idx_str.substr(idx_str.find(",")+1);
+                string object_name = sub_idx.substr(0, sub_idx.find(","));
+                string agent_name  = sub_idx.substr(sub_idx.find(",")+1);
+                int ownr = owner_map[sensor_name];
+                string owner_name = agents.get_key(ownr);
+                /*budget check might be too strict as it checks for (w_bought + w_own)/2, the actual price is likely to be lower (but cannot tell at this point)*/
+                if (bdgt_map.at(agents.get_key(0)) >= (w + w_own.eval(sensor_name + "," + object_name + "," + owner_name))/2) {
+                    /*assign to central authority*/
+                    DebugOn("Sensor " + sensor_name + " assigned to Central Authority!\n");
+                    assignLeader(idx_str, wt0, wt_own, wt_bought);
+                    p_ub.at(sensor_name) = w; //price upper bound (for fair price)
+                    bdgt_map.at(agents.get_key(0)) -= (w + wt_own.eval(sensor_name + "," + object_name + "," + owner_name))/2;
+                }
+                else{
+                    wt0(sensor_name).set_val(0);
+                }
             }
         }
-        else if (m2 >= m3) {
-            /*assign own*/
-            assignOwn(idx2, wt0, wt_own, wt_bought);
+        else if (get<2>(max_wt) == "w_own") {
+            if (wt_own.eval(idx) > 0) {
+                /*assign own*/
+                idx_str = wt_own.get_key(idx);
+                assignOwn(idx_str, wt0, wt_own, wt_bought);
+            }
         }
         else {
-            string sensor_name = idx3.substr(0, idx3.find(","));
-            auto sub_idx = idx3.substr(idx3.find(",")+1);
-            string object_name = sub_idx.substr(0, sub_idx.find(","));
-            string agent_name  = sub_idx.substr(sub_idx.find(",")+1);
-            int ownr = owner_map[sensor_name];
-            string owner_name = agents.get_key(ownr);
-            if (bdgt_map.at(agent_name) >= (m3 + wt_own.eval(sensor_name + "," + object_name + "," + owner_name))/2) {
-                /*assign bought*/
-                assignBought(idx3, wt0, wt_own, wt_bought);
-                p_ub.at(sensor_name) = m3; //price upper bound (for fair price)
-                bdgt_map.at(agent_name) -= (m3 + wt_own.eval(sensor_name + "," + object_name + "," + owner_name))/2;
-            }
-            else{
-                wt_bought(idx3).set_val(0);
+            if (wt_own.eval(idx) > 0) {
+                idx_str = w0.get_key(idx);
+                sensor_name = idx_str.substr(0, idx_str.find(","));
+                auto sub_idx = idx_str.substr(idx_str.find(",")+1);
+                string object_name = sub_idx.substr(0, sub_idx.find(","));
+                string agent_name  = sub_idx.substr(sub_idx.find(",")+1);
+                int ownr = owner_map[sensor_name];
+                string owner_name = agents.get_key(ownr);
+                if (bdgt_map.at(agent_name) >= (w + wt_own.eval(sensor_name + "," + object_name + "," + owner_name))/2) {
+                    /*assign bought*/
+                    assignBought(idx_str, wt0, wt_own, wt_bought);
+                    p_ub.at(sensor_name) = w; //price upper bound (for fair price)
+                    bdgt_map.at(agent_name) -= (w + wt_own.eval(sensor_name + "," + object_name + "," + owner_name))/2;
+                }
+                else{
+                    wt_bought(idx_str).set_val(0);
+                }
             }
         }
         psum_wt0 = parSum(wt0);
@@ -1071,19 +1092,6 @@ double myModel::parSum(const param<double>& w) {
         s += n;
     }
     return s;
-}
-
-string myModel::findMax(const param<double> &w) {
-    int pos = 0;
-    double max_el = 0;
-    vector<double> wts = *w.get_vals();
-    for (int i = 0; i < wts.size(); i++) {
-        if (wts[i] > max_el) {
-            max_el = wts[i];
-            pos = i;
-        }
-    }
-    return (*w.get_keys())[pos];
 }
 
 int myModel::nthOccurrence(const std::string& str, const std::string& findMe, int nth)
