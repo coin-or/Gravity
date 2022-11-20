@@ -817,7 +817,11 @@ void myModel::GreedyStart(const param<double> &w0, const param<double> &w_own, c
     string t; //var for replaced sensor
     for (int i = 0; i < N; i++) {
         auto sensor_name = sensors.get_key(i);
-	DebugOn("Computing fair price for " << sensor_name << endl);
+        if(sn.eval(i)!=1){
+            DebugOn(sensor_name << " was not sold\n");
+            continue;
+        }
+        DebugOn("Computing fair price for " << sensor_name << endl);
         auto sensor_node = graph.get_node(sensor_name);
         auto agent_name = agents.get_key(owner[i]);
         for (const Arc* a : sensor_node->get_out()) {
