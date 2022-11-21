@@ -1695,13 +1695,13 @@ double Model<type>::check_PSD(){
                 Xij = static_pointer_cast<var<double>>(v);
                 Xii = static_pointer_cast<var<double>>(v->get_diag());
             }
-            int dim_full=X->_indices->_keys->size();
+            int dim_full=Xii->_indices->_keys->size();
             
             Eigen::MatrixXd mat_full(dim_full,dim_full);
             int count=0;
             vector<string> all_names;
-            for(auto k:*X->_indices->_keys){
-                mat_full(count, count)=X->eval(k);
+            for(auto k:*Xii->_indices->_keys){
+                mat_full(count, count)=Xii->eval(k);
                 all_names.push_back(k);
                 count++;
             }

@@ -505,12 +505,15 @@ Net CBF_read(const char *file, shared_ptr<Model<double>>& m, bool add_3d) {
         auto node_pairs_chord = g.get_node_pairs_chord(g._bags);
         //auto node_pairs_chord = g.get_node_pairs_chord(bags_3d);
         var<> X("X", 0, 1000);
-        X._psd=true;
+        //X._psd=true;
+        X._psd_diag=true;
         m->add(X.in(nodes));
         var<> Xij("Xij", -2000, 2000);
-        Xij._psd=true;
+       // Xij._psd=true;
+        Xij._psd_off_diag=true;
         m->add(Xij.in(node_pairs_chord));
-        
+        X._psd_var=make_shared<param_>(Xij);
+        Xij._psd_var=make_shared<param_>(X);
         count=0;
         
         
@@ -835,7 +838,8 @@ void CBF_read_sparse_rip(const char *file) {
     /*Header nnodes, nnedges, kRIP, objsense (0 is minimize)  */
     int nnodes=data.psdmapdim[0];
     int nnedges=nnodes*nnodes;
-    int krip=data.bval[data.bnnz];/*ASSUMPTION last constraint has RIP k value*/
+    int krip=data.bval[data.bnnz-1];/*ASSUMPTION last constraint has RIP k value*/
+    DebugOn("krip "<<krip<<endl);
     indices non_zero_obj;
     vector<double> coef_vec;
     
@@ -867,6 +871,8 @@ void CBF_read_sparse_rip(const char *file) {
     out_file_name1=out_file_name1+"_sparse";
     out_file_name=string(prj_dir)+"/sparse_inputs/"+out_file_name1+".txt";
     ofstream fout(out_file_name.c_str());
+    krip=std::abs(krip);
+    DebugOn("krip "<<krip<<endl);
     fout<<nnodes<<"\t"<<nnedges<<"\t"<<krip<<"\t"<<data.objsense<<"\n";
    
     
