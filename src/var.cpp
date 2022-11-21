@@ -49,6 +49,9 @@ var<type> var<type>::deep_copy() const{
     res._ub->deep_copy(*_ub);
     res._lift=_lift;
     res._psd=_psd;
+    res._psd_diag=_psd_diag;
+    res._psd_off_diag=_psd_off_diag;
+    res._psd_var = _psd_var;
     return res;
 }
 
@@ -65,6 +68,9 @@ template<typename type> var<type>& var<type>::operator=(const var<type>& v) {
     _cur_partn = v._cur_partn;
     _original_vars = v._original_vars;
     _psd=v._psd;
+    _psd_diag=v._psd_diag;
+    _psd_off_diag=v._psd_off_diag;
+    _psd_var = v._psd_var;
     return *this;
 };
 
@@ -81,6 +87,9 @@ template<typename type> var<type>& var<type>::operator=(var<type>&& v) {
     _cur_partn = v._cur_partn;
     _original_vars = move(v._original_vars);
     _psd=v._psd;
+    _psd_diag=v._psd_diag;
+    _psd_off_diag=v._psd_off_diag;
+    _psd_var = v._psd_var;
     return *this;
 };
 
