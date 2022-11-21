@@ -65,14 +65,11 @@ protected:
                             for(auto i=0;i<res.size();i++){
                                 GRBLinExpr expr = 0;
                                 int j;
-                                DebugOff("soc cut at ");
                                 for(j=0;j<res[i].size()-1;j+=2){
                                     int c=res[i][j];
                                     expr += res[i][j+1]*vars[c];
-                                    DebugOff(to_string_with_precision(vec_x[c],10)<<" "<<to_string_with_precision(c,10)<<" "<<to_string_with_precision(res[i][j+1],10)<<" ");
                                 }
                                 expr += res[i][j];
-                                DebugOff(endl);
                                 addLazy(expr, GRB_LESS_EQUAL, 0);
                                 m->num_cuts[0]++;
                             }
@@ -89,7 +86,6 @@ protected:
                             for(auto i=0;i<res1.size();i++){
                                 GRBLinExpr expr = 0;
                                 int j;
-                                DebugOff("eig cut at");
                                 for(j=0;j<res1[i].size()-1;j+=2){
                                     int c=res1[i][j];
                                     expr += res1[i][j+1]*vars[c];
@@ -143,14 +139,11 @@ protected:
                                     for(auto i=0;i<res.size();i++){
                                         GRBLinExpr expr = 0;
                                         int j;
-                                        DebugOff("soc cut at ");
                                         for(j=0;j<res[i].size()-1;j+=2){
                                             int c=res[i][j];
                                             expr += res[i][j+1]*vars[c];
-                                            DebugOff(to_string_with_precision(vec_x[c],10)<<" "<<to_string_with_precision(c,10)<<" "<<to_string_with_precision(res[i][j+1],10)<<" ");
                                         }
                                         expr += res[i][j];
-                                        DebugOff(endl);
                                         addLazy(expr, GRB_LESS_EQUAL, 0);
                                         m->num_cuts[0]++;
                                     }
@@ -167,7 +160,6 @@ protected:
                                     for(auto i=0;i<res1.size();i++){
                                         GRBLinExpr expr = 0;
                                         int j;
-                                        DebugOff("eig cut at");
                                         for(j=0;j<res1[i].size()-1;j+=2){
                                             int c=res1[i][j];
                                             expr += res1[i][j+1]*vars[c];
@@ -263,7 +255,6 @@ protected:
                                 for(j=0;j<res1[i].size()-1;j+=2){
                                     int c=res1[i][j];
                                     expr += res1[i][j+1]*vars[c];
-                                    DebugOff(res1[i][j+1]<<" ");
                                 }
                                 expr+=res1[i][j];
                                 addLazy(expr, GRB_LESS_EQUAL, 0);
@@ -278,14 +269,10 @@ protected:
                                 for(auto i=0;i<res1.size();i++){
                                     GRBLinExpr expr = 0;
                                     int j;
-                                    DebugOff("eig cut at");
                                     for(j=0;j<res1[i].size()-1;j+=2){
                                         int c=res1[i][j];
                                         expr += res1[i][j+1]*vars[c];
-                                        DebugOff(to_string_with_precision(vec_x[c],10)<<" "<<to_string_with_precision(c,10)<<" "<<to_string_with_precision(res1[i][j+1],10)<<" ");
                                     }
-                                    DebugOff(to_string_with_precision(res1[i][j],10));
-                                    DebugOff(endl);
                                     //                                    if(std::abs(res1[i][j])>=1e-12)
                                     expr += res1[i][j];
                                     addLazy(expr, GRB_LESS_EQUAL, 0);
@@ -441,7 +428,7 @@ bool GurobiProgram::solve(bool relax, double mipgap, double time_limit){
     grb_mod->set(GRB_DoubleParam_IntFeasTol, 1e-9);
     //       grb_mod->set(GRB_IntParam_NumericFocus,3);
     //     grb_mod->set(GRB_IntParam_PreCrush,0);
-     grb_mod->set(GRB_IntParam_MIPFocus,3);
+     //grb_mod->set(GRB_IntParam_MIPFocus,3);
     //    grb_mod->set(GRB_IntParam_IntegralityFocus,1);
     //grb_mod->set(GRB_IntParam_MIPFocus,1);
     //    grb_mod->set(GRB_IntParam_PumpPasses,50);
@@ -534,7 +521,6 @@ bool GurobiProgram::solve(bool relax, double mipgap, double time_limit){
                 for(auto i=0;i<res.size();i++){
                     GRBLinExpr expr = 0;
                     int j;
-                    DebugOff("soc cut at ");
                     for(j=0;j<res[i].size()-1;j+=2){
                         int c=res[i][j];
                         expr += res[i][j+1]*_grb_vars[c];
@@ -557,7 +543,6 @@ bool GurobiProgram::solve(bool relax, double mipgap, double time_limit){
                 for(auto i=0;i<res1.size();i++){
                     GRBLinExpr expr = 0;
                     int j;
-                    DebugOff("eig cut at");
                     for(j=0;j<res1[i].size()-1;j+=2){
                         int c=res1[i][j];
                         expr += res1[i][j+1]*_grb_vars[c];
@@ -621,7 +606,6 @@ bool GurobiProgram::solve(bool relax, double mipgap, double time_limit){
                 for(j=0;j<res1[i].size()-1;j+=2){
                     int c=res1[i][j];
                     expr += res1[i][j+1]*_grb_vars[c];
-                    DebugOff(res1[i][j+1]<<" ");
                 }
                 expr+=res1[i][j];
                 grb_mod->addConstr(expr, GRB_LESS_EQUAL, 0);
@@ -636,7 +620,6 @@ bool GurobiProgram::solve(bool relax, double mipgap, double time_limit){
                     for(j=0;j<res[i].size()-1;j+=2){
                         int c=res[i][j];
                         expr += res[i][j+1]*_grb_vars[c];
-                        DebugOff(res[i][j+1]<<" ");
                     }
                     expr+=res[i][j];
                     grb_mod->addConstr(expr, GRB_LESS_EQUAL, 0);
