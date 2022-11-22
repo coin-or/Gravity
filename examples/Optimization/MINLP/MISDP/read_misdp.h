@@ -512,8 +512,10 @@ Net CBF_read(const char *file, shared_ptr<Model<double>>& m, bool add_3d) {
        // Xij._psd=true;
         Xij._psd_off_diag=true;
         m->add(Xij.in(node_pairs_chord));
-        X._psd_var=make_shared<param_>(Xij);
-        Xij._psd_var=make_shared<param_>(X);
+        auto X_ptr = m->get_ptr_var<double>("X");
+        auto Xij_ptr = m->get_ptr_var<double>("Xij");
+        X_ptr->_psd_var=Xij_ptr;
+        Xij_ptr->_psd_var=X_ptr;
         count=0;
         
         
