@@ -1103,9 +1103,9 @@ vector<vector<double>> Model<type>::cuts_eigen_bags(const double active_tol)
                 c0_val=0;
                 vector<double> eig_vec;
                 for(auto n=0;n<dim;n++){
-                    //if(std::abs(es.eigenvectors().col(m)[n])<=1e-5)
-                      //  eig_vec.push_back(0);
-                    //else
+                    if(std::abs(es.eigenvectors().col(m)[n])<=1e-5)
+                        eig_vec.push_back(0);
+                    else
                         eig_vec.push_back(es.eigenvectors().col(m)[n]);
                     
                 }
@@ -1536,9 +1536,9 @@ vector<vector<double>> Model<type>::cuts_eigen_full(const double active_tol)
             c0_val=0;
             vector<double> eig_vec;
             for(auto n=0;n<dim_full;n++){
-               // if(std::abs(es.eigenvectors().col(m)[n])<=1e-5)
-                  //  eig_vec.push_back(0);
-                //else
+                if(std::abs(es.eigenvectors().col(m)[n])<=1e-5)
+                    eig_vec.push_back(0);
+                else
                     eig_vec.push_back(es.eigenvectors().col(m)[n]);
                 
             }
