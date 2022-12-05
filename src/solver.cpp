@@ -857,7 +857,7 @@ vector<vector<double>> Model<type>::cutting_planes_soc(double active_tol, int& s
                                     if(cut[i]>=0){
                                         cut[i]=0;
                                     }
-                                else{/*ASSUMPTION in scaling upper bound of variable in cuts is 1*/
+                                else{
                                     int u=(i-1)/2;
                                     cut[s-1]+=cut[i]*ub_val[u];
                                     cut[i]=0;
@@ -1675,7 +1675,7 @@ vector<vector<double>> Model<type>::cuts_eigen_full(const double active_tol)
                         if(cut[i]>=0){
                             cut[i]=0;
                         }
-                        else{/*ASSUMPTION in scaling upper bound of variable in cuts is 1*/
+                        else{
                             int u=(i-1)/2;
                             cut[s-1]+=cut[i]*ub_val[u];
                             cut[i]=0;
