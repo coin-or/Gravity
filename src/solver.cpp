@@ -715,6 +715,7 @@ vector<vector<double>> Model<type>::cutting_planes_soc(double active_tol, int& s
                 c0_val=0;
                 c_val.resize(con->_nb_vars,0);
                 vector<int> var_ind;
+                vector<double> ub_ind;
                 auto cname=con->_name;
                 xcurrent=con->get_x(i);
                 vector<double> xc(3,0);
@@ -725,6 +726,7 @@ vector<vector<double>> Model<type>::cutting_planes_soc(double active_tol, int& s
                 if((fk >= active_tol && con->_ctype==leq) || (fk <= -active_tol && con->_ctype==geq)){
                     constr_viol=true;
                     vector<string> key;
+                    vector<double> ub_val;
                     soc_viol++;
                     xnow.resize(3,0);
                     /*Avoid divide by zero*/
@@ -767,6 +769,8 @@ vector<vector<double>> Model<type>::cutting_planes_soc(double active_tol, int& s
                             var_ind.push_back(vid);
                             auto keys_vec=*(v_p.second.first->_indices->_keys);
                             key.push_back(keys_vec[v_p.second.first->get_id_inst(i)]);
+                            auto vark=(var<double>*)(v_p.second.first.get());
+                            ub_ind.push_back(vark->get_ub(v_p.second.first->get_id_inst(i)));
                             cost+= xcurrent[j]*c_val[j]*scale;
                             j++;
                         }
@@ -802,6 +806,7 @@ vector<vector<double>> Model<type>::cutting_planes_soc(double active_tol, int& s
                                 if(free_var){/*Var not function of x or y or constant*/
                                     cut.push_back(var_ind[i]);
                                     cut.push_back(c_val[i]*scale);
+                                    ub_val.push_back(ub_ind[i]);
                                     auto absc=std::abs(c_val[i]*scale);
                                     if(absc!=0 && absc<=min_coef )
                                         min_coef=absc;
@@ -813,6 +818,7 @@ vector<vector<double>> Model<type>::cutting_planes_soc(double active_tol, int& s
                             for(auto it=coef_x.begin();it!=coef_x.end();it++){
                                 cut.push_back(index_x+x._indices->_keys_map->at(it->first));
                                 cut.push_back(it->second);
+                                ub_val.push_back(x.get_ub(it->first));
                                 auto absc=std::abs(it->second);
                                 if(absc!=0 && absc<=min_coef )
                                     min_coef=absc;
@@ -822,6 +828,7 @@ vector<vector<double>> Model<type>::cutting_planes_soc(double active_tol, int& s
                             for(auto it=coef_y.begin();it!=coef_y.end();it++){
                                 cut.push_back(index_y+y._indices->_keys_map->at(it->first));
                                 cut.push_back(it->second);
+                                ub_val.push_back(y.get_ub(it->first));
                                 auto absc=std::abs(it->second);
                                 if(absc!=0 && absc<=min_coef )
                                     min_coef=absc;
@@ -850,11 +857,12 @@ vector<vector<double>> Model<type>::cutting_planes_soc(double active_tol, int& s
                                     if(cut[i]>=0){
                                         cut[i]=0;
                                     }
-                                    //                                    else{/*ASSUMPTION in scaling upper bound of variable in cuts is 1*/
-                                    //                                        cut[s-1]+=cut[i];
-                                    //                                        cut[i]=0;
-                                    //
-                                    DebugOn("small"<<endl);
+                                else{/*ASSUMPTION in scaling upper bound of variable in cuts is 1*/
+                                    int u=(i-1)/2;
+                                    cut[s-1]+=cut[i]*ub_val[u];
+                                    cut[i]=0;
+                                }
+                                    
                                 //}
                                 }
                             }
@@ -867,6 +875,7 @@ vector<vector<double>> Model<type>::cutting_planes_soc(double active_tol, int& s
                     xcurrent.clear();
                     xinterior.clear();
                     cut.clear();
+                    ub_val.clear();
                     c0_val=0;
                     c_val.clear();
                 }
@@ -1059,6 +1068,7 @@ vector<vector<double>> Model<type>::cuts_eigen_bags(const double active_tol)
         auto idx = X.get_id();
         auto idxij = Xij.get_id();
         vector<int> var_ind;
+        vector<double> ub_ind;
         var<double> x=get_var<double>("x");
         var<int> y=get_var<int>("y");
         auto index_x=x.get_id();
@@ -1070,14 +1080,17 @@ vector<vector<double>> Model<type>::cuts_eigen_bags(const double active_tol)
             mat_X(count,count)=X.eval(n);
             auto it = X._indices->_keys_map->at(n);
             var_ind.push_back(idx+it);
+            ub_ind.push_back(X.get_ub(n));
             count++;
         }
         for(auto i=0;i<b.second.size()-1;i++){
             for(auto j=i+1;j<b.second.size();j++){
-                mat_X(i,j)=Xij.eval(b.second[i]+","+b.second[j]);
+                auto key_ij=b.second[i]+","+b.second[j];
+                mat_X(i,j)=Xij.eval(key_ij);
                 mat_X(j,i)=mat_X(i,j);
-                auto it = Xij._indices->_keys_map->at(b.second[i]+","+b.second[j]);
+                auto it = Xij._indices->_keys_map->at(key_ij);
                 var_ind.push_back(idxij+it);
+                ub_ind.push_back(Xij.get_ub(key_ij));
             }
         }
         SelfAdjointEigenSolver<MatrixXd> es;
@@ -1086,6 +1099,7 @@ vector<vector<double>> Model<type>::cuts_eigen_bags(const double active_tol)
             if(es.eigenvalues()[m]<=-active_tol){
                 vector<double> c_val;
                 vector<string> key;
+                vector<double> ub_val;
                 c0_val=0;
                 vector<double> eig_vec;
                 for(auto n=0;n<dim;n++){
@@ -1176,6 +1190,7 @@ vector<vector<double>> Model<type>::cuts_eigen_bags(const double active_tol)
                             if(free_var){/*Var not function of x or y or constant*/
                                 cut.push_back(var_ind[i]);
                                 cut.push_back(c_val[i]*scale);
+                                ub_val.push_back(ub_ind[i]);
                                 auto absc=std::abs(c_val[i]*scale);
                                 if(absc!=0 && absc<=min_coef )
                                     min_coef=absc;
@@ -1187,6 +1202,7 @@ vector<vector<double>> Model<type>::cuts_eigen_bags(const double active_tol)
                         for(auto it=coef_x.begin();it!=coef_x.end();it++){
                             cut.push_back(index_x+x._indices->_keys_map->at(it->first));
                             cut.push_back(it->second);
+                            ub_val.push_back(x.get_ub(it->first));
                             auto absc=std::abs(it->second);
                             if(absc!=0 && absc<=min_coef )
                                 min_coef=absc;
@@ -1196,6 +1212,7 @@ vector<vector<double>> Model<type>::cuts_eigen_bags(const double active_tol)
                         for(auto it=coef_y.begin();it!=coef_y.end();it++){
                             cut.push_back(index_y+y._indices->_keys_map->at(it->first));
                             cut.push_back(it->second);
+                            ub_val.push_back(y.get_ub(it->first));
                             auto absc=std::abs(it->second);
                             if(absc!=0 && absc<=min_coef )
                                 min_coef=absc;
@@ -1225,10 +1242,11 @@ vector<vector<double>> Model<type>::cuts_eigen_bags(const double active_tol)
                                 if(cut[i]>=0){
                                     cut[i]=0;
                                 }
-                                //                                else{/*ASSUMPTION in scaling upper bound of variable in cuts is 1*/
-                                //                                    cut[s-1]+=cut[i];
-                                //                                    cut[i]=0;
-                                //                                }
+                            else{
+                                int u=(i-1)/2;
+                                cut[s-1]+=cut[i]*ub_val[u];
+                                cut[i]=0;
+                                }
                             }
                         }
                         
@@ -1247,6 +1265,7 @@ vector<vector<double>> Model<type>::cuts_eigen_bags(const double active_tol)
                             DebugOff("cost "<<cost<<endl);
                     }
                     cut.clear();
+                    ub_val.clear();
                 }
             }
             else{
@@ -1406,7 +1425,7 @@ vector<vector<double>> Model<type>::cuts_eigen_bags_primal_complex(const double 
                     maxc*=scale;
                     minc*=scale;
                     if(minc<=1e-12){
-                        DebugOn("small"<<endl);
+                        DebugOff("small"<<endl);
                     }
                     DebugOff("scaling "<<scale<<endl);
                 }
@@ -1472,6 +1491,7 @@ vector<vector<double>> Model<type>::cuts_eigen_full(const double active_tol)
     auto idx = X.get_id();
     auto idxij = Xij.get_id();
     vector<int> var_ind;
+    vector<double> ub_ind;
     var<double> x=get_var<double>("x");
     var<int> y=get_var<int>("y");
     auto index_x=x.get_id();
@@ -1487,6 +1507,7 @@ vector<vector<double>> Model<type>::cuts_eigen_full(const double active_tol)
         count++;
         auto it = X._indices->_keys_map->at(k);
         var_ind.push_back(idx+it);
+        ub_ind.push_back(X.get_ub(k));
     }
     
     for(auto i=0;i<all_names.size()-1;i++){
@@ -1497,6 +1518,7 @@ vector<vector<double>> Model<type>::cuts_eigen_full(const double active_tol)
                 mat_full(j, i)=Xij.eval(k);
                 auto it = Xij._indices->_keys_map->at(k);
                 var_ind.push_back(idxij+it);
+                ub_ind.push_back(Xij.get_ub(k));
             }
             else{
                 mat_full(i, j)=0;
@@ -1509,6 +1531,7 @@ vector<vector<double>> Model<type>::cuts_eigen_full(const double active_tol)
     for(auto m=0;m<1;m++){
         if(es.eigenvalues()[m]<=-active_tol){
             vector<double> c_val;
+            vector<double> ub_val;
             vector<string> key;
             c0_val=0;
             vector<double> eig_vec;
@@ -1601,6 +1624,7 @@ vector<vector<double>> Model<type>::cuts_eigen_full(const double active_tol)
                     if(free_var){/*Var not function of x or y or constant*/
                         cut.push_back(var_ind[i]);
                         cut.push_back(c_val[i]*scale);
+                        ub_val.push_back(ub_ind[i]);
                         auto absc=std::abs(c_val[i]*scale);
                         if(absc!=0 && absc<=min_coef )
                             min_coef=absc;
@@ -1612,6 +1636,7 @@ vector<vector<double>> Model<type>::cuts_eigen_full(const double active_tol)
                 for(auto it=coef_x.begin();it!=coef_x.end();it++){
                     cut.push_back(index_x+x._indices->_keys_map->at(it->first));
                     cut.push_back(it->second);
+                    ub_val.push_back(x.get_ub(it->first));
                     auto absc=std::abs(it->second);
                     if(absc!=0 && absc<=min_coef )
                         min_coef=absc;
@@ -1621,6 +1646,7 @@ vector<vector<double>> Model<type>::cuts_eigen_full(const double active_tol)
                 for(auto it=coef_y.begin();it!=coef_y.end();it++){
                     cut.push_back(index_y+y._indices->_keys_map->at(it->first));
                     cut.push_back(it->second);
+                    ub_val.push_back(y.get_ub(it->first));
                     auto absc=std::abs(it->second);
                     if(absc!=0 && absc<=min_coef )
                         min_coef=absc;
@@ -1649,15 +1675,17 @@ vector<vector<double>> Model<type>::cuts_eigen_full(const double active_tol)
                         if(cut[i]>=0){
                             cut[i]=0;
                         }
-                        //                        else{/*ASSUMPTION in scaling upper bound of variable in cuts is 1*/
-                        //                            cut[s-1]+=cut[i];
-                        //                            cut[i]=0;
-                        //                        }
+                        else{/*ASSUMPTION in scaling upper bound of variable in cuts is 1*/
+                            int u=(i-1)/2;
+                            cut[s-1]+=cut[i]*ub_val[u];
+                            cut[i]=0;
+                        }
                     }
                 }
                 res.push_back(cut);
                 //}
                 cut.clear();
+                ub_val.clear();
                 key.clear();
             }
             cut.clear();

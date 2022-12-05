@@ -64,7 +64,7 @@ int main(int argc, char * argv[]){
     auto m=make_shared<Model<double>>("misdp_test");
     
     auto g=CBF_read(fname.c_str(), m);
-    //m->print();
+    m->print();
     double ub_solver_tol=1e-6, lb_solver_tol=1e-6, range_tol=1e-4, opt_rel_tol=1e-2, opt_abs_tol=1e6;
     unsigned max_iter=1e3;
     SolverType ub_solver_type = ipopt, lb_solver_type = gurobi;
