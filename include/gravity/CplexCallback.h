@@ -13,6 +13,11 @@
 
 #ifndef __Gravity____CplexCallback
 #define __Gravity____CplexCallback
+#ifdef USE_EIGEN
+#include <Eigen/Dense>
+#include <Eigen/Eigenvalues>
+using namespace Eigen;
+#endif
 
 #ifdef USE_CPLEX
 #include <ilcplex/ilocplex.h>
@@ -30,7 +35,10 @@ public:
     IloBool separate(IloExprArray& cutLhs, double tol)
     {
         IloBool violatedCutFound = IloFalse;
-        
+#ifdef USE_EIGEN
+        SelfAdjointEigenSolver<MatrixXd> es;
+        es.compute(mat_full);
+#endif
         // Get the most violated cuts
         auto violated_cstr = _model->sort_violated_constraints(tol);
         if(violated_cstr.empty())// No violated cuts found

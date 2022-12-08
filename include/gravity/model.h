@@ -36,6 +36,10 @@
 #include <BonTMINLP.hpp>
 #endif
 
+#include <Eigen/Dense>
+#include <Eigen/Eigenvalues>
+using namespace Eigen;
+
 using namespace std;
 
 namespace gravity {
@@ -203,7 +207,8 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
         vector<size_t>                                      _idx_it;
         map<size_t, shared_ptr<param_>>                     _params; /**< Sorted map pointing to all parameters contained in this model. */
         map<size_t, shared_ptr<param_>>                     _vars; /**< Sorted map pointing to all variables contained in this model. */
-        map<size_t, shared_ptr<param_>>                     _int_vars; /**< Sorted map pointing to all binary variables contained in this model. */
+        map<size_t, shared_ptr<param_>>                     _int_vars; /**< Sorted map pointing to all integer variables contained in this model. */
+        map<string, shared_ptr<Eigen::MatrixXd>>            _psd_vars; /**< Sorted map pointing to all PSD variables contained in this model. */
         map<string, shared_ptr<param_>>                     _params_name; /**< Sorted map (by name) pointing to all parameters contained in this model. */
         map<string, shared_ptr<param_>>                     _vars_name; /**< Sorted map (by name) pointing to all variables contained in this model. */
         vector<shared_ptr<Constraint<type>>>                _cons_vec; /**< vector pointing to all constraints contained in this model. */
@@ -2338,7 +2343,7 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
                             auto diff = std::abs(c->eval(inst));
                             if(diff>tol){
                                 v.push_back(make_tuple(std::abs(diff), c->get_row_sparsity(inst), c, inst));
-                                if(print_name) DebugOn(" Non-zero >= inequality: " << c->_name << " instance: " << to_string(inst) << ", value = "<< std::abs(diff) << endl);
+                                if(print_name) DebugOn(" Non-zero == equality: " << c->_name << " instance: " << to_string(inst) << ", value = "<< std::abs(diff) << endl);
                             }
                         }
                         break;
@@ -2347,7 +2352,7 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
                             auto diff = c->eval(inst);
                             if(diff > tol) {
                                 v.push_back(make_tuple(diff, c->get_row_sparsity(inst), c, inst));
-                                if(print_name) DebugOn(" Non-zero >= inequality: " << c->_name << " instance: " << to_string(inst) << ", value = "<< std::abs(diff) << endl);
+                                if(print_name) DebugOn(" Non-zero <= inequality: " << c->_name << " instance: " << to_string(inst) << ", value = "<< std::abs(diff) << endl);
                             }
                         }
                         break;
@@ -2363,6 +2368,20 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
                         
                     default:
                         break;
+                }
+            }
+            
+            auto res=this->cuts_eigen_full(1e-9);
+            if(res.size()>=1){
+                for(auto i=0;i<res.size();i++){
+                    GRBLinExpr expr = 0;
+                    int j;
+                    for(j=0;j<res[i].size()-1;j+=2){
+                        int c=res[i][j];
+                        expr += res[i][j+1]*vars[c];
+                    }
+                    expr += res[i][j];
+//                    addLazy(expr, GRB_LESS_EQUAL, 0);
                 }
             }
             sort(v.begin(), v.end(), cstr_viol_compare<type>);
