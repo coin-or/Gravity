@@ -38,7 +38,7 @@
 
 #include <Eigen/Dense>
 #include <Eigen/Eigenvalues>
-using namespace Eigen;
+//using namespace Eigen;
 
 using namespace std;
 
@@ -209,6 +209,7 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
         map<size_t, shared_ptr<param_>>                     _vars; /**< Sorted map pointing to all variables contained in this model. */
         map<size_t, shared_ptr<param_>>                     _int_vars; /**< Sorted map pointing to all integer variables contained in this model. */
         map<string, shared_ptr<Eigen::MatrixXd>>            _psd_vars; /**< Sorted map pointing to all PSD variables contained in this model. */
+        map<string, vector<pair<int,int>>>                  _psd_id_map; /**< Sorted map linking the index set of off-diagonal PSD variables to their matrix cell position. E.g. X("bus1,bus2") corresponds to the (0,1) cell in the corresponding Eigen PSD matrix.*/
         map<string, shared_ptr<param_>>                     _params_name; /**< Sorted map (by name) pointing to all parameters contained in this model. */
         map<string, shared_ptr<param_>>                     _vars_name; /**< Sorted map (by name) pointing to all variables contained in this model. */
         vector<shared_ptr<Constraint<type>>>                _cons_vec; /**< vector pointing to all constraints contained in this model. */
@@ -2371,19 +2372,19 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
                 }
             }
             
-            auto res=this->cuts_eigen_full(1e-9);
-            if(res.size()>=1){
-                for(auto i=0;i<res.size();i++){
-                    GRBLinExpr expr = 0;
-                    int j;
-                    for(j=0;j<res[i].size()-1;j+=2){
-                        int c=res[i][j];
-                        expr += res[i][j+1]*vars[c];
-                    }
-                    expr += res[i][j];
-//                    addLazy(expr, GRB_LESS_EQUAL, 0);
-                }
-            }
+//            auto res=this->cuts_eigen_full(1e-9);
+//            if(res.size()>=1){
+//                for(auto i=0;i<res.size();i++){
+//                    GRBLinExpr expr = 0;
+//                    int j;
+//                    for(j=0;j<res[i].size()-1;j+=2){
+//                        int c=res[i][j];
+////                        expr += res[i][j+1]*vars[c];
+//                    }
+//                    expr += res[i][j];
+////                    addLazy(expr, GRB_LESS_EQUAL, 0);
+//                }
+//            }
             sort(v.begin(), v.end(), cstr_viol_compare<type>);
             return v;
         }
@@ -6692,8 +6693,17 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
         vector<vector<double>> cuts_eigen_bags_primal_complex(const double active_tol, string diag_name, string off_diag_real, string off_diag_imag);
         template<typename T=type>
         vector<vector<double>> cutting_planes_square(double active_tol);
+        /**
+         @brief Check if all the PSD variables form a PSD matrix
+         @return Smallest Eigenvalue among all PSD variables
+         */
         template<typename T=type>
         double check_PSD();
+        /**
+         @brief Make sure that the matrix formed by diag_var and off_diag_var is positive semidefinite
+         */
+        template<typename T=type>
+        void make_PSD(const var<type>& diag_var, const var<type>& off_diag_var);
         template<typename T=type>
         double check_PSD_bags();
         template<typename T=type>   

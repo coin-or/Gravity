@@ -505,17 +505,10 @@ Net CBF_read(const char *file, shared_ptr<Model<double>>& m, bool add_3d) {
         auto node_pairs_chord = g.get_node_pairs_chord(g._bags);
         //auto node_pairs_chord = g.get_node_pairs_chord(bags_3d);
         var<> X("X", 0, 1000);
-        //X._psd=true;
-        X._psd_diag=true;
         m->add(X.in(nodes));
         var<> Xij("Xij", -2000, 2000);
-       // Xij._psd=true;
-        Xij._psd_off_diag=true;
         m->add(Xij.in(node_pairs_chord));
-        auto X_ptr = m->get_ptr_var<double>("X");
-        auto Xij_ptr = m->get_ptr_var<double>("Xij");
-        X_ptr->_psd_var=Xij_ptr;
-        Xij_ptr->_psd_var=X_ptr;
+        m->make_psd(X,Xij);
         count=0;
         
         

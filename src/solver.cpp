@@ -1697,6 +1697,38 @@ vector<vector<double>> Model<type>::cuts_eigen_full(const double active_tol)
     return res;
 }
 
+
+template<typename type>
+template<typename T>
+void Model<type>::make_PSD(const var<type>& diag_var, const var<type>& off_diag_var){
+    if(this->_psd_vars.count(diag_var._name)!=0){
+        cout << "PSD Variable " <<  diag_var._name << " already added to the model, check your variable names\n";
+        return;
+    }
+    auto X_ptr = this->get_ptr_var<type>(diag_var._name);
+    auto Xij_ptr = this->get_ptr_var<type>(off_diag_var._name);
+    X_ptr->_psd_diag=true;
+    Xij_ptr->_psd_off_diag=true;
+    X_ptr->_psd_var=Xij_ptr;
+    Xij_ptr->_psd_var=X_ptr;
+    int dim_full=X_ptr->get_dim();
+    shared_ptr<Eigen::MatrixXd> mat_full = make_shared<Eigen::MatrixXd>(dim_full,dim_full);
+    _psd_vars[diag_var._name] = mat_full;
+    auto off_diag_dim = Xij_ptr->get_dim();
+    vector<pair<int,int>> id_vec(off_diag_dim);
+    string key, row_key, col_key;
+    auto diag_keys = X_ptr->_indices->get_keys();
+    auto diag_keys_map = X_ptr->_indices->get_keys_map();
+    for(int i = 0; i<off_diag_dim; i++){
+        key = diag_keys->at(i);
+        row_key = key.substr(0, key.find(","));
+        col_key = key.substr(key.find(",")+1);
+        id_vec[i] = {diag_keys_map.at(row_key),diag_keys_map.at(col_key)};
+    }
+    _psd_id_map[off_diag_var._name] = id_vec;
+}
+
+
 /**
  @brief Check if all the PSD variables form a PSD matrix
  @return Smallest Eigenvalue among all PSD variables
