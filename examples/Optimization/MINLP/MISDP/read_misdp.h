@@ -508,7 +508,7 @@ Net CBF_read(const char *file, shared_ptr<Model<double>>& m, bool add_3d) {
         m->add(X.in(nodes));
         var<> Xij("Xij", -2000, 2000);
         m->add(Xij.in(node_pairs_chord));
-        m->make_psd(X,Xij);
+        m->make_PSD(X,Xij);
         count=0;
         
         

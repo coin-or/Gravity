@@ -1711,19 +1711,19 @@ void Model<type>::make_PSD(const var<type>& diag_var, const var<type>& off_diag_
     Xij_ptr->_psd_off_diag=true;
     X_ptr->_psd_var=Xij_ptr;
     Xij_ptr->_psd_var=X_ptr;
-    int dim_full=X_ptr->get_dim();
+    auto dim_full=X_ptr->get_dim();
     shared_ptr<Eigen::MatrixXd> mat_full = make_shared<Eigen::MatrixXd>(dim_full,dim_full);
     _psd_vars[diag_var._name] = mat_full;
     auto off_diag_dim = Xij_ptr->get_dim();
     vector<pair<int,int>> id_vec(off_diag_dim);
     string key, row_key, col_key;
-    auto diag_keys = X_ptr->_indices->get_keys();
-    auto diag_keys_map = X_ptr->_indices->get_keys_map();
+    auto off_diag_keys = Xij_ptr->get_keys();
+    auto diag_keys_map = X_ptr->get_keys_map();
     for(int i = 0; i<off_diag_dim; i++){
-        key = diag_keys->at(i);
+        key = off_diag_keys->at(i);
         row_key = key.substr(0, key.find(","));
         col_key = key.substr(key.find(",")+1);
-        id_vec[i] = {diag_keys_map.at(row_key),diag_keys_map.at(col_key)};
+        id_vec[i] = {diag_keys_map->at(row_key),diag_keys_map->at(col_key)};
     }
     _psd_id_map[off_diag_var._name] = id_vec;
 }
@@ -2594,6 +2594,7 @@ template vector<vector<double>> Model<double>::cuts_eigen_bags(const double acti
 template vector<vector<double>> Model<double>::cuts_eigen_bags_primal_complex(const double active_tol,string diag_name, string off_diag_real, string off_diag_imag);
 template vector<vector<double>> Model<double>::cutting_planes_soc(double active_tol, int& soc_viol,int& soc_added);
 template double Model<double>::check_PSD();
+template void Model<double>::make_PSD(const var<double>& diag_var, const var<double>& off_diag_var);
 template double Model<double>::check_PSD_bags();
 template vector<vector<double>> Model<double>::cutting_planes_square(double active_tol);
 }
