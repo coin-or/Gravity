@@ -1715,7 +1715,7 @@ void Model<type>::make_PSD(const var<type>& diag_var, const var<type>& off_diag_
     shared_ptr<Eigen::MatrixXd> mat_full = make_shared<Eigen::MatrixXd>(dim_full,dim_full);
     _psd_vars[diag_var._name] = mat_full;
     auto off_diag_dim = Xij_ptr->get_dim();
-    vector<pair<int,int>> id_vec(off_diag_dim);
+    auto id_vec = make_shared<vector<pair<int,int>>>(off_diag_dim);
     string key, row_key, col_key;
     auto off_diag_keys = Xij_ptr->get_keys();
     auto diag_keys_map = X_ptr->get_keys_map();
@@ -1723,7 +1723,7 @@ void Model<type>::make_PSD(const var<type>& diag_var, const var<type>& off_diag_
         key = off_diag_keys->at(i);
         row_key = key.substr(0, key.find(","));
         col_key = key.substr(key.find(",")+1);
-        id_vec[i] = {diag_keys_map->at(row_key),diag_keys_map->at(col_key)};
+        id_vec->at(i) = {diag_keys_map->at(row_key),diag_keys_map->at(col_key)};
     }
     _psd_id_map[off_diag_var._name] = id_vec;
 }
@@ -1755,32 +1755,22 @@ double Model<type>::check_PSD(){
                 Xij = static_pointer_cast<var<double>>(v);
                 Xii = static_pointer_cast<var<double>>(v->get_diag());
             }
-            int dim_full=Xii->_indices->_keys->size();
+            auto dim_full=Xii->_indices->_keys->size();
             
-            Eigen::MatrixXd mat_full(dim_full,dim_full);
-            int count=0;
-            vector<string> all_names;
-            for(auto k:*Xii->_indices->_keys){
-                mat_full(count, count)=Xii->eval(k);
-                all_names.push_back(k);
-                count++;
+            shared_ptr<Eigen::MatrixXd> mat_full = _psd_vars.at(Xii->_name);
+            auto vec_id = _psd_id_map.at(Xij->_name);            
+            for(auto i = 0; i<dim_full; i++){
+                (*mat_full)(i,i) = Xii->_val->at(i);
+            }
+            auto dim_off = vec_id->size();
+            pair<int,int> pos;
+            for(auto i = 0; i<dim_off; i++){
+                pos = vec_id->at(i);
+                (*mat_full)(pos.first,pos.second)=Xij->_val->at(i);
             }
             
-            for(auto i=0;i<all_names.size()-1;i++){
-                for(auto j=i+1;j<all_names.size();j++){
-                    auto k=all_names[i]+","+all_names[j];
-                    if (Xij->_indices->has_key(k)){
-                        mat_full(i, j)=Xij->eval(k);
-                        mat_full(j, i)=Xij->eval(k);
-                    }
-                    else{
-                        mat_full(i, j)=0;
-                        mat_full(j, i)=0;
-                    }
-                }
-            }
             Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> es1;
-            es1.compute(mat_full);
+            es1.compute(*mat_full);
             
             for(auto m=0;m<dim_full;m++){
                 DebugOn(std::setprecision(12)<<es1.eigenvalues()[m]<<" ");

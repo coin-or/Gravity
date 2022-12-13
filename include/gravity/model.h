@@ -209,7 +209,7 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
         map<size_t, shared_ptr<param_>>                     _vars; /**< Sorted map pointing to all variables contained in this model. */
         map<size_t, shared_ptr<param_>>                     _int_vars; /**< Sorted map pointing to all integer variables contained in this model. */
         map<string, shared_ptr<Eigen::MatrixXd>>            _psd_vars; /**< Sorted map pointing to all PSD variables contained in this model. */
-        map<string, vector<pair<int,int>>>                  _psd_id_map; /**< Sorted map linking the index set of off-diagonal PSD variables to their matrix cell position. E.g. X("bus1,bus2") corresponds to the (0,1) cell in the corresponding Eigen PSD matrix.*/
+        map<string, shared_ptr<vector<pair<int,int>>>>      _psd_id_map; /**< Sorted map linking the index set of off-diagonal PSD variables to their matrix cell position. E.g. X("bus1,bus2") corresponds to the (0,1) cell in the corresponding Eigen PSD matrix.*/
         map<string, shared_ptr<param_>>                     _params_name; /**< Sorted map (by name) pointing to all parameters contained in this model. */
         map<string, shared_ptr<param_>>                     _vars_name; /**< Sorted map (by name) pointing to all variables contained in this model. */
         vector<shared_ptr<Constraint<type>>>                _cons_vec; /**< vector pointing to all constraints contained in this model. */
@@ -649,7 +649,12 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
             }
             _int_vars = m._int_vars;
             _bag_names=m._bag_names;
-           // _func_map=m._func_map;
+            for(const auto &mat_pair: m._psd_vars){
+                _psd_vars[mat_pair.first] = make_shared<Eigen::MatrixXd>(*mat_pair.second);
+            }
+            for(const auto &vec_pair: m._psd_id_map){
+                _psd_id_map[vec_pair.first] = make_shared<vector<pair<int,int>>>(*vec_pair.second);
+            }
             map_x=m.map_x;
             map_y=m.map_y;
             map_const=m.map_const;
