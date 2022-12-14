@@ -1473,9 +1473,10 @@ vector<vector<double>> Model<type>::cuts_eigen_bags_primal_complex(const double 
     //DebugOn("eig"<<endl);
     return res;
 }
+
 template<typename type>
 template<typename T>
-vector<vector<double>> Model<type>::cuts_eigen_full(const double active_tol)
+vector<vector<double>> Model<type>::cuts_eigen_full_old(const double active_tol)
 {
     
     vector<vector<double>> res;
@@ -1697,6 +1698,102 @@ vector<vector<double>> Model<type>::cuts_eigen_full(const double active_tol)
     return res;
 }
 
+template<typename type>
+template<typename T>
+vector<vector<double>> Model<type>::cuts_eigen_full(const double active_tol, int nb_cuts)
+{
+    vector<vector<double>> res;
+    vector<double> cut;
+    double c0_val=0;
+    int nb_added_cuts = 0;
+    for (auto &it: _vars)
+    {
+        auto v = it.second;
+        if(v->is_psd() || v->is_psd_diag() || v->is_psd_off_diag()){
+            auto dim_full=v->get_dim();
+            Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> es1;
+            shared_ptr<var<double>> X, Xii, Xij;
+            if(v->is_psd()){/* v is a full psd matrix */
+                X = static_pointer_cast<var<double>>(v);
+                auto X_id = X->get_id();
+                shared_ptr<Eigen::MatrixXd> mat_full = _psd_vars.at(X->_name);
+                auto vec_id = _psd_id_map.at(X->_name);
+                pair<int,int> pos;
+                for(auto i = 0; i<dim_full; i++){
+                    pos = vec_id->at(i);
+                    (*mat_full)(pos.first,pos.second)=X->_val->at(i);
+                }
+                es1.compute(*mat_full);
+                for(auto m=0;m<nb_cuts;m++){
+                    if(es1.eigenvalues()[m]<=-active_tol){
+                        for(auto n=0;n<dim_full;n++){
+                            pos = vec_id->at(n);
+                            cut.push_back(X_id+n);
+                            if(pos.first==pos.second){// diagonal entry
+                                cut.push_back(es1.eigenvectors().col(m)[pos.first]*es1.eigenvectors().col(m)[pos.second]*(-1));
+                            }
+                            else {
+                                cut.push_back(es1.eigenvectors().col(m)[pos.first]*es1.eigenvectors().col(m)[pos.second]*(-2));
+                            }
+                        }
+                    }
+                    else{
+                        break;
+                    }
+                }
+            }
+            else{/* v is a a diagonal or an off-diagonal entry of a psd matrix */
+                if(v->is_psd_diag()){
+                    Xii = static_pointer_cast<var<double>>(v);
+                    Xij = static_pointer_cast<var<double>>(v->get_off_diag());
+                }
+                else{
+                    Xij = static_pointer_cast<var<double>>(v);
+                    Xii = static_pointer_cast<var<double>>(v->get_diag());
+                }
+                auto Xii_id = Xii->get_id();
+                auto Xij_id = Xij->get_id();
+                shared_ptr<Eigen::MatrixXd> mat_full = _psd_vars.at(Xii->_name);
+                auto vec_id = _psd_id_map.at(Xij->_name);
+                dim_full = Xii->get_dim();
+                for(auto i = 0; i<dim_full; i++){
+                    (*mat_full)(i,i) = Xii->_val->at(i);
+                }
+                auto dim_off = vec_id->size();
+                pair<int,int> pos;
+                for(auto i = 0; i<dim_off; i++){
+                    pos = vec_id->at(i);
+                    (*mat_full)(pos.first,pos.second)=Xij->_val->at(i);
+                    (*mat_full)(pos.second,pos.first)=Xij->_val->at(i);
+                }
+                es1.compute(*mat_full);
+                for(auto m=0;m<nb_cuts;m++){
+                    if(es1.eigenvalues()[m]<=-active_tol){
+                        for(auto n=0;n<dim_full;n++){
+                            cut.push_back(Xii_id+n);
+                            cut.push_back(es1.eigenvectors().col(m)[n]*es1.eigenvectors().col(m)[n]*(-1));
+                        }
+                        for(auto i = 0; i<dim_off; i++){
+                            pos = vec_id->at(i);
+                            cut.push_back(Xij_id+i);
+                            cut.push_back(es1.eigenvectors().col(m)[pos.first]*es1.eigenvectors().col(m)[pos.second]*(-2));
+                        }
+                    }
+                    else{
+                        break;
+                    }
+                }
+            }
+            cut.push_back(0);
+            res.push_back(cut);
+        }
+                //}
+        cut.clear();
+        
+    }
+    return res;
+}
+
 
 template<typename type>
 template<typename T>
@@ -1744,40 +1841,57 @@ double Model<type>::check_PSD(){
         if(v->is_psd() || v->is_psd_diag() || v->is_psd_off_diag()){
             
             shared_ptr<var<double>> X, Xii, Xij;
-            if(v->is_psd()){
+            if(v->is_psd()){/* v is a full psd matrix */
                 X = static_pointer_cast<var<double>>(v);
+                auto dim_full=X->get_dim();
+                
+                shared_ptr<Eigen::MatrixXd> mat_full = _psd_vars.at(X->_name);
+                auto vec_id = _psd_id_map.at(X->_name);
+                pair<int,int> pos;
+                for(auto i = 0; i<dim_full; i++){
+                    pos = vec_id->at(i);
+                    (*mat_full)(pos.first,pos.second)=X->_val->at(i);
+                }
+                
+                Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> es1;
+                es1.compute(*mat_full);
+                if (min_eigen > es1.eigenvalues()[0])
+                    min_eigen = es1.eigenvalues()[0];
             }
-            else if(v->is_psd_diag()){
-                Xii = static_pointer_cast<var<double>>(v);
-                Xij = static_pointer_cast<var<double>>(v->get_off_diag());
+            else{/* v is a a diagonal or an off-diagonal entry of a psd matrix */
+                if(v->is_psd_diag()){
+                    Xii = static_pointer_cast<var<double>>(v);
+                    Xij = static_pointer_cast<var<double>>(v->get_off_diag());
+                }
+                else{
+                    Xij = static_pointer_cast<var<double>>(v);
+                    Xii = static_pointer_cast<var<double>>(v->get_diag());
+                }
+                auto dim_full=Xii->_indices->_keys->size();
+                
+                shared_ptr<Eigen::MatrixXd> mat_full = _psd_vars.at(Xii->_name);
+                auto vec_id = _psd_id_map.at(Xij->_name);
+                for(auto i = 0; i<dim_full; i++){
+                    (*mat_full)(i,i) = Xii->_val->at(i);
+                }
+                auto dim_off = vec_id->size();
+                pair<int,int> pos;
+                for(auto i = 0; i<dim_off; i++){
+                    pos = vec_id->at(i);
+                    (*mat_full)(pos.first,pos.second)=Xij->_val->at(i);
+                    (*mat_full)(pos.second,pos.first)=Xij->_val->at(i);
+                }
+                
+                Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> es1;
+                es1.compute(*mat_full);
+                
+                for(auto m=0;m<dim_full;m++){
+                    DebugOn(std::setprecision(12)<<es1.eigenvalues()[m]<<" ");
+                }
+                DebugOn(endl<<"full"<<endl);
+                if (min_eigen > es1.eigenvalues()[0])
+                    min_eigen = es1.eigenvalues()[0];
             }
-            else{
-                Xij = static_pointer_cast<var<double>>(v);
-                Xii = static_pointer_cast<var<double>>(v->get_diag());
-            }
-            auto dim_full=Xii->_indices->_keys->size();
-            
-            shared_ptr<Eigen::MatrixXd> mat_full = _psd_vars.at(Xii->_name);
-            auto vec_id = _psd_id_map.at(Xij->_name);            
-            for(auto i = 0; i<dim_full; i++){
-                (*mat_full)(i,i) = Xii->_val->at(i);
-            }
-            auto dim_off = vec_id->size();
-            pair<int,int> pos;
-            for(auto i = 0; i<dim_off; i++){
-                pos = vec_id->at(i);
-                (*mat_full)(pos.first,pos.second)=Xij->_val->at(i);
-            }
-            
-            Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> es1;
-            es1.compute(*mat_full);
-            
-            for(auto m=0;m<dim_full;m++){
-                DebugOn(std::setprecision(12)<<es1.eigenvalues()[m]<<" ");
-            }
-            DebugOn(endl<<"full"<<endl);
-            if (min_eigen > es1.eigenvalues()[0])
-                min_eigen = es1.eigenvalues()[0];
         }
     }
     return min_eigen;
@@ -2579,7 +2693,8 @@ template void Model<double>::generate_lagrange_bounds(const std::vector<std::str
 template bool Model<double>::obbt_update_lagrange_bounds(std::vector<shared_ptr<gravity::Model<double>>>& models, shared_ptr<gravity::Model<double>>& obbt_model,   map<string, bool>& fixed_point,  const map<string, double>& interval_original, const map<string, double>& ub_original, const map<string, double>& lb_original, bool& terminate, int& fail, const double range_tol, const double fixed_tol_abs, const double fixed_tol_rel, const double zero_tol, int run_obbt_iter, std::map<int, double>& map_lb, std::map<int, double>& map_ub);
 template vector<vector<double>> Model<double>::cutting_planes_solution(const Model<double>& interior, double active_tol,int& soc_viol,int& soc_found,int& soc_added, int& det_viol, int& det_found,int& det_added);
 template vector<vector<double>> Model<double>::cutting_planes_eigen(const double active_tol);
-template vector<vector<double>> Model<double>::cuts_eigen_full(const double active_tol);
+template vector<vector<double>> Model<double>::cuts_eigen_full(const double active_tol, int nb_cuts);
+template vector<vector<double>> Model<double>::cuts_eigen_full_old(const double active_tol);
 template vector<vector<double>> Model<double>::cuts_eigen_bags(const double active_tol);
 template vector<vector<double>> Model<double>::cuts_eigen_bags_primal_complex(const double active_tol,string diag_name, string off_diag_real, string off_diag_imag);
 template vector<vector<double>> Model<double>::cutting_planes_soc(double active_tol, int& soc_viol,int& soc_added);

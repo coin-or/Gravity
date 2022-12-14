@@ -6691,7 +6691,9 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
         template<typename T=type>
         vector<vector<double>> cutting_planes_eigen(const double active_tol);
         template<typename T=type>
-        vector<vector<double>> cuts_eigen_full(const double active_tol);
+        vector<vector<double>> cuts_eigen_full(const double active_tol, int nb_cuts = 1);
+        template<typename T=type>
+        vector<vector<double>> cuts_eigen_full_old(const double active_tol);
         template<typename T=type>
         vector<vector<double>> cuts_eigen_bags(const double active_tol);
         template<typename T=type>
