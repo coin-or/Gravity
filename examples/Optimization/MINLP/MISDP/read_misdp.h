@@ -515,8 +515,14 @@ Net CBF_read(const char *file, shared_ptr<Model<double>>& m, bool add_3d) {
         map<string, func<>> func_map;
         map<string, func<>> func_map_bounds;
         map<string, vector<pair<string, double>>> map_x;
+        vector<vector<pair<int, double>>> Xij_x_map(node_pairs_chord.size());
+        vector<vector<pair<int, double>>> Xii_x_map(nodes.size());
         map<string, vector<pair<string, double>>> map_y;
+        vector<vector<pair<int, double>>> Xij_y_map(node_pairs_chord.size());
+        vector<vector<pair<int, double>>> Xii_y_map(nodes.size());
         map<string, double> map_const;
+        vector<double> Xij_cons_map(node_pairs_chord.size(),0);
+        vector<double> Xii_cons_map(nodes.size(),0);
         
         for(auto k:*node_pairs._keys){
             func_map[k]=Xij(k);
@@ -540,11 +546,22 @@ Net CBF_read(const char *file, shared_ptr<Model<double>>& m, bool add_3d) {
             if(C.has_key(ind)){
                 func_map_bounds[func_name]+=coef*x(ind);
                 map_x[func_name].push_back(make_pair(ind, coef));
+                if(k!=l){
+                    Xij_x_map[node_pairs_chord._keys_map->at(func_name)].push_back(make_pair(x.get_vec_id()+C._keys_map->at(ind), coef));
+                }
+                else{
+                    Xii_x_map[k].push_back(make_pair(x.get_vec_id()+C._keys_map->at(ind), coef));
+                }
             }
             else{
                 func_map_bounds[func_name]+=coef*y(ind);
                 map_y[func_name].push_back(make_pair(ind, coef));
-                
+                if(k!=l){
+                    Xij_y_map[node_pairs_chord._keys_map->at(func_name)].push_back(make_pair(y.get_vec_id()+I._keys_map->at(ind), coef));
+                }
+                else{
+                    Xii_y_map[k].push_back(make_pair(y.get_vec_id()+I._keys_map->at(ind), coef));
+                }
             }
         }
         for(auto i=0;i<data.dnnz;i++){
@@ -559,6 +576,13 @@ Net CBF_read(const char *file, shared_ptr<Model<double>>& m, bool add_3d) {
             }
             func_map_bounds[func_name]+=coef;
             map_const[func_name]+=coef;
+            if(k!=l){
+                Xij_cons_map[node_pairs_chord._keys_map->at(func_name)]+=coef;
+            }
+            else{
+                Xii_cons_map[k]+=coef;
+            }
+            
         }
         double maxlu=0, scale;
         for(auto it=func_map_bounds.begin();it!=func_map_bounds.end();it++){
@@ -682,7 +706,12 @@ Net CBF_read(const char *file, shared_ptr<Model<double>>& m, bool add_3d) {
         m->map_x=map_x;
         m->map_y=map_y;
         m->map_const=map_const;
-        
+        m->Xij_x_map=Xij_x_map;
+        m->Xij_y_map=Xij_y_map;
+        m->Xij_cons_map=Xij_cons_map;
+        m->Xii_x_map=Xii_x_map;
+        m->Xii_y_map=Xii_y_map;
+        m->Xii_cons_map=Xii_cons_map;
         count=0;
         
         

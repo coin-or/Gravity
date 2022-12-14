@@ -226,11 +226,17 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
         map<size_t, set<vector<int>>>                        _OA_cuts; /**< Sorted map pointing to all OA cut coefficients for each constraint. */
         std::vector<pair<int,std::vector<string>>>           _bag_names; /*vector of pair of name of each bag and name of nodes in each bag*/
        // map<string, func<>>                                  _func_map;/*map of func corresponding to each (sparse) key of a symmetric matrix*/
-        map<string, vector<pair<string, double>>>               map_x;
-        map<string, vector<pair<string, double>>>               map_y;
-        map<string, double>                                     map_const;
-        bool                                                    sdp_dual=false;
-        bool                                                    _complex;
+        map<string, vector<pair<string, double>>>            map_x;
+        vector<vector<pair<int, double>>>                    Xij_x_map;
+        vector<vector<pair<int, double>>>                    Xii_x_map;
+        map<string, vector<pair<string, double>>>            map_y;
+        vector<vector<pair<int, double>>>                    Xij_y_map;
+        vector<vector<pair<int, double>>>                    Xii_y_map;
+        map<string, double>                                  map_const;
+        vector<double>                                       Xij_cons_map;
+        vector<double>                                       Xii_cons_map;
+        bool                                                 sdp_dual=false;
+        bool                                                 _complex;
          template<typename T=type>
         void merge_vars(const shared_ptr<expr<T>>& e, bool share_bounds = false){/**<  Transfer all variables and parameters to the model. */
             switch (e->get_type()) {
@@ -658,6 +664,12 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
             map_x=m.map_x;
             map_y=m.map_y;
             map_const=m.map_const;
+            Xij_x_map=m.Xij_x_map;
+            Xij_y_map=m.Xij_y_map;
+            Xij_cons_map=m.Xij_cons_map;
+            Xii_x_map=m.Xii_x_map;
+            Xii_y_map=m.Xii_y_map;
+            Xii_cons_map=m.Xii_cons_map;
             sdp_dual=m.sdp_dual;
             _complex=m._complex;
             _rel_obj_val=m._rel_obj_val;
