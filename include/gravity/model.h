@@ -210,6 +210,11 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
         map<size_t, shared_ptr<param_>>                     _int_vars; /**< Sorted map pointing to all integer variables contained in this model. */
         map<string, shared_ptr<Eigen::MatrixXd>>            _psd_vars; /**< Sorted map pointing to all PSD variables contained in this model. */
         map<string, shared_ptr<vector<pair<int,int>>>>      _psd_id_map; /**< Sorted map linking the index set of off-diagonal PSD variables to their matrix cell position. E.g. X("bus1,bus2") corresponds to the (0,1) cell in the corresponding Eigen PSD matrix.*/
+        map<string, shared_ptr<vector<int>>>            _bag_vars; /**< Sorted map pointing to all variables in each bag. */
+        map<string, shared_ptr<vector<pair<int,int>>>>      _bag_id_map; /**< Sorted map linking the index set of off-diagonal bag variables to their matrix cell position. E.g. X("bus1,bus2") corresponds to the (0,1) cell in the corresponding Eigen PSD matrix.*/
+
+        map<size_t, double>                                  _ub_map;/**< Sorted map linking the vid of a variable to its upper bound. For example see GurobiProgram.cpp for vid definition.*/
+        map<size_t, double>                                  _lb_map;/**< Sorted map linking the vid of a variable to its lower bound. For example see GurobiProgram.cpp for vid definition.*/
         map<string, shared_ptr<param_>>                     _params_name; /**< Sorted map (by name) pointing to all parameters contained in this model. */
         map<string, shared_ptr<param_>>                     _vars_name; /**< Sorted map (by name) pointing to all variables contained in this model. */
         vector<shared_ptr<Constraint<type>>>                _cons_vec; /**< vector pointing to all constraints contained in this model. */
@@ -661,6 +666,12 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
             for(const auto &vec_pair: m._psd_id_map){
                 _psd_id_map[vec_pair.first] = make_shared<vector<pair<int,int>>>(*vec_pair.second);
             }
+            for(const auto &b: m._bag_vars){
+                _bag_vars[b.first] = make_shared<vector<int>>(*b.second);
+            }
+            for(const auto &vec_pair: m._bag_id_map){
+                _bag_id_map[vec_pair.first] = make_shared<vector<pair<int,int>>>(*vec_pair.second);
+            }
             map_x=m.map_x;
             map_y=m.map_y;
             map_const=m.map_const;
@@ -670,6 +681,8 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
             Xii_x_map=m.Xii_x_map;
             Xii_y_map=m.Xii_y_map;
             Xii_cons_map=m.Xii_cons_map;
+            _ub_map=m._ub_map;
+            _lb_map=m._lb_map;
             sdp_dual=m.sdp_dual;
             _complex=m._complex;
             _rel_obj_val=m._rel_obj_val;
@@ -6705,9 +6718,11 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
         template<typename T=type>
         vector<vector<double>> cuts_eigen_full(const double active_tol, int nb_cuts = 1);
         template<typename T=type>
-        vector<vector<double>> cuts_eigen_full_old(const double active_tol);
+        vector<vector<double>> cuts_eigen_full_old(const double active_tol, int nb_cuts = 1);
         template<typename T=type>
-        vector<vector<double>> cuts_eigen_bags(const double active_tol);
+        vector<vector<double>> cuts_eigen_bags(const double active_tol, int nb_cuts=1);
+        template<typename T=type>
+        bool scale_cut(const double active_tol, const map<size_t, double>& cut_map, vector<double>& cut);
         template<typename T=type>
         vector<vector<double>> cuts_eigen_bags_primal_complex(const double active_tol, string diag_name, string off_diag_real, string off_diag_imag);
         template<typename T=type>

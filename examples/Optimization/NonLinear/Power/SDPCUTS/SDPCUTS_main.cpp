@@ -135,7 +135,7 @@ int main (int argc, char * argv[]) {
     // double total_time_start = get_wall_time();
     PowerNet grid;
     grid.readgrid(fname);
-    grid.update_ref_bus();
+    //grid.update_ref_bus();
     
     grid.get_tree_decomp_bags();
     auto bags_3d=grid.decompose_bags_3d();
