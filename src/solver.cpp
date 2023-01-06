@@ -686,6 +686,184 @@ vector<vector<double>> Model<type>::cutting_planes_solution(const Model<type>& i
  @param[in] nb_oacuts: When a cut is added nb_oacuts is incremented
  @param[in] active_tol: the obbt_solution x is said to violate a nonlinear constraint g in current model if abs(g(x))> active_tol */
 //vector<vector<double>> Model<type>::cutting_planes_solution(const Model<type>& interior, double active_tol, int soc_viol, int soc_added, int det_viol, int soc_found, int det_found, int det_added)
+//template<typename type>
+//template<typename T>
+//vector<vector<double>> Model<type>::cutting_planes_soc(double active_tol, int& soc_viol,int& soc_added)
+//{
+//    bool psd_var=true;
+//
+//    const double active_tol_sol=1e-9, zero_tol=1e-9;
+//    int nb_added_cuts = 0;
+//    vector<vector<double>> res;
+//
+//    for (auto &con: _cons_vec)
+//    {
+//        if(!con->is_linear() && con->_callback && (con->is_rotated_soc() || con->check_soc())) {
+//            auto cnb_inst=con->get_nb_inst();
+//            con->uneval();
+//            int count=0;
+//            int off_diag_pos=-1;
+//            size_t X_id, Xii_id, Xij_id;
+//            shared_ptr<var<double>> X, Xii, Xij;
+//            bool psd_var=false;
+//            for (auto &v_p: con->get_vars()){
+//                if(v_p.second.first->is_psd_off_diag()||v_p.second.first->is_psd_diag()){
+//                    psd_var=false;
+//                }
+//                if(!psd_var){
+//                    if(v_p.second.first->is_psd_off_diag()){
+//                        Xij = static_pointer_cast<var<double>>(v_p.second.first);
+//                        Xii = static_pointer_cast<var<double>>(v_p.second.first->get_diag());
+//                        off_diag_pos=count;
+//                    }
+//                }
+//                else{
+//                    X=static_pointer_cast<var<double>>(v_p.second.first);
+//                    auto keys_vec=*(v_p.second.first->_indices->_keys);
+//                    auto key_i=keys_vec[v_p.second.first->get_id_inst(0)];
+//                    if(key_i.find(",")!=std::string::npos){
+//                        auto key_first=key_i.substr(0,key_i.find(","));
+//                        auto key_second=key_i.substr(key_i.find(",")+1);
+//                            if(key_first!=key_second)
+//                                off_diag_pos=count;
+//                    }
+//                }
+//                count++;
+//            }
+//            vector<int> diag_pos;
+//            count=0;
+//            for(auto i=0;i<3;i++){
+//                if(i!=off_diag_pos)
+//                    diag_pos[count++]=i;
+//            }
+//            for(auto inst=0;inst<cnb_inst;inst++){
+//                con->uneval();
+//                auto fk=con->eval(inst);
+//                if((fk >= active_tol && con->_ctype==leq) || (fk <= -active_tol && con->_ctype==geq)){
+//
+//                    vector<int> vec_ind, vec_ind_now;
+//                    vector<int> var_ind;
+//                    vector<string> keys_vec;
+//                    vector<double> xc;
+//                    map<size_t, double> cut_map;
+//                    vector<double> cut;
+//                    xc=con->get_x(inst);
+//                    int count=0;
+//                    vector<double> xnow(3);
+//                    /*Avoid divide by zero*/
+//                    if(xc[diag_pos[0]]>=xc[diag_pos[1]] && xc[diag_pos[0]]>=1e-6){
+//                        xnow[0]=xc[diag_pos[0]];
+//                        xnow[1]=(xc[off_diag_pos]*xc[off_diag_pos])/(xc[diag_pos[0]]);
+//                        xnow[2]=xc[off_diag_pos];
+//                    }
+//                    else if (xc[diag_pos[1]]>=1e-6)
+//                    {
+//                        xnow[0]=(xc[off_diag_pos]*xc[off_diag_pos])/(xc[diag_pos[1]]);
+//                        xnow[1]=xc[diag_pos[1]];
+//                        xnow[2]=xc[off_diag_pos];
+//                    }
+//                    else if (xc[off_diag_pos]>=1e-6)
+//                    {
+//                        xnow[0]=xc[off_diag_pos];
+//                        xnow[1]=xc[off_diag_pos];
+//                        xnow[2]=xc[off_diag_pos];
+//                    }
+//
+//                    c_val.resize(3,0);
+//
+//                    scale=1.0;
+//                    c_val[0]=-xnow[1];
+//                    c_val[1]=-xnow[0];
+//                    c_val[2]=2*xnow[2];
+//                    c0_val=0;
+//
+//                    count=0;
+//                    for(auto n=0;n<3;n++){
+//                        if(n!=off_diag_pos){
+//                        if(v->is_psd_diag()){
+//                            free_var = true;
+//                            int id=vec_ind_now->at(n);
+//                            if(!Xii_x_map[id].empty()){
+//                                for(auto i = 0; i < Xii_x_map[id].size(); i++){
+//                                    cut_map[Xii_x_map[id][i].first]+=c_val[count]*Xii_x_map[id][i].second;
+//                                }
+//                                free_var = false;
+//                            }
+//                            if(!Xii_y_map[id].empty()){
+//                                for(auto i = 0; i < Xii_y_map[id].size(); i++){
+//                                    cut_map[Xii_y_map[id][i].first]+=eig_vector_m[n]*eig_vector_m[n]*(-1)*Xii_y_map[id][i].second;
+//                                }
+//                                free_var = false;
+//                            }
+//                            if(Xii_cons_map[id]!=0){
+//                                coef_const += eig_vector_m[n]*eig_vector_m[n]*(-1)*Xii_cons_map[id];
+//                                free_var = false;
+//                            }
+//                            if(free_var){
+//                                cut_map[Xii_id+id]+=eig_vector_m[n]*eig_vector_m[n]*(-1);
+//                            }
+//                        }
+//                        else{
+//                            auto id=find(vec_id->begin(), vec_id->end(), make_pair<>(b.second->at(n), b.second->at(n)))-vec_id->begin();
+//                            cut_map[X_id+id]+=eig_vector_m[n]*eig_vector_m[n]*(-1);
+//                        }
+//                        }
+//                        else{
+//                            if(v->is_psd_diag()){
+//                                free_var = true;
+//                                int id=Xij->get_keys_map()->at(key);
+//                                if(!Xij_x_map[id].empty()){
+//                                    for(auto xi = 0; xi < Xij_x_map[id].size(); xi++){
+//                                        cut_map[Xij_x_map[id][xi].first]+=eig_vector_m[i]*eig_vector_m[j]*(-2)*Xij_x_map[id][xi].second;
+//                                    }
+//                                    free_var = false;
+//                                }
+//                                if(!Xij_y_map[id].empty()){
+//                                    for(auto xi = 0; xi < Xij_y_map[id].size(); xi++){
+//                                        cut_map[Xij_y_map[id][xi].first]+=eig_vector_m[i]*eig_vector_m[j]*(-2)*Xij_y_map[id][xi].second;
+//                                    }
+//                                    free_var = false;
+//                                }
+//                                if(Xij_cons_map[id]!=0){
+//                                    coef_const += eig_vector_m[i]*eig_vector_m[j]*(-2)*Xij_cons_map[id];
+//                                    free_var = false;
+//                                }
+//                                if(free_var){
+//                                    cut_map[Xij_id+id]+=eig_vector_m[i]*eig_vector_m[j]*(-2);
+//                                }
+//                            }
+//                            else{
+//                                auto id=find(vec_id->begin(), vec_id->end(),pos)-vec_id->begin();
+//                                cut_map[X_id+id]+=eig_vector_m[i]*eig_vector_m[j]*(-2);
+//                            }
+//                        }
+//                    }
+//                    auto last_key=cut_map.rbegin()->first;
+//                    cut_map[last_key+1]=coef_const;
+//                    auto res_cut= scale_cut(active_tol,  cut_map, cut);
+//                    if(res_cut){
+//                        res.push_back(cut);
+//                    }
+//                    cut.clear();
+//                    cut_map.clear();
+//                }
+//                    }
+//                    soc_added++;
+//                    con->set_x(i, xcurrent);
+//                    xcurrent.clear();
+//                    xinterior.clear();
+//                    cut.clear();
+//                    ub_val.clear();
+//                    c0_val=0;
+//                    c_val.clear();
+//                }
+//            }
+//
+//
+//    //DebugOn("soc"<<endl);
+//    return res;
+//
+//}
 template<typename type>
 template<typename T>
 vector<vector<double>> Model<type>::cutting_planes_soc(double active_tol, int& soc_viol,int& soc_added)
@@ -883,6 +1061,89 @@ vector<vector<double>> Model<type>::cutting_planes_soc(double active_tol, int& s
         }
     }
     //DebugOn("soc"<<endl);
+    return res;
+    
+}
+/*Generates and creates a vector of cuts when any solution is violated by the model this . The curent model solution is set to obbt_solution and OA cuts are generated for the nonlinear constraints in the current model at the obbt_solution point. These cuts are added to model lin.
+ @param[in] interior model: Model which can give interior point of current model
+ @param[in] obbt_solution: Point at which constraints are linearized. For non-convex constraints that define a convex region, the point is shifted to an active point of that constraint and its instance
+ @param[in] lin: Model to which linear cuts are added
+ @param[in] nb_oacuts: When a cut is added nb_oacuts is incremented
+ @param[in] active_tol: the obbt_solution x is said to violate a nonlinear constraint g in current model if abs(g(x))> active_tol */
+//vector<vector<double>> Model<type>::cutting_planes_solution(const Model<type>& interior, double active_tol, int soc_viol, int soc_added, int det_viol, int soc_found, int det_found, int det_added)
+template<typename type>
+template<typename T>
+vector<vector<double>> Model<type>::cutting_planes_square(double active_tol)
+{
+    
+    vector<double> xsolution(_nb_vars);
+    vector<double> xinterior(_nb_vars);
+    vector<double> xcurrent, c_val,xnow;
+    const double active_tol_sol=1e-9, zero_tol=1e-9;
+    double c0_val, scale=1.0, fk;
+    bool constr_viol=false, oa_cut=true, convex_region=true, add_new=false;
+    int nb_added_cuts = 0;
+    vector<vector<double>> res;
+    vector<double> cut;
+    
+    for (auto &con: _cons_vec)
+    {
+        DebugOn("con->_callback "<<con->_callback<<endl);
+        DebugOn("con->_name "<<con->_name<<endl);
+        if(con->_callback && (con->_name.find("squared")!=std::string::npos)) {
+            // if(con->_name!="limit_neg"){
+            auto cnb_inst=con->get_nb_inst();
+            con->uneval();
+            for(auto i=0;i<cnb_inst;i++){
+                oa_cut=false;
+                c0_val=0;
+                c_val.resize(con->_nb_vars,0);
+                auto cname=con->_name;
+                xcurrent=con->get_x(i);
+                
+                
+                //                con->eval_all();
+                //                DebugOff(con->_name<<"\t"<<con->eval(i)<<endl);
+                //                con->uneval();
+                fk=con->eval(i);
+                DebugOn("fk "<<fk<<endl);
+                if((fk >= active_tol && con->_ctype==leq) || (fk <= -active_tol && con->_ctype==geq)){
+                    constr_viol=true;
+                    vector<string> key;
+                    
+                    
+                    c_val.resize(2,0);
+                    
+                    
+                    //get_row_scaling(c_val, scale, oa_cut, zero_tol, 1e-9, 1000);
+                    
+                    int j=0;
+                    double cost=0;
+                    for (auto &v_p: con->get_vars()){
+                        auto vid=v_p.second.first->get_id() + v_p.second.first->get_id_inst(i);
+                        cut.push_back(vid);
+                        if(v_p.first.find("Lift")!=std::string::npos){
+                            c_val[j]=-1;
+                        }
+                        else{
+                            c_val[j]=2*xcurrent[j];
+                            c0_val-=xcurrent[j]*xcurrent[j];
+                        }
+                        cut.push_back(c_val[j]);
+                        j++;
+                    }
+                    cut.push_back(c0_val);
+                    res.push_back(cut);
+                    cut.clear();
+                    
+                    xcurrent.clear();
+                    
+                    c0_val=0;
+                    c_val.clear();
+                }
+            }
+        }
+    }
     return res;
     
 }
@@ -1286,29 +1547,60 @@ vector<vector<double>> Model<type>::cuts_eigen_bags(const double active_tol, int
 {
     
     vector<vector<double>> res;
+    shared_ptr<Eigen::MatrixXd> mat_full;
+    size_t X_id, Xii_id, Xij_id;
+    shared_ptr<vector<pair<int,int>>> vec_id;
+    shared_ptr<var<double>> X, Xii, Xij;
     for(auto it:_vars){
         auto v = it.second;
-        if(v->is_psd_diag()){
-            shared_ptr<var<double>> Xii, Xij;
-            if(v->is_psd_diag()){
-                Xii = static_pointer_cast<var<double>>(v);
-                Xij = static_pointer_cast<var<double>>(v->get_off_diag());
+        if(v->is_psd()||v->is_psd_diag()){
+            if(v->is_psd()){/* v is a full psd matrix */
+                
+                X = static_pointer_cast<var<double>>(v);
+                auto dim_full = X->get_dim();
+                X_id = X->get_id();
+                mat_full = _psd_vars.at(X->_name);
+                vec_id = _psd_id_map.at(X->_name);
+                pair<int,int> pos;
+                for(auto i = 0; i<dim_full; i++){
+                    pos = vec_id->at(i);
+                    (*mat_full)(pos.first,pos.second)=X->_val->at(i);
+                }
             }
-            auto Xii_id = Xii->get_id();
-            auto Xij_id = Xij->get_id();
+            if(v->is_psd_diag()){
+                if(v->is_psd_diag()){
+                    Xii = static_pointer_cast<var<double>>(v);
+                    Xij = static_pointer_cast<var<double>>(v->get_off_diag());
+                }
+                Xii_id = Xii->get_id();
+                Xij_id = Xij->get_id();
+                mat_full = _psd_vars.at(Xii->_name);
+                vec_id = _psd_id_map.at(Xij->_name);
+                auto dim_full = Xii->get_dim();
+                for(auto i = 0; i<dim_full; i++){
+                    (*mat_full)(i,i) = Xii->_val->at(i);
+                }
+                auto dim_off = vec_id->size();
+                pair<int,int> pos;
+                for(auto i = 0; i<dim_off; i++){
+                    pos = vec_id->at(i);
+                    (*mat_full)(pos.first,pos.second)=Xij->_val->at(i);
+                    (*mat_full)(pos.second,pos.first)=Xij->_val->at(i);
+                }
+            }
             for(auto b:_bag_vars){
                 auto dim=b.second->size();
                 auto off_diag=_bag_id_map[b.first];
                 Eigen::MatrixXd mat_bag(dim,dim);
                 SelfAdjointEigenSolver<MatrixXd> es;
                 for(auto i = 0; i<dim; i++){
-                    mat_bag(i,i) = Xii->eval(to_string(b.second->at(i)));
+                    mat_bag(i,i) = (*mat_full)(i,i);
                 }
                 int count=0;
                 for(auto i=0;i<dim-1;i++){
                     for(auto j=i+1;j<dim;j++){
                         auto pos=off_diag->at(count++);
-                        mat_bag(i,j) = Xij->eval(to_string(pos.first)+","+to_string(pos.second));
+                        mat_bag(i,j) = (*mat_full)(pos.first,pos.second);
                         //mat_bag(j,i) = Xij->eval(to_string(pos.first)+","+to_string(pos.second));
                     }
                 }
@@ -1326,55 +1618,67 @@ vector<vector<double>> Model<type>::cuts_eigen_bags(const double active_tol, int
                         bool free_var = true;
                         double coef_const=0;
                         for(auto n=0;n<dim;n++){
-                            free_var = true;
-                        int id=b.second->at(n);
-                            if(!Xii_x_map[id].empty()){
-                                for(auto i = 0; i < Xii_x_map[id].size(); i++){
-                                    cut_map[Xii_x_map[id][i].first]+=eig_vector_m[n]*eig_vector_m[n]*(-1)*Xii_x_map[id][i].second;
+                            if(v->is_psd_diag()){
+                                free_var = true;
+                                int id=b.second->at(n);
+                                if(!Xii_x_map[id].empty()){
+                                    for(auto i = 0; i < Xii_x_map[id].size(); i++){
+                                        cut_map[Xii_x_map[id][i].first]+=eig_vector_m[n]*eig_vector_m[n]*(-1)*Xii_x_map[id][i].second;
+                                    }
+                                    free_var = false;
                                 }
-                                free_var = false;
-                            }
-                            if(!Xii_y_map[id].empty()){
-                                for(auto i = 0; i < Xii_y_map[id].size(); i++){
-                                    cut_map[Xii_y_map[id][i].first]+=eig_vector_m[n]*eig_vector_m[n]*(-1)*Xii_y_map[id][i].second;
+                                if(!Xii_y_map[id].empty()){
+                                    for(auto i = 0; i < Xii_y_map[id].size(); i++){
+                                        cut_map[Xii_y_map[id][i].first]+=eig_vector_m[n]*eig_vector_m[n]*(-1)*Xii_y_map[id][i].second;
+                                    }
+                                    free_var = false;
                                 }
-                                free_var = false;
+                                if(Xii_cons_map[id]!=0){
+                                    coef_const += eig_vector_m[n]*eig_vector_m[n]*(-1)*Xii_cons_map[id];
+                                    free_var = false;
+                                }
+                                if(free_var){
+                                    cut_map[Xii_id+id]+=eig_vector_m[n]*eig_vector_m[n]*(-1);
+                                }
                             }
-                            if(Xii_cons_map[id]!=0){
-                                coef_const += eig_vector_m[n]*eig_vector_m[n]*(-1)*Xii_cons_map[id];
-                                free_var = false;
-                            }
-                            if(free_var){
-                                cut_map[Xii_id+id]+=eig_vector_m[n]*eig_vector_m[n]*(-1);
+                            else{
+                                auto id=find(vec_id->begin(), vec_id->end(), make_pair<>(b.second->at(n), b.second->at(n)))-vec_id->begin();
+                                cut_map[X_id+id]+=eig_vector_m[n]*eig_vector_m[n]*(-1);
                             }
                         }
                         count=0;
                         for(auto i=0;i<dim-1;i++){
                             for(auto j=i+1;j<dim;j++){
                                 auto pos=off_diag->at(count++);
-                            free_var = true;
-                            auto key=to_string(pos.first)+","+to_string(pos.second);
-                            int id=Xij->get_keys_map()->at(key);
-                            if(!Xij_x_map[id].empty()){
-                                for(auto xi = 0; xi < Xij_x_map[id].size(); xi++){
-                                    cut_map[Xij_x_map[id][xi].first]+=eig_vector_m[i]*eig_vector_m[j]*(-2)*Xij_x_map[id][xi].second;
+                                auto key=to_string(pos.first)+","+to_string(pos.second);
+                                if(v->is_psd_diag()){
+                                    free_var = true;
+                                    int id=Xij->get_keys_map()->at(key);
+                                    if(!Xij_x_map[id].empty()){
+                                        for(auto xi = 0; xi < Xij_x_map[id].size(); xi++){
+                                            cut_map[Xij_x_map[id][xi].first]+=eig_vector_m[i]*eig_vector_m[j]*(-2)*Xij_x_map[id][xi].second;
+                                        }
+                                        free_var = false;
+                                    }
+                                    if(!Xij_y_map[id].empty()){
+                                        for(auto xi = 0; xi < Xij_y_map[id].size(); xi++){
+                                            cut_map[Xij_y_map[id][xi].first]+=eig_vector_m[i]*eig_vector_m[j]*(-2)*Xij_y_map[id][xi].second;
+                                        }
+                                        free_var = false;
+                                    }
+                                    if(Xij_cons_map[id]!=0){
+                                        coef_const += eig_vector_m[i]*eig_vector_m[j]*(-2)*Xij_cons_map[id];
+                                        free_var = false;
+                                    }
+                                    if(free_var){
+                                        cut_map[Xij_id+id]+=eig_vector_m[i]*eig_vector_m[j]*(-2);
+                                    }
                                 }
-                                free_var = false;
-                            }
-                            if(!Xij_y_map[id].empty()){
-                                for(auto xi = 0; xi < Xij_y_map[id].size(); xi++){
-                                    cut_map[Xij_y_map[id][xi].first]+=eig_vector_m[i]*eig_vector_m[j]*(-2)*Xij_y_map[id][xi].second;
+                                else{
+                                    auto id=find(vec_id->begin(), vec_id->end(),pos)-vec_id->begin();
+                                    cut_map[X_id+id]+=eig_vector_m[i]*eig_vector_m[j]*(-2);
                                 }
-                                free_var = false;
                             }
-                            if(Xij_cons_map[id]!=0){
-                                coef_const += eig_vector_m[i]*eig_vector_m[j]*(-2)*Xij_cons_map[id];
-                                free_var = false;
-                            }
-                            if(free_var){
-                                cut_map[Xij_id+id]+=eig_vector_m[i]*eig_vector_m[j]*(-2);
-                            }
-                        }
                         }
                         auto last_key=cut_map.rbegin()->first;
                         cut_map[last_key+1]=coef_const;
