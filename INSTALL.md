@@ -45,7 +45,7 @@ For instance, I have the following:
 
 * `export MOSEK_ROOT_DIR="/Users/hh/mosek/8/tools/platform/osx64x86"`
 
-Note: If Cplex and Gurobi were installed using the standard installer, Cmake should automatically locate the latest version on your system, no need to add anything to your bash_profile.
+Note: If you are getting an `undefined reference to` when linking with Gurobi, check this [post](https://support.gurobi.com/hc/en-us/articles/360039093112-How-do-I-resolve-undefined-reference-errors-while-linking-Gurobi-in-C-). You might need to recompile the gurobi C++ API library.
 
 
 -------
