@@ -38,10 +38,10 @@ ${IPOPT_ROOT_DIR}/libgfortran-5.dll ${PROJECT_SOURCE_DIR}/bin/Release/libgfortra
 
 elseif(UNIX)
 file(READ "/etc/os-release" ETC_ISSUE)
-string(REGEX MATCH "Ubuntu|centos" DIST ${ETC_ISSUE})
+string(REGEX MATCH "Ubuntu|centos|Pop!_OS" DIST ${ETC_ISSUE})
 string(REGEX MATCH "CentOS Linux 8|CentOS Linux 7" Version ${ETC_ISSUE})
 
-if(DIST STREQUAL "Ubuntu")
+if(DIST STREQUAL "Ubuntu" OR DIST STREQUAL "Pop!_OS")
     message(STATUS ">>>> Found Ubuntu <<<<")
 set(IADES_DOWNLOAD_URL https://github.com/IDAES/idaes-ext/releases/download/2.4.1/idaes-solvers-ubuntu2004-64.tar.gz)
 elseif(DIST STREQUAL "centos")

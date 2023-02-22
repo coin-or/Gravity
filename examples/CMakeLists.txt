@@ -90,3 +90,5 @@ add_test(NAME gravity_test COMMAND gravity_test)
 # #target_link_libraries(microgid gravity)
 # # target_link_libraries(poolingub gravity)
 # # target_link_libraries(poolingsdp gravity)
+
+include(ONNX/CMakeLists.txt)

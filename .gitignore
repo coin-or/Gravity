@@ -1,0 +1,7 @@
+build
+data_sets
+include/gravity/GravityConfig.h
+thirdparty
+bin
+lib
+.vscode
