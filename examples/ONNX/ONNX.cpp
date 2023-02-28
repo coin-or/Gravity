@@ -4,8 +4,6 @@
 #include <cassert>
 #include <fstream>
 #include <spdlog/spdlog.h>
-#include <gravity/Node.h>
-#include <gravity/Net.h>
 #include <numeric>
 
 
@@ -28,7 +26,7 @@ int main(int argc, char** argv) {
 	std::vector<Layer*> layers;
 	std::map<std::string, Layer*> layers_by_output;
 
-	Net net;
+	NeuralNetwork net;
 
 	int layer_idx = 0;
 	for (auto& node: graph.node()) {
