@@ -22,6 +22,11 @@
 using namespace std;
 using namespace gravity;
 
+TEST_CASE("testing MISDP solvers"){
+    var<> x1("x1", -10, 150);
+    
+}
+
 TEST_CASE("testing range update"){
     var<> x1("x1", -10, 150);
     x1.in(R(3));

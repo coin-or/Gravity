@@ -1147,89 +1147,7 @@ vector<vector<double>> Model<type>::cutting_planes_square(double active_tol)
     return res;
     
 }
-/*Generates and creates a vector of cuts when any solution is violated by the model this . The curent model solution is set to obbt_solution and OA cuts are generated for the nonlinear constraints in the current model at the obbt_solution point. These cuts are added to model lin.
- @param[in] interior model: Model which can give interior point of current model
- @param[in] obbt_solution: Point at which constraints are linearized. For non-convex constraints that define a convex region, the point is shifted to an active point of that constraint and its instance
- @param[in] lin: Model to which linear cuts are added
- @param[in] nb_oacuts: When a cut is added nb_oacuts is incremented
- @param[in] active_tol: the obbt_solution x is said to violate a nonlinear constraint g in current model if abs(g(x))> active_tol */
-//vector<vector<double>> Model<type>::cutting_planes_solution(const Model<type>& interior, double active_tol, int soc_viol, int soc_added, int det_viol, int soc_found, int det_found, int det_added)
-template<typename type>
-template<typename T>
-vector<vector<double>> Model<type>::cutting_planes_square(double active_tol)
-{
-    
-    vector<double> xsolution(_nb_vars);
-    vector<double> xinterior(_nb_vars);
-    vector<double> xcurrent, c_val,xnow;
-    const double active_tol_sol=1e-9, zero_tol=1e-9;
-    double c0_val, scale=1.0, fk;
-    bool constr_viol=false, oa_cut=true, convex_region=true, add_new=false;
-    int nb_added_cuts = 0;
-    vector<vector<double>> res;
-    vector<double> cut;
-    
-    for (auto &con: _cons_vec)
-    {
-        DebugOn("con->_callback "<<con->_callback<<endl);
-        DebugOn("con->_name "<<con->_name<<endl);
-        if(con->_callback && (con->_name.find("squared")!=std::string::npos)) {
-            // if(con->_name!="limit_neg"){
-            auto cnb_inst=con->get_nb_inst();
-            con->uneval();
-            for(auto i=0;i<cnb_inst;i++){
-                oa_cut=false;
-                c0_val=0;
-                c_val.resize(con->_nb_vars,0);
-                auto cname=con->_name;
-                xcurrent=con->get_x(i);
-                
-                
-                //                con->eval_all();
-                //                DebugOff(con->_name<<"\t"<<con->eval(i)<<endl);
-                //                con->uneval();
-                fk=con->eval(i);
-                DebugOn("fk "<<fk<<endl);
-                if((fk >= active_tol && con->_ctype==leq) || (fk <= -active_tol && con->_ctype==geq)){
-                    constr_viol=true;
-                    vector<string> key;
-                    
-                    
-                    c_val.resize(2,0);
-                    
-                    
-                    //get_row_scaling(c_val, scale, oa_cut, zero_tol, 1e-9, 1000);
-                    
-                    int j=0;
-                    double cost=0;
-                    for (auto &v_p: con->get_vars()){
-                        auto vid=v_p.second.first->get_id() + v_p.second.first->get_id_inst(i);
-                        cut.push_back(vid);
-                        if(v_p.first.find("Lift")!=std::string::npos){
-                            c_val[j]=-1;
-                        }
-                        else{
-                            c_val[j]=2*xcurrent[j];
-                            c0_val-=xcurrent[j]*xcurrent[j];
-                        }
-                        cut.push_back(c_val[j]);
-                        j++;
-                    }
-                    cut.push_back(c0_val);
-                    res.push_back(cut);
-                    cut.clear();
-                    
-                    xcurrent.clear();
-                    
-                    c0_val=0;
-                    c_val.clear();
-                }
-            }
-        }
-    }
-    return res;
-    
-}
+
 template<typename type>
 template<typename T>
 vector<vector<double>> Model<type>::cutting_planes_eigen(const double active_tol)
@@ -1999,19 +1917,19 @@ vector<vector<double>> Model<type>::cuts_eigen_full(const double active_tol, int
                         double coef_const=0;
                         for(auto n=0;n<dim_full;n++){
                             free_var = true;
-                            if(!Xii_x_map[n].empty()){
+                            if(!Xii_x_map.empty() && !Xii_x_map[n].empty()){
                                 for(auto i = 0; i < Xii_x_map[n].size(); i++){
                                     cut_map[Xii_x_map[n][i].first]+=eig_vector_m[n]*eig_vector_m[n]*(-1)*Xii_x_map[n][i].second;
                                 }
                                 free_var = false;
                             }
-                            if(!Xii_y_map[n].empty()){
+                            if(!Xii_y_map.empty() && !Xii_y_map[n].empty()){
                                 for(auto i = 0; i < Xii_y_map[n].size(); i++){
                                     cut_map[Xii_y_map[n][i].first]+=eig_vector_m[n]*eig_vector_m[n]*(-1)*Xii_y_map[n][i].second;
                                 }
                                 free_var = false;
                             }
-                            if(Xii_cons_map[n]!=0){
+                            if(!Xii_cons_map.empty() && Xii_cons_map[n]!=0){
                                 coef_const += eig_vector_m[n]*eig_vector_m[n]*(-1)*Xii_cons_map[n];
                                 free_var = false;
                             }
@@ -2022,19 +1940,19 @@ vector<vector<double>> Model<type>::cuts_eigen_full(const double active_tol, int
                         for(auto i = 0; i<dim_off; i++){
                             free_var = true;
                             pos = vec_id->at(i);
-                            if(!Xij_x_map[i].empty()){
+                            if(!Xij_x_map.empty() && !Xij_x_map[i].empty()){
                                 for(auto xi = 0; xi < Xij_x_map[i].size(); xi++){
                                     cut_map[Xij_x_map[i][xi].first]+=eig_vector_m[pos.first]*eig_vector_m[pos.second]*(-2)*Xij_x_map[i][xi].second;
                                 }
                                 free_var = false;
                             }
-                            if(!Xij_y_map[i].empty()){
+                            if(!Xij_y_map.empty() && !Xij_y_map[i].empty()){
                                 for(auto xi = 0; xi < Xij_y_map[i].size(); xi++){
                                     cut_map[Xij_y_map[i][xi].first]+=eig_vector_m[pos.first]*eig_vector_m[pos.second]*(-2)*Xij_y_map[i][xi].second;
                                 }
                                 free_var = false;
                             }
-                            if(Xij_cons_map[i]!=0){
+                            if(!Xij_cons_map.empty() && Xij_cons_map[i]!=0){
                                 coef_const += eig_vector_m[pos.first]*eig_vector_m[pos.second]*(-2)*Xij_cons_map[i];
                                 free_var = false;
                             }

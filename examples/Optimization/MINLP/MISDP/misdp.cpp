@@ -11,6 +11,37 @@
 #include <Eigen/Dense>
 #include <Eigen/Eigenvalues>
 #include <fstream>
+#include <nlohmann/json.hpp>
+
+using json = nlohmann::json;
+
+
+vector<vector<int>> allPossibleSubset(int n)
+{
+    vector<vector<int>> res;
+    int count = pow(2, n);
+    // The outer for loop will run 2^n times to print all subset .
+    // Here variable i will act as a binary counter
+    for (int i = 0; i < count; i++) {
+        vector<int> v;
+        // The inner for loop will run n times ,
+        // As the maximum number of elements a set can have is n
+        // This loop will generate a subset
+        for (int j = 0; j < n; j++) {
+            // This if condition will check if jth bit in
+            // binary representation of  i  is set or not
+            // if the value of (i & (1 << j)) is not 0 ,
+            // include j in the current subset
+            // otherwise exclude j
+            if ((i & (1 << j)) != 0)
+                v.push_back(j+1);
+        }
+        if(v.size()>=3)
+            res.push_back(v);
+    }
+    return res;
+}
+
 
 /*returns matrix of dimension n-1, without row rowno and col colno*/
 vector<vector<double>> get_minor(vector<vector<double>>& X, int rowno, int colno, int n){
@@ -50,10 +81,142 @@ using namespace std;
 int main(int argc, char * argv[]){
     //string fname=string(prj_dir)+"/data_sets/MISDP/2x3_3bars.cbf";
     //string fname=string(prj_dir)+"/data_sets/MISDP/2x7_3bars.cbf";
-    string fname=string(prj_dir)+"/data_sets/MISDP/2x4_2scen_3bars.cbf";
+//    string fname=string(prj_dir)+"/data_sets/MISDP/2x4_2scen_3bars.cbf";
+    string fname=string(prj_dir)+"/data_sets/MISDP/8_1.json";
     //string fname=string(prj_dir)+"/data_sets/MISDP/coloncancer_1_100_5.cbf";
     //string fname=string(prj_dir)+"/data_sets/MISDP/2g_4_164_k3_5_6.cbf";
+    
+    if(argc>=2){
+        fname=argv[1];
+    }
+    
+    std::ifstream i(fname);
+    json e;
+    i >> e;
+    vector<pair<pair<int,int>,double>> edges_to_augment;
+    int num_nodes = e["num_nodes"];
+    DebugOn("Number of nodes = " << num_nodes << endl);
+    edges_to_augment.insert(end(edges_to_augment), begin(e["edges_to_augment"]), end(e["edges_to_augment"]));
+    DebugOn("Number of edges = " << edges_to_augment.size() << endl);
+    
+    /* Graph */
+    Net graph;
+    for (int i = 1; i <= num_nodes; i++) {
+        auto n = new Node(to_string(i));
+        graph.add_node(n);
+    }
+    int index = 0;
+    for (const auto &e:edges_to_augment) {
+        string src = to_string(e.first.first);
+        string dest = to_string(e.first.second);
+        double weight = e.second;
+        string name = src+","+dest;
+        auto arc = new Arc(name);
+        arc->_id = index++;
+        arc->_src = graph.get_node(src);
+        arc->_dest = graph.get_node(dest);
+        arc->_weight = weight;
+        arc->connect();
+        graph.add_arc(arc);
+    }
+    
+    /* Indices */
+    indices E = indices(graph.arcs);
+    indices N = indices(graph.nodes);
+    indices S("S"), E_S("E_S");
+    S = range(1,std::pow(2,num_nodes) - (num_nodes*(num_nodes-1))/2 - num_nodes - 1);/* excluding empty S, |S| = 1, and |S| = 2*/
+    param<> rhs("rhs");
+    rhs.in(S);
+    E_S = E;
+    int row_id = 0;
+    auto subsets = allPossibleSubset(num_nodes);
+    for (auto const &subset: subsets) {
+        E_S.add_empty_row();
+        rhs.set_val(row_id, subset.size()-1);
+        for (int i = 0; i<subset.size()-1; i++) {
+            for (int j = i+1; j<subset.size(); j++) {
+                E_S.add_in_row(row_id, to_string(subset[i])+","+to_string(subset[j]));
+            }
+        }
+        row_id++;
+    }
+    /* Map linking matrix entries to decision vars */
+    vector<vector<pair<int, double>>> Wij_gamma_map(E.size());
+    vector<vector<pair<int, double>>> Wii_gamma_map(N.size());
+    vector<vector<pair<int, double>>> Wij_x_map(E.size());
+    vector<vector<pair<int, double>>> Wii_x_map(N.size());
+    
 
+    
+    indices delta_i("delta_i");
+    delta_i = E;
+    for (int i = 0; i<num_nodes; i++) {
+        auto node = graph.nodes.at(i);
+        Wii_gamma_map[i].push_back({0,-(num_nodes-1.)/num_nodes});
+        delta_i.add_empty_row();
+        for (const Arc* a: node->get_out()) {
+            delta_i.add_in_row(i, a->_name);
+            Wii_x_map[i].push_back({a->_id,a->_weight});
+        }
+        for (const Arc* a: node->get_in()) {
+            delta_i.add_in_row(i, a->_name);
+        }
+    }
+    
+    /* Parameters*/
+    param<> w("w");
+    w.in(E);
+    index = 0;
+    for(const Arc* a: graph.arcs){
+        Wij_gamma_map[index].push_back({0,1./num_nodes});
+        Wij_x_map[index].push_back({a->_id,-a->_weight});
+        w.set_val(index++, a->_weight);
+    }
+
+    /* Model */
+    Model<> Laplacian("Laplacian");
+    
+    /* Variables */
+    var<int> x("x", 0, 1);
+    Laplacian.add(x.in(E));
+    var<> Wii("Wii", pos_);
+    Laplacian.add(Wii.in(N));
+    var<> Wij("Wij");
+    Laplacian.add(Wij.in(E));
+    var<> gamma("𝛾");
+    Laplacian.add(gamma.in(R(1)));
+    
+    /* Constraints */
+    
+    Constraint<> Wij_def("Wij_def");
+    Wij_def = Wij + w*x - (1./num_nodes)*gamma;
+    Laplacian.add(Wij_def.in(E) == 0);
+
+    Constraint<> Wii_def("Wii_def");
+    Wii_def = Wii - (w.in(delta_i)*x.in(delta_i) - (num_nodes-1.)/num_nodes*gamma);
+    Laplacian.add(Wii_def.in(N) == 0);
+    
+    Constraint<> NodeCut("NodeCut");
+    NodeCut = x.in(delta_i);
+    Laplacian.add(NodeCut.in(N) >= 1);
+    
+    Constraint<> Spanning_tree("Spanning_tree");
+    Spanning_tree = sum(x);
+    Laplacian.add(Spanning_tree == num_nodes - 1);
+    
+//    Constraint<> Subtour("Subtour");
+//    Subtour = x.in(E_S) - rhs;
+//    Laplacian.add(Subtour.in(S) <= 0);
+    Laplacian.make_PSD(Wii,Wij);
+    Laplacian.max(gamma);
+//    Laplacian.print();
+    solver<> sv(Laplacian,gurobi);
+    sv.run();
+    Laplacian.print_solution();
+    return 0;
+    
+    
+    
     bool root_refine = false;
     if(argc>=2){
         fname=argv[1];

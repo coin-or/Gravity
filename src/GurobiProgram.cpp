@@ -36,9 +36,9 @@ protected:
             bool incumbent=true;
             bool mipnode=true;
             bool hierarc = false;
-            bool add_full=false;
-            bool add_bag=true;
-            bool add_soc=true;
+            bool add_full=true;
+            bool add_bag=false;
+            bool add_soc=false;
             if(m->sdp_dual){
                 add_full=true;
             }
@@ -184,7 +184,8 @@ protected:
                                             expr += res2[i][j+1]*vars[c];
                                         }
                                         expr += res2[i][j];
-                                        addLazy(expr, GRB_LESS_EQUAL, 0);
+//                                        addLazy(expr, GRB_LESS_EQUAL, 0);
+                                        addCut(expr, GRB_LESS_EQUAL, 0);
                                         m->num_cuts[2]++;
                                     }
                                 }
@@ -415,27 +416,27 @@ bool GurobiProgram::solve(bool relax, double mipgap, double time_limit){
     else
         unrelax_model();
     //    relax_model();
-    grb_mod->set(GRB_DoubleParam_MIPGap, 1e-6);
-    grb_mod->set(GRB_DoubleParam_FeasibilityTol, 1e-9);
-    grb_mod->set(GRB_DoubleParam_OptimalityTol, 1e-6);
+//    grb_mod->set(GRB_DoubleParam_MIPGap, 1e-6);
+//    grb_mod->set(GRB_DoubleParam_FeasibilityTol, 1e-9);
+//    grb_mod->set(GRB_DoubleParam_OptimalityTol, 1e-6);
     // grb_mod->set(GRB_IntParam_StartNodeLimit, -3);
     //    grb_mod->getEnv().set(GRB_IntParam_DualReductions, 0);
     //    grb_mod->getEnv().set(GRB_IntParam_PreCrush, 1);
     //        grb_mod->getEnv().set(GRB_IntParam_Method, 1);
     //    grb_mod->getEnv().set(GRB_IntParam_NodeMethod, 1);
     grb_mod->getEnv().set(GRB_IntParam_LazyConstraints, 1);
-    grb_mod->set(GRB_IntParam_Threads, 8);
-    grb_mod->set(GRB_DoubleParam_IntFeasTol, 1e-9);
+//    grb_mod->set(GRB_IntParam_Threads, 8);
+//    grb_mod->set(GRB_DoubleParam_IntFeasTol, 1e-9);
     //       grb_mod->set(GRB_IntParam_NumericFocus,3);
     //     grb_mod->set(GRB_IntParam_PreCrush,0);
-     grb_mod->set(GRB_IntParam_MIPFocus,3);
+//     grb_mod->set(GRB_IntParam_MIPFocus,3);
     //    grb_mod->set(GRB_IntParam_IntegralityFocus,1);
     //grb_mod->set(GRB_IntParam_MIPFocus,1);
     //    grb_mod->set(GRB_IntParam_PumpPasses,50);
     //    grb_mod->set(GRB_IntParam_RINS,1000);
     //    grb_mod->set(GRB_IntParam_Cuts,0);
     
-    grb_mod->set(GRB_DoubleParam_TimeLimit,14300);
+    grb_mod->set(GRB_DoubleParam_TimeLimit,600);
     grb_mod->set(GRB_IntParam_OutputFlag,1);
     //grb_mod->set(GRB_DoubleParam_Cutoff,5.33);
     //  grb_mod->set(GRB_IntParam_MinRelNodes,0);
