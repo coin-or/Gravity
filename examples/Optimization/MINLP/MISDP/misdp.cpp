@@ -140,23 +140,14 @@ int main(int argc, char * argv[]){
         }
         row_id++;
     }
-    /* Map linking matrix entries to decision vars */
-    vector<vector<pair<int, double>>> Wij_gamma_map(E.size());
-    vector<vector<pair<int, double>>> Wii_gamma_map(N.size());
-    vector<vector<pair<int, double>>> Wij_x_map(E.size());
-    vector<vector<pair<int, double>>> Wii_x_map(N.size());
-    
-
     
     indices delta_i("delta_i");
     delta_i = E;
     for (int i = 0; i<num_nodes; i++) {
         auto node = graph.nodes.at(i);
-        Wii_gamma_map[i].push_back({0,-(num_nodes-1.)/num_nodes});
         delta_i.add_empty_row();
         for (const Arc* a: node->get_out()) {
             delta_i.add_in_row(i, a->_name);
-            Wii_x_map[i].push_back({a->_id,a->_weight});
         }
         for (const Arc* a: node->get_in()) {
             delta_i.add_in_row(i, a->_name);
@@ -168,8 +159,6 @@ int main(int argc, char * argv[]){
     w.in(E);
     index = 0;
     for(const Arc* a: graph.arcs){
-        Wij_gamma_map[index].push_back({0,1./num_nodes});
-        Wij_x_map[index].push_back({a->_id,-a->_weight});
         w.set_val(index++, a->_weight);
     }
 
@@ -177,14 +166,15 @@ int main(int argc, char * argv[]){
     Model<> Laplacian("Laplacian");
     
     /* Variables */
+    var<> gamma("𝛾");
+    Laplacian.add(gamma.in(R(1)));
     var<int> x("x", 0, 1);
     Laplacian.add(x.in(E));
     var<> Wii("Wii", pos_);
     Laplacian.add(Wii.in(N));
     var<> Wij("Wij");
     Laplacian.add(Wij.in(E));
-    var<> gamma("𝛾");
-    Laplacian.add(gamma.in(R(1)));
+    
     
     /* Constraints */
     
@@ -207,9 +197,47 @@ int main(int argc, char * argv[]){
 //    Constraint<> Subtour("Subtour");
 //    Subtour = x.in(E_S) - rhs;
 //    Laplacian.add(Subtour.in(S) <= 0);
+    
     Laplacian.make_PSD(Wii,Wij);
-    Laplacian.max(gamma);
-//    Laplacian.print();
+//    Laplacian.max(gamma);
+    
+    double coef_ij = num_nodes/(2.*E.size());
+//    Laplacian.max(coef*(sum(Wij) + product(w,x)));
+    double coef_i = 1./(2*(num_nodes - 1));
+    Laplacian.max(coef_i*(2.*product(w,x) - sum(Wii)) + coef_ij*(sum(Wij) + product(w,x)));
+    
+    
+    /* Map linking matrix entries to decision vars */
+    vector<vector<pair<int, double>>> Wij_gamma_map(E.size());
+    vector<vector<pair<int, double>>> Wii_gamma_map(N.size());
+    vector<vector<pair<int, double>>> Wij_x_map(E.size());
+    vector<vector<pair<int, double>>> Wii_x_map(N.size());
+    
+
+    
+    for (int i = 0; i<num_nodes; i++) {
+        auto node = graph.nodes.at(i);
+        Wii_gamma_map[i].push_back({0,-(num_nodes-1.)/num_nodes});
+        for (const Arc* a: node->get_out()) {
+            Wii_x_map[i].push_back({a->_id+1,a->_weight});
+        }
+        for (const Arc* a: node->get_in()) {
+            Wii_x_map[i].push_back({a->_id+1,a->_weight});
+        }
+    }
+    
+    index = 0;
+    for(const Arc* a: graph.arcs){
+        Wij_gamma_map[index].push_back({0,1./num_nodes});
+        Wij_x_map[index].push_back({a->_id+1,-a->_weight});
+        index++;
+    }
+    
+    Laplacian.Xii_x_map = Wii_gamma_map;
+    Laplacian.Xij_x_map = Wij_gamma_map;
+    Laplacian.Xii_y_map = Wii_x_map;
+    Laplacian.Xij_y_map = Wij_x_map;
+    Laplacian.print();
     solver<> sv(Laplacian,gurobi);
     sv.run();
     Laplacian.print_solution();

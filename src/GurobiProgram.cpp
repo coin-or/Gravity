@@ -34,7 +34,7 @@ protected:
     void callback() {
         try {
             bool incumbent=true;
-            bool mipnode=true;
+            bool mipnode=false;
             bool hierarc = false;
             bool add_full=true;
             bool add_bag=false;
@@ -184,8 +184,8 @@ protected:
                                             expr += res2[i][j+1]*vars[c];
                                         }
                                         expr += res2[i][j];
-//                                        addLazy(expr, GRB_LESS_EQUAL, 0);
-                                        addCut(expr, GRB_LESS_EQUAL, 0);
+                                        addLazy(expr, GRB_LESS_EQUAL, 0);
+//                                        addCut(expr, GRB_LESS_EQUAL, 0);
                                         m->num_cuts[2]++;
                                     }
                                 }
@@ -248,19 +248,19 @@ protected:
                     }
                     m->set_solution(vec_x);
                     if(  true ){
-                        auto res1=m->cutting_planes_square(1e-6);
-                        if(res1.size()>=1){
-                            for(auto i=0;i<res1.size();i++){
-                                GRBLinExpr expr = 0;
-                                int j=0;
-                                for(j=0;j<res1[i].size()-1;j+=2){
-                                    int c=res1[i][j];
-                                    expr += res1[i][j+1]*vars[c];
-                                }
-                                expr+=res1[i][j];
-                                addLazy(expr, GRB_LESS_EQUAL, 0);
-                            }
-                        }
+//                        auto res1=m->cutting_planes_square(1e-6);
+//                        if(res1.size()>=1){
+//                            for(auto i=0;i<res1.size();i++){
+//                                GRBLinExpr expr = 0;
+//                                int j=0;
+//                                for(j=0;j<res1[i].size()-1;j+=2){
+//                                    int c=res1[i][j];
+//                                    expr += res1[i][j+1]*vars[c];
+//                                }
+//                                expr+=res1[i][j];
+//                                addLazy(expr, GRB_LESS_EQUAL, 0);
+//                            }
+//                        }
                         
                         if(true){
                             m->set_solution(vec_x);
@@ -425,7 +425,7 @@ bool GurobiProgram::solve(bool relax, double mipgap, double time_limit){
     //        grb_mod->getEnv().set(GRB_IntParam_Method, 1);
     //    grb_mod->getEnv().set(GRB_IntParam_NodeMethod, 1);
     grb_mod->getEnv().set(GRB_IntParam_LazyConstraints, 1);
-//    grb_mod->set(GRB_IntParam_Threads, 8);
+    grb_mod->set(GRB_IntParam_Threads, 1);
 //    grb_mod->set(GRB_DoubleParam_IntFeasTol, 1e-9);
     //       grb_mod->set(GRB_IntParam_NumericFocus,3);
     //     grb_mod->set(GRB_IntParam_PreCrush,0);
@@ -1104,7 +1104,7 @@ void GurobiProgram::set_grb_objective(){
     qobj = 0;
     for (auto& it1: _model->_obj->get_lterms()) {
         lterm = 0;
-        if (it1.second._coef->_is_transposed || it1.second._coef->is_matrix() || it1.second._p->is_matrix_indexed()) {
+        if (it1.second._p->_is_vector || it1.second._coef->is_matrix() || it1.second._p->is_matrix_indexed()) {
             auto dim = it1.second._p->get_dim(0);
             for (size_t j = 0; j<dim; j++) {
                 coeff = _model->_obj->eval(it1.second._coef,0,j);

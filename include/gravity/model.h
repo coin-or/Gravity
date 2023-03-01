@@ -241,7 +241,7 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
         vector<double>                                       Xij_cons_map;
         vector<double>                                       Xii_cons_map;
         bool                                                 sdp_dual=false;
-        bool                                                 _complex;
+        bool                                                 _complex = false;
          template<typename T=type>
         void merge_vars(const shared_ptr<expr<T>>& e, bool share_bounds = false){/**<  Transfer all variables and parameters to the model. */
             switch (e->get_type()) {
