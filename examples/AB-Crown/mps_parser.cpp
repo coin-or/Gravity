@@ -4,6 +4,7 @@
 #include <sstream>
 #include <string>
 #include <map>
+#include <set>
 
 class MPSData {
 public:
@@ -23,9 +24,22 @@ public:
 	MPSData() {}
 };
 
+bool read_line(std::ifstream& infile, std::string& line) {
+	// Read a line and return true if it is not a comment
+	// Comments are lines that start with a '*' or a '$'
+	while (std::getline(infile, line)) {
+		if (line[0] != '*' && line[0] != '$') {
+			return true;
+		}
+	}
+	return false;
+}
+
 void read_name(std::ifstream& infile, MPSData& mps_data) {
+	spdlog::info("Reading NAME");
+
 	std::string line, _field;
-	std::getline(infile, line);
+	read_line(infile, line);
 
 	if (line.find("NAME") == std::string::npos) {
 		spdlog::error("NAME not found");
@@ -37,44 +51,39 @@ void read_name(std::ifstream& infile, MPSData& mps_data) {
 }
 
 void read_obj_sense(std::ifstream& infile, MPSData& mps_data) {
+	spdlog::info("Reading OBJSENSE");
+
 	std::string line, _field;
-	std::getline(infile, line);
+	read_line(infile, line);
 
-	if (line.find("OBJSENSE") == std::string::npos) {
-		spdlog::error("OBJSENSE not found");
-		exit(1);
+	if (line.find("OBJSENSE") != std::string::npos) {
+		std::istringstream iss{line};
+		iss >> _field >> mps_data.objsense;
 	}
-
-	std::istringstream iss{line};
-	iss >> _field >> mps_data.objsense;
 }
 
 void read_rows(std::ifstream& infile, MPSData& mps_data) {
+	spdlog::info("Reading ROWS");
+
 	std::string line;
-	std::string a, b, c, d, e, f;
+	std::string ctype, cname, priority, weight, reltol, abstol;
 
 	// skip rows header
-	std::getline(infile, line);
+	read_line(infile, line);
 
-	while (std::getline(infile, line))
+	while (read_line(infile, line) && !line.empty() && line[0] == ' ')
 	{
-		if (
-			(line.find("COLUMNS") == 0)  ||
-			(line.find("LAZYCONS") == 0) ||
-			(line.find("USERCUTS") == 0)
-		) {
-			break;
-		}
-		// a: constraint type
-		// b: constraint name
 	    std::istringstream iss(line);
-	   	iss >> a >> b >> c >> d >> e >> f;
+	   	iss >> ctype >> cname >> priority >> weight >> reltol >> abstol;
+		spdlog::debug("ctype: {}, cname: {}", ctype, cname);
 
 		// if f is not empty, then we are reading a multi-objective cost
-		if (!f.empty()) {
-			mps_data.multi_objective_rows.push_back(std::make_tuple(a, b, c, d, e, f));
+		if (!abstol.empty()) {
+			mps_data.multi_objective_rows.push_back(
+				std::make_tuple(ctype, cname, priority, weight, reltol, abstol)
+			);
 		} else {
-			mps_data.rows.push_back(std::make_tuple(a, b));
+			mps_data.rows.push_back(std::make_tuple(ctype, cname));
 		}
 	}
 
@@ -83,35 +92,35 @@ void read_rows(std::ifstream& infile, MPSData& mps_data) {
 }
 
 void read_columns(std::ifstream& infile, MPSData& mps_data) {
+	spdlog::info("Reading COLUMNS");
+
 	std::string line;
-	std::string col_name, row;
+	std::string col, row;
 	float coeff;
 
 	bool integrality = false;
-	while (std::getline(infile, line) && line.find("RHS") != 0)
+
+	// skip columns header
+	read_line(infile, line);
+	while (read_line(infile, line) && !line.empty() && line[0] == ' ')
 	{
 		// Check if we are entering or exiting the integrality section
 		if (line.find("'MARKER'") != std::string::npos) {
 			if (line.find("'INTORG'") != std::string::npos) {
-				spdlog::info("Entering integrality section");
 				integrality = true;
 				continue;
 			} else if (line.find("'INTEND'") != std::string::npos) {
-				spdlog::info("Exiting integrality section");
 				integrality = false;
 				continue;
 			}
 		}
 
 	    std::istringstream iss(line);
-	   	iss >> col_name;
-
-		spdlog::info("Column: {}", col_name);
+	   	iss >> col;
 
 		// 0, 1, or 2 coefficients
 		while (iss >> row >> coeff) {
-			mps_data.columns[col_name].push_back(std::make_tuple(row, coeff, integrality));
-			spdlog::info("\tRow: {}, coeff: {}, Integrality: {}", row, coeff, integrality);
+			mps_data.columns[col].push_back(std::make_tuple(row, coeff, integrality));
 		}
 	}
 
@@ -120,29 +129,22 @@ void read_columns(std::ifstream& infile, MPSData& mps_data) {
 }
 
 void read_rhs(std::ifstream& infile, MPSData& mps_data) {
+	spdlog::info("Reading RHS");
+
 	std::string line;
 	std::string _rhs_name, row;
 	float coeff;
 
 	// skip rhs header
-	std::getline(infile, line);
-	while (std::getline(infile, line))
+	read_line(infile, line);
+	while (read_line(infile, line) && !line.empty() && line[0] == ' ')
 	{
-		if (
-			(line.find("BOUNDS") == 0) ||
-			(line.find("ENDATA") == 0)
-		) {
-			break;
-		}
-
 	    std::istringstream iss(line);
 	   	iss >> _rhs_name;
 
-		spdlog::info("RHS: {}", _rhs_name);
 		// 1 or 2 rhs values
 		while (iss >> row >> coeff) {
 			mps_data.rhs.push_back(std::make_tuple(row, coeff));
-			spdlog::info("\tRow: {}, coeff: {}", row, coeff);
 		}
 	}
 
@@ -151,29 +153,17 @@ void read_rhs(std::ifstream& infile, MPSData& mps_data) {
 }
 
 void read_bounds(std::ifstream& infile, MPSData& mps_data) {
+	spdlog::info("Reading BOUNDS");
+
 	std::string line;
 	std::string bound_type, _bound_name, var_name, bound_val;
 
 	// skip bounds header
-	std::getline(infile, line);
-	while (std::getline(infile, line))
+	read_line(infile, line);
+	while (read_line(infile, line) && !line.empty() && line[0] == ' ')
 	{
-		if (
-			(line.find("QUADOBJ") == 0)    ||
-			(line.find("QCMATRIX") == 0)   ||
-			(line.find("PWLOBJ") == 0)     ||
-			(line.find("SOS") == 0)        ||
-			(line.find("INDICATORS") == 0) ||
-			(line.find("GENCONS") == 0)    ||
-			(line.find("SCENARIOS") == 0)  ||
-			(line.find("ENDATA") == 0)
-		) {
-			break;
-		}
-
 	    std::istringstream iss(line);
 		iss >> bound_type >> _bound_name >> var_name >> bound_val;
-		spdlog::info("Bound: {}, {}, {}, {}", bound_type, _bound_name, var_name, bound_val);
 	}
 
 	// Rewind to previous line
@@ -202,7 +192,6 @@ int main(int argc, char** argv) {
 	while (true)
 	{
 		line = read_rewind(infile);
-		spdlog::info("Line: {}", line);
 
 		if (line.find("NAME") == 0) {
 			read_name(infile, mps_data);
