@@ -1,10 +1,10 @@
 
 #include <fstream>
+#include <map>
+#include <set>
 #include <spdlog/spdlog.h>
 #include <sstream>
 #include <string>
-#include <map>
-#include <set>
 
 const std::set<std::string> ROW_TYPES = {
 	"N", // free row, first instance is objective function
@@ -49,10 +49,8 @@ public:
 
 			if (line.find("NAME") == 0) {
 				this->read_name();
-				spdlog::info("Found NAME: {}", this->name);
 			} else if (line.find("OBJSENSE") == 0) {
 				this->read_obj_sense();
-				spdlog::info("Found OBJSENSE: {}", this->objsense);
 			} else if (line.find("ROWS") == 0) {
 				read_rows();
 			} else if (line.find("COLUMNS") == 0) {
@@ -109,7 +107,7 @@ private:
 
 std::string MPSReader::read_rewind() {
 	std::string line;
-	std::getline(this->infile, line);
+	this->read_line(line);
 	this->rewind_line(line);
 	return line;
 }
@@ -129,8 +127,7 @@ bool MPSReader::read_line(std::string& line) {
 }
 
 void MPSReader::read_name() {
-	spdlog::info("Reading NAME");
-
+	spdlog::info("----- NAME -----");
 	std::string line, _field;
 	this->read_line(line);
 
@@ -141,20 +138,22 @@ void MPSReader::read_name() {
 
 	std::istringstream iss{line};
 	iss >> _field >> this->name;
+
+	spdlog::info("\tProblem name: {}", this->name);
 }
 
 void MPSReader::read_obj_sense() {
-	spdlog::info("Reading OBJSENSE");
-
+	spdlog::info("----- OBJSENSE -----");
 	std::string line, _field;
 	this->read_line(line);
 
 	std::istringstream iss{line};
 	iss >> _field >> this->objsense;
+	spdlog::info("\tObjective sense: {}", this->objsense);
 }
 
 void MPSReader::read_rows() {
-	spdlog::info("Reading ROWS");
+	spdlog::info("----- ROWS -----");
 
 	std::string line;
 	bool found_obj = false;
@@ -183,9 +182,11 @@ void MPSReader::read_rows() {
 		if (ctype == "N" && !found_obj) {
 			this->obj_fn = cname;
 			found_obj = true;
+			spdlog::info("\tObjective function: {}", cname);
 		}
 
 		this->rows.push_back(std::make_tuple(ctype, cname));
+		spdlog::info("\t{} {}", ctype, cname);
 	}
 	this->rewind_line(line);
 
@@ -196,7 +197,7 @@ void MPSReader::read_rows() {
 }
 
 void MPSReader::read_columns() {
-	spdlog::info("Reading COLUMNS");
+	spdlog::info("----- COLUMNS -----");
 
 	std::string line;
 	bool is_integer = false;
@@ -228,6 +229,7 @@ void MPSReader::read_columns() {
 		// 0, 1, or 2 coefficients
 		while (iss >> row >> coeff) {
 			this->columns[col].push_back(std::make_tuple(row, coeff, is_integer));
+			spdlog::info("\t{} {} {}", col, row, coeff);
 		}
 	}
 
@@ -235,7 +237,7 @@ void MPSReader::read_columns() {
 }
 
 void MPSReader::read_rhs() {
-	spdlog::info("Reading RHS");
+	spdlog::info("----- RHS -----");
 
 	std::string line;
 
@@ -257,6 +259,7 @@ void MPSReader::read_rhs() {
 			}
 
 			this->rhs.push_back(std::make_tuple(row, coeff));
+			spdlog::info("\t{} {}", row, coeff);
 		}
 	}
 
@@ -265,7 +268,7 @@ void MPSReader::read_rhs() {
 }
 
 void MPSReader::read_bounds() {
-	spdlog::info("Reading BOUNDS");
+	spdlog::info("----- BOUNDS -----");
 
 	std::string line;
 	std::string bound_type, _bound_name, var_name, bound_val;
@@ -274,25 +277,25 @@ void MPSReader::read_bounds() {
 	this->read_line(line);
 	while (this->read_line(line) && !line.empty() && line[0] == ' ')
 	{
-		spdlog::info("Line: {}", line);
 	    std::istringstream iss(line);
 		iss >> bound_type >> _bound_name >> var_name >> bound_val;
-		spdlog::info("Bound type: {}, Bound name: {}, Var name: {}, Bound val: {}", bound_type, _bound_name, var_name, bound_val);
 
 		if (BOUND_TYPES.count(bound_type) == 0) {
 			spdlog::error("Unknown bound type: {}", bound_type);
 			exit(1);
 		}
 
+		spdlog::info("\t{} {} {}", bound_type, var_name, bound_val);
+
 		this->bounds.push_back(std::make_tuple(bound_type, var_name, std::stod(bound_val)));
 	}
 
 	// Rewind to previous line
-	this->infile.seekg(-(line.size() + 1), std::ios_base::cur);
+	this->rewind_line(line);
 }
 
 int main(int argc, char** argv) {
-	MPSReader mps_data("/home/haydnj/Documents/Gravity/out.mps");
+	MPSReader mps_data("/home/haydnj/Documents/Gravity/simple.mps");
 	mps_data.parse();
 
 	return 0;
