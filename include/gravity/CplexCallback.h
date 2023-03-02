@@ -76,7 +76,7 @@ public:
             }
         }
         /* SDP CUTS */
-        auto res2=_model->cuts_eigen_full(1e-9);
+        auto res2=_model->cuts_eigen_full(1e-6);
         if(res2.size()>=1){
             for(auto i=0;i<std::min(res2.size(),(size_t)cutLhs.getSize());i++){
                 IloNumExpr cc(*env);
@@ -152,6 +152,8 @@ public:
                         _models[threadNo]->_vars[i]->set_double_val(j,context.getCandidatePoint(_cplex_vars->at(i)[j]));
                     }
                 }
+                _models[threadNo]->print_solution();
+                _models[threadNo]->print_int_solution();
                 break;
             case IloCplex::Callback::Context::Id::Relaxation:
                 for (auto i = 0; i < _cplex_vars->size(); i++) {

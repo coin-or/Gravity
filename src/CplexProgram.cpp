@@ -54,7 +54,7 @@ bool CplexProgram::solve(bool relax, double mipgap) {
         }
 //        _cplex->exportModel("lpex.lp");
 
-        int numThreads = 1;
+        int numThreads = 2;
         
         size_t idx = 0, idx_inst = 0, idx1 = 0, idx2 = 0, idx_inst1 = 0, idx_inst2 = 0, nb_inst = 0, inst = 0;
     //    size_t c_idx_inst = 0;
@@ -113,9 +113,11 @@ bool CplexProgram::solve(bool relax, double mipgap) {
 //        int numThreads = _cplex->getNumCores();
         auto cplex_callback  = CplexCallback(numThreads,_model,make_shared<vector<IloNumVarArray>>(_cplex_vars));
         cplex_callback.set_nb_cuts(100000);
-        CPXLONG contextmask = IloCplex::Callback::Context::Id::Candidate
+        CPXLONG contextmask =  IloCplex::Callback::Context::Id::Candidate
                               | IloCplex::Callback::Context::Id::ThreadUp
                               | IloCplex::Callback::Context::Id::ThreadDown;
+        /* Uncomment line below to generate cuts on continuous relaxation */
+//        contextmask = contextmask | IloCplex::Callback::Context::Id::Relaxation;
         _cplex->use(&cplex_callback, contextmask);
         /* Done with callback */
         _cplex->solve();
