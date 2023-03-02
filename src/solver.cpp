@@ -1461,13 +1461,13 @@ vector<vector<double>> Model<type>::cutting_planes_eigen(const double active_tol
 //}
 template<typename type>
 template<typename T>
-vector<vector<double>> Model<type>::cuts_eigen_bags(const double active_tol, int nb_cuts)
+vector<vector<pair<pair<size_t,size_t>,double>>> Model<type>::cuts_eigen_bags(const double active_tol, int nb_cuts)
 {
     
-    vector<vector<double>> res;
+    vector<vector<pair<pair<size_t,size_t>,double>>> res;
     shared_ptr<Eigen::MatrixXd> mat_full;
     size_t X_id, Xii_id, Xij_id;
-    shared_ptr<vector<pair<int,int>>> vec_id;
+    shared_ptr<vector<pair<size_t,size_t>>> vec_id;
     shared_ptr<var<double>> X, Xii, Xij;
     for(auto it:_vars){
         auto v = it.second;
@@ -1525,8 +1525,8 @@ vector<vector<double>> Model<type>::cuts_eigen_bags(const double active_tol, int
                 es.compute(mat_bag);
                 for(auto m=0;m<nb_cuts;m++){
                     if(es.eigenvalues()[m]<=-active_tol){
-                        vector<double> cut, eig_vector_m;
-                        map<size_t, double> cut_map;
+                        vector<double> eig_vector_m;
+                        vector<pair<pair<size_t,size_t>, double>> cut_vec, scaled_cut;
                         for(auto n=0;n<dim;n++){
                             if(std::abs(es.eigenvectors().col(m)[n])<=1e-5)
                                 eig_vector_m.push_back(0);
@@ -1541,13 +1541,13 @@ vector<vector<double>> Model<type>::cuts_eigen_bags(const double active_tol, int
                                 int id=b.second->at(n);
                                 if(!Xii_x_map[id].empty()){
                                     for(auto i = 0; i < Xii_x_map[id].size(); i++){
-                                        cut_map[Xii_x_map[id][i].first]+=eig_vector_m[n]*eig_vector_m[n]*(-1)*Xii_x_map[id][i].second;
+                                        cut_vec.push_back({Xii_x_map[id][i].first, eig_vector_m[n]*eig_vector_m[n]*(-1)*Xii_x_map[id][i].second});
                                     }
                                     free_var = false;
                                 }
                                 if(!Xii_y_map[id].empty()){
                                     for(auto i = 0; i < Xii_y_map[id].size(); i++){
-                                        cut_map[Xii_y_map[id][i].first]+=eig_vector_m[n]*eig_vector_m[n]*(-1)*Xii_y_map[id][i].second;
+                                        cut_vec.push_back({Xii_y_map[id][i].first, eig_vector_m[n]*eig_vector_m[n]*(-1)*Xii_y_map[id][i].second});
                                     }
                                     free_var = false;
                                 }
@@ -1556,12 +1556,12 @@ vector<vector<double>> Model<type>::cuts_eigen_bags(const double active_tol, int
                                     free_var = false;
                                 }
                                 if(free_var){
-                                    cut_map[Xii_id+id]+=eig_vector_m[n]*eig_vector_m[n]*(-1);
+                                    cut_vec.push_back({{Xii_id,id}, eig_vector_m[n]*eig_vector_m[n]*(-1)});
                                 }
                             }
-                            else{
+                            else{/* Not sure about this else */
                                 auto id=find(vec_id->begin(), vec_id->end(), make_pair<>(b.second->at(n), b.second->at(n)))-vec_id->begin();
-                                cut_map[X_id+id]+=eig_vector_m[n]*eig_vector_m[n]*(-1);
+                                cut_vec.push_back({{X_id,id},eig_vector_m[n]*eig_vector_m[n]*(-1)});
                             }
                         }
                         count=0;
@@ -1574,13 +1574,13 @@ vector<vector<double>> Model<type>::cuts_eigen_bags(const double active_tol, int
                                     int id=Xij->get_keys_map()->at(key);
                                     if(!Xij_x_map[id].empty()){
                                         for(auto xi = 0; xi < Xij_x_map[id].size(); xi++){
-                                            cut_map[Xij_x_map[id][xi].first]+=eig_vector_m[i]*eig_vector_m[j]*(-2)*Xij_x_map[id][xi].second;
+                                            cut_vec.push_back({Xij_x_map[id][xi].first, eig_vector_m[i]*eig_vector_m[j]*(-2)*Xij_x_map[id][xi].second});
                                         }
                                         free_var = false;
                                     }
                                     if(!Xij_y_map[id].empty()){
                                         for(auto xi = 0; xi < Xij_y_map[id].size(); xi++){
-                                            cut_map[Xij_y_map[id][xi].first]+=eig_vector_m[i]*eig_vector_m[j]*(-2)*Xij_y_map[id][xi].second;
+                                            cut_vec.push_back({Xij_y_map[id][xi].first, eig_vector_m[i]*eig_vector_m[j]*(-2)*Xij_y_map[id][xi].second});
                                         }
                                         free_var = false;
                                     }
@@ -1589,23 +1589,22 @@ vector<vector<double>> Model<type>::cuts_eigen_bags(const double active_tol, int
                                         free_var = false;
                                     }
                                     if(free_var){
-                                        cut_map[Xij_id+id]+=eig_vector_m[i]*eig_vector_m[j]*(-2);
+                                        cut_vec.push_back({{Xij_id,id}, eig_vector_m[i]*eig_vector_m[j]*(-2)});
                                     }
                                 }
                                 else{
                                     auto id=find(vec_id->begin(), vec_id->end(),pos)-vec_id->begin();
-                                    cut_map[X_id+id]+=eig_vector_m[i]*eig_vector_m[j]*(-2);
+                                    cut_vec.push_back({{X_id,id}, eig_vector_m[i]*eig_vector_m[j]*(-2)});
                                 }
                             }
                         }
-                        auto last_key=cut_map.rbegin()->first;
-                        cut_map[last_key+1]=coef_const;
-                        auto res_cut= scale_cut(active_tol,  cut_map, cut);
+                        cut_vec.push_back({{-1,-1},coef_const});
+                        auto res_cut= scale_cut(active_tol,  cut_vec, scaled_cut);
                         if(res_cut){
-                            res.push_back(cut);
+                            res.push_back(scaled_cut);
                         }
-                        cut.clear();
-                        cut_map.clear();
+                        scaled_cut.clear();
+                        cut_vec.clear();
                     }
                     else{
                         break;
@@ -1816,9 +1815,9 @@ vector<vector<double>> Model<type>::cuts_eigen_bags_primal_complex(const double 
 
 template<typename type>
 template<typename T>
-vector<vector<double>> Model<type>::cuts_eigen_full(const double active_tol, int nb_cuts)
+vector<vector<pair<pair<size_t,size_t>,double>>> Model<type>::cuts_eigen_full(const double active_tol, int nb_cuts)
 {
-    vector<vector<double>> res;
+    vector<vector<pair<pair<size_t,size_t>,double>>> res;
     double c0_val=0;
     int nb_added_cuts = 0;
     for (auto &it: _vars)
@@ -1842,8 +1841,8 @@ vector<vector<double>> Model<type>::cuts_eigen_full(const double active_tol, int
                 es1.compute(*mat_full);
                 for(auto m=0;m<nb_cuts;m++){
                     if(es1.eigenvalues()[m]<=-active_tol){
-                        map<size_t, double> cut_map;
-                        vector<double> eig_vector_m, cut;
+                        vector<pair<pair<size_t,size_t>, double>> cut_vec, scaled_cut;
+                        vector<double> eig_vector_m;
                         cost=0;
                         for(auto n=0;n<dim_full;n++){
                             if(std::abs(es1.eigenvectors().col(m)[n])<=1e-5){
@@ -1856,20 +1855,19 @@ vector<vector<double>> Model<type>::cuts_eigen_full(const double active_tol, int
                         for(auto n=0;n<dim_full;n++){
                             pos = vec_id->at(n);
                             if(pos.first==pos.second){// diagonal entry
-                                cut_map[X_id+n]=eig_vector_m[pos.first]*eig_vector_m[pos.second]*(-1);
+                                cut_vec.push_back({{X_id,n},eig_vector_m[pos.first]*eig_vector_m[pos.second]*(-1)});
                             }
                             else {
-                                cut_map[X_id+n]=eig_vector_m[pos.first]*eig_vector_m[pos.second]*(-2);
+                                cut_vec.push_back({{X_id,n},eig_vector_m[pos.first]*eig_vector_m[pos.second]*(-2)});
                             }
                         }
-                        auto last_key=cut_map.rbegin()->first;
-                        cut_map[last_key+1]=0.0;
-                        auto res_cut= scale_cut(active_tol,  cut_map, cut);
+                        cut_vec.push_back({{-1,-1},0.0});/* Constant part of cut*/
+                        auto res_cut= scale_cut(active_tol,  cut_vec, scaled_cut);
                         if(res_cut){
-                            res.push_back(cut);
+                            res.push_back(scaled_cut);
                         }
-                        cut.clear();
-                        cut_map.clear();
+                        scaled_cut.clear();
+                        cut_vec.clear();
                     }
                     else{
                         break;
@@ -1903,8 +1901,8 @@ vector<vector<double>> Model<type>::cuts_eigen_full(const double active_tol, int
                 es1.compute(*mat_full);
                 for(auto m=0;m<nb_cuts;m++){
                     if(es1.eigenvalues()[m]<=-active_tol){
-                        map<size_t, double> cut_map;
-                        vector<double> eig_vector_m, cut;
+                        vector<pair<pair<size_t,size_t>, double>> cut_vec, scaled_cut;
+                        vector<double> eig_vector_m;
                         for(auto n=0;n<dim_full;n++){
                             if(std::abs(es1.eigenvectors().col(m)[n])<=1e-5){
                                 eig_vector_m.push_back(0.0);
@@ -1919,13 +1917,13 @@ vector<vector<double>> Model<type>::cuts_eigen_full(const double active_tol, int
                             free_var = true;
                             if(!Xii_x_map.empty() && !Xii_x_map[n].empty()){
                                 for(auto i = 0; i < Xii_x_map[n].size(); i++){
-                                    cut_map[Xii_x_map[n][i].first]+=eig_vector_m[n]*eig_vector_m[n]*(-1)*Xii_x_map[n][i].second;
+                                    cut_vec.push_back({Xii_x_map[n][i].first, eig_vector_m[n]*eig_vector_m[n]*(-1)*Xii_x_map[n][i].second});
                                 }
                                 free_var = false;
                             }
                             if(!Xii_y_map.empty() && !Xii_y_map[n].empty()){
                                 for(auto i = 0; i < Xii_y_map[n].size(); i++){
-                                    cut_map[Xii_y_map[n][i].first]+=eig_vector_m[n]*eig_vector_m[n]*(-1)*Xii_y_map[n][i].second;
+                                    cut_vec.push_back({Xii_y_map[n][i].first, eig_vector_m[n]*eig_vector_m[n]*(-1)*Xii_y_map[n][i].second});
                                 }
                                 free_var = false;
                             }
@@ -1934,7 +1932,7 @@ vector<vector<double>> Model<type>::cuts_eigen_full(const double active_tol, int
                                 free_var = false;
                             }
                             if(free_var){
-                                cut_map[Xii_id+n]+=eig_vector_m[n]*eig_vector_m[n]*(-1);
+                                cut_vec.push_back({{Xii_id,n},eig_vector_m[n]*eig_vector_m[n]*(-1)});
                             }
                         }
                         for(auto i = 0; i<dim_off; i++){
@@ -1942,13 +1940,13 @@ vector<vector<double>> Model<type>::cuts_eigen_full(const double active_tol, int
                             pos = vec_id->at(i);
                             if(!Xij_x_map.empty() && !Xij_x_map[i].empty()){
                                 for(auto xi = 0; xi < Xij_x_map[i].size(); xi++){
-                                    cut_map[Xij_x_map[i][xi].first]+=eig_vector_m[pos.first]*eig_vector_m[pos.second]*(-2)*Xij_x_map[i][xi].second;
+                                    cut_vec.push_back({Xij_x_map[i][xi].first, eig_vector_m[pos.first]*eig_vector_m[pos.second]*(-2)*Xij_x_map[i][xi].second});
                                 }
                                 free_var = false;
                             }
                             if(!Xij_y_map.empty() && !Xij_y_map[i].empty()){
                                 for(auto xi = 0; xi < Xij_y_map[i].size(); xi++){
-                                    cut_map[Xij_y_map[i][xi].first]+=eig_vector_m[pos.first]*eig_vector_m[pos.second]*(-2)*Xij_y_map[i][xi].second;
+                                    cut_vec.push_back({Xij_y_map[i][xi].first, eig_vector_m[pos.first]*eig_vector_m[pos.second]*(-2)*Xij_y_map[i][xi].second});
                                 }
                                 free_var = false;
                             }
@@ -1957,17 +1955,16 @@ vector<vector<double>> Model<type>::cuts_eigen_full(const double active_tol, int
                                 free_var = false;
                             }
                             if(free_var){
-                                cut_map[Xij_id+i]+=eig_vector_m[pos.first]*eig_vector_m[pos.second]*(-2);
+                                cut_vec.push_back({{Xij_id,i}, eig_vector_m[pos.first]*eig_vector_m[pos.second]*(-2)});
                             }
                         }
-                        auto last_key=cut_map.rbegin()->first;
-                        cut_map[last_key+1]=coef_const;
-                        auto res_cut= scale_cut(active_tol,  cut_map, cut);
+                        cut_vec.push_back({{-1,-1},coef_const});
+                        auto res_cut= scale_cut(active_tol,  cut_vec, scaled_cut);
                         if(res_cut){
-                            res.push_back(cut);
+                            res.push_back(scaled_cut);
                         }
-                        cut.clear();
-                        cut_map.clear();
+                        scaled_cut.clear();
+                        cut_vec.clear();
                     }
                     else{
                         break;
@@ -1981,7 +1978,7 @@ vector<vector<double>> Model<type>::cuts_eigen_full(const double active_tol, int
 /*Scales a cut so that abs(smallest coefficeint)>=1e-9 and abs(largest coefficeint)>=1e-3*/
 template<typename type>
 template<typename T>
-bool Model<type>::scale_cut(const double active_tol, const map<size_t, double>& cut_map, vector<double>& cut){
+bool Model<type>::scale_cut(const double active_tol, const vector<pair<pair<size_t,size_t>,double>>& cut_vec, vector<pair<pair<size_t,size_t>,double>>& scaled_cut){
     double const_coef=0;
     double scale=1.0;
     bool res=false;
@@ -1991,8 +1988,8 @@ bool Model<type>::scale_cut(const double active_tol, const map<size_t, double>& 
     const double max_allowed=1e3;
     const double min_allowed=1e-9;
     double min_coef=numeric_limits<double>::max(), max_coef=numeric_limits<double>::min();
-    for(auto it=cut_map.begin();it!=cut_map.end();it++){
-        if(std::next(it)==cut_map.end()){
+    for(auto it=cut_vec.begin();it!=cut_vec.end();it++){
+        if(std::next(it)==cut_vec.end()){
             const_coef=it->second;
         }
         else{
@@ -2015,31 +2012,30 @@ bool Model<type>::scale_cut(const double active_tol, const map<size_t, double>& 
     else if(min_coef<=min_allowed && min_coef>=min_allowed*0.001 && max_coef<=max_allowed*0.01)
         scale*=100;
     
-    auto cut_size=cut_map.size()-1;
+    auto cut_size=cut_vec.size()-1;
     const_coef*=scale;
     int count=0;
-    for(auto it=cut_map.begin();it!=cut_map.end();it++){
-        if(std::next(it)==cut_map.end()){
+    for(auto it=cut_vec.begin();it!=cut_vec.end();it++){
+        if(std::next(it)==cut_vec.end()){
             break;
         }
         else{
-            cut.push_back(it->first);
-            cut.push_back(it->second*scale);
-            if(std::abs(cut.back())<=min_allowed && cut.back()!=0){
-                if(cut.back()>=0){
-                    const_coef+=cut.back()*_lb_map[it->first];
-                    cut.back()=0;
+            scaled_cut.push_back({it->first,it->second*scale});
+            if(std::abs(scaled_cut.back().second)<=min_allowed && scaled_cut.back().second!=0){
+                if(scaled_cut.back().second>=0){
+                    const_coef+=scaled_cut.back().second*_lb_map[it->first.first+it->first.second];
+                    scaled_cut.back().second=0;
                 }
                 else{
-                    const_coef+=cut.back()*_ub_map[it->first];
-                    cut.back()=0;
+                    const_coef+=scaled_cut.back().second*_ub_map[it->first.first+it->first.second];
+                    scaled_cut.back().second=0;
                 }
             }
         }
     }
-    cut.push_back(const_coef);
-    for(auto i=0;i<cut.size()-1;i+=2){
-        cost+=xsol[cut[i]]*cut[i+1];
+    scaled_cut.push_back({{-1,-1},const_coef});
+    for(auto i=0;i<scaled_cut.size()-1;i++){
+        cost+=xsol[scaled_cut[i].first.first+scaled_cut[i].first.second]*scaled_cut[i].second;
     }
     cost+=const_coef;
     if(cost>=active_tol){
@@ -2289,7 +2285,7 @@ void Model<type>::make_PSD(const var<type>& diag_var, const var<type>& off_diag_
     mat_full->setZero();
     _psd_vars[diag_var._name] = mat_full;
     auto off_diag_dim = Xij_ptr->get_dim();
-    auto id_vec = make_shared<vector<pair<int,int>>>(off_diag_dim);
+    auto id_vec = make_shared<vector<pair<size_t,size_t>>>(off_diag_dim);
     string key, row_key, col_key;
     auto off_diag_keys = Xij_ptr->get_keys();
     auto diag_keys_map = X_ptr->get_keys_map();
@@ -2303,9 +2299,9 @@ void Model<type>::make_PSD(const var<type>& diag_var, const var<type>& off_diag_
     
     int bag_count=0;
     for(auto b:_bag_names){
-        auto diag_vec = make_shared<vector<int>>(b.second.size());
+        auto diag_vec = make_shared<vector<size_t>>(b.second.size());
         int bag_off_diag_dim=b.second.size()*(b.second.size()-1)*0.5;
-        auto off_diag_vec = make_shared<vector<pair<int,int>>>(bag_off_diag_dim);
+        auto off_diag_vec = make_shared<vector<pair<size_t,size_t>>>(bag_off_diag_dim);
         int count=0;
         for(auto n:b.second){
             diag_vec->at(count++)=std::stoi(n);
@@ -3253,10 +3249,10 @@ template void Model<double>::generate_lagrange_bounds(const std::vector<std::str
 template bool Model<double>::obbt_update_lagrange_bounds(std::vector<shared_ptr<gravity::Model<double>>>& models, shared_ptr<gravity::Model<double>>& obbt_model,   map<string, bool>& fixed_point,  const map<string, double>& interval_original, const map<string, double>& ub_original, const map<string, double>& lb_original, bool& terminate, int& fail, const double range_tol, const double fixed_tol_abs, const double fixed_tol_rel, const double zero_tol, int run_obbt_iter, std::map<int, double>& map_lb, std::map<int, double>& map_ub);
 template vector<vector<double>> Model<double>::cutting_planes_solution(const Model<double>& interior, double active_tol,int& soc_viol,int& soc_found,int& soc_added, int& det_viol, int& det_found,int& det_added);
 template vector<vector<double>> Model<double>::cutting_planes_eigen(const double active_tol);
-template vector<vector<double>> Model<double>::cuts_eigen_full(const double active_tol, int nb_cuts);
+template vector<vector<pair<pair<size_t,size_t>,double>>> Model<double>::cuts_eigen_full(const double active_tol, int nb_cuts);
 template vector<vector<double>> Model<double>::cuts_eigen_full_old(const double active_tol, int nb_cuts);
-template bool Model<double>::scale_cut(const double active_tol, const map<size_t, double>& cut_map, vector<double>& cut);
-template vector<vector<double>> Model<double>::cuts_eigen_bags(const double active_tol,int nb_cuts);
+template bool Model<double>::scale_cut(const double active_tol, const vector<pair<pair<size_t,size_t>,double>>& cut_vec, vector<pair<pair<size_t,size_t>,double>>& scaled_cut);
+template vector<vector<pair<pair<size_t,size_t>,double>>> Model<double>::cuts_eigen_bags(const double active_tol,int nb_cuts);
 template vector<vector<double>> Model<double>::cuts_eigen_bags_primal_complex(const double active_tol,string diag_name, string off_diag_real, string off_diag_imag);
 template vector<vector<double>> Model<double>::cutting_planes_soc(double active_tol, int& soc_viol,int& soc_added);
 template double Model<double>::check_PSD();

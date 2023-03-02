@@ -514,11 +514,11 @@ Net CBF_read(const char *file, shared_ptr<Model<double>>& m, bool add_3d) {
         map<string, func<>> func_map;
         map<string, func<>> func_map_bounds;
         map<string, vector<pair<string, double>>> map_x;
-        vector<vector<pair<int, double>>> Xij_x_map(node_pairs_chord.size());
-        vector<vector<pair<int, double>>> Xii_x_map(nodes.size());
+        vector<vector<pair<pair<size_t,size_t>, double>>> Xij_x_map(node_pairs_chord.size());
+        vector<vector<pair<pair<size_t,size_t>, double>>> Xii_x_map(nodes.size());
         map<string, vector<pair<string, double>>> map_y;
-        vector<vector<pair<int, double>>> Xij_y_map(node_pairs_chord.size());
-        vector<vector<pair<int, double>>> Xii_y_map(nodes.size());
+        vector<vector<pair<pair<size_t,size_t>, double>>> Xij_y_map(node_pairs_chord.size());
+        vector<vector<pair<pair<size_t,size_t>, double>>> Xii_y_map(nodes.size());
         map<string, double> map_const;
         vector<double> Xij_cons_map(node_pairs_chord.size(),0);
         vector<double> Xii_cons_map(nodes.size(),0);
@@ -546,20 +546,20 @@ Net CBF_read(const char *file, shared_ptr<Model<double>>& m, bool add_3d) {
                 func_map_bounds[func_name]+=coef*x(ind);
                 map_x[func_name].push_back(make_pair(ind, coef));
                 if(k!=l){
-                    Xij_x_map[node_pairs_chord._keys_map->at(func_name)].push_back(make_pair(x.get_vec_id()+C._keys_map->at(ind), coef));
+                    Xij_x_map[node_pairs_chord._keys_map->at(func_name)].push_back({{x.get_vec_id(),C._keys_map->at(ind)}, coef});
                 }
                 else{
-                    Xii_x_map[k].push_back(make_pair(x.get_vec_id()+C._keys_map->at(ind), coef));
+                    Xii_x_map[k].push_back({{x.get_vec_id(),C._keys_map->at(ind)}, coef});
                 }
             }
             else{
                 func_map_bounds[func_name]+=coef*y(ind);
                 map_y[func_name].push_back(make_pair(ind, coef));
                 if(k!=l){
-                    Xij_y_map[node_pairs_chord._keys_map->at(func_name)].push_back(make_pair(y.get_vec_id()+I._keys_map->at(ind), coef));
+                    Xij_y_map[node_pairs_chord._keys_map->at(func_name)].push_back({{y.get_vec_id(),I._keys_map->at(ind)}, coef});
                 }
                 else{
-                    Xii_y_map[k].push_back(make_pair(y.get_vec_id()+I._keys_map->at(ind), coef));
+                    Xii_y_map[k].push_back({{y.get_vec_id(),I._keys_map->at(ind)}, coef});
                 }
             }
         }

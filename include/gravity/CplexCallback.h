@@ -41,9 +41,8 @@ public:
 #endif
         // Get the most violated cuts
         auto violated_cstr = _model->sort_violated_constraints(tol);
-        if(violated_cstr.empty())// No violated cuts found
-            return IloFalse;
-        for(int cstr_id = 0; cstr_id<std::min(violated_cstr.size(),(size_t)cutLhs.getSize()); cstr_id++){
+        int cstr_id = 0;
+        for(cstr_id = 0; cstr_id<std::min(violated_cstr.size(),(size_t)cutLhs.getSize()); cstr_id++){
             auto most_viol = violated_cstr[cstr_id];
             size_t idx = 0, idx_inst = 0, idx1 = 0, idx2 = 0, idx_inst1 = 0, idx_inst2 = 0, nb_inst = 0;
             double cval = 0;
@@ -74,6 +73,20 @@ public:
             cutLhs[cstr_id] = cc;
             if(c->get_ctype()==leq) {
                 cutLhs[cstr_id] *= -1;
+            }
+        }
+        /* SDP CUTS */
+        auto res2=_model->cuts_eigen_full(1e-9);
+        if(res2.size()>=1){
+            for(auto i=0;i<std::min(res2.size(),(size_t)cutLhs.getSize());i++){
+                IloNumExpr cc(*env);
+                size_t j = 0;
+                for(j=0;j<res2[i].size()-1;j++){
+                    auto c=res2[i][j];
+                    cc += c.second*_cplex_vars->at(c.first.first)[c.first.second];
+                }
+                cc += res2[i][j].second;
+                cutLhs[cstr_id++] = cc;
             }
         }
         return IloTrue;

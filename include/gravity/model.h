@@ -209,9 +209,9 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
         map<size_t, shared_ptr<param_>>                     _vars; /**< Sorted map pointing to all variables contained in this model. */
         map<size_t, shared_ptr<param_>>                     _int_vars; /**< Sorted map pointing to all integer variables contained in this model. */
         map<string, shared_ptr<Eigen::MatrixXd>>            _psd_vars; /**< Sorted map pointing to all PSD variables contained in this model. */
-        map<string, shared_ptr<vector<pair<int,int>>>>      _psd_id_map; /**< Sorted map linking the index set of off-diagonal PSD variables to their matrix cell position. E.g. X("bus1,bus2") corresponds to the (0,1) cell in the corresponding Eigen PSD matrix.*/
-        map<string, shared_ptr<vector<int>>>            _bag_vars; /**< Sorted map pointing to all variables in each bag. */
-        map<string, shared_ptr<vector<pair<int,int>>>>      _bag_id_map; /**< Sorted map linking the index set of off-diagonal bag variables to their matrix cell position. E.g. X("bus1,bus2") corresponds to the (0,1) cell in the corresponding Eigen PSD matrix.*/
+        map<string, shared_ptr<vector<pair<size_t,size_t>>>>      _psd_id_map; /**< Sorted map linking the index set of off-diagonal PSD variables to their matrix cell position. E.g. X("bus1,bus2") corresponds to the (0,1) cell in the corresponding Eigen PSD matrix.*/
+        map<string, shared_ptr<vector<size_t>>>                _bag_vars; /**< Sorted map pointing to all variables in each bag. */
+        map<string, shared_ptr<vector<pair<size_t,size_t>>>>      _bag_id_map; /**< Sorted map linking the index set of off-diagonal bag variables to their matrix cell position. E.g. X("bus1,bus2") corresponds to the (0,1) cell in the corresponding Eigen PSD matrix.*/
 
         map<size_t, double>                                  _ub_map;/**< Sorted map linking the vid of a variable to its upper bound. For example see GurobiProgram.cpp for vid definition.*/
         map<size_t, double>                                  _lb_map;/**< Sorted map linking the vid of a variable to its lower bound. For example see GurobiProgram.cpp for vid definition.*/
@@ -232,11 +232,11 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
         std::vector<pair<int,std::vector<string>>>           _bag_names; /*vector of pair of name of each bag and name of nodes in each bag*/
        // map<string, func<>>                                  _func_map;/*map of func corresponding to each (sparse) key of a symmetric matrix*/
         map<string, vector<pair<string, double>>>            map_x;
-        vector<vector<pair<int, double>>>                    Xij_x_map;
-        vector<vector<pair<int, double>>>                    Xii_x_map;
+        vector<vector<pair<pair<size_t,size_t>, double>>>                    Xij_x_map;
+        vector<vector<pair<pair<size_t,size_t>, double>>>                    Xii_x_map;
         map<string, vector<pair<string, double>>>            map_y;
-        vector<vector<pair<int, double>>>                    Xij_y_map;
-        vector<vector<pair<int, double>>>                    Xii_y_map;
+        vector<vector<pair<pair<size_t,size_t>, double>>>                    Xij_y_map;
+        vector<vector<pair<pair<size_t,size_t>, double>>>                    Xii_y_map;
         map<string, double>                                  map_const;
         vector<double>                                       Xij_cons_map;
         vector<double>                                       Xii_cons_map;
@@ -664,13 +664,13 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
                 _psd_vars[mat_pair.first] = make_shared<Eigen::MatrixXd>(*mat_pair.second);
             }
             for(const auto &vec_pair: m._psd_id_map){
-                _psd_id_map[vec_pair.first] = make_shared<vector<pair<int,int>>>(*vec_pair.second);
+                _psd_id_map[vec_pair.first] = make_shared<vector<pair<size_t,size_t>>>(*vec_pair.second);
             }
             for(const auto &b: m._bag_vars){
-                _bag_vars[b.first] = make_shared<vector<int>>(*b.second);
+                _bag_vars[b.first] = make_shared<vector<size_t>>(*b.second);
             }
             for(const auto &vec_pair: m._bag_id_map){
-                _bag_id_map[vec_pair.first] = make_shared<vector<pair<int,int>>>(*vec_pair.second);
+                _bag_id_map[vec_pair.first] = make_shared<vector<pair<size_t,size_t>>>(*vec_pair.second);
             }
             map_x=m.map_x;
             map_y=m.map_y;
@@ -2401,19 +2401,27 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
                         break;
                 }
             }
-            
 //            auto res=this->cuts_eigen_full(1e-9);
 //            if(res.size()>=1){
-//                for(auto i=0;i<res.size();i++){
-//                    GRBLinExpr expr = 0;
-//                    int j;
-//                    for(j=0;j<res[i].size()-1;j+=2){
-//                        int c=res[i][j];
+//                Constraint<> SDP_CUT("SDP_CUT");
+//                auto it = _cons_name.find("SDP_CUT");
+//                if(it == _cons_name.end()){
+//
+//
+//                }
+//                else{
+//                    SDP_CUT = *it;
+//                }
+//                for(int i=0;i<res.size();i++){
+////                    int row_id = SDP_CUT.get_nb_rows();
+//                    for(int j=0;j<res[i].size()-1;j+=2){
+//                        auto v_id = res[i][j];
+////                        SDP_CUT.add_in_row(row_id, )
 ////                        expr += res[i][j+1]*vars[c];
 //                    }
-//                    expr += res[i][j];
-////                    addLazy(expr, GRB_LESS_EQUAL, 0);
+////                    expr += res[i][j];
 //                }
+//
 //            }
             sort(v.begin(), v.end(), cstr_viol_compare<type>);
             return v;
@@ -6716,13 +6724,13 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
         template<typename T=type>
         vector<vector<double>> cutting_planes_eigen(const double active_tol);
         template<typename T=type>
-        vector<vector<double>> cuts_eigen_full(const double active_tol, int nb_cuts = 1);
+        vector<vector<pair<pair<size_t,size_t>,double>>> cuts_eigen_full(const double active_tol, int nb_cuts = 1);
         template<typename T=type>
         vector<vector<double>> cuts_eigen_full_old(const double active_tol, int nb_cuts = 1);
         template<typename T=type>
-        vector<vector<double>> cuts_eigen_bags(const double active_tol, int nb_cuts=1);
+        vector<vector<pair<pair<size_t,size_t>,double>>> cuts_eigen_bags(const double active_tol, int nb_cuts=1);
         template<typename T=type>
-        bool scale_cut(const double active_tol, const map<size_t, double>& cut_map, vector<double>& cut);
+        bool scale_cut(const double active_tol, const vector<pair<pair<size_t,size_t>,double>>& cut_vec, vector<pair<pair<size_t,size_t>,double>>& scaled_cut);
         template<typename T=type>
         vector<vector<double>> cuts_eigen_bags_primal_complex(const double active_tol, string diag_name, string off_diag_real, string off_diag_imag);
         template<typename T=type>
