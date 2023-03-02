@@ -1571,7 +1571,7 @@ vector<vector<pair<pair<size_t,size_t>,double>>> Model<type>::cuts_eigen_bags(co
                                 auto key=to_string(pos.first)+","+to_string(pos.second);
                                 if(v->is_psd_diag()){
                                     free_var = true;
-                                    int id=Xij->get_keys_map()->at(key);
+                                    auto id=Xij->get_keys_map()->at(key);
                                     if(!Xij_x_map[id].empty()){
                                         for(auto xi = 0; xi < Xij_x_map[id].size(); xi++){
                                             cut_vec.push_back({Xij_x_map[id][xi].first, eig_vector_m[i]*eig_vector_m[j]*(-2)*Xij_x_map[id][xi].second});
@@ -1883,8 +1883,8 @@ vector<vector<pair<pair<size_t,size_t>,double>>> Model<type>::cuts_eigen_full(co
                     Xij = static_pointer_cast<var<double>>(v);
                     Xii = static_pointer_cast<var<double>>(v->get_diag());
                 }
-                auto Xii_id = Xii->get_id();
-                auto Xij_id = Xij->get_id();
+                auto Xii_id = Xii->get_vec_id();
+                auto Xij_id = Xij->get_vec_id();
                 shared_ptr<Eigen::MatrixXd> mat_full = _psd_vars.at(Xii->_name);
                 auto vec_id = _psd_id_map.at(Xij->_name);
                 dim_full = Xii->get_dim();
@@ -2035,7 +2035,9 @@ bool Model<type>::scale_cut(const double active_tol, const vector<pair<pair<size
     }
     scaled_cut.push_back({{-1,-1},const_coef});
     for(auto i=0;i<scaled_cut.size()-1;i++){
-        cost+=xsol[scaled_cut[i].first.first+scaled_cut[i].first.second]*scaled_cut[i].second;
+        size_t symb_id = scaled_cut[i].first.first;
+        size_t v_id = *_vars.at(symb_id)->_id;
+        cost+=xsol[v_id+scaled_cut[i].first.second]*scaled_cut[i].second;
     }
     cost+=const_coef;
     if(cost>=active_tol){

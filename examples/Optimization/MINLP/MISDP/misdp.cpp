@@ -252,11 +252,11 @@ int main(int argc, char * argv[]){
 //    Laplacian.max(coef*(sum(Wij) + product(w,x)));
     double coef_i = 1./((num_nodes - 1));
     Laplacian.max(coef_i*(2.*product(w,x) - sum(Wii)));// + coef_ij*(sum(Wij) + product(w,x)));
-    
+//    Laplacian.max(coef_i*(w.in(delta_0)*x.in(delta_0) - Wii(N._keys->front())));// + coef_ij*(sum(Wij) + product(w,x)));
     
     Laplacian.print();
 //    return 0;
-    solver<> sv(Laplacian,gurobi);
+    solver<> sv(Laplacian,cplex);
     sv.run();
     Laplacian.print_solution();
     return 0;

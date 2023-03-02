@@ -81,11 +81,15 @@ public:
             for(auto i=0;i<std::min(res2.size(),(size_t)cutLhs.getSize());i++){
                 IloNumExpr cc(*env);
                 size_t j = 0;
+                string cut_str;
                 for(j=0;j<res2[i].size()-1;j++){
                     auto c=res2[i][j];
-                    cc += c.second*_cplex_vars->at(c.first.first)[c.first.second];
+                    cc -= c.second*_cplex_vars->at(c.first.first)[c.first.second];
+//                    cut_str += to_string(c.second)+_model->_vars.at(c.first.first)->get_name(c.first.second)+" + ";
                 }
-                cc += res2[i][j].second;
+                cc -= res2[i][j].second;
+//                cut_str += to_string(res2[i][j].second)+" <= 0\n";
+//                DebugOn(cut_str);
                 cutLhs[cstr_id++] = cc;
             }
         }

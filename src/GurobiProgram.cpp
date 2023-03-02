@@ -107,7 +107,9 @@ protected:
                                 size_t j=0;
                                 for(j=0;j<res2[i].size()-1;j++){
                                     auto c=res2[i][j];
-                                    expr += c.second*vars[c.first.first+c.first.second];
+                                    size_t symb_id = c.first.first;
+                                    size_t v_id = *m->_vars.at(symb_id)->_id;
+                                    expr += c.second*vars[v_id+c.first.second];
                                 }
                                 expr += res2[i][j].second;
                                 addLazy(expr, GRB_LESS_EQUAL, 0);
@@ -179,11 +181,17 @@ protected:
                                     for(auto i=0;i<res2.size();i++){
                                         GRBLinExpr expr = 0;
                                         size_t j=0;
+                                        string cut_str;
                                         for(j=0;j<res2[i].size()-1;j++){
                                             auto c=res2[i][j];
-                                            expr += c.second*vars[c.first.first+c.first.second];
+                                            size_t symb_id = c.first.first;
+                                            size_t v_id = *m->_vars.at(symb_id)->_id;
+                                            expr += c.second*vars[v_id+c.first.second];
+                                            cut_str += to_string(c.second)+m->_vars.at(symb_id)->get_name(c.first.second)+" + ";
                                         }
                                         expr += res2[i][j].second;
+                                        cut_str += to_string(res2[i][j].second)+" <= 0\n";
+                                        DebugOn(cut_str);
                                         addLazy(expr, GRB_LESS_EQUAL, 0);
                                         m->num_cuts[2]++;
                                     }
