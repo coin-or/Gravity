@@ -74,26 +74,42 @@ public:
             if(c->get_ctype()==leq) {
                 cutLhs[cstr_id] *= -1;
             }
+            violatedCutFound = true;
         }
         /* SDP CUTS */
-        auto res2=_model->cuts_eigen_full(1e-6);
+        bool hierarc = true;
+        int nb_cuts = 1;
+
+//        if(res1.size()>=1 && hierarc)
+//            return IloTrue;
+        auto res2=_model->cuts_eigen_full(1e-6,nb_cuts);
         if(res2.size()>=1){
-            for(auto i=0;i<std::min(res2.size(),(size_t)cutLhs.getSize());i++){
+            for(auto i=0;i<res2.size() && cstr_id<cutLhs.getSize();i++){
                 IloNumExpr cc(*env);
                 size_t j = 0;
-                string cut_str;
                 for(j=0;j<res2[i].size()-1;j++){
                     auto c=res2[i][j];
                     cc -= c.second*_cplex_vars->at(c.first.first)[c.first.second];
-//                    cut_str += to_string(c.second)+_model->_vars.at(c.first.first)->get_name(c.first.second)+" + ";
                 }
                 cc -= res2[i][j].second;
-//                cut_str += to_string(res2[i][j].second)+" <= 0\n";
-//                DebugOn(cut_str);
                 cutLhs[cstr_id++] = cc;
             }
+            violatedCutFound = true;
         }
-        return IloTrue;
+//        auto res1=_model->cuts_eigen_bags(1e-6, 1);
+//        if(res1.size()>=1){
+//            for(auto i=0;i<res1.size() && cstr_id<cutLhs.getSize();i++){
+//                IloNumExpr cc(*env);
+//                size_t j = 0;
+//                for(j=0;j<res1[i].size()-1;j++){
+//                    auto c=res1[i][j];
+//                    cc -= c.second*_cplex_vars->at(c.first.first)[c.first.second];
+//                }
+//                cc -= res1[i][j].second;
+//                cutLhs[cstr_id++] = cc;
+//            }
+//        }
+        return violatedCutFound;
     } // END separate
 private:
     shared_ptr<vector<IloNumVarArray>>          _cplex_vars; /**< Cplex variables */
@@ -106,7 +122,7 @@ private:
     shared_ptr<vector<IloNumVarArray>>          _cplex_vars; /**< Cplex variables */
 public:
     vector<Model<>*> _models;/**< vector storing nb_threads copies of the original model for parallel cut generation */
-    int nb_cuts = 1; /**< @brief number of violated callback constraints to generate each iteration */
+    int nb_cuts = 10; /**< @brief number of violated callback constraints to generate each iteration */
     CplexCallback(IloInt numWorkers=1, Model<>* m=nullptr, shared_ptr<vector<IloNumVarArray>> cvars = nullptr)
     : workers(numWorkers, nullptr), _models(numWorkers, nullptr), _cplex_vars(cvars){
         _models[0] = m;
@@ -152,8 +168,8 @@ public:
                         _models[threadNo]->_vars[i]->set_double_val(j,context.getCandidatePoint(_cplex_vars->at(i)[j]));
                     }
                 }
-                _models[threadNo]->print_solution();
-                _models[threadNo]->print_int_solution();
+//                _models[threadNo]->print_solution();
+//                _models[threadNo]->print_int_solution();
                 break;
             case IloCplex::Callback::Context::Id::Relaxation:
                 for (auto i = 0; i < _cplex_vars->size(); i++) {

@@ -641,6 +641,18 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
                     }
                 }
             }
+            for (auto &it: _vars)
+            {
+                auto v = it.second;
+                if(v->is_psd_off_diag()){
+                    auto vp = static_pointer_cast<var<type>>(v);
+                    vp->_psd_var=get_ptr_var<type>(vp->_psd_var->_name);
+                }
+                if(v->is_psd_diag()){
+                    auto vp = static_pointer_cast<var<type>>(v);
+                    vp->_psd_var=get_ptr_var<type>(vp->_psd_var->_name);
+                }
+            }
             for(auto &cp: m._cons_name){
                 auto c_cpy = make_shared<Constraint<type>>();
                 c_cpy->deep_copy(*cp.second);

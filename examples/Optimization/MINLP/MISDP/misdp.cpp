@@ -34,9 +34,9 @@ vector<vector<int>> allPossibleSubset(int n)
             // include j in the current subset
             // otherwise exclude j
             if ((i & (1 << j)) != 0)
-                v.push_back(j+1);
+                v.push_back(j);
         }
-        if(v.size()>=3)
+        if(v.size()==3)
             res.push_back(v);
     }
     return res;
@@ -101,14 +101,14 @@ int main(int argc, char * argv[]){
     
     /* Graph */
     Net graph;
-    for (int i = 1; i <= num_nodes; i++) {
+    for (int i = 0; i < num_nodes; i++) {
         auto n = new Node(to_string(i));
         graph.add_node(n);
     }
     int index = 0;
     for (const auto &e:edges_to_augment) {
-        string src = to_string(e.first.first);
-        string dest = to_string(e.first.second);
+        string src = to_string(e.first.first-1);
+        string dest = to_string(e.first.second-1);
         double weight = e.second;
         string name = src+","+dest;
         auto arc = new Arc(name);
@@ -128,9 +128,18 @@ int main(int argc, char * argv[]){
     param<> rhs("rhs");
     rhs.in(S);
     E_S = E;
-    int row_id = 0;
+    int row_id = 0, count = 0;
+    vector<pair<int,std::vector<string>>> _bag_names;
     auto subsets = allPossibleSubset(num_nodes);
     for (auto const &subset: subsets) {
+        pair<int,vector<string>> bn;
+        bn.first=count++;
+        for(auto n:subset){
+            bn.second.push_back(to_string(n));
+            DebugOn(n <<"\t");
+        }
+        DebugOn(endl);
+        _bag_names.push_back(bn);    
         E_S.add_empty_row();
         rhs.set_val(row_id, subset.size()-1);
         for (int i = 0; i<subset.size()-1; i++) {
@@ -194,9 +203,8 @@ int main(int argc, char * argv[]){
     bool project = false;
     /* Model */
     Model<> Laplacian("Laplacian");
-    
-    /* Variables */
-    var<> gamma("𝛾");
+    Laplacian._bag_names = _bag_names;
+    /* Variables */    var<> gamma("𝛾");
     if(!project)
         Laplacian.add(gamma.in(R(1)));
     var<int> x("x", 0, 1);
@@ -254,9 +262,13 @@ int main(int argc, char * argv[]){
     Spanning_tree = sum(x);
     Laplacian.add(Spanning_tree == num_nodes - 1);
     
-    Constraint<> Subtour("Subtour");
-    Subtour = x.in(E_S) - rhs;
+//    Constraint<> Subtour("Subtour");
+//    Subtour = x.in(E_S) - rhs;
 //    Laplacian.add(Subtour.in(S) <= 0);
+    
+    Constraint<> Minor2("Minor2");
+    Minor2 = Wij*Wij - Wii.from(E)*Wii.to(E);
+    Laplacian.add(Minor2.in(E) <= 0);
     
     Laplacian.make_PSD(Wii,Wij);
 //    Laplacian.max(gamma);

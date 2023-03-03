@@ -1485,11 +1485,9 @@ vector<vector<pair<pair<size_t,size_t>,double>>> Model<type>::cuts_eigen_bags(co
                     (*mat_full)(pos.first,pos.second)=X->_val->at(i);
                 }
             }
-            if(v->is_psd_diag()){
-                if(v->is_psd_diag()){
-                    Xii = static_pointer_cast<var<double>>(v);
-                    Xij = static_pointer_cast<var<double>>(v->get_off_diag());
-                }
+            else if(v->is_psd_diag()){
+                Xii = static_pointer_cast<var<double>>(v);
+                Xij = static_pointer_cast<var<double>>(v->get_off_diag());
                 Xii_id = Xii->get_id();
                 Xij_id = Xij->get_id();
                 mat_full = _psd_vars.at(Xii->_name);
@@ -1512,17 +1510,19 @@ vector<vector<pair<pair<size_t,size_t>,double>>> Model<type>::cuts_eigen_bags(co
                 Eigen::MatrixXd mat_bag(dim,dim);
                 SelfAdjointEigenSolver<MatrixXd> es;
                 for(auto i = 0; i<dim; i++){
-                    mat_bag(i,i) = (*mat_full)(i,i);
+                    mat_bag(i,i) = (*mat_full)(b.second->at(i),b.second->at(i));
                 }
                 int count=0;
                 for(auto i=0;i<dim-1;i++){
                     for(auto j=i+1;j<dim;j++){
                         auto pos=off_diag->at(count++);
                         mat_bag(i,j) = (*mat_full)(pos.first,pos.second);
+                        mat_bag(j,i) = (*mat_full)(pos.first,pos.second);
                         //mat_bag(j,i) = Xij->eval(to_string(pos.first)+","+to_string(pos.second));
                     }
                 }
                 es.compute(mat_bag);
+//                cout << mat_bag << endl;
                 for(auto m=0;m<nb_cuts;m++){
                     if(es.eigenvalues()[m]<=-active_tol){
                         vector<double> eig_vector_m;
@@ -1538,7 +1538,7 @@ vector<vector<pair<pair<size_t,size_t>,double>>> Model<type>::cuts_eigen_bags(co
                         for(auto n=0;n<dim;n++){
                             if(v->is_psd_diag()){
                                 free_var = true;
-                                int id=b.second->at(n);
+                                auto id=b.second->at(n);
                                 if(!Xii_x_map[id].empty()){
                                     for(auto i = 0; i < Xii_x_map[id].size(); i++){
                                         cut_vec.push_back({Xii_x_map[id][i].first, eig_vector_m[n]*eig_vector_m[n]*(-1)*Xii_x_map[id][i].second});
@@ -1551,7 +1551,7 @@ vector<vector<pair<pair<size_t,size_t>,double>>> Model<type>::cuts_eigen_bags(co
                                     }
                                     free_var = false;
                                 }
-                                if(Xii_cons_map[id]!=0){
+                                if(!Xii_cons_map.empty() && Xii_cons_map[id]!=0){
                                     coef_const += eig_vector_m[n]*eig_vector_m[n]*(-1)*Xii_cons_map[id];
                                     free_var = false;
                                 }
@@ -1584,7 +1584,7 @@ vector<vector<pair<pair<size_t,size_t>,double>>> Model<type>::cuts_eigen_bags(co
                                         }
                                         free_var = false;
                                     }
-                                    if(Xij_cons_map[id]!=0){
+                                    if(!Xii_cons_map.empty() && Xij_cons_map[id]!=0){
                                         coef_const += eig_vector_m[i]*eig_vector_m[j]*(-2)*Xij_cons_map[id];
                                         free_var = false;
                                     }
@@ -1599,10 +1599,11 @@ vector<vector<pair<pair<size_t,size_t>,double>>> Model<type>::cuts_eigen_bags(co
                             }
                         }
                         cut_vec.push_back({{-1,-1},coef_const});
-                        auto res_cut= scale_cut(active_tol,  cut_vec, scaled_cut);
-                        if(res_cut){
-                            res.push_back(scaled_cut);
-                        }
+                        res.push_back(cut_vec);
+//                        auto res_cut= scale_cut(active_tol,  cut_vec, scaled_cut);
+//                        if(res_cut){
+//                            res.push_back(scaled_cut);
+//                        }
                         scaled_cut.clear();
                         cut_vec.clear();
                     }
@@ -1898,6 +1899,7 @@ vector<vector<pair<pair<size_t,size_t>,double>>> Model<type>::cuts_eigen_full(co
                     (*mat_full)(pos.first,pos.second)=Xij->_val->at(i);
                     (*mat_full)(pos.second,pos.first)=Xij->_val->at(i);
                 }
+//                cout << *mat_full << endl;
                 es1.compute(*mat_full);
                 for(auto m=0;m<nb_cuts;m++){
                     if(es1.eigenvalues()[m]<=-active_tol){
@@ -1959,10 +1961,10 @@ vector<vector<pair<pair<size_t,size_t>,double>>> Model<type>::cuts_eigen_full(co
                             }
                         }
                         cut_vec.push_back({{-1,-1},coef_const});
-                        auto res_cut= scale_cut(active_tol,  cut_vec, scaled_cut);
-                        if(res_cut){
-                            res.push_back(scaled_cut);
-                        }
+//                        auto res_cut= scale_cut(active_tol,  cut_vec, scaled_cut);
+//                        if(res_cut){
+                            res.push_back(cut_vec);
+//                        }
                         scaled_cut.clear();
                         cut_vec.clear();
                     }

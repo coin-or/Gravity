@@ -37,7 +37,7 @@ protected:
             bool mipnode=true;
             bool hierarc = false;
             bool add_full=true;
-            bool add_bag=false;
+            bool add_bag=true;
             bool add_soc=false;
             if(m->sdp_dual){
                 add_full=true;
@@ -79,25 +79,27 @@ protected:
                             add_full_iteration=false;
                         }
                     }
-//                    if(add_bag_iteration){
-//                        m->set_solution(vec_x);
-//                        auto res1=m->cuts_eigen_bags(1e-9);
-//                        if(res1.size()>=1){
-//                            for(auto i=0;i<res1.size();i++){
-//                                GRBLinExpr expr = 0;
-//                                int j;
-//                                for(j=0;j<res1[i].size()-1;j+=2){
-//                                    int c=res1[i][j];
-//                                    expr += res1[i][j+1]*vars[c];
-//                                }
-//                                expr += res1[i][j];
-//                                addLazy(expr, GRB_LESS_EQUAL, 0);
-//                                m->num_cuts[1]++;
-//                            }
-//                        }
-//                        if(res1.size()>=1 && hierarc)
-//                            add_full_iteration=false;
-//                    }
+                    if(add_bag_iteration){
+                        m->set_solution(vec_x);
+                        auto res1=m->cuts_eigen_bags(1e-9);
+                        if(res1.size()>=1){
+                            for(auto i=0;i<res1.size();i++){
+                                GRBLinExpr expr = 0;
+                                size_t j=0;
+                                for(j=0;j<res1[i].size()-1;j++){
+                                    auto c=res1[i][j];
+                                    size_t symb_id = c.first.first;
+                                    size_t v_id = *m->_vars.at(symb_id)->_id;
+                                    expr += c.second*vars[v_id+c.first.second];
+                                }
+                                expr += res1[i][j].second;
+                                addLazy(expr, GRB_LESS_EQUAL, 0);
+                                m->num_cuts[1]++;
+                            }
+                        }
+                        if(res1.size()>=1 && hierarc)
+                            add_full_iteration=false;
+                    }
                     if(add_full_iteration){
                         m->set_solution(vec_x);
                         auto res2=m->cuts_eigen_full(1e-9);
@@ -191,7 +193,7 @@ protected:
                                         }
                                         expr += res2[i][j].second;
                                         cut_str += to_string(res2[i][j].second)+" <= 0\n";
-                                        DebugOn(cut_str);
+                                        DebugOff(cut_str);
                                         addLazy(expr, GRB_LESS_EQUAL, 0);
                                         m->num_cuts[2]++;
                                     }
