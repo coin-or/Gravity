@@ -54,7 +54,7 @@ bool CplexProgram::solve(bool relax, double mipgap) {
         }
 //        _cplex->exportModel("lpex.lp");
 
-        int numThreads = 12;
+        int numThreads = _cplex->getNumCores();
         
         size_t idx = 0, idx_inst = 0, idx1 = 0, idx2 = 0, idx_inst1 = 0, idx_inst2 = 0, nb_inst = 0, inst = 0;
     //    size_t c_idx_inst = 0;
