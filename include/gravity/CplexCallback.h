@@ -77,7 +77,7 @@ public:
             violatedCutFound = true;
         }
         /* SDP CUTS */
-        bool hierarc = false, add_bags = false;
+        bool hierarc = false, add_bags = true;
         if(add_bags){
             int nb_cuts = 0;
             auto res1=_model->cuts_eigen_bags(1e-4);

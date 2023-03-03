@@ -36,7 +36,7 @@ vector<vector<int>> allPossibleSubset(int n)
             if ((i & (1 << j)) != 0)
                 v.push_back(j);
         }
-        if(v.size()==3)
+        if(v.size()>=3)
             res.push_back(v);
     }
     return res;
@@ -203,8 +203,8 @@ int main(int argc, char * argv[]){
     bool project = false;
     /* Model */
     Model<> Laplacian("Laplacian");
-    Laplacian._bag_names = _bag_names;
-    DebugOn("Adding " << _bag_names.size() << " 3x3 bags\n");
+//    Laplacian._bag_names = _bag_names;
+//    DebugOn("Adding " << _bag_names.size() << " 3x3 bags\n");
     /* Variables */    var<> gamma("𝛾");
     if(!project)
         Laplacian.add(gamma.in(R(1)));
@@ -263,9 +263,9 @@ int main(int argc, char * argv[]){
     Spanning_tree = sum(x);
     Laplacian.add(Spanning_tree == num_nodes - 1);
 
-//    Constraint<> Subtour("Subtour");
-//    Subtour = x.in(E_S) - rhs;
-//    Laplacian.add(Subtour.in(S) <= 0);
+    Constraint<> Subtour("Subtour");
+    Subtour = x.in(E_S) - rhs;
+    Laplacian.add(Subtour.in(S) <= 0);
 
     Constraint<> Minor2("Minor2");
     Minor2 = Wij*Wij - Wii.from(E)*Wii.to(E);
