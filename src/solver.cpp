@@ -1599,11 +1599,11 @@ vector<vector<pair<pair<size_t,size_t>,double>>> Model<type>::cuts_eigen_bags(co
                             }
                         }
                         cut_vec.push_back({{-1,-1},coef_const});
-                        res.push_back(cut_vec);
-//                        auto res_cut= scale_cut(active_tol,  cut_vec, scaled_cut);
-//                        if(res_cut){
-//                            res.push_back(scaled_cut);
-//                        }
+//                        res.push_back(cut_vec);
+                        auto res_cut= scale_cut(active_tol,  cut_vec, scaled_cut);
+                        if(res_cut){
+                            res.push_back(scaled_cut);
+                        }
                         scaled_cut.clear();
                         cut_vec.clear();
                     }
@@ -1961,10 +1961,10 @@ vector<vector<pair<pair<size_t,size_t>,double>>> Model<type>::cuts_eigen_full(co
                             }
                         }
                         cut_vec.push_back({{-1,-1},coef_const});
-//                        auto res_cut= scale_cut(active_tol,  cut_vec, scaled_cut);
-//                        if(res_cut){
-                            res.push_back(cut_vec);
-//                        }
+                        auto res_cut= scale_cut(active_tol,  cut_vec, scaled_cut);
+                        if(res_cut){
+                            res.push_back(scaled_cut);
+                        }
                         scaled_cut.clear();
                         cut_vec.clear();
                     }
@@ -2024,12 +2024,14 @@ bool Model<type>::scale_cut(const double active_tol, const vector<pair<pair<size
         else{
             scaled_cut.push_back({it->first,it->second*scale});
             if(std::abs(scaled_cut.back().second)<=min_allowed && scaled_cut.back().second!=0){
+                size_t symb_id = it->first.first;
+                size_t v_id = *_vars.at(symb_id)->_id;
                 if(scaled_cut.back().second>=0){
-                    const_coef+=scaled_cut.back().second*_lb_map[it->first.first+it->first.second];
+                    const_coef+=scaled_cut.back().second*_lb_map[v_id+it->first.second];
                     scaled_cut.back().second=0;
                 }
                 else{
-                    const_coef+=scaled_cut.back().second*_ub_map[it->first.first+it->first.second];
+                    const_coef+=scaled_cut.back().second*_ub_map[v_id+it->first.second];
                     scaled_cut.back().second=0;
                 }
             }

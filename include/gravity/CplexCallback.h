@@ -92,10 +92,10 @@ public:
                 cutLhs[cstr_id++] = cc;
             }
         }
-//        if(res1.size()>=1 && hierarc){
-//            cutLhs.setSize(cstr_id);
-//            return IloTrue;
-//        }
+        if(res1.size()>=1 && hierarc){
+            cutLhs.setSize(cstr_id);
+            return IloTrue;
+        }
         auto res2=_model->cuts_eigen_full(1e-6);
         if(res2.size()>=1){
             for(auto i=0;i<res2.size() && cstr_id<cutLhs.getSize();i++){
