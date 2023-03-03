@@ -77,24 +77,29 @@ public:
             violatedCutFound = true;
         }
         /* SDP CUTS */
-        bool hierarc = true;
-        int nb_cuts = 1;
-        auto res1=_model->cuts_eigen_bags(1e-6);
-        if(res1.size()>=1){
-            for(auto i=0;i<res1.size() && cstr_id<cutLhs.getSize();i++){
-                IloNumExpr cc(*env);
-                size_t j = 0;
-                for(j=0;j<res1[i].size()-1;j++){
-                    auto c=res1[i][j];
-                    cc -= c.second*_cplex_vars->at(c.first.first)[c.first.second];
+        bool hierarc = false, add_bags = false;
+        if(add_bags){
+            int nb_cuts = 0;
+            auto res1=_model->cuts_eigen_bags(1e-4);
+            if(res1.size()>=1){
+                for(auto i=0;i<res1.size() && cstr_id<cutLhs.getSize();i++){
+                    IloNumExpr cc(*env);
+                    size_t j = 0;
+                    for(j=0;j<res1[i].size()-1;j++){
+                        auto c=res1[i][j];
+                        cc -= c.second*_cplex_vars->at(c.first.first)[c.first.second];
+                    }
+                    cc -= res1[i][j].second;
+                    cutLhs[cstr_id++] = cc;
+                    nb_cuts++;
                 }
-                cc -= res1[i][j].second;
-                cutLhs[cstr_id++] = cc;
+                violatedCutFound = true;
             }
-        }
-        if(res1.size()>=1 && hierarc){
-            cutLhs.setSize(cstr_id);
-            return IloTrue;
+            DebugOff("Added " << nb_cuts << " 3x3 minor cuts\n");
+            if(res1.size()>=1 && hierarc){
+                cutLhs.setSize(cstr_id);
+                return IloTrue;
+            }
         }
         auto res2=_model->cuts_eigen_full(1e-6);
         if(res2.size()>=1){
@@ -110,6 +115,7 @@ public:
             }
             violatedCutFound = true;
         }
+        DebugOff("Added " << cstr_id << " total cuts\n");
         cutLhs.setSize(cstr_id);
         return violatedCutFound;
     } // END separate
