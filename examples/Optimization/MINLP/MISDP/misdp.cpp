@@ -343,7 +343,7 @@ int main(int argc, char * argv[]){
     double max_time = 300;
     DebugOn("Instance "<<fname<<endl);
     
-    m->reset();
+//    m->reset();
     bool upper_bound_heur=false;
 
     if(upper_bound_heur){
@@ -383,7 +383,7 @@ int main(int argc, char * argv[]){
             m1->get_solution(sol);
         }
     }
-    solver<> sc(m,gurobi);
+    solver<> sc(m,cplex);
     bool relax = false;
     auto ts=get_wall_time();
     if(root_refine){
@@ -417,7 +417,7 @@ int main(int argc, char * argv[]){
 //
 //        }
     }
-    sc.run(relax=false);
+    sc.run();
     auto tf=get_wall_time();
     m->print_solution();
     m->print_constraints_stats(1e-9);

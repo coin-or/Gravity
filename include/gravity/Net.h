@@ -263,6 +263,7 @@ public:
                  if (unique_pairs.insert({bag.second[i]->_name+","+bag.second[j]->_name,{bag.second[i],bag.second[j]}}).second) {
                      auto name = bag.second[i]->_name + "," + bag.second[j]->_name;
                      node_pairs_chord.add(name);
+                     DebugOn("Added edge for chordal extension: "<<name<<endl);
                      fill_in++;
                  }
                  }

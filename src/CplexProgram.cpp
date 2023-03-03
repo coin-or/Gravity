@@ -117,7 +117,7 @@ bool CplexProgram::solve(bool relax, double mipgap) {
                               | IloCplex::Callback::Context::Id::ThreadUp
                               | IloCplex::Callback::Context::Id::ThreadDown;
         /* Uncomment line below to generate cuts on continuous relaxation */
-//        contextmask = contextmask | IloCplex::Callback::Context::Id::Relaxation;
+        contextmask = contextmask | IloCplex::Callback::Context::Id::Relaxation;
         _cplex->use(&cplex_callback, contextmask);
         /* Done with callback */
         _cplex->solve();

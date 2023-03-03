@@ -671,9 +671,9 @@ Net CBF_read(const char *file, shared_ptr<Model<double>>& m, bool add_3d) {
         }
         
         Constraint<> SOC("SOC");
-        SOC = Xij*Xij - X.from(node_pairs)*X.to(node_pairs);
+        SOC = Xij*Xij - X.from(node_pairs_chord)*X.to(node_pairs_chord);
         SOC.add_to_callback();
-        m->add(SOC.in(node_pairs) <= 0);
+        m->add(SOC.in(node_pairs_chord) <= 0);
         
         count=0;
         DebugOn("Displaying bags of size 3 and greater "<<endl);

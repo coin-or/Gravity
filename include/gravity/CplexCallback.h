@@ -79,10 +79,24 @@ public:
         /* SDP CUTS */
         bool hierarc = true;
         int nb_cuts = 1;
-
-//        if(res1.size()>=1 && hierarc)
+        auto res1=_model->cuts_eigen_bags(1e-6);
+        if(res1.size()>=1){
+            for(auto i=0;i<res1.size() && cstr_id<cutLhs.getSize();i++){
+                IloNumExpr cc(*env);
+                size_t j = 0;
+                for(j=0;j<res1[i].size()-1;j++){
+                    auto c=res1[i][j];
+                    cc -= c.second*_cplex_vars->at(c.first.first)[c.first.second];
+                }
+                cc -= res1[i][j].second;
+                cutLhs[cstr_id++] = cc;
+            }
+        }
+//        if(res1.size()>=1 && hierarc){
+//            cutLhs.setSize(cstr_id);
 //            return IloTrue;
-        auto res2=_model->cuts_eigen_full(1e-6,nb_cuts);
+//        }
+        auto res2=_model->cuts_eigen_full(1e-6);
         if(res2.size()>=1){
             for(auto i=0;i<res2.size() && cstr_id<cutLhs.getSize();i++){
                 IloNumExpr cc(*env);
@@ -96,19 +110,7 @@ public:
             }
             violatedCutFound = true;
         }
-//        auto res1=_model->cuts_eigen_bags(1e-6, 1);
-//        if(res1.size()>=1){
-//            for(auto i=0;i<res1.size() && cstr_id<cutLhs.getSize();i++){
-//                IloNumExpr cc(*env);
-//                size_t j = 0;
-//                for(j=0;j<res1[i].size()-1;j++){
-//                    auto c=res1[i][j];
-//                    cc -= c.second*_cplex_vars->at(c.first.first)[c.first.second];
-//                }
-//                cc -= res1[i][j].second;
-//                cutLhs[cstr_id++] = cc;
-//            }
-//        }
+        cutLhs.setSize(cstr_id);
         return violatedCutFound;
     } // END separate
 private:
@@ -122,12 +124,14 @@ private:
     shared_ptr<vector<IloNumVarArray>>          _cplex_vars; /**< Cplex variables */
 public:
     vector<Model<>*> _models;/**< vector storing nb_threads copies of the original model for parallel cut generation */
-    int nb_cuts = 10; /**< @brief number of violated callback constraints to generate each iteration */
+    int nb_cuts = 1000; /**< @brief number of violated callback constraints to generate each iteration */
     CplexCallback(IloInt numWorkers=1, Model<>* m=nullptr, shared_ptr<vector<IloNumVarArray>> cvars = nullptr)
     : workers(numWorkers, nullptr), _models(numWorkers, nullptr), _cplex_vars(cvars){
         _models[0] = m;
+        _models[0]->num_cuts.resize(9,0);
         for(auto i = 1; i<numWorkers; i++){
             _models[i] = new Model<>(*m);
+            _models[i]->num_cuts.resize(9,0);
         }
     }
     /**
