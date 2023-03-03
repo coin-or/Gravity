@@ -1488,8 +1488,8 @@ vector<vector<pair<pair<size_t,size_t>,double>>> Model<type>::cuts_eigen_bags(co
             else if(v->is_psd_diag()){
                 Xii = static_pointer_cast<var<double>>(v);
                 Xij = static_pointer_cast<var<double>>(v->get_off_diag());
-                Xii_id = Xii->get_id();
-                Xij_id = Xij->get_id();
+                Xii_id = Xii->get_vec_id();
+                Xij_id = Xij->get_vec_id();
                 mat_full = _psd_vars.at(Xii->_name);
                 vec_id = _psd_id_map.at(Xij->_name);
                 auto dim_full = Xii->get_dim();

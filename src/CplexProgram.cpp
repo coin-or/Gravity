@@ -112,7 +112,7 @@ bool CplexProgram::solve(bool relax, double mipgap) {
         /* Create callback */
 //        int numThreads = _cplex->getNumCores();
         auto cplex_callback  = CplexCallback(numThreads,_model,make_shared<vector<IloNumVarArray>>(_cplex_vars));
-        cplex_callback.set_nb_cuts(1000);
+        cplex_callback.set_nb_cuts(10);
         CPXLONG contextmask =  IloCplex::Callback::Context::Id::Candidate
                               | IloCplex::Callback::Context::Id::ThreadUp
                               | IloCplex::Callback::Context::Id::ThreadDown;
