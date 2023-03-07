@@ -38,7 +38,7 @@ protected:
             bool hierarc = false;
             bool add_full=true;
             bool add_bag=true;
-            bool add_soc=false;
+            bool add_soc=true;
             if(m->sdp_dual){
                 add_full=true;
             }
@@ -64,12 +64,14 @@ protected:
                         if(res.size()>=1){
                             for(auto i=0;i<res.size();i++){
                                 GRBLinExpr expr = 0;
-                                int j;
-                                for(j=0;j<res[i].size()-1;j+=2){
-                                    int c=res[i][j];
-                                    expr += res[i][j+1]*vars[c];
+                                size_t j=0;
+                                for(j=0;j<res[i].size()-1;j++){
+                                    auto c=res[i][j];
+                                    size_t symb_id = c.first.first;
+                                    size_t v_id = *m->_vars.at(symb_id)->_id;
+                                    expr += c.second*vars[v_id+c.first.second];
                                 }
-                                expr += res[i][j];
+                                expr += res[i][j].second;
                                 addLazy(expr, GRB_LESS_EQUAL, 0);
                                 m->num_cuts[0]++;
                             }
@@ -142,12 +144,14 @@ protected:
                                 if(res.size()>=1){
                                     for(auto i=0;i<res.size();i++){
                                         GRBLinExpr expr = 0;
-                                        int j;
-                                        for(j=0;j<res[i].size()-1;j+=2){
-                                            int c=res[i][j];
-                                            expr += res[i][j+1]*vars[c];
+                                        size_t j=0;
+                                        for(j=0;j<res[i].size()-1;j++){
+                                            auto c=res[i][j];
+                                            size_t symb_id = c.first.first;
+                                            size_t v_id = *m->_vars.at(symb_id)->_id;
+                                            expr += c.second*vars[v_id+c.first.second];
                                         }
-                                        expr += res[i][j];
+                                        expr += res[i][j].second;
                                         addLazy(expr, GRB_LESS_EQUAL, 0);
                                         m->num_cuts[0]++;
                                     }
@@ -529,16 +533,16 @@ bool GurobiProgram::solve(bool relax, double mipgap, double time_limit){
             
             auto res= _model->cutting_planes_soc(1e-6, soc_found, soc_added);
             if(res.size()>=1){
-                add_cut=true;
                 for(auto i=0;i<res.size();i++){
                     GRBLinExpr expr = 0;
-                    int j;
-                    for(j=0;j<res[i].size()-1;j+=2){
-                        int c=res[i][j];
-                        expr += res[i][j+1]*_grb_vars[c];
+                    size_t j=0;
+                    for(j=0;j<res[i].size()-1;j++){
+                        auto c=res[i][j];
+                        size_t symb_id = c.first.first;
+                        size_t v_id = *_model->_vars.at(symb_id)->_id;
+                        expr += c.second*_grb_vars[v_id+c.first.second];
                     }
-                    expr += res[i][j];
-                    
+                    expr += res[i][j].second;
                     grb_mod->addConstr(expr, GRB_LESS_EQUAL, 0);
                     _model->num_cuts[0]++;
                 }

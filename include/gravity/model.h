@@ -210,6 +210,10 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
         map<size_t, shared_ptr<param_>>                     _int_vars; /**< Sorted map pointing to all integer variables contained in this model. */
         map<string, shared_ptr<Eigen::MatrixXd>>            _psd_vars; /**< Sorted map pointing to all PSD variables contained in this model. */
         map<string, shared_ptr<vector<pair<size_t,size_t>>>>      _psd_id_map; /**< Sorted map linking the index set of off-diagonal PSD variables to their matrix cell position. E.g. X("bus1,bus2") corresponds to the (0,1) cell in the corresponding Eigen PSD matrix.*/
+        vector<vector<pair<int,int>>>                          _soc_ids; /*Sorted map pointing to all ids of all instances of soc constraint*/
+        int                                                    _off_diag_pos; /*off diag key in soc constraint*/
+        int                                                    _first_diag_pos; /*diag key1 in soc constraint*/
+        int                                                    _second_diag_pos; /*diag key1 in soc constraint*/
         map<string, shared_ptr<vector<size_t>>>                _bag_vars; /**< Sorted map pointing to all variables in each bag. */
         map<string, shared_ptr<vector<pair<size_t,size_t>>>>      _bag_id_map; /**< Sorted map linking the index set of off-diagonal bag variables to their matrix cell position. E.g. X("bus1,bus2") corresponds to the (0,1) cell in the corresponding Eigen PSD matrix.*/
 
@@ -6760,8 +6764,8 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
         void make_PSD(const var<type>& diag_var, const var<type>& off_diag_var);
         template<typename T=type>
         double check_PSD_bags();
-        template<typename T=type>   
-        vector<vector<double>> cutting_planes_soc(double active_tol, int& soc_viol,int& soc_added);
+        template<typename T=type>
+        vector<vector<pair<pair<size_t,size_t>,double>>> cutting_planes_soc(double active_tol, int& soc_viol,int& soc_added);
         template<typename T=type>
         void update_upper_bound(shared_ptr<Model<type>>& obbt_model, vector<shared_ptr<Model<type>>>& batch_models, vector<double>& ub_sol, SolverType ub_solver_type, double ub_solver_tol, bool& terminate, bool linearize, double& upper_bound, double lb_scale_value, double lower_bound,  double& gap,  const double abs_tol, const double rel_tol, const double zero_tol);
         template<typename T=type>

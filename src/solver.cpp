@@ -685,186 +685,128 @@ vector<vector<double>> Model<type>::cutting_planes_solution(const Model<type>& i
  @param[in] lin: Model to which linear cuts are added
  @param[in] nb_oacuts: When a cut is added nb_oacuts is incremented
  @param[in] active_tol: the obbt_solution x is said to violate a nonlinear constraint g in current model if abs(g(x))> active_tol */
-//vector<vector<double>> Model<type>::cutting_planes_solution(const Model<type>& interior, double active_tol, int soc_viol, int soc_added, int det_viol, int soc_found, int det_found, int det_added)
-//template<typename type>
-//template<typename T>
-//vector<vector<double>> Model<type>::cutting_planes_soc(double active_tol, int& soc_viol,int& soc_added)
-//{
-//    bool psd_var=true;
-//
-//    const double active_tol_sol=1e-9, zero_tol=1e-9;
-//    int nb_added_cuts = 0;
-//    vector<vector<double>> res;
-//
-//    for (auto &con: _cons_vec)
-//    {
-//        if(!con->is_linear() && con->_callback && (con->is_rotated_soc() || con->check_soc())) {
-//            auto cnb_inst=con->get_nb_inst();
-//            con->uneval();
-//            int count=0;
-//            int off_diag_pos=-1;
-//            size_t X_id, Xii_id, Xij_id;
-//            shared_ptr<var<double>> X, Xii, Xij;
-//            bool psd_var=false;
-//            for (auto &v_p: con->get_vars()){
-//                if(v_p.second.first->is_psd_off_diag()||v_p.second.first->is_psd_diag()){
-//                    psd_var=false;
-//                }
-//                if(!psd_var){
-//                    if(v_p.second.first->is_psd_off_diag()){
-//                        Xij = static_pointer_cast<var<double>>(v_p.second.first);
-//                        Xii = static_pointer_cast<var<double>>(v_p.second.first->get_diag());
-//                        off_diag_pos=count;
-//                    }
-//                }
-//                else{
-//                    X=static_pointer_cast<var<double>>(v_p.second.first);
-//                    auto keys_vec=*(v_p.second.first->_indices->_keys);
-//                    auto key_i=keys_vec[v_p.second.first->get_id_inst(0)];
-//                    if(key_i.find(",")!=std::string::npos){
-//                        auto key_first=key_i.substr(0,key_i.find(","));
-//                        auto key_second=key_i.substr(key_i.find(",")+1);
-//                            if(key_first!=key_second)
-//                                off_diag_pos=count;
-//                    }
-//                }
-//                count++;
-//            }
-//            vector<int> diag_pos;
-//            count=0;
-//            for(auto i=0;i<3;i++){
-//                if(i!=off_diag_pos)
-//                    diag_pos[count++]=i;
-//            }
-//            for(auto inst=0;inst<cnb_inst;inst++){
-//                con->uneval();
-//                auto fk=con->eval(inst);
-//                if((fk >= active_tol && con->_ctype==leq) || (fk <= -active_tol && con->_ctype==geq)){
-//
-//                    vector<int> vec_ind, vec_ind_now;
-//                    vector<int> var_ind;
-//                    vector<string> keys_vec;
-//                    vector<double> xc;
-//                    map<size_t, double> cut_map;
-//                    vector<double> cut;
-//                    xc=con->get_x(inst);
-//                    int count=0;
-//                    vector<double> xnow(3);
-//                    /*Avoid divide by zero*/
-//                    if(xc[diag_pos[0]]>=xc[diag_pos[1]] && xc[diag_pos[0]]>=1e-6){
-//                        xnow[0]=xc[diag_pos[0]];
-//                        xnow[1]=(xc[off_diag_pos]*xc[off_diag_pos])/(xc[diag_pos[0]]);
-//                        xnow[2]=xc[off_diag_pos];
-//                    }
-//                    else if (xc[diag_pos[1]]>=1e-6)
-//                    {
-//                        xnow[0]=(xc[off_diag_pos]*xc[off_diag_pos])/(xc[diag_pos[1]]);
-//                        xnow[1]=xc[diag_pos[1]];
-//                        xnow[2]=xc[off_diag_pos];
-//                    }
-//                    else if (xc[off_diag_pos]>=1e-6)
-//                    {
-//                        xnow[0]=xc[off_diag_pos];
-//                        xnow[1]=xc[off_diag_pos];
-//                        xnow[2]=xc[off_diag_pos];
-//                    }
-//
-//                    c_val.resize(3,0);
-//
-//                    scale=1.0;
-//                    c_val[0]=-xnow[1];
-//                    c_val[1]=-xnow[0];
-//                    c_val[2]=2*xnow[2];
-//                    c0_val=0;
-//
-//                    count=0;
-//                    for(auto n=0;n<3;n++){
-//                        if(n!=off_diag_pos){
-//                        if(v->is_psd_diag()){
-//                            free_var = true;
-//                            int id=vec_ind_now->at(n);
-//                            if(!Xii_x_map[id].empty()){
-//                                for(auto i = 0; i < Xii_x_map[id].size(); i++){
-//                                    cut_map[Xii_x_map[id][i].first]+=c_val[count]*Xii_x_map[id][i].second;
-//                                }
-//                                free_var = false;
-//                            }
-//                            if(!Xii_y_map[id].empty()){
-//                                for(auto i = 0; i < Xii_y_map[id].size(); i++){
-//                                    cut_map[Xii_y_map[id][i].first]+=eig_vector_m[n]*eig_vector_m[n]*(-1)*Xii_y_map[id][i].second;
-//                                }
-//                                free_var = false;
-//                            }
-//                            if(Xii_cons_map[id]!=0){
-//                                coef_const += eig_vector_m[n]*eig_vector_m[n]*(-1)*Xii_cons_map[id];
-//                                free_var = false;
-//                            }
-//                            if(free_var){
-//                                cut_map[Xii_id+id]+=eig_vector_m[n]*eig_vector_m[n]*(-1);
-//                            }
-//                        }
-//                        else{
-//                            auto id=find(vec_id->begin(), vec_id->end(), make_pair<>(b.second->at(n), b.second->at(n)))-vec_id->begin();
-//                            cut_map[X_id+id]+=eig_vector_m[n]*eig_vector_m[n]*(-1);
-//                        }
-//                        }
-//                        else{
-//                            if(v->is_psd_diag()){
-//                                free_var = true;
-//                                int id=Xij->get_keys_map()->at(key);
-//                                if(!Xij_x_map[id].empty()){
-//                                    for(auto xi = 0; xi < Xij_x_map[id].size(); xi++){
-//                                        cut_map[Xij_x_map[id][xi].first]+=eig_vector_m[i]*eig_vector_m[j]*(-2)*Xij_x_map[id][xi].second;
-//                                    }
-//                                    free_var = false;
-//                                }
-//                                if(!Xij_y_map[id].empty()){
-//                                    for(auto xi = 0; xi < Xij_y_map[id].size(); xi++){
-//                                        cut_map[Xij_y_map[id][xi].first]+=eig_vector_m[i]*eig_vector_m[j]*(-2)*Xij_y_map[id][xi].second;
-//                                    }
-//                                    free_var = false;
-//                                }
-//                                if(Xij_cons_map[id]!=0){
-//                                    coef_const += eig_vector_m[i]*eig_vector_m[j]*(-2)*Xij_cons_map[id];
-//                                    free_var = false;
-//                                }
-//                                if(free_var){
-//                                    cut_map[Xij_id+id]+=eig_vector_m[i]*eig_vector_m[j]*(-2);
-//                                }
-//                            }
-//                            else{
-//                                auto id=find(vec_id->begin(), vec_id->end(),pos)-vec_id->begin();
-//                                cut_map[X_id+id]+=eig_vector_m[i]*eig_vector_m[j]*(-2);
-//                            }
-//                        }
-//                    }
-//                    auto last_key=cut_map.rbegin()->first;
-//                    cut_map[last_key+1]=coef_const;
-//                    auto res_cut= scale_cut(active_tol,  cut_map, cut);
-//                    if(res_cut){
-//                        res.push_back(cut);
-//                    }
-//                    cut.clear();
-//                    cut_map.clear();
-//                }
-//                    }
-//                    soc_added++;
-//                    con->set_x(i, xcurrent);
-//                    xcurrent.clear();
-//                    xinterior.clear();
-//                    cut.clear();
-//                    ub_val.clear();
-//                    c0_val=0;
-//                    c_val.clear();
-//                }
-//            }
-//
-//
-//    //DebugOn("soc"<<endl);
-//    return res;
-//
-//}
 template<typename type>
+template<typename T>
+vector<vector<pair<pair<size_t,size_t>,double>>> Model<type>::cutting_planes_soc(double active_tol, int& soc_viol,int& soc_added)
+{
+    vector<vector<pair<pair<size_t,size_t>,double>>> res;
+    vector<double> xc,c_val;
+    double c0_val, scale=1;
+    bool free_var;
+    vector<pair<pair<size_t,size_t>, double>> cut_vec, scaled_cut;
+    double coef_const=0;
+    for (auto &con: _cons_vec)
+    {
+        if(!con->is_linear() && con->_callback && (con->is_rotated_soc() || con->check_soc())) {
+            auto cnb_inst=con->get_nb_inst();
+            con->uneval();
+            
+            for(auto inst=0;inst<cnb_inst;inst++){
+                con->uneval();
+                auto fk=con->eval(inst);
+                if((fk >= active_tol && con->_ctype==leq) || (fk <= -active_tol && con->_ctype==geq)){
+                    xc=con->get_x(inst);
+                    int count=0;
+                    vector<double> xnow(3,0);
+                    /*Avoid divide by zero*/
+                    if(xc[_first_diag_pos]>=xc[_second_diag_pos] && xc[_first_diag_pos]>=1e-6){
+                        xnow[_first_diag_pos]=xc[_first_diag_pos];
+                        xnow[_second_diag_pos]=(xc[_off_diag_pos]*xc[_off_diag_pos])/(xc[_first_diag_pos]);
+                        xnow[_off_diag_pos]=xc[_off_diag_pos];
+                    }
+                    else if (xc[_second_diag_pos]>=1e-6)
+                    {
+                        xnow[_first_diag_pos]=(xc[_off_diag_pos]*xc[_off_diag_pos])/(xc[_second_diag_pos]);
+                        xnow[_second_diag_pos]=xc[_second_diag_pos];
+                        xnow[_off_diag_pos]=xc[_off_diag_pos];
+                    }
+                    else{
+                        xnow[_first_diag_pos]=std::max(xc[_off_diag_pos],-xc[_off_diag_pos]);
+                        xnow[_second_diag_pos]=std::max(xc[_off_diag_pos],-xc[_off_diag_pos]);
+                        xnow[_off_diag_pos]=xc[_off_diag_pos];
+                    }
+                    
+                    c_val.resize(3,0);
+                    
+                    scale=1.0;
+                    c_val[_first_diag_pos]=-xnow[_second_diag_pos];
+                    c_val[_second_diag_pos]=-xnow[_first_diag_pos];
+                    c_val[_off_diag_pos]=2*xnow[_off_diag_pos];
+                    c0_val=0;
+                    coef_const=0;
+                    
+                    for(auto n=0;n<3;n++){
+                        if(n!=_off_diag_pos){
+                            free_var = true;
+                            auto id=_soc_ids[inst][n].second;
+                            if(!Xii_x_map[id].empty()){
+                                for(auto i = 0; i < Xii_x_map[id].size(); i++){
+                                    cut_vec.push_back({Xii_x_map[id][i].first, c_val[n]*Xii_x_map[id][i].second});
+                                }
+                                free_var = false;
+                            }
+                            if(!Xii_y_map[id].empty()){
+                                for(auto i = 0; i < Xii_y_map[id].size(); i++){
+                                    cut_vec.push_back({Xii_y_map[id][i].first, c_val[n]*Xii_y_map[id][i].second});
+                                }
+                                free_var = false;
+                            }
+                            if(!Xii_cons_map.empty() && Xii_cons_map[id]!=0){
+                                coef_const += c_val[n]*Xii_cons_map[id];
+                                free_var = false;
+                            }
+                            if(free_var){
+                                cut_vec.push_back({{_soc_ids[inst][n].first,id},c_val[n]});
+                            }
+                        }
+                        else{
+                            free_var = true;
+                            auto id=_soc_ids[inst][n].second;
+                            if(!Xij_x_map[id].empty()){
+                                for(auto i = 0; i < Xij_x_map[id].size(); i++){
+                                    cut_vec.push_back({Xij_x_map[id][i].first, c_val[n]*Xij_x_map[id][i].second});
+                                }
+                                free_var = false;
+                            }
+                            if(!Xij_y_map[id].empty()){
+                                for(auto i = 0; i < Xij_y_map[id].size(); i++){
+                                    cut_vec.push_back({Xij_y_map[id][i].first, c_val[n]*Xij_y_map[id][i].second});
+                                }
+                                free_var = false;
+                            }
+                            if(!Xij_cons_map.empty() && Xij_cons_map[id]!=0){
+                                coef_const += c_val[n]*Xij_cons_map[id];
+                                free_var = false;
+                            }
+                            if(free_var){
+                                cut_vec.push_back({{_soc_ids[inst][n].first,id},c_val[n]});
+                            }
+                        }
+                    }
+                    cut_vec.push_back({{-1,-1},coef_const});
+                    auto res_cut= scale_cut(active_tol,  cut_vec, scaled_cut);
+                    if(res_cut){
+                        res.push_back(scaled_cut);
+                        soc_added++;
+                    }
+                    //res.push_back(cut_vec);
+                    scaled_cut.clear();
+                    cut_vec.clear();
+                    coef_const=0;
+                    c0_val=0;
+                    c_val.clear();
+                }
+                
+            }
+        }
+    }
+
+    //DebugOn("soc"<<endl);
+    return res;
+
+}
+/*
+ template<typename type>
 template<typename T>
 vector<vector<double>> Model<type>::cutting_planes_soc(double active_tol, int& soc_viol,int& soc_added)
 {
@@ -907,7 +849,6 @@ vector<vector<double>> Model<type>::cutting_planes_soc(double active_tol, int& s
                     vector<double> ub_val;
                     soc_viol++;
                     xnow.resize(3,0);
-                    /*Avoid divide by zero*/
                     if(xc[0]>=xc[1] && xc[0]>=1e-6){
                         xnow[0]=xc[0];
                         xnow[1]=(xc[2]*xc[2])/(xc[0]);
@@ -981,7 +922,7 @@ vector<vector<double>> Model<type>::cutting_planes_soc(double active_tol, int& s
                                     coef_const+=map_const[key[i]]*c_val[i]*scale;
                                     free_var=false;
                                 }
-                                if(free_var){/*Var not function of x or y or constant*/
+                                if(free_var){
                                     cut.push_back(var_ind[i]);
                                     cut.push_back(c_val[i]*scale);
                                     ub_val.push_back(ub_ind[i]);
@@ -1064,6 +1005,7 @@ vector<vector<double>> Model<type>::cutting_planes_soc(double active_tol, int& s
     return res;
     
 }
+*/
 /*Generates and creates a vector of cuts when any solution is violated by the model this . The curent model solution is set to obbt_solution and OA cuts are generated for the nonlinear constraints in the current model at the obbt_solution point. These cuts are added to model lin.
  @param[in] interior model: Model which can give interior point of current model
  @param[in] obbt_solution: Point at which constraints are linearized. For non-convex constraints that define a convex region, the point is shifted to an active point of that constraint and its instance
@@ -1200,7 +1142,6 @@ vector<vector<double>> Model<type>::cutting_planes_eigen(const double active_tol
                                 c_val.push_back(eig_vec[n]*eig_vec[n]*(-1));
                             }
                         }
-                        
                         c_val.push_back(eig_vec[0]*eig_vec[1]*(-2));
                         if(xres.size()==6){
                             c_val.push_back(eig_vec[1]*eig_vec[2]*(-2));
@@ -1584,7 +1525,7 @@ vector<vector<pair<pair<size_t,size_t>,double>>> Model<type>::cuts_eigen_bags(co
                                         }
                                         free_var = false;
                                     }
-                                    if(!Xii_cons_map.empty() && Xij_cons_map[id]!=0){
+                                    if(!Xij_cons_map.empty() && Xij_cons_map[id]!=0){
                                         coef_const += eig_vector_m[i]*eig_vector_m[j]*(-2)*Xij_cons_map[id];
                                         free_var = false;
                                     }
@@ -2280,6 +2221,8 @@ void Model<type>::make_PSD(const var<type>& diag_var, const var<type>& off_diag_
         cout << "PSD Variable " <<  diag_var._name << " already added to the model, check your variable names\n";
         return;
     }
+    vector<vector<pair<int,int>>> soc_ids;
+    int off_diag_pos=-1;
     auto X_ptr = this->get_ptr_var<type>(diag_var._name);
     auto Xij_ptr = this->get_ptr_var<type>(off_diag_var._name);
     X_ptr->_psd_diag=true;
@@ -2385,6 +2328,82 @@ void Model<type>::make_PSD(const var<type>& diag_var, const var<type>& off_diag_
                 break;
         }
     }
+    for (auto &con: _cons_vec)
+    {
+          if(!con->is_linear() && con->_callback && (con->is_rotated_soc() || con->check_soc())) {
+              auto cnb_inst=con->get_nb_inst();
+              size_t X_id, Xii_id, Xij_id;
+              shared_ptr<var<double>> X, Xii, Xij;
+              bool psd_var=true;
+              int count=0;
+              for (auto &v_p: con->get_vars()){
+                  if(v_p.second.first->_name==off_diag_var._name|v_p.second.first->_name==diag_var._name){
+                      psd_var=false;
+                  }
+                  if(!psd_var){
+                      if(v_p.second.first->_name==off_diag_var._name){
+                          Xii_id=X_ptr->get_vec_id();
+                          Xij_id=Xij_ptr->get_vec_id();
+                          off_diag_pos=count;
+                      }
+                  }
+                  count++;
+              }
+              count=0;
+              if(psd_var){/*Support fot this case is limited in make PSD elsewhere*/
+                  for (auto &v_p: con->get_vars()){
+                          auto keys_vec=*(v_p.second.first->_indices->_keys);
+                          auto key_i=keys_vec[v_p.second.first->get_id_inst(0)];
+                          if(key_i.find(",")!=std::string::npos){
+                              auto key_first=key_i.substr(0,key_i.find(","));
+                              auto key_second=key_i.substr(key_i.find(",")+1);
+                              if(key_first!=key_second){
+                                  off_diag_pos=count;
+                                  X=static_pointer_cast<var<double>>(v_p.second.first);
+                                  X_id=X_ptr->get_vec_id();
+                              }
+                          }
+                      count++;
+                  }
+              }
+              for(auto i=0;i<cnb_inst;i++){
+                  vector<pair<int,int>> temp;
+                  count=0;
+                  for (auto &v_p: con->get_vars()){
+                      auto keys_vec=*(v_p.second.first->_indices->_keys);
+                      auto key_i=keys_vec[v_p.second.first->get_id_inst(i)];
+                      if(!psd_var){
+                          if(count!=off_diag_pos)
+                              temp.push_back({Xii_id, X_ptr->get_keys_map()->at(key_i)});
+                          else
+                              temp.push_back({Xij_id,Xij_ptr->get_keys_map()->at(key_i)});
+                      }
+                      else{
+                          temp.push_back({X_id,X_ptr->get_keys_map()->at(key_i)});
+                      }
+                      count++;
+                  }
+                  soc_ids.push_back(temp);
+              }
+          }
+      }
+    _soc_ids=soc_ids;
+    _off_diag_pos=off_diag_pos;
+    int first_diag_pos, second_diag_pos;
+    bool first_diag_pos_found=false;
+    for(auto i=0;i<3;i++){
+        if(i!=off_diag_pos && !first_diag_pos_found){
+            first_diag_pos=i;
+            first_diag_pos_found=true;
+            continue;
+        }
+        if(i!=off_diag_pos && first_diag_pos_found){
+            second_diag_pos=i;
+            break;
+        }
+    }
+    _first_diag_pos=first_diag_pos;
+    _second_diag_pos=second_diag_pos;
 }
 
 
@@ -3260,7 +3279,7 @@ template vector<vector<double>> Model<double>::cuts_eigen_full_old(const double 
 template bool Model<double>::scale_cut(const double active_tol, const vector<pair<pair<size_t,size_t>,double>>& cut_vec, vector<pair<pair<size_t,size_t>,double>>& scaled_cut);
 template vector<vector<pair<pair<size_t,size_t>,double>>> Model<double>::cuts_eigen_bags(const double active_tol,int nb_cuts);
 template vector<vector<double>> Model<double>::cuts_eigen_bags_primal_complex(const double active_tol,string diag_name, string off_diag_real, string off_diag_imag);
-template vector<vector<double>> Model<double>::cutting_planes_soc(double active_tol, int& soc_viol,int& soc_added);
+template vector<vector<pair<pair<size_t,size_t>,double>>> Model<double>::cutting_planes_soc(double active_tol, int& soc_viol,int& soc_added);
 template double Model<double>::check_PSD();
 template void Model<double>::make_PSD(const var<double>& diag_var, const var<double>& off_diag_var);
 template double Model<double>::check_PSD_bags();
