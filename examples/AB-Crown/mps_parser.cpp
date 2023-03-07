@@ -5,298 +5,163 @@
 #include <spdlog/spdlog.h>
 #include <sstream>
 #include <string>
+#include <gurobi_c++.h>
+#include <gravity/model.h>
+#include <gravity/func.h>
+#include <map>
 
-const std::set<std::string> ROW_TYPES = {
-	"N", // free row, first instance is objective function
-	"L", // less than or equal to
-	"G", // greater than or equal to
-	"E", // equal to
-};
-
-const std::set<std::string> BOUND_TYPES = {
-	"LO", // lower bound
-	"UP", // upper bound
-	"FX", // fixed at specified value
-	"FR", // free
-	"MI", // infinite lower bound
-	"PL", // infinite upper bound
-	"BV", // binary variable
-	"LI", // lower bound on integer variable
-	"UI", // upper bound on integer variable
-	"SC", // upper bound for semi-continuous variable
-	"SI", // upper bound for semi-integer variable
-};
-
-class MPSReader {
-public:
-	MPSReader(std::string file_path) {
-		this->file_path = file_path;
-		this->infile.open(file_path);
-
-		if (!this->infile.good()) {
-			spdlog::error("Could not open file {}", file_path);
-			exit(1);
-		}
-	}
-
-	void parse() {
-		std::string line;
-
-		// Begin reading
-		while (true)
-		{
-			line = this->read_rewind();
-
-			if (line.find("NAME") == 0) {
-				this->read_name();
-			} else if (line.find("OBJSENSE") == 0) {
-				this->read_obj_sense();
-			} else if (line.find("ROWS") == 0) {
-				read_rows();
-			} else if (line.find("COLUMNS") == 0) {
-				read_columns();
-			} else if (line.find("RHS") == 0) {
-				read_rhs();
-			} else if (line.find("BOUNDS") == 0) {
-				read_bounds();
-			} else if (line.find("ENDATA") == 0) {
-				break;
-			} else {
-				spdlog::error("Unsupported section: {}", line);
-				exit(1);
-			}
-		}
-	}
-
-	// Name of the problem
-	std::string name;
-	// Optimization type (MIN or MAX)
-	std::string objsense = "MIN";
-
-	// Constraint type, Name
-	std::vector<std::tuple<std::string, std::string>> rows;
-
-	// Column -> (Row, Coeff, IsInteger)
-	std::map<std::string, std::vector<std::tuple<std::string, double, bool>>> columns;
-
-	// Row, RHS value
-	std::vector<std::tuple<std::string, double>> rhs;
-
-	std::vector<std::tuple<std::string, std::string, double>> bounds;
-
-	// Name of objective function
-	std::string obj_fn;
-	// Offset for objective function
-	double obj_fn_offset = 0.0;
-
-private:
-	void read_name();
-	void read_obj_sense();
-	void read_rows();
-	void read_columns();
-	void read_rhs();
-	void read_bounds();
-
-	bool read_line(std::string &line);
-	std::string read_rewind();
-	void rewind_line(std::string &line);
-
-	std::string file_path;
-	std::ifstream infile;
-};
-
-std::string MPSReader::read_rewind() {
-	std::string line;
-	this->read_line(line);
-	this->rewind_line(line);
-	return line;
-}
-
-void MPSReader::rewind_line(std::string &line) {
-	infile.seekg(-(line.size() + 1), std::ios_base::cur);
-}
-
-bool MPSReader::read_line(std::string& line) {
-	while (std::getline(this->infile, line)) {
-		// MPS Comments
-		if (line[0] != '*' && line[0] != '$') {
-			return true;
-		}
-	}
-	return false;
-}
-
-void MPSReader::read_name() {
-	spdlog::info("----- NAME -----");
-	std::string line, _field;
-	this->read_line(line);
-
-	if (line.find("NAME") == std::string::npos) {
-		spdlog::error("NAME not found");
-		exit(1);
-	}
-
-	std::istringstream iss{line};
-	iss >> _field >> this->name;
-
-	spdlog::info("\tProblem name: {}", this->name);
-}
-
-void MPSReader::read_obj_sense() {
-	spdlog::info("----- OBJSENSE -----");
-	std::string line, _field;
-	this->read_line(line);
-
-	std::istringstream iss{line};
-	iss >> _field >> this->objsense;
-	spdlog::info("\tObjective sense: {}", this->objsense);
-}
-
-void MPSReader::read_rows() {
-	spdlog::info("----- ROWS -----");
-
-	std::string line;
-	bool found_obj = false;
-
-	// skip rows header
-	this->read_line(line);
-
-	while (this->read_line(line) && !line.empty() && line[0] == ' ')
-	{
-		std::string ctype, cname;
-		std::string priority, weight, reltol, abstol;
-
-	    std::istringstream iss(line);
-	   	iss >> ctype >> cname >> priority >> weight >> reltol >> abstol;
-
-		if (ROW_TYPES.count(ctype) == 0) {
-			spdlog::error("Unsupported row type: {}", ctype);
-			exit(1);
-		}
-
-		// if f is not empty, then we are reading a multi-objective cost
-		if (!abstol.empty()) {
-			spdlog::error("Multi-objective costs not supported");
-			exit(1);
-		}
-		if (ctype == "N" && !found_obj) {
-			this->obj_fn = cname;
-			found_obj = true;
-			spdlog::info("\tObjective function: {}", cname);
-		}
-
-		this->rows.push_back(std::make_tuple(ctype, cname));
-		spdlog::info("\t{} {}", ctype, cname);
-	}
-	this->rewind_line(line);
-
-	if (!found_obj) {
-		spdlog::error("Could not find objective function. First free row interpreted as objective function");
-		exit(1);
-	}
-}
-
-void MPSReader::read_columns() {
-	spdlog::info("----- COLUMNS -----");
-
-	std::string line;
-	bool is_integer = false;
-
-	// skip columns header
-	this->read_line(line);
-	while (read_line(line) && !line.empty() && line[0] == ' ')
-	{
-		// Check if we are entering or exiting the integrality section
-		if (line.find("'MARKER'") != std::string::npos) {
-			if (line.find("'INTORG'") != std::string::npos) {
-				is_integer = true;
-				continue;
-			} else if (line.find("'INTEND'") != std::string::npos) {
-				is_integer = false;
-				continue;
-			} else {
-				spdlog::error("Malformed MARKER line: ", line);
-				exit(1);
-			}
-		}
-
-		std::string col, row;
-		double coeff;
-
-	    std::istringstream iss(line);
-	   	iss >> col;
-
-		// 0, 1, or 2 coefficients
-		while (iss >> row >> coeff) {
-			this->columns[col].push_back(std::make_tuple(row, coeff, is_integer));
-			spdlog::info("\t{} {} {}", col, row, coeff);
-		}
-	}
-
-	this->rewind_line(line);
-}
-
-void MPSReader::read_rhs() {
-	spdlog::info("----- RHS -----");
-
-	std::string line;
-
-	// skip rhs header
-	this->read_line(line);
-	while (read_line(line) && !line.empty() && line[0] == ' ')
-	{
-	    std::istringstream iss(line);
-		std::string _rhs_name, row;
-		double coeff;
-
-	   	iss >> _rhs_name;
-
-		// 1 or 2 rhs values
-		while (iss >> row >> coeff) {
-			if (row == this->obj_fn) {
-				this->obj_fn_offset = coeff;
-				continue;
-			}
-
-			this->rhs.push_back(std::make_tuple(row, coeff));
-			spdlog::info("\t{} {}", row, coeff);
-		}
-	}
-
-	// Rewind to previous line
-	this->rewind_line(line);
-}
-
-void MPSReader::read_bounds() {
-	spdlog::info("----- BOUNDS -----");
-
-	std::string line;
-	std::string bound_type, _bound_name, var_name, bound_val;
-
-	// skip bounds header
-	this->read_line(line);
-	while (this->read_line(line) && !line.empty() && line[0] == ' ')
-	{
-	    std::istringstream iss(line);
-		iss >> bound_type >> _bound_name >> var_name >> bound_val;
-
-		if (BOUND_TYPES.count(bound_type) == 0) {
-			spdlog::error("Unknown bound type: {}", bound_type);
-			exit(1);
-		}
-
-		spdlog::info("\t{} {} {}", bound_type, var_name, bound_val);
-
-		this->bounds.push_back(std::make_tuple(bound_type, var_name, std::stod(bound_val)));
-	}
-
-	// Rewind to previous line
-	this->rewind_line(line);
-}
+using namespace gravity;
 
 int main(int argc, char** argv) {
-	MPSReader mps_data("/home/haydnj/Documents/Gravity/simple.mps");
-	mps_data.parse();
+	std::map<std::string, var<double>> cont_vars;
+	std::map<std::string, var<int>> int_vars;
+	std::map<std::string, var<bool>> bin_vars;
+	std::map<std::string, Constraint<double>> constraints;
 
+	try {
+		GRBEnv env = GRBEnv();
+    	GRBModel m = GRBModel(env, "/mnt/trail_test/haydnj/vnn/Gravity/simple.mps");
+
+		Model<> gravityModel("GravityModel");
+
+		int n_vars = m.get(GRB_IntAttr_NumVars);
+		int n_constraints = m.get(GRB_IntAttr_NumConstrs);
+		int n_int_vars = m.get(GRB_IntAttr_NumIntVars);
+		int n_bin_vars = m.get(GRB_IntAttr_NumBinVars);
+		spdlog::info("NumVars: {}, NumConstraints: {}", n_vars, n_constraints);
+		spdlog::info("NumIntVars: {}, NumBinVars: {}", n_int_vars, n_bin_vars);
+
+		// Print variable names
+		for (int i = 0; i < n_vars; i++) {
+			spdlog::info("Getting var {}/{}", i, n_vars);
+
+			GRBVar gurobi_var = m.getVar(i);
+			const double lb = gurobi_var.get(GRB_DoubleAttr_LB);
+			const double ub = gurobi_var.get(GRB_DoubleAttr_UB);
+			const char type = gurobi_var.get(GRB_CharAttr_VType);
+			const std::string name = gurobi_var.get(GRB_StringAttr_VarName);
+
+			// spdlog::info("\tVarName: {}, LB: {}, UB: {}, Type: {}", name, lb, ub, type);
+			if (type == GRB_CONTINUOUS) {
+				cont_vars.insert({name, {name, lb, ub}});
+				gravityModel.add(cont_vars[name]);
+			} else if (type == GRB_INTEGER) {
+				int_vars.insert({name, {name, (int)lb, (int)ub}});
+				gravityModel.add(cont_vars[name]);
+			} else if (type == GRB_BINARY) {
+				bin_vars.insert({name, {name, (bool)lb, (bool)ub}});
+				gravityModel.add(bin_vars[name]);
+			} else {
+				spdlog::error("Unknown variable type: {}", type);
+				exit(1);
+			}
+		}
+
+		// Make sure all variables were added
+		if (cont_vars.size() + int_vars.size() + bin_vars.size() != n_vars) {
+			spdlog::error("Not all variables were added.");
+			exit(1);
+		}
+
+		spdlog::info("Done adding variables.");
+
+		// Print Gravity variables
+		spdlog::info("~~~~~~~~ ContVars ~~~~~~~~");
+		for (auto& v : cont_vars) {
+			spdlog::info("{}: [{}, {}]", v.first, v.second.get_lb(0), v.second.get_ub(0));
+		}
+
+		spdlog::info("~~~~~~~~ IntVars ~~~~~~~~");
+		for (auto& v : int_vars) {
+			spdlog::info("{}: [{}, {}]", v.first, v.second.get_lb(0), v.second.get_ub(0));
+		}
+
+		spdlog::info("~~~~~~~~ BinVars ~~~~~~~~");
+		for (auto& v : bin_vars) {
+			spdlog::info("{}: [{}, {}]", v.first, v.second.get_lb(0), v.second.get_ub(0));
+		}
+
+		// Print constraint names
+		for (int i = 0; i < n_constraints; i++) {
+			GRBConstr constr = m.getConstr(i);
+			std::string name = constr.get(GRB_StringAttr_ConstrName);
+			char sense = constr.get(GRB_CharAttr_Sense);
+			double rhs = constr.get(GRB_DoubleAttr_RHS);
+
+			Constraint<double> gravityConstraint(name);
+
+			for (int j = 0; j < n_vars; j++) {
+				GRBVar var = m.getVar(j);
+				double coeff = m.getCoeff(constr, var);
+				if (coeff == 0.0) {
+					continue;
+				}
+
+				std::string var_name = var.get(GRB_StringAttr_VarName);
+				if (cont_vars.find(var_name) != cont_vars.end()) {
+					gravityConstraint += coeff * cont_vars[var_name];
+				} else if (int_vars.find(var_name) != int_vars.end()) {
+					gravityConstraint += coeff * int_vars[var_name];
+				} else if (bin_vars.find(var_name) != bin_vars.end()) {
+					gravityConstraint += coeff * bin_vars[var_name];
+				} else {
+					spdlog::error("Unknown variable name: {}", var_name);
+					exit(1);
+				}
+			}
+
+			if (sense == GRB_LESS_EQUAL) {
+				gravityModel.add(gravityConstraint <= rhs);
+			} else if (sense == GRB_GREATER_EQUAL) {
+				gravityModel.add(gravityConstraint >= rhs);
+			} else if (sense == GRB_EQUAL) {
+				gravityModel.add(gravityConstraint == rhs);
+			} else {
+				spdlog::error("Unknown constraint sense: {}", sense);
+				exit(1);
+			}
+		}
+
+		// Build objective
+		GRBQuadExpr quad_obj = m.getObjective();
+		GRBLinExpr lin_obj = quad_obj.getLinExpr();
+		unsigned int n_terms = lin_obj.size();
+
+		gravity::func<> gravityObj;
+
+		for (int i = 0; i < n_terms; i++) {
+			GRBVar var = lin_obj.getVar(i);
+			double coeff = lin_obj.getCoeff(i);
+			std::string var_name = var.get(GRB_StringAttr_VarName);
+
+			if (cont_vars.find(var_name) != cont_vars.end()) {
+				gravityObj += coeff * cont_vars[var_name];
+			} else if (int_vars.find(var_name) != int_vars.end()) {
+				gravityObj += coeff * int_vars[var_name];
+			} else if (bin_vars.find(var_name) != bin_vars.end()) {
+				gravityObj += coeff * bin_vars[var_name];
+			} else {
+				spdlog::error("Unknown variable name: {}", var_name);
+				exit(1);
+			}
+		}
+
+		// Get model objsense
+		int objsense = m.get(GRB_IntAttr_ModelSense);
+		if (objsense == GRB_MAXIMIZE) {
+			gravityModel.max(gravityObj);
+		} else if (objsense == GRB_MINIMIZE) {
+			gravityModel.min(gravityObj);
+		} else {
+			spdlog::error("Unknown objsense: {}", objsense);
+			exit(1);
+		}
+
+		// Add objective
+		gravityModel.print();
+	} catch (GRBException e) {
+		spdlog::error("Error code = {}", e.getErrorCode());
+		spdlog::error("{}", e.getMessage());
+	}
 	return 0;
 }

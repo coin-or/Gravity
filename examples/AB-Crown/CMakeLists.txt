@@ -33,6 +33,7 @@ else()
 endif()
 
 include(${CPM_DOWNLOAD_LOCATION})
+CPMAddPackage("gh:gabime/spdlog#v1.11.0")
 
 add_executable(
   mps_parser
