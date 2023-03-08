@@ -1,4 +1,3 @@
-#include <spdlog/spdlog.h>
 #include <string>
 #include <gurobi_c++.h>
 #include <gravity/model.h>
@@ -7,15 +6,26 @@
 
 using namespace gravity;
 
-template<typename T>
-std::pair<T, T> check_inf_bounds(T lb, T ub) {
-	// If ub == 1e100, then it is infinity. If lb == -1e100, then it is -infinity
-	ub = (ub ==  1e100) ? numeric_limits<T>::max() : ub;
-	lb = (lb == -1e100) ? numeric_limits<T>::lowest() : lb;
-	return std::make_pair(lb, ub);
+// GRB_DoubleAttr_MaxBound?
+std::pair<bool, bool> build_bool_bounds(double lb, double ub) {
+	return std::make_pair(static_cast<bool>(lb), static_cast<bool>(ub));
 }
 
-gravity::func<> from_lin_expr(GRBLinExpr& row, Model<>& gravity_model) {
+std::pair<int, int> build_int_bounds(double lb, double ub) {
+	int n_ub = (ub ==  GRB_MAXINT) ? std::numeric_limits<int>::max() : ub;
+	int n_lb = (lb == -GRB_MAXINT) ? std::numeric_limits<int>::lowest() : lb;
+
+	return std::make_pair(n_ub, n_lb);
+}
+
+std::pair<double, double> build_double_bounds(double lb, double ub) {
+	ub = (ub ==  GRB_INFINITY) ? std::numeric_limits<double>::max() : ub;
+	lb = (lb == -GRB_INFINITY) ? std::numeric_limits<double>::lowest() : lb;
+
+	return std::make_pair(static_cast<double>(lb), static_cast<double>(ub));
+}
+
+gravity::func<> func_from_lin_expr(GRBLinExpr& row, Model<>& gravity_model) {
 	gravity::func<> expr;
 	for (int j = 0; j < row.size(); j++) {
 		double coeff = row.getCoeff(j);
@@ -35,7 +45,7 @@ gravity::func<> from_lin_expr(GRBLinExpr& row, Model<>& gravity_model) {
 		} else if (vtype == GRB_BINARY) {
 			expr += coeff * gravity_model.get_var<bool>(var_name);
 		} else {
-			spdlog::error("Unknown variable type: {}", vtype);
+			Warning("Unknown variable type: " << vtype << std::endl);
 			exit(1);
 		}
 	}
@@ -52,19 +62,19 @@ void add_vars(GRBModel& model, Model<>& gravity_model) {
 		const std::string name = gurobi_var.get(GRB_StringAttr_VarName);
 
 		if (type == GRB_CONTINUOUS) {
-			auto bounds = check_inf_bounds<double>(static_cast<double>(lb), static_cast<double>(ub));
+			auto bounds = build_double_bounds(lb, ub);
 			var<double> gravity_var(name, bounds.first, bounds.second);
 			gravity_model.add(gravity_var);
 		} else if (type == GRB_INTEGER) {
-			auto bounds = check_inf_bounds<int>(static_cast<int>(lb), static_cast<int>(ub));
+			auto bounds = build_int_bounds(lb, ub);
 			var<int> gravity_var(name, bounds.first, bounds.second);
 			gravity_model.add(gravity_var);
 		} else if (type == GRB_BINARY) {
-			auto bounds = check_inf_bounds<bool>(static_cast<bool>(lb), static_cast<bool>(ub));
+			auto bounds = build_bool_bounds(lb, ub);
 			var<bool> gravity_var(name, bounds.first, bounds.second);
 			gravity_model.add(gravity_var);
 		} else {
-			spdlog::error("Unknown variable type: {}", type);
+			Warning("Unknown variable type: " << type << std::endl);
 			exit(1);
 		}
 	}
@@ -74,7 +84,7 @@ void add_objective(GRBModel& gurobi_model, Model<>& gravity_model) {
 	GRBQuadExpr quad_obj = gurobi_model.getObjective();
 	GRBLinExpr lin_obj = quad_obj.getLinExpr();
 
-	gravity::func<> gravityObj = from_lin_expr(lin_obj, gravity_model);
+	gravity::func<> gravityObj = func_from_lin_expr(lin_obj, gravity_model);
 
 	// Get model objsense
 	int objsense = gurobi_model.get(GRB_IntAttr_ModelSense);
@@ -83,7 +93,7 @@ void add_objective(GRBModel& gurobi_model, Model<>& gravity_model) {
 	} else if (objsense == GRB_MINIMIZE) {
 		gravity_model.min(gravityObj);
 	} else {
-		spdlog::error("Unknown objsense: {}", objsense);
+		Warning("Unknown objective sense: " << objsense << std::endl);
 		exit(1);
 	}
 
@@ -101,7 +111,7 @@ void add_constraints(GRBModel& gurobi_model, Model<>& gravity_model) {
 
 		GRBLinExpr row = gurobi_model.getRow(constr);
 		Constraint<double> expr(constr_name);
-		expr = from_lin_expr(row, gravity_model);
+		expr = func_from_lin_expr(row, gravity_model);
 
 		if (sense == GRB_LESS_EQUAL) {
 			gravity_model.add(expr <= rhs);
@@ -110,7 +120,7 @@ void add_constraints(GRBModel& gurobi_model, Model<>& gravity_model) {
 		} else if (sense == GRB_EQUAL) {
 			gravity_model.add(expr == rhs);
 		} else {
-			spdlog::error("Unknown constraint sense: {}", sense);
+			Warning("Unknown constraint sense: " << sense << std::endl);
 			exit(1);
 		}
 	}
@@ -125,20 +135,19 @@ int main(int argc, char** argv) {
 	int n_constraints = gurobi_model.get(GRB_IntAttr_NumConstrs);
 	int n_int_vars = gurobi_model.get(GRB_IntAttr_NumIntVars);
 	int n_bin_vars = gurobi_model.get(GRB_IntAttr_NumBinVars);
-	spdlog::info("NumVars: {}, NumConstraints: {}", n_vars, n_constraints);
-	spdlog::info("NumIntVars: {}, NumBinVars: {}", n_int_vars, n_bin_vars);
+	DebugOn("NumVars: " << n_vars << " NumConstraints: " <<  n_constraints << std::endl);
+	DebugOn("NumIntVars: " << n_int_vars << " NumBinVars: " << n_bin_vars << std::endl);
 
 	add_vars(gurobi_model, gravity_model);
 
-	spdlog::info("NVars: {}", gravity_model._vars.size());
+	DebugOn("NVars: " << gravity_model._vars.size() << std::endl);
 
 	// Make sure all variables were added
 	if (gravity_model._vars.size() != n_vars) {
-		spdlog::error("Not all variables were added. Only Continuous, Integer, and Binary variables are supported.");
+		Warning("Not all variables were added. Only Continuous, Integer, and Binary variables are supported." << std::endl);
 		exit(1);
 	}
 
-	spdlog::info("Done adding variables.");
 	add_constraints(gurobi_model, gravity_model);
 
 	// Build objective

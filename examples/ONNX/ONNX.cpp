@@ -3,16 +3,13 @@
 #include "data.hpp"
 #include <cassert>
 #include <fstream>
-#include <spdlog/spdlog.h>
 #include <numeric>
 
 
 int main(int argc, char** argv) {
 	GOOGLE_PROTOBUF_VERIFY_VERSION;
-	spdlog::default_logger()->set_pattern("[%^%l%$] %v");
 
 	std::fstream input("./mnist.onnx", std::ios::in | std::ios::binary);
-	spdlog::info("Parsing the onnx model file.");
 	onnx::ModelProto model;
 	bool isSuccess = model.ParseFromIstream(&input);
 	onnx::GraphProto graph = model.graph();
@@ -31,7 +28,6 @@ int main(int argc, char** argv) {
 	int layer_idx = 0;
 	for (auto& node: graph.node()) {
 		Layer* layer = new Layer(layer_idx, node, initializers);
-		spdlog::info("Layer {}: {}", layer->_name, layer->_type_name);
 		layers.push_back(layer);
 		for (auto& output: layer->outputs()) {
 			layers_by_output[output] = layer;
@@ -45,7 +41,6 @@ int main(int argc, char** argv) {
 	for (auto& layer: layers) {
 		for (auto& input: layer->inputs()) {
 			if (layers_by_output.count(input) == 0) {
-				spdlog::error("Input {} is not a layer output.", input);
 				continue;
 			}
 
