@@ -320,6 +320,7 @@ set(UNZIPPED ON CACHE BOOL "Already unzipped" FORCE)
 
 # Include Power dirs
 include_directories(${PROJECT_SOURCE_DIR}/examples/Optimization/NonLinear/Power)
+include_directories(${PROJECT_SOURCE_DIR}/examples/Optimization/Linear/Rostering)
 # include_directories(${PROJECT_SOURCE_DIR}/solvers)
 
 # Include ML dirs
