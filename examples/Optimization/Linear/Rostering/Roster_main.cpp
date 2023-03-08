@@ -45,7 +45,7 @@ int main (int argc, char * argv[])
     }
 #endif
     rapidcsv::Document doc(fname);
-    map<string, vector<Team>> LA_divs, WR_divs;
+    map<int, vector<Team>> LA_divs_sorted, WR_divs_sorted;
     auto nb_players = doc.GetRowCount();
     cout << "There are " <<  nb_players << " registered players." << std::endl;
     vector<int> ages = doc.GetColumn<int>("Player Age");
@@ -62,24 +62,36 @@ int main (int argc, char * argv[])
         Player p(fnames[i], lnames[i], ages[i], emails_vec[i], genders[i]);
         emails.insert(emails_vec[i]);
         if(loc_full[i]=="Los Alamos" || loc_season[i]=="Los Alamos"){
-            string div_name = "U"+to_string(age+1);
-            string team_name = "LA_"+div_name;
-            if(LA_divs.count(div_name)==0)
-                LA_divs[div_name].push_back(Team(team_name));
-            LA_divs[div_name].back().players.push_back(p);
+            int div_num = age+1;
+            string team_name = "LA_U"+to_string(div_num);
+            if(LA_divs_sorted.count(div_num)==0)
+                LA_divs_sorted[div_num].push_back(Team(team_name));
+            LA_divs_sorted[div_num].back().players.push_back(p);
         }
         else if(loc_full[i]=="White Rock" || loc_season[i]=="White Rock"){
-            string div_name = "U"+to_string(age+1);
-            string team_name = "WR_"+div_name;
-            if(WR_divs.count(div_name)==0)
-                WR_divs[div_name].push_back(Team(team_name));
-            WR_divs[div_name].back().players.push_back(p);
+            int div_num = age+1;
+            string team_name = "WR_U"+to_string(div_num);
+            if(WR_divs_sorted.count(div_num)==0)
+                WR_divs_sorted[div_num].push_back(Team(team_name));
+            WR_divs_sorted[div_num].back().players.push_back(p);
         }
         else
             cout << "WARNING: preferred location unspecified, not sure where to place player! Row number: " << i << endl;
     }
-    DebugOn("There are " << LA_divs.size() << " divisions in LA " << endl);
-    DebugOn("There are " << WR_divs.size() << " divisions in WR " << endl);
+    DebugOn("There are " << LA_divs_sorted.size() << " divisions in LA " << endl);
+    DebugOn("There are " << WR_divs_sorted.size() << " divisions in WR " << endl);
+    
+//    string div_name = "U"+to_string(age+1);
+
+    map<string, vector<Team>> LA_divs, WR_divs;
+    for(auto const &div: LA_divs_sorted){
+        LA_divs["U"+to_string(div.first)] = div.second;
+    }
+    
+    for(auto const &div: WR_divs_sorted){
+        WR_divs["U"+to_string(div.first)] = div.second;
+    }
+    
     /* First, combining small teams */
     
     bool min_size_ok = false;
@@ -97,6 +109,7 @@ int main (int argc, char * argv[])
                 auto it = LA_divs.find(div_up_name);
                 if(it!=LA_divs.end()){
                     Team new_team = t.combine_with(it->second.back());
+                    new_team.team_name = "LA_"+div_name+"_"+div_up_name;
                     new_LA_divs[div_name+"_"+div_up_name].push_back(new_team);
                     new_LA_divs.erase(div_name);
                     new_LA_divs.erase(div_up_name);
@@ -105,6 +118,7 @@ int main (int argc, char * argv[])
                     string div_down_name = "U"+to_string(div_num-1);
                     auto it = LA_divs.find(div_down_name);
                     Team new_team = t.combine_with(it->second.back());
+                    new_team.team_name = "LA_"+div_down_name+"_"+div_name;
                     new_LA_divs[div_down_name+"_"+div_name].push_back(new_team);
                     new_LA_divs.erase(div_name);
                     new_LA_divs.erase(div_down_name);
@@ -136,6 +150,7 @@ int main (int argc, char * argv[])
                 auto it = WR_divs.find(div_up_name);
                 if(it!=WR_divs.end()){
                     Team new_team = t.combine_with(it->second.back());
+                    new_team.team_name = "WR_"+div_name+"_"+div_up_name;
                     new_WR_divs[div_name+"_"+div_up_name].push_back(new_team);
                     new_WR_divs.erase(div_name);
                     new_WR_divs.erase(div_up_name);
@@ -144,6 +159,7 @@ int main (int argc, char * argv[])
                     string div_down_name = "U"+to_string(div_num-1);
                     auto it = WR_divs.find(div_down_name);
                     Team new_team = t.combine_with(it->second.back());
+                    new_team.team_name = "WR_"+div_down_name+"_"+div_name;
                     new_WR_divs[div_down_name+"_"+div_name].push_back(new_team);
                     new_WR_divs.erase(div_name);
                     new_WR_divs.erase(div_down_name);
@@ -195,9 +211,13 @@ int main (int argc, char * argv[])
                 DebugOn("\t\t" << p.first_name << " " << p.last_name  << endl);
             }
             DebugOn("Email list for team:\n");
+            set<string> unique_emails;
             for(auto const &p: t.players){
-                DebugOn(p.email << ";");
+                if(unique_emails.insert(p.email).second){
+                    DebugOn(p.email << ";");
+                }
             }
+            DebugOn(endl);
         }
     }
     for(auto const &div: WR_divs){
@@ -209,9 +229,13 @@ int main (int argc, char * argv[])
                 DebugOn("\t\t" << p.first_name << " " << p.last_name  << endl);
             }
             DebugOn("Email list for team:\n");
+            set<string> unique_emails;
             for(auto const &p: t.players){
-                DebugOn(p.email << ";");
+                if(unique_emails.insert(p.email).second){
+                    DebugOn(p.email << ";");
+                }
             }
+            DebugOn(endl);
         }
     }
     bool print_emails = true;
