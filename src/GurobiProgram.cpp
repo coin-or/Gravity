@@ -165,6 +165,7 @@ protected:
                                 m->set_solution(vec_x);
                                 auto res1=m->cuts_eigen_bags(1e-9);
                                 if(res1.size()>=1){
+                                    DebugOff("Added " << res1.size() << " bag cuts\n");
                                     for(auto i=0;i<res1.size();i++){
                                         GRBLinExpr expr = 0;
                                         size_t j=0;
@@ -186,6 +187,7 @@ protected:
                                 m->set_solution(vec_x);
                                 auto res2=m->cuts_eigen_full(1e-9);
                                 if(res2.size()>=1){
+                                    DebugOff("Added " << res2.size() << " full cuts\n");
                                     for(auto i=0;i<res2.size();i++){
                                         GRBLinExpr expr = 0;
                                         size_t j=0;

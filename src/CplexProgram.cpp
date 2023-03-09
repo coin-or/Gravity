@@ -72,8 +72,9 @@ bool CplexProgram::solve(bool relax, double mipgap) {
 //        cplex.setParam(IloCplex::PreslvNd,-1);
 
 //        cplex.setParam(IloCplex::Param::RootAlgorithm,4);
-        _cplex->setParam(IloCplex::Param::Simplex::Tolerances::Feasibility, 1e-6);
-        _cplex->setParam(IloCplex::Param::Simplex::Tolerances::Optimality, 1e-6);
+        _cplex->setParam(IloCplex::Param::Simplex::Tolerances::Feasibility, 1e-9);
+        _cplex->setParam(IloCplex::Param::Barrier::ConvergeTol, 1e-9);
+        _cplex->setParam(IloCplex::Param::Simplex::Tolerances::Optimality, 1e-9);
         _cplex->setParam(IloCplex::EpGap, 1e-4 ); //stopping criterion MIPgap
 //        cplex.setParam(IloCplex::PreInd, 1);
 //        cplex.setParam(IloCplex::MIPDisplay, 2);
@@ -117,7 +118,7 @@ bool CplexProgram::solve(bool relax, double mipgap) {
                               | IloCplex::Callback::Context::Id::ThreadUp
                               | IloCplex::Callback::Context::Id::ThreadDown;
         /* Uncomment line below to generate cuts on continuous relaxation */
-//        contextmask = contextmask | IloCplex::Callback::Context::Id::Relaxation;
+        contextmask = contextmask | IloCplex::Callback::Context::Id::Relaxation;
         _cplex->use(&cplex_callback, contextmask);
         /* Done with callback */
         _cplex->solve();

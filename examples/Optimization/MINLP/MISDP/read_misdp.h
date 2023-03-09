@@ -502,6 +502,7 @@ Net CBF_read(const char *file, shared_ptr<Model<double>>& m, bool add_3d) {
         m->sdp_dual=true;
         
         auto bags_3d=g.decompose_bags_3d();
+        g._bags.insert(end(g._bags), begin(bags_3d), end(bags_3d));
         auto node_pairs_chord = g.get_node_pairs_chord(g._bags);
         //auto node_pairs_chord = g.get_node_pairs_chord(bags_3d);
         var<> X("X", 0, 1000);
