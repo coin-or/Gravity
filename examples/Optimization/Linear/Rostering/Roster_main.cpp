@@ -1,8 +1,11 @@
 //
-//  DCOPF.cpp
+//  Roster_main.cpp
+//
+//  This program can read in csv files with player info and created balanced teams
+//
 //  Gravity
 //
-//  Created by Hassan Hijazi on 19 Jan 18.
+//  Created by Hassan Hijazi on 8 March 2023.
 //
 //
 #include <stdio.h>
@@ -80,7 +83,6 @@ int main (int argc, char * argv[])
     DebugOn("There are " << LA_divs_sorted.size() << " divisions in LA " << endl);
     DebugOn("There are " << WR_divs_sorted.size() << " divisions in WR " << endl);
     
-//    string div_name = "U"+to_string(age+1);
 
     map<string, vector<Team>> LA_divs, WR_divs;
     for(auto const &div: LA_divs_sorted){
