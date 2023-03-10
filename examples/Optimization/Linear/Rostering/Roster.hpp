@@ -8,6 +8,7 @@
 
 #include <stdio.h>
 #include <math.h>
+#include <gravity/rapidcsv.h>
 
 class Player {
 
@@ -77,6 +78,17 @@ public:
         return res;
     }
     
+    void save_team() const{
+        string csv = "First Name,Last Name,Age,Email\n";
+        for(int n = 0; n < players.size(); n++){
+            csv += players[n].first_name+","+players[n].last_name+","+to_string(players[n].age)+","+players[n].email+"\n";
+        }
+        string path = team_name+".csv";
+        std::ofstream outfile;
+        outfile.open(path, std::ifstream::out | std::ifstream::binary);
+        outfile << csv;
+        outfile.close();
+    }
 
 };
 #endif

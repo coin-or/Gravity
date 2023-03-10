@@ -11,7 +11,6 @@
 #ifdef USE_OPT_PARSER
 #include <optionParser.hpp>
 #endif
-#include <gravity/rapidcsv.h>
 #include "Roster.hpp"
 using namespace std;
 using namespace gravity;
@@ -218,6 +217,8 @@ int main (int argc, char * argv[])
                 }
             }
             DebugOn(endl);
+            t.save_team();
+            DebugOn("Done writing csv file for team\n");
         }
     }
     for(auto const &div: WR_divs){
@@ -236,6 +237,8 @@ int main (int argc, char * argv[])
                 }
             }
             DebugOn(endl);
+            t.save_team();
+            DebugOn("Done writing csv file for team\n");
         }
     }
     bool print_emails = true;
@@ -250,5 +253,6 @@ int main (int argc, char * argv[])
         }
     }
     DebugOn("\nDone parsing enrollment file" <<endl);
+    
     return 0;
 }
