@@ -82,7 +82,7 @@ public:
         bool hierarc = false, add_bags = true;
         if(add_bags){
             int nb_cuts = 0;
-            auto res1=_model->cuts_eigen_bags(1e-8);
+            auto res1=_model->cuts_eigen_bags(1e-6);
             if(res1.size()>=1){
                 DebugOff("Adding " << res1.size() << " bag cuts\n");
                 for(auto i=0;i<res1.size() && cstr_id<cutLhs.getSize();i++){
@@ -103,7 +103,7 @@ public:
                 return IloTrue;
             }
         }
-        auto res2=_model->cuts_eigen_full(1e-8);
+        auto res2=_model->cuts_eigen_full(1e-6);
         if(res2.size()>=1){
             DebugOff("Adding " << res2.size() << " full cuts\n");
             for(auto i=0;i<res2.size() && cstr_id<cutLhs.getSize();i++){
