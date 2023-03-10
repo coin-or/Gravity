@@ -17,7 +17,7 @@ using namespace gravity;
 
 int main (int argc, char * argv[])
 {
-    string fname = string(prj_dir)+"/data_sets/Roster/Enrollment_Details_23.csv";
+    string fname = string(prj_dir)+"/data_sets/Roster/Enrollment_Details_Example.csv";
     
     
 #ifdef USE_OPT_PARSER
@@ -116,6 +116,9 @@ int main (int argc, char * argv[])
                 else{
                     string div_down_name = "U"+to_string(div_num-1);
                     auto it = LA_divs.find(div_down_name);
+                    if(it==LA_divs.end()){
+                        goto endloop;
+                    }
                     Team new_team = t.combine_with(it->second.back());
                     new_team.team_name = "LA_"+div_down_name+"_"+div_name;
                     new_LA_divs[div_down_name+"_"+div_name].push_back(new_team);
@@ -157,6 +160,9 @@ int main (int argc, char * argv[])
                 else{
                     string div_down_name = "U"+to_string(div_num-1);
                     auto it = WR_divs.find(div_down_name);
+                    if(it==WR_divs.end()){
+                        goto endloop;
+                    }
                     Team new_team = t.combine_with(it->second.back());
                     new_team.team_name = "WR_"+div_down_name+"_"+div_name;
                     new_WR_divs[div_down_name+"_"+div_name].push_back(new_team);
@@ -176,7 +182,7 @@ int main (int argc, char * argv[])
             }
         }
     }
-    
+    endloop:
     for(auto const &div: LA_divs){
         DebugOn("LA Division " << div.first);
         for(Team t: div.second){
