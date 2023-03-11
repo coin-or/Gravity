@@ -1,7 +1,11 @@
 //
 //  Roster_main.cpp
 //
-//  This program can read in csv files with player info and created balanced teams
+//  This program can read in csv files with player info and create balanced teams
+//  The program takes the path to the CSV file as a first argument.
+//  If you wish to specify the min and max team sizes, you can add them as second (for min) and third arguments (max).
+//  For example, you can type in: ./roster ../../data_sets/Roster/Enrollment_Details_Example.csv 10 20
+//  The default min/max is set to 8/16.
 //
 //  Gravity
 //
@@ -21,8 +25,8 @@ using namespace gravity;
 int main (int argc, char * argv[])
 {
     string fname = string(prj_dir)+"/data_sets/Roster/Enrollment_Details_Example.csv";
-    
-    
+    int min_team_size = 8, max_team_size = 16;
+    cout << "Welcome to the rostering program!\nThe program takes the path to the CSV file as a first argument.\nIf you wish to specify the min and max team sizes, you can add them as second (for min) and third arguments (max).\n For example, you can type in: ./roster ../../data_sets/Roster/Enrollment_Details_Example.csv 10 20\n The default min/max is set to 8/16.";
 #ifdef USE_OPT_PARSER
     /** Create a OptionParser with options */
     auto options = readOptions(argc, argv);
@@ -45,6 +49,10 @@ int main (int argc, char * argv[])
     if(argc>=2){
         fname=argv[1];
     }
+    if(argc>=4){
+        min_team_size=stoi(argv[2]);
+        max_team_size=stoi(argv[2]);
+    }
 #endif
     rapidcsv::Document doc(fname);
     map<int, vector<Team>> LA_divs_sorted, WR_divs_sorted;
@@ -58,7 +66,6 @@ int main (int argc, char * argv[])
     vector<string> loc_full = doc.GetColumn<string>(doc.GetColumnCount()-2);
     vector<string> loc_season = doc.GetColumn<string>(doc.GetColumnCount()-3);
     set<string> emails;
-    int min_team_size = 8, max_team_size = 16;
     for(auto i = 0; i<nb_players; i++){
         int age = ages[i];
         Player p(fnames[i], lnames[i], ages[i], emails_vec[i], genders[i]);
