@@ -51,7 +51,7 @@ int main (int argc, char * argv[])
     }
     if(argc>=4){
         min_team_size=stoi(argv[2]);
-        max_team_size=stoi(argv[2]);
+        max_team_size=stoi(argv[3]);
     }
 #endif
     rapidcsv::Document doc(fname);
