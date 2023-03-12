@@ -16,31 +16,6 @@
 using json = nlohmann::json;
 
 
-vector<vector<int>> allPossibleSubset(int n)
-{
-    vector<vector<int>> res;
-    int count = pow(2, n);
-    // The outer for loop will run 2^n times to print all subset .
-    // Here variable i will act as a binary counter
-    for (int i = 0; i < count; i++) {
-        vector<int> v;
-        // The inner for loop will run n times ,
-        // As the maximum number of elements a set can have is n
-        // This loop will generate a subset
-        for (int j = 0; j < n; j++) {
-            // This if condition will check if jth bit in
-            // binary representation of  i  is set or not
-            // if the value of (i & (1 << j)) is not 0 ,
-            // include j in the current subset
-            // otherwise exclude j
-            if ((i & (1 << j)) != 0)
-                v.push_back(j);
-        }
-        if(v.size()>=3)
-            res.push_back(v);
-    }
-    return res;
-}
 
 
 /*returns matrix of dimension n-1, without row rowno and col colno*/

@@ -227,9 +227,9 @@ int main(int argc, char * argv[]){
 //    Subtour = x.in(E_S) - rhs;
 //    Laplacian.add(Subtour.in(S) <= 0);
 
-//    Constraint<> Minor2("Minor2");
-//    Minor2 = Wij*Wij - Wii.from(E)*Wii.to(E);
-//    Laplacian.add(Minor2.in(E) <= 0);
+    Constraint<> Minor2("Minor2");
+    Minor2 = Wij*Wij - Wii.from(E)*Wii.to(E);
+    Laplacian.add(Minor2.in(E) <= 0);
 
     Laplacian.make_PSD(Wii,Wij);
 //    Laplacian.max(gamma);
