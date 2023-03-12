@@ -1,4 +1,3 @@
-if(APPLE)
 set(CPLEX_ROOT_DIR "$ENV{CPLEX_ROOT_DIR}" CACHE PATH "Cplex root directory.")
 message("Looking for Cplex in ${CPLEX_ROOT_DIR}")
 
@@ -7,8 +6,7 @@ if ("${CPLEX_ROOT_DIR}" STREQUAL "")
 	file(GLOB dirs $ENV{HOME}/Applications/IBM/ILOG/CPLEX_Studio*)
 else()	
 	file(GLOB dirs ${CPLEX_ROOT_DIR}/CPLEX_Studio*)
-endif()
-
+endif() 
 
 
 
@@ -17,12 +15,6 @@ foreach(d in ${dirs})
 	string(REGEX MATCH "Studio[0-9]+" CPLEX_VERSION "${d}")
 endforeach(d)
 string(SUBSTRING ${CPLEX_VERSION} 6 -1 CPLEX_VERSION)
-elseif(UNIX)
-	file(GLOB dirs /opt/ibm/ILOG/CPLEX_Studio*)
-foreach(d in ${dirs})
-	string(REGEX MATCH "[0-9]+" CPLEX_VERSION "${d}")
-endforeach(d)
-endif() 
 
 message("Cplex version ${CPLEX_VERSION}")
 if ("${CPLEX_ROOT_DIR}" STREQUAL "")
