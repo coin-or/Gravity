@@ -909,8 +909,8 @@ namespace gravity {
                 if (this->_coef!=unit<type>().eval()) {
                     str += ")";
                 }
-                return str;
             }
+            return str;
         }
         
     };

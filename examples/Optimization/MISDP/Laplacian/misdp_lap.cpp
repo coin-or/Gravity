@@ -96,9 +96,9 @@ int main(int argc, char * argv[]){
         bn.first=count++;
         for(auto n:subset){
             bn.second.push_back(to_string(n));
-            DebugOn(n <<"\t");
+            DebugOff(n <<"\t");
         }
-        DebugOn(endl);
+        DebugOff(endl);
         _bag_names.push_back(bn);
         E_S.add_empty_row();
         rhs.set_val(row_id, subset.size()-1);
