@@ -1540,11 +1540,11 @@ vector<vector<pair<pair<size_t,size_t>,double>>> Model<type>::cuts_eigen_bags(co
                             }
                         }
                         cut_vec.push_back({{-1,-1},coef_const});
-                        res.push_back(cut_vec);
-//                        auto res_cut= scale_cut(active_tol,  cut_vec, scaled_cut);
-//                        if(res_cut){
-//                            res.push_back(scaled_cut);
-//                        }
+//                        res.push_back(cut_vec);
+                        auto res_cut= scale_cut(active_tol,  cut_vec, scaled_cut);
+                        if(res_cut){
+                            res.push_back(scaled_cut);
+                        }
                         scaled_cut.clear();
                         cut_vec.clear();
                     }
@@ -1903,11 +1903,11 @@ vector<vector<pair<pair<size_t,size_t>,double>>> Model<type>::cuts_eigen_full(co
                             }
                         }
                         cut_vec.push_back({{-1,-1},coef_const});
-                        res.push_back(cut_vec);
-//                        auto res_cut= scale_cut(active_tol,  cut_vec, scaled_cut);
-//                        if(res_cut){
-//                            res.push_back(scaled_cut);
-//                        }
+//                        res.push_back(cut_vec);
+                        auto res_cut= scale_cut(active_tol,  cut_vec, scaled_cut);
+                        if(res_cut){
+                            res.push_back(scaled_cut);
+                        }
                         scaled_cut.clear();
                         cut_vec.clear();
                     }
