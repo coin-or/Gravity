@@ -1,5 +1,5 @@
 add_executable(
   mps_parser
-	AB-Crown/mps_parser.cpp
+	AB-Crown/MPSParser.cpp
 )
 target_link_libraries(mps_parser gravity)
