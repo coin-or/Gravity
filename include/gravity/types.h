@@ -1059,6 +1059,12 @@ public:
         _name += ".time_expanded";
     }
     
+    bool same_ids(const indices& cpy) const{
+        if((_keys!=cpy._keys) || (!_ids && !cpy._ids)) return false;
+        if((_ids && !cpy._ids) || (cpy._ids && !_ids) || (*_ids != *cpy._ids)) return false;
+        return true;
+    }
+    
     indices& operator=(const indices& cpy){
         if(_name.empty())
             _name = cpy._name;
@@ -1643,6 +1649,8 @@ indices union_ids(const indices& ids1, Args&&... args) {
     res.set_name(name.substr(0,name.size()-1) + ")");
     return res;
 }
+
+indices intersect(const indices& s1, const indices& s2);
 
 indices operator-(const indices& s1, const indices& s2);
 

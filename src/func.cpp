@@ -4186,11 +4186,11 @@ namespace gravity{
 //
 //
 
-/** Return the number of linear terms in this function */
-unsigned func_::nb_linear_terms() const{
-    return _lterms->size();
-}
-
+///** Return the number of linear terms in this function */
+//unsigned func_::nb_linear_terms() const{
+//    return _lterms->size();
+//}
+//
 
     
 
@@ -5192,6 +5192,15 @@ func<double> func<double>:: get_OA_symbolic(const vector<param<double>>& c, cons
         }
     }
 
+    void func_::reset_occ(){
+        for (auto& pair_it:*_params) {
+            get<1>(pair_it).second = 0;
+        }
+        for (auto& pair_it:*_vars) {
+            get<1>(pair_it).second = 0;
+        }
+    }
+
     void func_::incr_occ_var(string str){/**< Increases the number of occurences the variable has in this function. */
         auto pair_it = _vars->find(str);
         if (pair_it==_vars->end()) {
@@ -5771,6 +5780,107 @@ void func<type>::update_var_indices(const indices& ids, const indices& old_ids){
         }
     }
 
+template<typename type>
+void func<type>::update_terms(vector<shared_ptr<indices>>& ids){
+    shared_ptr<map<string, pair<shared_ptr<param_>, unsigned>>> new_params = make_shared<map<string, pair<shared_ptr<param_>, unsigned>>>();
+    shared_ptr<map<string, pair<shared_ptr<param_>, unsigned>>> new_vars = make_shared<map<string, pair<shared_ptr<param_>, unsigned>>>();
+//    if(_indices) {
+//        _indices->set_name(_indices->to_str());
+//    }
+    /* Check for duplicate index sets */
+    auto iter = _vars->begin();
+    while (iter!=_vars->end()) {
+        auto v = iter->second.first;
+        bool new_id = true;
+        for (auto const &id_ptr: ids) {
+            if (id_ptr->same_ids(*v->_indices)) {
+                DebugOff("Found a duplicate index set: " << v->_indices->get_name() << v->_indices->to_str() <<endl);
+                DebugOff("Original index set: " << id_ptr->get_name() << id_ptr->to_str() <<endl);
+                v->_indices->set_name(id_ptr->get_name());
+                string name = v->_name.substr(0, v->_name.find_first_of("."));
+                v->_name = name+".in("+v->_indices->get_name()+")";
+                new_id = false;
+                break;
+            }
+        }
+        if(new_id)
+            ids.push_back(v->_indices);
+        new_vars->insert(make_pair<>(v->get_name(false,false), iter->second));
+        iter++;
+    }
+    _vars = new_vars;
+    iter = _params->begin();
+    while (iter!=_params->end()) {
+        auto p = iter->second.first;
+        new_params->insert(make_pair<>(p->get_name(false,false), iter->second));
+        iter++;
+    }
+    if(_cst->is_function()){
+        auto c = static_pointer_cast<func<type>>(_cst);
+        c->eval_all();
+        shared_ptr<param<type>> p = make_shared<param<>>(_name+"_cst");
+        p->in(range(1,c->get_dim()));
+        p->copy_vals(*c);
+        _cst = p;
+        new_params->insert(make_pair<>(p->get_name(false,false), make_pair<>(p,1)));
+    }
+    else if (_cst->is_param()){
+        auto p = static_pointer_cast<param<type>>(_cst);
+        p->set_name(_name+"_cst");
+        new_params->insert(make_pair<>(p->get_name(false,false), make_pair<>(p,1)));
+    }
+    _params = new_params;
+    string key;
+    if(_expr){
+        if(_expr->is_uexpr()){
+            auto uexp = static_pointer_cast<uexpr<type>>(_expr);
+            if (uexp->_son->is_function()) {
+                auto f = static_pointer_cast<func>(uexp->_son);
+                f->update_terms(ids);
+            }
+        }
+        else {
+            auto bexp = static_pointer_cast<bexpr<type>>(_expr);
+            if (bexp->_lson->is_function()) {
+                auto f = static_pointer_cast<func>(bexp->_lson);
+                f->update_terms(ids);
+            }
+            if (bexp->_rson->is_function()) {
+                auto f = static_pointer_cast<func>(bexp->_rson);
+                f->update_terms(ids);
+            }
+        }
+    }
+    func<> new_f;
+    reset_occ();
+    new_f._vars = _vars;
+    new_f._params = _params;
+    for (auto &pair:*_lterms) {
+        if(pair.second._coef->is_function()){
+            auto c = static_pointer_cast<func<type>>(pair.second._coef);
+            c->update_terms(ids);
+        }
+        new_f.insert(pair.second._sign, *pair.second._coef, *pair.second._p);
+    }
+    _lterms = new_f._lterms;
+    for (auto &pair:*_qterms) {
+        if(pair.second._coef->is_function()){
+            auto c = static_pointer_cast<func<type>>(pair.second._coef);
+            c->update_terms(ids);
+        }
+        new_f.insert(pair.second._sign, *pair.second._coef, *pair.second._p->first, *pair.second._p->second);
+    }
+    _qterms = new_f._qterms;
+    for (auto &pair:*_pterms) {
+        if(pair.second._coef->is_function()){
+            auto c = static_pointer_cast<func<type>>(pair.second._coef);
+            c->update_terms(ids);
+        }
+        new_f.insert(pair.second);
+    }
+    _pterms = new_f._pterms;
+}
+
 
 /**
  Update the function indexing and its variables/parameters using the keep_ids vector of bool, only keep an index if it corresponding entry in keep_id is true.
@@ -6134,6 +6244,7 @@ void func<type>::update_rows(const vector<bool>& keep_ids) {
     template double func<double>::get_scale_factor(double);
     template void func<double>::update_rows(vector<bool> const&);
     template void func<double>::update_indices(vector<bool> const&);
+    template void func<double>::update_terms(vector<shared_ptr<indices>>& ids);
 //    template func<double> min(const func<double>& p1, const func<double>& p2);
 //    template func<double> max(const func<double>& p1, const func<double>& p2);
 

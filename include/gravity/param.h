@@ -501,6 +501,10 @@ namespace gravity {
             }
         }
         
+        bool has_common_ids(const shared_ptr<param_>& p) const{
+            return get_vec_id()==p->get_vec_id() && !intersect(*p->_indices, *_indices).empty();
+        }
+        
         bool operator==(const param_& p) const {
             return (_id==p._id && _type==p._type && _intype==p._intype && get_name(false,false)==p.get_name(false,false));
         }

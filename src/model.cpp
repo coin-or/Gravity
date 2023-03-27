@@ -9,7 +9,9 @@
 #include <gravity/model.h>
 #include <gravity/solver.h>
 #include <math.h> //for setting the rounding direction
-
+#ifdef USE_GUROBI
+#include <gurobi_c++.h>
+#endif
 using namespace std;
 namespace gravity {
     
@@ -6743,6 +6745,141 @@ int Model<type>::readNL(const string& fname){
 #endif
     return 0;
 }
+
+template <typename type>
+template<typename T,typename std::enable_if<is_arithmetic<T>::value>::type*>
+int Model<type>::readMPS(const string& fname){
+#ifdef USE_GUROBI
+    GRBEnv env = GRBEnv();
+    GRBModel gurobi_model = GRBModel(env, fname);
+
+    int n_vars = gurobi_model.get(GRB_IntAttr_NumVars);
+    int n_constraints = gurobi_model.get(GRB_IntAttr_NumConstrs);
+    int n_int_vars = gurobi_model.get(GRB_IntAttr_NumIntVars);
+    int n_bin_vars = gurobi_model.get(GRB_IntAttr_NumBinVars);
+    DebugOn("The number of variables is " << n_vars << endl);
+    DebugOn("The number of constraints is " << n_constraints << endl);
+    indices C("C"), I("I"), LinConstr("LinConstr"), QuadConstr("QuadConstr"), NonLinConstr("NonLinConstr");
+    int nb_cont = 0;
+    int nb_int = 0;
+    int nb_other = 0;
+    vector<int> C_ids,I_ids;
+    for (int i = 0; i < n_vars; i++) {
+        GRBVar gurobi_var = gurobi_model.getVar(i);
+        auto const vtype = gurobi_var.get(GRB_CharAttr_VType);
+        const std::string vname = gurobi_var.get(GRB_StringAttr_VarName);
+        if (vtype == GRB_CONTINUOUS) {
+            nb_cont++;
+            C.insert(vname);
+            C_ids.push_back(i);
+        }
+        else {
+            I.insert(vname);
+            I_ids.push_back(i);
+            nb_int++;
+        }
+    }
+    DebugOn("Number of continuous variables = " << nb_cont << endl);
+    DebugOn("Number of integer variables = " << nb_int << endl);
+    
+    param<> x_ub("x_ub"), x_lb("x_lb");
+    param<int> y_ub("y_ub"), y_lb("y_lb");
+    x_ub.in(C);x_lb.in(C);
+    y_ub.in(I);y_lb.in(I);
+    for (int i = 0; i<C.size(); i++) {
+        x_lb.set_val(i, gurobi_model.getVar(C_ids[i]).get(GRB_DoubleAttr_LB));
+        x_ub.set_val(i, gurobi_model.getVar(C_ids[i]).get(GRB_DoubleAttr_UB));
+    }
+    for (int i = 0; i<I.size(); i++) {
+        y_lb.set_val(i, gurobi_model.getVar(I_ids[i]).get(GRB_DoubleAttr_LB));
+        y_ub.set_val(i, gurobi_model.getVar(I_ids[i]).get(GRB_DoubleAttr_UB));
+    }
+    var<> x("x", x_lb, x_ub);
+    var<int> y("y", y_lb, y_ub);
+
+    param<> rhs("rhs");
+    int nb_lin = 0;
+    int nb_nonlin = 0;
+    int index = 0;
+    _name = fname;
+
+    if(!C.empty())
+        add(x.in(C));
+    if(!I.empty()){
+        add(y.in(I));
+        replace_integers();
+    }
+    auto y_rel = get_var<double>("y");
+    
+    map<int,vector<int>> constr_sparsity;
+    vector<int> C_lin, C_nonlin, C_quad;
+    GRBQuadExpr quad_obj = gurobi_model.getObjective();
+    GRBLinExpr lin_obj = quad_obj.getLinExpr();
+
+    func<> gravityObj;
+    for (int j = 0; j < lin_obj.size(); j++) {
+        double coeff = lin_obj.getCoeff(j);
+        if (coeff == 0.0) {
+            continue;
+        }
+        GRBVar gurobi_var = lin_obj.getVar(j);
+        auto const vtype = gurobi_var.get(GRB_CharAttr_VType);
+        const std::string vname = gurobi_var.get(GRB_StringAttr_VarName);
+        if (vtype == GRB_CONTINUOUS) {
+            gravityObj += coeff*x(vname);
+        }
+        else {
+            gravityObj += coeff*y_rel(vname);
+        }
+    }
+
+    // Get model objsense
+    int objsense = gurobi_model.get(GRB_IntAttr_ModelSense);
+    if (objsense == GRB_MAXIMIZE) {
+        max(gravityObj);
+    } else{
+        min(gravityObj);
+    }
+        
+    for (int i = 0; i < n_constraints; i++) {
+        GRBConstr constr = gurobi_model.getConstr(i);
+        std::string constr_name = constr.get(GRB_StringAttr_ConstrName);
+        char sense = constr.get(GRB_CharAttr_Sense);
+        double rhs = constr.get(GRB_DoubleAttr_RHS);
+
+        GRBLinExpr row = gurobi_model.getRow(constr);
+        Constraint<double> expr(constr_name);
+        for (int j = 0; j < row.size(); j++) {
+            double coeff = row.getCoeff(j);
+            if (coeff == 0.0) {
+                continue;
+            }
+            
+            GRBVar var = row.getVar(j);
+
+            char vtype = var.get(GRB_CharAttr_VType);
+            std::string var_name = var.get(GRB_StringAttr_VarName);
+
+            if (vtype == GRB_CONTINUOUS) {
+                expr += coeff*x(var_name);
+            } else {
+                expr += coeff*y_rel(var_name);
+            }
+        }
+
+        if (sense == GRB_LESS_EQUAL) {
+            add(expr <= rhs);
+        } else if (sense == GRB_GREATER_EQUAL) {
+            add(expr >= rhs);
+        } else {
+            add(expr == rhs);
+        }
+    }
+
+
+#endif
+    return 0;
+}
     
     
     
@@ -6753,6 +6890,7 @@ int Model<type>::readNL(const string& fname){
     template Constraint<Cpx> Model<Cpx>::lift(Constraint<Cpx>& c, string model_type);
     template Constraint<> Model<>::lift(Constraint<>& c, string model_type);
     template int gravity::Model<double>::readNL<double, (void*)0>(const string&);
+    template int gravity::Model<double>::readMPS<double, (void*)0>(const string&);
     
     
     //    template void Model<double>::run_obbt(double max_time, unsigned max_iter);

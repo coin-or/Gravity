@@ -1,5 +1,7 @@
 #include <string>
+#ifdef USE_GUROBI
 #include <gurobi_c++.h>
+#endif
 #include <gravity/model.h>
 #include <gravity/func.h>
 #include <map>
@@ -39,11 +41,11 @@ gravity::func<> func_from_lin_expr(GRBLinExpr& row, Model<>& gravity_model) {
 		std::string var_name = var.get(GRB_StringAttr_VarName);
 
 		if (vtype == GRB_CONTINUOUS) {
-			expr += coeff * gravity_model.get_var<double>(var_name);
+			expr += coeff * gravity_model.get_var<double>(var_name).in(R(1));
 		} else if (vtype == GRB_INTEGER) {
-			expr += coeff * gravity_model.get_var<int>(var_name);
+			expr += coeff * gravity_model.get_var<int>(var_name).in(R(1));
 		} else if (vtype == GRB_BINARY) {
-			expr += coeff * gravity_model.get_var<int>(var_name);
+			expr += coeff * gravity_model.get_var<int>(var_name).in(R(1));
 		} else {
 			Warning("Unknown variable type: " << vtype << std::endl);
 			exit(1);
