@@ -4,7 +4,8 @@
 #include "MPSParser.hpp"
 
 int main(int argc, char** argv) {
-    Model<> model = model_from_file("/mnt/trail_test/haydnj/vnn/Gravity/new_mip.mps");
+    string fname = string(prj_dir)+"/data_sets/VNN/new_mip.mps";
+    Model<> model = model_from_file(fname);
     solver<> MIP_Solver(model, ipopt);
     MIP_Solver.run();
 

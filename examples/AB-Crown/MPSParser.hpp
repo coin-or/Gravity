@@ -64,15 +64,15 @@ void add_vars(GRBModel& model, Model<>& gravity_model) {
 		if (type == GRB_CONTINUOUS) {
 			auto bounds = build_double_bounds(lb, ub);
 			var<double> gravity_var(name, lb, ub);
-			gravity_model.add(gravity_var.in(R(0)));
+			gravity_model.add(gravity_var.in(R(1)));
 		} else if (type == GRB_INTEGER) {
 			auto bounds = build_int_bounds(lb, ub);
 			var<int> gravity_var(name, (int)lb, (int)ub);
-			gravity_model.add(gravity_var.in(R(0)));
+			gravity_model.add(gravity_var.in(R(1)));
 		} else if (type == GRB_BINARY) {
 			auto bounds = build_bool_bounds(lb, ub);
 			var<int> gravity_var(name, (int)lb, (int)ub);
-			gravity_model.add(gravity_var.in(R(0)));
+			gravity_model.add(gravity_var.in(R(1)));
 		} else {
 			Warning("Unknown variable type: " << type << std::endl);
 			exit(1);
@@ -144,10 +144,10 @@ Model<> model_from_file(std::string path) {
 		exit(1);
 	}
 
-	// add_constraints(gurobi_model, gravity_model);
+	 add_constraints(gurobi_model, gravity_model);
 
 	// Build objective
-	// add_objective(gurobi_model, gravity_model);
+	 add_objective(gurobi_model, gravity_model);
 
 	return gravity_model;
 }
