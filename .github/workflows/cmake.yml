@@ -88,6 +88,7 @@ jobs:
       uses: egor-tensin/setup-mingw@v2
       with:
         platform: x64
+	version: 3.2.0
 
     - name: Download Ninja and CMake
       id: cmake_and_ninja
