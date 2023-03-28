@@ -1026,21 +1026,29 @@ namespace gravity {
             this->_range->second = _ub->_range->second;
         }
         
-        template<typename T=type, typename=enable_if<is_arithmetic<T>::value>>
         void copy_bounds(const shared_ptr<param_>& p){
             auto dim = p->get_dim();
             if(dim!=this->get_dim()){
                 throw invalid_argument("calling function copy_bounds with non-matching dimensions");
             }
-            _lb->reset();
-            _ub->reset();
-            _lb->_val->resize(dim);
-            _ub->_val->resize(dim);
+            shared_ptr<param<type>> lb_param, ub_param;
+            if(!_lift && _lb->_params->size()>0)
+                lb_param = static_pointer_cast<param<type>>(_lb->_params->begin()->second.first);
+            if(!_lift && _ub->_params->size()>0)
+                ub_param = static_pointer_cast<param<type>>(_ub->_params->begin()->second.first);
             for (size_t i = 0; i < dim; i++) {
                 _lb->_val->at(i) = p->get_double_lb(i);
                 _lb->update_range(_lb->_val->at(i));
                 _ub->_val->at(i) = p->get_double_ub(i);
                 _ub->update_range(_ub->_val->at(i));
+                if(lb_param){
+                    lb_param->_val->at(i) = p->get_double_lb(i);
+                    lb_param->update_range(_lb->_val->at(i));
+                }
+                if(ub_param){
+                    ub_param->_val->at(i) = p->get_double_ub(i);
+                    ub_param->update_range(_ub->_val->at(i));
+                }
             }
             this->_range->first = _lb->_range->first;
             this->_range->second = _ub->_range->second;
@@ -1053,12 +1061,27 @@ namespace gravity {
             if(dim!=this->get_dim()){
                 throw invalid_argument("calling function copy_bounds with non-matching dimensions");
             }
+            shared_ptr<param<type>> lb_param, ub_param;
+            if(_lb->_params->size()>0)
+                lb_param = static_pointer_cast<param<type>>(_lb->_params->begin()->second.first);
+            if(_ub->_params->size()>0)
+                ub_param = static_pointer_cast<param<type>>(_ub->_params->begin()->second.first);
             for (size_t i = 0; i < dim; i++) {
-                _lb->_val->at(i) = p._lb->_val->at(i);
+                _lb->_val->at(i) = p.get_double_lb(i);
                 _lb->update_range(_lb->_val->at(i));
-                _ub->_val->at(i) = p._ub->_val->at(i);
+                _ub->_val->at(i) = p.get_double_ub(i);
                 _ub->update_range(_ub->_val->at(i));
+                if(lb_param){
+                    lb_param->_val->at(i) = p.get_double_lb(i);
+                    lb_param->update_range(_lb->_val->at(i));
+                }
+                if(ub_param){
+                    ub_param->_val->at(i) = p.get_double_ub(i);
+                    ub_param->update_range(_ub->_val->at(i));
+                }
             }
+            this->_range->first = _lb->_range->first;
+            this->_range->second = _ub->_range->second;
         }
         
         

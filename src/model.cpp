@@ -6791,8 +6791,8 @@ int Model<type>::readMPS(const string& fname){
         x_ub.set_val(i, gurobi_model.getVar(C_ids[i]).get(GRB_DoubleAttr_UB));
     }
     for (int i = 0; i<I.size(); i++) {
-        y_lb.set_val(i, gurobi_model.getVar(I_ids[i]).get(GRB_DoubleAttr_LB));
-        y_ub.set_val(i, gurobi_model.getVar(I_ids[i]).get(GRB_DoubleAttr_UB));
+        y_lb.set_val(i, (int)gurobi_model.getVar(I_ids[i]).get(GRB_DoubleAttr_LB));
+        y_ub.set_val(i, (int)gurobi_model.getVar(I_ids[i]).get(GRB_DoubleAttr_UB));
     }
     var<> x("x", x_lb, x_ub);
     var<int> y("y", y_lb, y_ub);
@@ -6807,16 +6807,16 @@ int Model<type>::readMPS(const string& fname){
         add(x.in(C));
     if(!I.empty()){
         add(y.in(I));
-        replace_integers();
+//        replace_integers();
     }
-    auto y_rel = get_var<double>("y");
+//    auto y_rel = get_var<double>("y");
     
     map<int,vector<int>> constr_sparsity;
     vector<int> C_lin, C_nonlin, C_quad;
     GRBQuadExpr quad_obj = gurobi_model.getObjective();
     GRBLinExpr lin_obj = quad_obj.getLinExpr();
 
-    func<> gravityObj;
+    func<> gravityObj = lin_obj.getConstant();
     for (int j = 0; j < lin_obj.size(); j++) {
         double coeff = lin_obj.getCoeff(j);
         if (coeff == 0.0) {
@@ -6829,7 +6829,7 @@ int Model<type>::readMPS(const string& fname){
             gravityObj += coeff*x(vname);
         }
         else {
-            gravityObj += coeff*y_rel(vname);
+            gravityObj += coeff*y(vname);
         }
     }
 
@@ -6863,7 +6863,7 @@ int Model<type>::readMPS(const string& fname){
             if (vtype == GRB_CONTINUOUS) {
                 expr += coeff*x(var_name);
             } else {
-                expr += coeff*y_rel(var_name);
+                expr += coeff*y(var_name);
             }
         }
 
@@ -6876,7 +6876,7 @@ int Model<type>::readMPS(const string& fname){
         }
     }
 
-
+    
 #endif
     return 0;
 }

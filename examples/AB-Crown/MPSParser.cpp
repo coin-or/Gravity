@@ -6,11 +6,12 @@ int main(int argc, char** argv) {
     string fname = string(prj_dir)+"/data_sets/VNN/new_mip.mps";
     Model<> model("new_mip");
     model.readMPS(fname);
+//    Model<> model = model_from_file(fname);
     model.print();
-    model.restructure();
-    DebugOn("\n################ After restructure ################\n");
-    model.print();
+//    model.restructure();
+    DebugOn("\n################ After restructure ################\n");    
     solver<> MIP_Solver(model, ipopt);
+    model.print();
     MIP_Solver.run();
 
     // ReLU upper bound: ReLUX_Y
