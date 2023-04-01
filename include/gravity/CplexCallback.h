@@ -75,13 +75,16 @@ public:
                 cutLhs[cstr_id] *= -1;
             }
             violatedCutFound = true;
+            DebugOff("Added " << cstr_id << " lazy cuts\n");
         }
+        
         /* SDP CUTS */
         bool hierarc = false, add_bags = true;
         if(add_bags){
             int nb_cuts = 0;
-            auto res1=_model->cuts_eigen_bags(1e-4);
+            auto res1=_model->cuts_eigen_bags(1e-6);
             if(res1.size()>=1){
+                DebugOff("Adding " << res1.size() << " bag cuts\n");
                 for(auto i=0;i<res1.size() && cstr_id<cutLhs.getSize();i++){
                     IloNumExpr cc(*env);
                     size_t j = 0;
@@ -95,7 +98,6 @@ public:
                 }
                 violatedCutFound = true;
             }
-            DebugOff("Added " << nb_cuts << " 3x3 minor cuts\n");
             if(res1.size()>=1 && hierarc){
                 cutLhs.setSize(cstr_id);
                 return IloTrue;
@@ -103,6 +105,7 @@ public:
         }
         auto res2=_model->cuts_eigen_full(1e-6);
         if(res2.size()>=1){
+            DebugOff("Adding " << res2.size() << " full cuts\n");
             for(auto i=0;i<res2.size() && cstr_id<cutLhs.getSize();i++){
                 IloNumExpr cc(*env);
                 size_t j = 0;
@@ -130,7 +133,7 @@ private:
     shared_ptr<vector<IloNumVarArray>>          _cplex_vars; /**< Cplex variables */
 public:
     vector<Model<>*> _models;/**< vector storing nb_threads copies of the original model for parallel cut generation */
-    int nb_cuts = 1000; /**< @brief number of violated callback constraints to generate each iteration */
+    int nb_cuts = 10000; /**< @brief number of violated callback constraints to generate each iteration */
     CplexCallback(IloInt numWorkers=1, Model<>* m=nullptr, shared_ptr<vector<IloNumVarArray>> cvars = nullptr)
     : workers(numWorkers, nullptr), _models(numWorkers, nullptr), _cplex_vars(cvars){
         _models[0] = m;
@@ -212,7 +215,7 @@ public:
                 case IloCplex::Callback::Context::Id::Relaxation:{
                     for(int cstr_id = 0; cstr_id<r.getSize(); cstr_id++){
                         context.addUserCut(r[cstr_id],
-                                           IloCplex::UseCutPurge,
+                                           IloCplex::UseCutForce,
                                            IloFalse);
                     }
                     break;}

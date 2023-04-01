@@ -7,7 +7,7 @@
 
 #include <stdio.h>
 #include "rip_model.h"
-#include "../MISDP/read_misdp.h"
+#include "../CBF/read_misdp.h"
 #include <gravity/solver.h>
 #include <Eigen/Dense>
 #include <Eigen/Eigenvalues>

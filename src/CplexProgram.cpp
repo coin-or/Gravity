@@ -66,13 +66,14 @@ bool CplexProgram::solve(bool relax, double mipgap) {
 
 //        _cplex->setParam(IloCplex::MIPDisplay, 0);
 //        _cplex->setParam(IloCplex::SimDisplay, 0);
-//        cplex.setParam(IloCplex::PreInd, 0);
+//        _cplex->setParam(IloCplex::PreInd, 0);
         _cplex->setParam(IloCplex::Param::Preprocessing::Reduce, 0);
 //        cplex.setParam(IloCplex::RelaxPreInd,0);
 //        cplex.setParam(IloCplex::PreslvNd,-1);
 
 //        cplex.setParam(IloCplex::Param::RootAlgorithm,4);
         _cplex->setParam(IloCplex::Param::Simplex::Tolerances::Feasibility, 1e-6);
+//        _cplex->setParam(IloCplex::Param::Barrier::ConvergeTol, 1e-6);
         _cplex->setParam(IloCplex::Param::Simplex::Tolerances::Optimality, 1e-6);
         _cplex->setParam(IloCplex::EpGap, 1e-4 ); //stopping criterion MIPgap
 //        cplex.setParam(IloCplex::PreInd, 1);
