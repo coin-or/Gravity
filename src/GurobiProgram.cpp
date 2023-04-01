@@ -36,12 +36,15 @@ protected:
             bool incumbent=true;
             bool mipnode=true;
             bool hierarc = false;
-            bool add_full=true;
+            bool add_full=false;
             bool add_bag=false;
             bool add_soc=true;
             bool add_threed=true;
             if(m->sdp_dual){
                 add_full=true;
+            }
+            else{
+                add_bag=true;
             }
             if(m->_bag_names.size()==1)
                 add_bag=false;
@@ -566,9 +569,13 @@ bool GurobiProgram::solve(bool relax, double mipgap, double time_limit){
         bool hierarc = false;
         bool add_full=false;
         bool add_bag=false;
-        bool add_soc=false;
+        bool add_soc=true;
+        bool add_threed=true;
         if(_model->sdp_dual){
             add_full=true;
+        }
+        else{
+            add_bag=true;
         }
         if(_model->_bag_names.size()==1)
             add_bag=false;

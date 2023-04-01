@@ -55,7 +55,7 @@ for(auto m=0;m<dim_full;m++){
 
 return neg_eig_value;
 }
-
+/*For testing sparse primal RIP models; sparse data files are created from full data files; read_misdp may be used to test dense dual RIP model*/
 Net model_rip(string fname, shared_ptr<Model<double>>& m) {
     int k=5;
 Net g;
@@ -132,26 +132,33 @@ infile.close();
     
 auto node_pairs=g.get_node_pairs();
 
-    
-map<string, vector<pair<string, double>>> map_x;
-map<string, vector<pair<string, double>>> map_y;
-map<string, double> map_const;
-
-
-
-
 g.sdp_3d_cuts=false;
+
+
+
+ 
+    
+
+
 g.get_tree_decomp_bags();
+auto bags_3d=g.decompose_bags_3d();
 m->sdp_dual=false;
 
 //auto node_pairs_chord = g.get_node_pairs_chord;
 auto node_pairs_chord = g.get_node_pairs_chord(g._bags);
+    
+    vector<vector<pair<pair<size_t,size_t>, double>>> Xij_x_map(node_pairs_chord.size());
+    vector<vector<pair<pair<size_t,size_t>, double>>> Xii_x_map(nodes.size());
+    vector<vector<pair<pair<size_t,size_t>, double>>> Xij_y_map(node_pairs_chord.size());
+    vector<vector<pair<pair<size_t,size_t>, double>>> Xii_y_map(nodes.size());
+    vector<double> Xij_cons_map(node_pairs_chord.size(),0);
+    vector<double> Xii_cons_map(nodes.size(),0);
 
-var<> X("X", -1, 1);
-X._psd=true;
+var<> X("X", 0, 1);
 m->add(X.in(nodes));
-var<> Xij("Xij", -1.0, 1);
-Xij._psd=true;
+   // X.initialize_all(1.0/(Num_nodes*1.0));
+
+var<> Xij("Xij", -1.0, 1.0);
 m->add(Xij.in(node_pairs_chord));
 
 
@@ -172,28 +179,42 @@ m->add(sum_Xii==0);
     
     Constraint<> yi_Xi("yi_Xi");
     yi_Xi=y*(-1)-X;
-    m->add(yi_Xi.in(nodes)<=0);
+   // m->add(yi_Xi.in(nodes)<=0);
 
-    Constraint<> Xij_yi("Xij_yi");
-    Xij_yi=Xij-y.to(node_pairs_chord)*0.5;
-    m->add(Xij_yi.in(node_pairs_chord) <= 0);
-
-    Constraint<> yi_Xij("yi_Xij");
-    yi_Xij=y.to(node_pairs_chord)*(-1)*0.5-Xij;
-    m->add(yi_Xij.in(node_pairs_chord) <= 0);
-    
-    Constraint<> Xij_yia("Xij_yia");
-    Xij_yia=Xij-y.from(node_pairs_chord)*0.5;
-    m->add(Xij_yia.in(node_pairs_chord) <= 0);
-
-    Constraint<> yi_Xija("yi_Xija");
-    yi_Xija=y.from(node_pairs_chord)*(-1)*0.5-Xij;
-    m->add(yi_Xija.in(node_pairs_chord) <= 0);
-    
+//    Constraint<> Xij_yi("Xij_yi");
+//    Xij_yi=Xij-y.to(node_pairs_chord);
+//    m->add(Xij_yi.in(node_pairs_chord) <= 0);
+//
+//    Constraint<> yi_Xij("yi_Xij");
+//    yi_Xij=y.to(node_pairs_chord)*(-1)-Xij;
+//    m->add(yi_Xij.in(node_pairs_chord) <= 0);
+//
+//    Constraint<> Xij_yia("Xij_yia");
+//    Xij_yia=Xij-y.from(node_pairs_chord);
+//    m->add(Xij_yia.in(node_pairs_chord) <= 0);
+//
+//    Constraint<> yi_Xija("yi_Xija");
+//    yi_Xija=y.from(node_pairs_chord)*(-1)-Xij;
+//    m->add(yi_Xija.in(node_pairs_chord) <= 0);
+//
     Constraint<> SOC("SOC");
     SOC = Xij*Xij - X.from(node_pairs_chord)*X.to(node_pairs_chord);
     SOC.add_to_callback();
     m->add(SOC.in(node_pairs_chord) <= 0);
+    
+    auto bag_size = bags_3d.size();
+    auto Wij_ = Xij.pairs_in_bags(bags_3d, 3);
+    auto Wii_ = X.in_bags(bags_3d, 3);
+    
+    Constraint<> SDP3("SDP_3D");
+    
+    SDP3 += (pow(Wij_[0], 2)) * Wii_[2];
+    SDP3 += (pow(Wij_[1], 2)) * Wii_[0];
+    SDP3 += (pow(Wij_[2], 2)) * Wii_[1];
+    SDP3 -= 2 * Wij_[0] * (Wij_[1] * Wij_[2]);
+    SDP3 -= Wii_[0] * Wii_[1] * Wii_[2];
+    SDP3.add_to_callback();
+    m->add(SDP3.in(range(0, bag_size-1)) <= 0);
     
     int count=0;
     std::vector<pair<int,std::vector<string>>> _bag_names;
@@ -226,11 +247,15 @@ m->print();
     var<double> x("x", 0, 0);
     m->add(x.in(range(0,0)));
     
-    m->map_x=map_x;
-    m->map_y=map_y;
-    m->map_const=map_const;
+    
     m->_bag_names=_bag_names;
-   
+    m->Xii_x_map=Xii_x_map;
+    m->Xii_y_map=Xii_y_map;
+    m->Xij_x_map=Xij_x_map;
+    m->Xij_y_map=Xij_y_map;
+    m->Xii_cons_map=Xii_cons_map;
+    m->Xij_cons_map=Xij_cons_map;
+    m->make_PSD(X, Xij);
     
 return g;
 

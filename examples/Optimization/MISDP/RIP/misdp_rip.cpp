@@ -20,8 +20,8 @@ using namespace std;
 int main(int argc, char * argv[]){
     //string fname=string(prj_dir)+"/data_sets/MISDP/2x3_3bars.cbf";
     //string fname=string(prj_dir)+"/data_sets/MISDP/band50_3.txt";
-    string fname=string(prj_dir)+"/data_sets/MISDP/rip_zeroone_153005l.txt";
-    //string fname=string(prj_dir)+"/data_sets/MISDP/rip_band404003l.txt";
+    //string fname=string(prj_dir)+"/data_sets/MISDP/rip_zeroone_153005l.txt";
+    string fname=string(prj_dir)+"/data_sets/MISDP/rip_band404003l.txt";
     //string fname=string(prj_dir)+"/data_sets/MISDP/spinglass2g_33.txt";
     //string fname=string(prj_dir)+"/data_sets/MISDP/spinglass2g_1111.txt";
     //string fname=string(prj_dir)+"/data_sets/MISDP/2x7_3bars.cbf";
@@ -31,7 +31,7 @@ int main(int argc, char * argv[]){
     
     
 
-    bool root_refine = false;
+    bool root_refine = true;
     if(argc>=2){
         fname=argv[1];
     }
