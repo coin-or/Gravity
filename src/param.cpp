@@ -96,7 +96,7 @@ pair<vector<bool>,vector<bool>> param_::get_nnz_rows() const{
     }
     
     template<>
-    void param<complex<double>>::update_range(const complex<double>& val) {
+    void param<complex<double>>::update_range_(const complex<double>& val) {
         if(_range->first.real()>val.real()){
             _range->first.real(val.real());
         }

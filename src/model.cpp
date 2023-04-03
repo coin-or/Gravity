@@ -6791,8 +6791,8 @@ int Model<type>::readMPS(const string& fname){
         x_ub.set_val(i, gurobi_model.getVar(C_ids[i]).get(GRB_DoubleAttr_UB));
     }
     for (int i = 0; i<I.size(); i++) {
-        y_lb.set_val(i, gurobi_model.getVar(I_ids[i]).get(GRB_DoubleAttr_LB));
-        y_ub.set_val(i, gurobi_model.getVar(I_ids[i]).get(GRB_DoubleAttr_UB));
+        y_lb.set_val(i, (int)gurobi_model.getVar(I_ids[i]).get(GRB_DoubleAttr_LB));
+        y_ub.set_val(i, (int)gurobi_model.getVar(I_ids[i]).get(GRB_DoubleAttr_UB));
     }
     var<> x("x", x_lb, x_ub);
     var<int> y("y", y_lb, y_ub);
@@ -6816,7 +6816,7 @@ int Model<type>::readMPS(const string& fname){
     GRBQuadExpr quad_obj = gurobi_model.getObjective();
     GRBLinExpr lin_obj = quad_obj.getLinExpr();
 
-    func<> gravityObj;
+    func<> gravityObj = lin_obj.getConstant();
     for (int j = 0; j < lin_obj.size(); j++) {
         double coeff = lin_obj.getCoeff(j);
         if (coeff == 0.0) {
@@ -6887,7 +6887,6 @@ int Model<type>::readMPS(const string& fname){
                 vector<param<>> x_coefs(nb_cont_vars);/* coefficient multiplying each symbolic continuous variable */
                 vector<param<>> y_coefs(nb_int_vars);/* coefficient multiplying each symbolic integer variable */
                 for(int i = 0; i<nb_cont_vars;i++){
-                    auto x = get_var<double>(expr.get_lterm_cont_var_name(i,0));
                     indices coef_eq_ids("coef_lin_eq_x_coefs_"+key+"_"+to_string(i));
                     coef_eq_ids.insert("inst_1");
                     x_ids[i].set_name(key+"_"+to_string(i)+"_lin_eq_x_ids");
@@ -6898,8 +6897,6 @@ int Model<type>::readMPS(const string& fname){
                     eq += x_coefs[i].in(coef_eq_ids)*x.in(x_ids[i]);
                 }
                 for(int i = 0; i<nb_int_vars;i++){
-                    var<> y;
-                    y = get_var<double>(expr.get_lterm_int_var_name(i,0));
                     indices coef_eq_ids("coef_lin_eq_y_coefs_"+key+"_"+to_string(i));
                     coef_eq_ids.insert("inst_1");
                     y_ids[i].set_name(key+"_"+to_string(i)+"_lin_eq_y_ids");
@@ -6907,7 +6904,7 @@ int Model<type>::readMPS(const string& fname){
                     y_ids[i].add_ref(expr.get_lterm_int_var_id(i,0));
                     y_coefs[i] = param<>("coef_lin_eq_y_coefs_"+key+"_"+to_string(i));
                     y_coefs[i] = expr.eval_lterm_int_coef(i,0);
-                    eq += y_coefs[i].in(coef_eq_ids)*y.in(y_ids[i]);
+                    eq += y_coefs[i].in(coef_eq_ids)*y_rel.in(y_ids[i]);
                 }
                 indices cst_eq_ids("cst_lin_eq_"+key);
                 cst_eq_ids.insert("inst_1");
@@ -6936,7 +6933,6 @@ int Model<type>::readMPS(const string& fname){
                 vector<param<>> x_coefs(nb_cont_vars);/* coefficient multiplying each symbolic continuous variable */
                 vector<param<>> y_coefs(nb_int_vars);/* coefficient multiplying each symbolic integer variable */
                 for(int i = 0; i<nb_cont_vars;i++){
-                    auto x = get_var<double>(expr.get_lterm_cont_var_name(i,0));
                     indices coef_leq_ids("coef_lin_ineq_x_coefs_"+key+"_"+to_string(i));
                     coef_leq_ids.insert("inst_1");
                     x_ids[i].set_name(key+"_"+to_string(i)+"_lin_ineq_x_ids");
@@ -6947,8 +6943,6 @@ int Model<type>::readMPS(const string& fname){
                     leq += x_coefs[i].in(coef_leq_ids)*x.in(x_ids[i]);
                 }
                 for(int i = 0; i<nb_int_vars;i++){
-                    var<> y;
-                    y = get_var<double>(expr.get_lterm_int_var_name(i,0));
                     indices coef_leq_ids("coef_lin_ineq_y_coefs_"+key+"_"+to_string(i));
                     coef_leq_ids.insert("inst_1");
                     y_ids[i].set_name(key+"_"+to_string(i)+"_lin_ineq_y_ids");
@@ -6956,7 +6950,7 @@ int Model<type>::readMPS(const string& fname){
                     y_ids[i].add_ref(expr.get_lterm_int_var_id(i,0));
                     y_coefs[i] = param<>("coef_lin_ineq_y_coefs_"+key+"_"+to_string(i));
                     y_coefs[i] = expr.eval_lterm_int_coef(i,0);
-                    leq += y_coefs[i].in(coef_leq_ids)*y.in(y_ids[i]);
+                    leq += y_coefs[i].in(coef_leq_ids)*y_rel.in(y_ids[i]);
                 }
                 indices cst_ineq_ids("cst_lin_ineq_"+key);
                 cst_ineq_ids.insert("inst_1");

@@ -3,17 +3,15 @@
 #include "MPSParser.hpp"
 
 int main(int argc, char** argv) {
-    string fname = string(prj_dir)+"/data_sets/VNN/new_mip.mps";
+    string fname = string(prj_dir)+"/data_sets/VNN/mip_lay-16_0.mps";
     Model<> model("new_mip");
-    model = model_from_file(fname);
-//    model.readMPS(fname);
-//    model.print_symbolic();
-//    model.print();
-//    model.restructure();
-//    DebugOn("\n################ After restructure ################\n");
-//    model.print();
-    solver<> MIP_Solver(model, ipopt);
+    model.readMPS(fname);
+//    model = model_from_file(fname);
+    solver<> MIP_Solver(model, gurobi);
     MIP_Solver.run();
+//    model.print();
+    model.print_symbolic();
+
 
     // ReLU upper bound: ReLUX_Y
     // ReLU Bool: aReLUX_Y

@@ -326,7 +326,7 @@ public:
         else {
             str += ") : ";
         }
-        cout << str << this->func<type>::to_str();
+        cout << str << "( " << get_nb_instances() << " instances)";
         switch (_ctype) {
             case leq:
                 cout << " <= ";

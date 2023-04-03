@@ -1,12 +1,12 @@
 #include <string>
-#ifdef USE_GUROBI
-#include <gurobi_c++.h>
-#endif
 #include <gravity/model.h>
 #include <gravity/func.h>
 #include <map>
 
 using namespace gravity;
+
+#ifdef USE_GUROBI
+#include <gurobi_c++.h>
 
 // GRB_DoubleAttr_MaxBound?
 std::pair<bool, bool> build_bool_bounds(double lb, double ub) {
@@ -14,6 +14,7 @@ std::pair<bool, bool> build_bool_bounds(double lb, double ub) {
 }
 
 std::pair<int, int> build_int_bounds(double lb, double ub) {
+    
 	int n_ub = (ub ==  GRB_MAXINT) ? std::numeric_limits<int>::max() : ub;
 	int n_lb = (lb == -GRB_MAXINT) ? std::numeric_limits<int>::lowest() : lb;
 
@@ -153,3 +154,4 @@ Model<> model_from_file(std::string path) {
 
 	return gravity_model;
 }
+#endif

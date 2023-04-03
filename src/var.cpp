@@ -520,7 +520,7 @@ template<typename type> string var<type>::to_str_bounds(bool bounds, int prec) {
         return str;
     }
     if(_lb->func_is_number() && _ub->func_is_number()){
-        if(this->_is_relaxed)
+        if(this->_is_relaxed || this->is_integer())
             str += " ∈ {" + _lb->to_str(0,3) +"," + _ub->to_str(0,3) +"}^" + to_string(this->get_dim()) + "\n";
         else
             str += " ∈ [" + _lb->to_str(0,3) +"," + _ub->to_str(0,3) +"]^" + to_string(this->get_dim()) + "\n";
@@ -535,7 +535,7 @@ template<typename type> string var<type>::to_str_bounds(bool bounds, int prec) {
             }
             auto idx = this->get_id_inst(i);
             str += "(" + this->_indices->_keys->at(idx) + ") ∈ ";
-            if(this->_is_relaxed)
+            if(this->_is_relaxed || this->is_integer())
                 str += " {" + _lb->to_str(i,prec) + "," + _ub->to_str(i,prec) + "}\n";
             else
                 str += " [" + _lb->to_str(i,prec) + "," + _ub->to_str(i,prec) + "]\n";
@@ -545,7 +545,7 @@ template<typename type> string var<type>::to_str_bounds(bool bounds, int prec) {
     else {
         for (size_t idx = 0; idx < this->_dim[0]; idx++) {
             str += "["+to_string(idx) + "] = ";
-            if(this->_is_relaxed)
+            if(this->_is_relaxed || this->is_integer())
                 str += " {" + _lb->to_str(idx,prec) + "," + _ub->to_str(idx,prec) + "}\n";
             else
                 str += " [" + _lb->to_str(idx,prec) + "," + _ub->to_str(idx,prec) + "]\n";

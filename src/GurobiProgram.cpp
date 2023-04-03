@@ -193,7 +193,13 @@ void GurobiProgram::fill_in_grb_vmap(){
                 auto real_var = (var<double>*)v;
                 for (size_t i = 0; i < real_var->_dim[0]; i++) {
                     auto vid = idx + i;
-                    _grb_vars.at(vid) = (GRBVar(grb_mod->addVar(real_var->get_lb(i), real_var->get_ub(i), 0.0, GRB_CONTINUOUS, v->get_name(true,true)+"("+v->_indices->_keys->at(i)+")")));
+                    if(real_var->_is_relaxed){
+                        _grb_vars.at(vid) = (GRBVar(grb_mod->addVar(real_var->get_lb(i), real_var->get_ub(i), 0.0, GRB_INTEGER, v->get_name(true,true)+"("+v->_indices->_keys->at(i)+")")));
+                    }
+                    else {
+                        _grb_vars.at(vid) = (GRBVar(grb_mod->addVar(real_var->get_lb(i), real_var->get_ub(i), 0.0, GRB_CONTINUOUS, v->get_name(true,true)+"("+v->_indices->_keys->at(i)+")")));
+                        _grb_vars.at(vid).set(GRB_DoubleAttr_Start, real_var->eval(i));
+                    }
                 }
                 break;
             }

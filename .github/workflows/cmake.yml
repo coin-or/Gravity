@@ -67,7 +67,7 @@ jobs:
         #     environment_script: "C:/Program Files (x86)/Microsoft Visual Studio/2019/Enterprise/VC/Auxiliary/Build/vcvars64.bat"
         #   }
         - {
-            name: "Windows Latest MinGW", artifact: "Windows-MinGW.tar.xz",
+            name: "Windows latest MinGW", artifact: "Windows-MinGW.tar.xz",
             os: windows-latest,
             build_type: "Release", cc: "x86_64-w64-mingw32-gcc", cxx: "x86_64-w64-mingw32-g++"
           }
@@ -88,6 +88,7 @@ jobs:
       uses: egor-tensin/setup-mingw@v2
       with:
         platform: x64
+        version: 3.2.0
 
     - name: Download Ninja and CMake
       id: cmake_and_ninja
