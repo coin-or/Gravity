@@ -6800,7 +6800,7 @@ int Model<type>::readMPS(const string& fname){
     param<> rhs("rhs");
     int nb_lin = 0;
     int nb_nonlin = 0;
-    int index = 0;
+//    int index = 0;
     _name = fname;
 
     if(!C.empty())
@@ -6866,17 +6866,108 @@ int Model<type>::readMPS(const string& fname){
                 expr += coeff*y_rel(var_name);
             }
         }
+        auto nb_int_vars = expr.nb_int_lterms(0);
+        auto nb_cont_vars = expr.nb_cont_lterms(0);
+        string key = to_string(nb_int_vars)+"_"+to_string(nb_cont_vars);
+        expr -= rhs;
+        if (sense == GRB_EQUAL) {
+            string cname = "lin_eq_"+key;
+            auto it = _cons_name.find("lin_eq_"+key);
+            if(it!=_cons_name.end()){
+                it->second->add_linear_row(make_shared<Constraint<>>(expr),0);
+            }
+            else{
+                Constraint<> eq(cname);
+                param<> c0("c0_eq_"+key);
+                c0 = expr.eval_cst(0);
+                indices eq_ids("lin_eq_"+key);
+                eq_ids.insert("inst_1");
+                vector<indices> x_ids(nb_cont_vars);/* indices for each symbolic continuous variable */
+                vector<indices> y_ids(nb_int_vars);/* indices for each symbolic integer variable */
+                vector<param<>> x_coefs(nb_cont_vars);/* coefficient multiplying each symbolic continuous variable */
+                vector<param<>> y_coefs(nb_int_vars);/* coefficient multiplying each symbolic integer variable */
+                for(int i = 0; i<nb_cont_vars;i++){
+                    auto x = get_var<double>(expr.get_lterm_cont_var_name(i,0));
+                    indices coef_eq_ids("coef_lin_eq_x_coefs_"+key+"_"+to_string(i));
+                    coef_eq_ids.insert("inst_1");
+                    x_ids[i].set_name(key+"_"+to_string(i)+"_lin_eq_x_ids");
+                    x_ids[i] = *x._indices;
+                    x_ids[i].add_ref(expr.get_lterm_cont_var_id(i,0));
+                    x_coefs[i] = param<>("coef_lin_eq_x_coefs_"+key+"_"+to_string(i));
+                    x_coefs[i] = expr.eval_lterm_cont_coef(i,0);
+                    eq += x_coefs[i].in(coef_eq_ids)*x.in(x_ids[i]);
+                }
+                for(int i = 0; i<nb_int_vars;i++){
+                    var<> y;
+                    y = get_var<double>(expr.get_lterm_int_var_name(i,0));
+                    indices coef_eq_ids("coef_lin_eq_y_coefs_"+key+"_"+to_string(i));
+                    coef_eq_ids.insert("inst_1");
+                    y_ids[i].set_name(key+"_"+to_string(i)+"_lin_eq_y_ids");
+                    y_ids[i] = *y._indices;
+                    y_ids[i].add_ref(expr.get_lterm_int_var_id(i,0));
+                    y_coefs[i] = param<>("coef_lin_eq_y_coefs_"+key+"_"+to_string(i));
+                    y_coefs[i] = expr.eval_lterm_int_coef(i,0);
+                    eq += y_coefs[i].in(coef_eq_ids)*y.in(y_ids[i]);
+                }
+                indices cst_eq_ids("cst_lin_eq_"+key);
+                cst_eq_ids.insert("inst_1");
+                eq += c0.in(cst_eq_ids);
+                add(eq.in(eq_ids)==0);
+            }
 
-        if (sense == GRB_LESS_EQUAL) {
-            add(expr <= rhs);
-        } else if (sense == GRB_GREATER_EQUAL) {
-            add(expr >= rhs);
-        } else {
-            add(expr == rhs);
         }
+        else{
+            if (sense == GRB_GREATER_EQUAL) {
+                expr *= -1;
+            }
+            string cname = "lin_ineq_"+key;
+            auto it = _cons_name.find("lin_ineq_"+key);
+            if(it!=_cons_name.end()){
+                it->second->add_linear_row(make_shared<Constraint<>>(expr),0);
+            }
+            else{
+                Constraint<> leq(cname);
+                param<> c0("c0_ineq_"+key);
+                c0 = expr.eval_cst(0);
+                indices leq_ids("lin_ineq_"+key);
+                leq_ids.insert("inst_1");
+                vector<indices> x_ids(nb_cont_vars);/* indices for each symbolic continuous variable */
+                vector<indices> y_ids(nb_int_vars);/* indices for each symbolic integer variable */
+                vector<param<>> x_coefs(nb_cont_vars);/* coefficient multiplying each symbolic continuous variable */
+                vector<param<>> y_coefs(nb_int_vars);/* coefficient multiplying each symbolic integer variable */
+                for(int i = 0; i<nb_cont_vars;i++){
+                    auto x = get_var<double>(expr.get_lterm_cont_var_name(i,0));
+                    indices coef_leq_ids("coef_lin_ineq_x_coefs_"+key+"_"+to_string(i));
+                    coef_leq_ids.insert("inst_1");
+                    x_ids[i].set_name(key+"_"+to_string(i)+"_lin_ineq_x_ids");
+                    x_ids[i] = *x._indices;
+                    x_ids[i].add_ref(expr.get_lterm_cont_var_id(i,0));
+                    x_coefs[i] = param<>("coef_lin_ineq_x_coefs_"+key+"_"+to_string(i));
+                    x_coefs[i] = expr.eval_lterm_cont_coef(i,0);
+                    leq += x_coefs[i].in(coef_leq_ids)*x.in(x_ids[i]);
+                }
+                for(int i = 0; i<nb_int_vars;i++){
+                    var<> y;
+                    y = get_var<double>(expr.get_lterm_int_var_name(i,0));
+                    indices coef_leq_ids("coef_lin_ineq_y_coefs_"+key+"_"+to_string(i));
+                    coef_leq_ids.insert("inst_1");
+                    y_ids[i].set_name(key+"_"+to_string(i)+"_lin_ineq_y_ids");
+                    y_ids[i] = *y._indices;
+                    y_ids[i].add_ref(expr.get_lterm_int_var_id(i,0));
+                    y_coefs[i] = param<>("coef_lin_ineq_y_coefs_"+key+"_"+to_string(i));
+                    y_coefs[i] = expr.eval_lterm_int_coef(i,0);
+                    leq += y_coefs[i].in(coef_leq_ids)*y.in(y_ids[i]);
+                }
+                indices cst_ineq_ids("cst_lin_ineq_"+key);
+                cst_ineq_ids.insert("inst_1");
+                leq += c0.in(cst_ineq_ids);
+                add(leq.in(leq_ids)<=0);
+            }
+        }
+//        eq.add_linear_row(con,0);
     }
 
-
+    reindex();
 #endif
     return 0;
 }

@@ -5,11 +5,13 @@
 int main(int argc, char** argv) {
     string fname = string(prj_dir)+"/data_sets/VNN/new_mip.mps";
     Model<> model("new_mip");
-    model.readMPS(fname);
-    model.print();
-    model.restructure();
-    DebugOn("\n################ After restructure ################\n");
-    model.print();
+    model = model_from_file(fname);
+//    model.readMPS(fname);
+//    model.print_symbolic();
+//    model.print();
+//    model.restructure();
+//    DebugOn("\n################ After restructure ################\n");
+//    model.print();
     solver<> MIP_Solver(model, ipopt);
     MIP_Solver.run();
 
