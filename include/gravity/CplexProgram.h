@@ -18,20 +18,19 @@
 #include <ilcplex/ilocplex.h>
 #endif
 #include <gravity/model.h>
-//#include <gravity/CplexCallback.h>
+#include <gravity/CplexCallback.h>
 
 using namespace gravity;   
 
 class CplexProgram: public Program<>{
 private:
     
-    shared_ptr<IloModel> _cplex_model;
-    shared_ptr<IloEnv> _cplex_env;
-    vector<IloNumVarArray>   _cplex_vars; /** Mapping variables to Cplex variables */
-    IloObjective        _cplex_obj;
-    
-    CPXLONG _cplex_contextmask = 0; /** Context mask for the callback location */
-//    CplexCallback _cplex_callback; /** instantiating a callback object */
+    shared_ptr<IloModel>            _cplex_model;
+    shared_ptr<IloEnv>              _cplex_env;
+    shared_ptr<IloCplex>            _cplex;
+    vector<IloNumVarArray>          _cplex_vars; /*< Mapping variables to Cplex variables */
+    IloObjective                    _cplex_obj;
+//    CplexCallback                   _cplex_callback; /*< Instantiating a callback object */
     
 public:
     Model<>* _model;

@@ -11,7 +11,8 @@ int main(int argc, char** argv) {
     MIP_Solver.run();
 //    model.print();
     model.print_symbolic();
-
+    model.print_solution();
+    model.print_int_solution();
 
     // ReLU upper bound: ReLUX_Y
     // ReLU Bool: aReLUX_Y
