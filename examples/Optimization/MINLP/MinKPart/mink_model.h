@@ -55,7 +55,7 @@ for(auto m=0;m<dim_full;m++){
 
 return neg_eig_value;
 }
-
+/*Mink in primal form*/
 Net model_mink(string fname, shared_ptr<Model<double>>& m) {
 Net g;
   int num_part=3;

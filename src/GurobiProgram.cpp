@@ -36,14 +36,18 @@ protected:
             bool incumbent=true;
             bool mipnode=true;
             bool hierarc = false;
-            bool add_full=true;
-            bool add_bag=true;
+            bool add_full=false;
+            bool add_bag=false;
             bool add_soc=true;
+            bool add_threed=true;
             if(m->sdp_dual){
                 add_full=true;
             }
+            else{
+                add_bag=true;
+            }
             if(m->_bag_names.size()==1)
-                add_full=false;
+                add_bag=false;
             bool add_bag_iteration;
             bool add_full_iteration;
             if(incumbent){
@@ -74,6 +78,29 @@ protected:
                                 expr += res[i][j].second;
                                 addLazy(expr, GRB_LESS_EQUAL, 0);
                                 m->num_cuts[0]++;
+                            }
+                        }
+//                        if(hierarc && res.size()>=1){
+//                            add_bag_iteration=false;
+//                            add_full_iteration=false;
+//                        }
+                    }
+                    if(add_threed){
+                        m->set_solution(vec_x);
+                        auto res= m->cutting_planes_threed(1e-9, soc_found, soc_added);
+                        if(res.size()>=1){
+                            for(auto i=0;i<res.size();i++){
+                                GRBLinExpr expr = 0;
+                                size_t j=0;
+                                for(j=0;j<res[i].size()-1;j++){
+                                    auto c=res[i][j];
+                                    size_t symb_id = c.first.first;
+                                    size_t v_id = *m->_vars.at(symb_id)->_id;
+                                    expr += c.second*vars[v_id+c.first.second];
+                                }
+                                expr += res[i][j].second;
+                                addLazy(expr, GRB_LESS_EQUAL, 0);
+                                m->num_cuts[1]++;
                             }
                         }
                         if(hierarc && res.size()>=1){
@@ -153,7 +180,30 @@ protected:
                                         }
                                         expr += res[i][j].second;
                                         addLazy(expr, GRB_LESS_EQUAL, 0);
-                                        m->num_cuts[0]++;
+                                        m->num_cuts[3]++;
+                                    }
+                                }
+//                                if(hierarc && res.size()>=1){
+//                                    add_bag_iteration=false;
+//                                    add_full_iteration=false;
+//                                }
+                            }
+                            if(add_threed){
+                                m->set_solution(vec_x);
+                                auto res= m->cutting_planes_threed(1e-9, soc_found, soc_added);
+                                if(res.size()>=1){
+                                    for(auto i=0;i<res.size();i++){
+                                        GRBLinExpr expr = 0;
+                                        size_t j=0;
+                                        for(j=0;j<res[i].size()-1;j++){
+                                            auto c=res[i][j];
+                                            size_t symb_id = c.first.first;
+                                            size_t v_id = *m->_vars.at(symb_id)->_id;
+                                            expr += c.second*vars[v_id+c.first.second];
+                                        }
+                                        expr += res[i][j].second;
+                                        addLazy(expr, GRB_LESS_EQUAL, 0);
+                                        m->num_cuts[4]++;
                                     }
                                 }
                                 if(hierarc && res.size()>=1){
@@ -177,7 +227,7 @@ protected:
                                         }
                                         expr += res1[i][j].second;
                                         addLazy(expr, GRB_LESS_EQUAL, 0);
-                                        m->num_cuts[1]++;
+                                        m->num_cuts[4]++;
                                     }
                                 }
                                 if(res1.size()>=1 && hierarc)
@@ -203,7 +253,7 @@ protected:
                                         cut_str += to_string(res2[i][j].second)+" <= 0\n";
                                         DebugOff(cut_str);
                                         addLazy(expr, GRB_LESS_EQUAL, 0);
-                                        m->num_cuts[2]++;
+                                        m->num_cuts[5]++;
                                     }
                                 }
                             }
@@ -237,7 +287,7 @@ public:
         m=mn;
         interior=interiorn;
         //vec_expi=vec_exp;
-        m->num_cuts.resize(6,0);
+        m->num_cuts.resize(8,0);
     }
     ~cuts_primal_complex(){
         DebugOn("soc_viol_user "<<soc_viol_user<<" "<<soc_viol<<endl);
@@ -434,8 +484,8 @@ bool GurobiProgram::solve(bool relax, double mipgap, double time_limit){
         unrelax_model();
     //    relax_model();
 //    grb_mod->set(GRB_DoubleParam_MIPGap, 1e-6);
-//    grb_mod->set(GRB_DoubleParam_FeasibilityTol, 1e-9);
-//    grb_mod->set(GRB_DoubleParam_OptimalityTol, 1e-6);
+    grb_mod->set(GRB_DoubleParam_FeasibilityTol, 1e-9);
+   grb_mod->set(GRB_DoubleParam_OptimalityTol, 1e-6);
     // grb_mod->set(GRB_IntParam_StartNodeLimit, -3);
     //    grb_mod->getEnv().set(GRB_IntParam_DualReductions, 0);
     //    grb_mod->getEnv().set(GRB_IntParam_PreCrush, 1);
@@ -518,13 +568,17 @@ bool GurobiProgram::solve(bool relax, double mipgap, double time_limit){
         int soc_viol=0, soc_added=0, soc_found;
         bool hierarc = false;
         bool add_full=false;
-        bool add_bag=true;
+        bool add_bag=false;
         bool add_soc=true;
+        bool add_threed=true;
         if(_model->sdp_dual){
             add_full=true;
         }
+        else{
+            add_bag=true;
+        }
         if(_model->_bag_names.size()==1)
-            add_full=false;
+            add_bag=false;
         bool add_bag_iteration;
         bool add_full_iteration;
         add_bag_iteration=add_bag;

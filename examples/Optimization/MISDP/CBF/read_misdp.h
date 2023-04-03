@@ -500,9 +500,41 @@ Net CBF_read(const char *file, shared_ptr<Model<double>>& m, bool add_3d) {
         g.get_tree_decomp_bags();
         std::vector<pair<int,std::vector<string>>> _bag_names;
         m->sdp_dual=true;
+        std::vector<pair<string,vector<Node*>>> bags_3d;
+        if(!m->sdp_dual){
+           bags_3d=g.decompose_bags_3d();
+        }
+        else{
+            for ( int i = 0; i < nnodes; i++ ) {
+                for ( int j = i + 1; j < nnodes; j++ ) {
+                    for ( int k = j + 1; k < nnodes; k++ ) {
+                        string ij=to_string(i)+","+ to_string(j);
+                        string jk=to_string(j)+","+ to_string(k);
+                        string ik=to_string(i)+","+ to_string(k);
+                        if(node_pairs.has_key(ij) && node_pairs.has_key(jk) && node_pairs.has_key(ik)){
+                            pair<string,vector<Node*>> new_bag;
+                            string key;
+                            auto n1=g.get_node(to_string(i));
+                            auto n2 = g.get_node(to_string(j));
+                            auto n3 = g.get_node(to_string(k));
+                            
+                            new_bag.second.push_back(n1);
+                            new_bag.second.push_back(n2);
+                            new_bag.second.push_back(n3);
+                            key +=to_string(i)+","+ to_string(j)+","+ to_string(k);
+                            new_bag.first = key;
+                            bags_3d.push_back(new_bag);
+                        }
+                        
+                    }
+                }
+            }
+        }
         
-        auto bags_3d=g.decompose_bags_3d();
-        g._bags.insert(end(g._bags), begin(bags_3d), end(bags_3d));
+
+      //  auto bags_3d=g.decompose_bags_3d();
+      //  g._bags.insert(end(g._bags), begin(bags_3d), end(bags_3d));
+
         auto node_pairs_chord = g.get_node_pairs_chord(g._bags);
         //auto node_pairs_chord = g.get_node_pairs_chord(bags_3d);
         var<> X("X", 0, 1000);
@@ -672,9 +704,9 @@ Net CBF_read(const char *file, shared_ptr<Model<double>>& m, bool add_3d) {
         }
         
         Constraint<> SOC("SOC");
-        SOC = Xij*Xij - X.from(node_pairs_chord)*X.to(node_pairs_chord);
+        SOC = Xij*Xij - X.from(node_pairs)*X.to(node_pairs);
         SOC.add_to_callback();
-        m->add(SOC.in(node_pairs_chord) <= 0);
+        m->add(SOC.in(node_pairs) <= 0);
         
         count=0;
         DebugOn("Displaying bags of size 3 and greater "<<endl);
@@ -701,6 +733,24 @@ Net CBF_read(const char *file, shared_ptr<Model<double>>& m, bool add_3d) {
             }
         }
         
+        if(true){
+            auto bag_size = bags_3d.size();
+            auto Wij_ = Xij.pairs_in_bags(bags_3d, 3);
+            auto Wii_ = X.in_bags(bags_3d, 3);
+            
+            Constraint<> SDP3("SDP_3D");
+            
+            SDP3 += (pow(Wij_[0], 2)) * Wii_[2];
+            SDP3 += (pow(Wij_[1], 2)) * Wii_[0];
+            SDP3 += (pow(Wij_[2], 2)) * Wii_[1];
+            SDP3 -= 2 * Wij_[0] * (Wij_[1] * Wij_[2]);
+            SDP3 -= Wii_[0] * Wii_[1] * Wii_[2];
+            SDP3.add_to_callback();
+            m->add(SDP3.in(range(0, bag_size-1)) <= 0);
+            SDP3.print();
+            
+        }
+        
         m->_bag_names=_bag_names;
         //m->_func_map=func_map_bounds;
         m->map_x=map_x;
@@ -719,22 +769,7 @@ Net CBF_read(const char *file, shared_ptr<Model<double>>& m, bool add_3d) {
         int ndisc=10;
         count=0;
         
-        if(add_3d){
-            auto bag_size = bags_3d.size();
-            auto Wij_ = Xij.pairs_in_bags(bags_3d, 3);
-            auto Wii_ = X.in_bags(bags_3d, 3);
-            
-            Constraint<> SDP3("SDP_3D");
-            
-            SDP3 += (pow(Wij_[0], 2)) * Wii_[2]*0.001;
-            SDP3 += (pow(Wij_[1], 2)) * Wii_[0]*0.001;
-            SDP3 += (pow(Wij_[2], 2)) * Wii_[1]*0.001;
-            SDP3 -= 2 * Wij_[0] * (Wij_[1] * Wij_[2])*0.001;
-            SDP3 -= Wii_[0] * Wii_[1] * Wii_[2]*0.001;
-            SDP3.add_to_callback();
-            m->add(SDP3.in(range(0, bag_size-1)) <= 0);
-            
-        }
+      
     }
     else{
         throw invalid_argument("only 1 psd constraint supported now");
