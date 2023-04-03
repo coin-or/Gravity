@@ -268,8 +268,8 @@ int main(int argc, char * argv[]){
             Wij_x_map[index].push_back({{x.get_vec_id(),a->_id},-a->_weight});
             index++;
         }
-        bool orig_cuts = true;/* Generate the SDP cuts using original variables (get rid of Wii and Wij) */
-        if(!project && orig_cuts){
+        bool orig_cuts = false;/* Generate the SDP cuts using original variables (get rid of Wii and Wij) */
+        if(orig_cuts){
             Laplacian.Xii_x_map = Wii_gamma_map;
             Laplacian.Xij_x_map = Wij_gamma_map;
             Laplacian.Xii_y_map = Wii_x_map;

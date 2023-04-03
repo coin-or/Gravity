@@ -1480,13 +1480,13 @@ vector<vector<pair<pair<size_t,size_t>,double>>> Model<type>::cuts_eigen_bags(co
                             if(v->is_psd_diag()){
                                 free_var = true;
                                 auto id=b.second->at(n);
-                                if(!Xii_x_map[id].empty()){
+                                if(!Xii_x_map.empty() && !Xii_x_map[id].empty()){
                                     for(auto i = 0; i < Xii_x_map[id].size(); i++){
                                         cut_vec.push_back({Xii_x_map[id][i].first, eig_vector_m[n]*eig_vector_m[n]*(-1)*Xii_x_map[id][i].second});
                                     }
                                     free_var = false;
                                 }
-                                if(!Xii_y_map[id].empty()){
+                                if(!Xii_y_map.empty() && !Xii_y_map[id].empty()){
                                     for(auto i = 0; i < Xii_y_map[id].size(); i++){
                                         cut_vec.push_back({Xii_y_map[id][i].first, eig_vector_m[n]*eig_vector_m[n]*(-1)*Xii_y_map[id][i].second});
                                     }
@@ -1513,13 +1513,13 @@ vector<vector<pair<pair<size_t,size_t>,double>>> Model<type>::cuts_eigen_bags(co
                                 if(v->is_psd_diag()){
                                     free_var = true;
                                     auto id=Xij->get_keys_map()->at(key);
-                                    if(!Xij_x_map[id].empty()){
+                                    if(!Xij_x_map.empty() && !Xij_x_map[id].empty()){
                                         for(auto xi = 0; xi < Xij_x_map[id].size(); xi++){
                                             cut_vec.push_back({Xij_x_map[id][xi].first, eig_vector_m[i]*eig_vector_m[j]*(-2)*Xij_x_map[id][xi].second});
                                         }
                                         free_var = false;
                                     }
-                                    if(!Xij_y_map[id].empty()){
+                                    if(!Xij_y_map.empty() && !Xij_y_map[id].empty()){
                                         for(auto xi = 0; xi < Xij_y_map[id].size(); xi++){
                                             cut_vec.push_back({Xij_y_map[id][xi].first, eig_vector_m[i]*eig_vector_m[j]*(-2)*Xij_y_map[id][xi].second});
                                         }
