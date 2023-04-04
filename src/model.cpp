@@ -794,6 +794,227 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
 //    lifted._dim[1] = c._dim[1];
 //    return lifted;
 //}
+
+template <typename type>
+template<typename T,typename std::enable_if<is_arithmetic<T>::value>::type*>
+int Model<type>::readMPS(const string& fname){
+#ifdef USE_GUROBI
+    GRBEnv env = GRBEnv();
+    GRBModel gurobi_model = GRBModel(env, fname);
+
+    int n_vars = gurobi_model.get(GRB_IntAttr_NumVars);
+    int n_constraints = gurobi_model.get(GRB_IntAttr_NumConstrs);
+    int n_int_vars = gurobi_model.get(GRB_IntAttr_NumIntVars);
+    int n_bin_vars = gurobi_model.get(GRB_IntAttr_NumBinVars);
+    DebugOn("The number of variables is " << n_vars << endl);
+    DebugOn("The number of constraints is " << n_constraints << endl);
+    indices C("C"), I("I"), LinConstr("LinConstr"), QuadConstr("QuadConstr"), NonLinConstr("NonLinConstr");
+    int nb_cont = 0;
+    int nb_int = 0;
+    int nb_other = 0;
+    vector<int> C_ids,I_ids;
+    for (int i = 0; i < n_vars; i++) {
+        GRBVar gurobi_var = gurobi_model.getVar(i);
+        auto const vtype = gurobi_var.get(GRB_CharAttr_VType);
+        const std::string vname = gurobi_var.get(GRB_StringAttr_VarName);
+        if (vtype == GRB_CONTINUOUS) {
+            nb_cont++;
+            C.insert(vname);
+            C_ids.push_back(i);
+        }
+        else {
+            I.insert(vname);
+            I_ids.push_back(i);
+            nb_int++;
+        }
+    }
+    DebugOn("Number of continuous variables = " << nb_cont << endl);
+    DebugOn("Number of integer variables = " << nb_int << endl);
+    
+    param<> x_ub("x_ub"), x_lb("x_lb");
+    param<int> y_ub("y_ub"), y_lb("y_lb");
+    x_ub.in(C);x_lb.in(C);
+    y_ub.in(I);y_lb.in(I);
+    for (int i = 0; i<C.size(); i++) {
+        x_lb.set_val(i, gurobi_model.getVar(C_ids[i]).get(GRB_DoubleAttr_LB));
+        x_ub.set_val(i, gurobi_model.getVar(C_ids[i]).get(GRB_DoubleAttr_UB));
+    }
+    for (int i = 0; i<I.size(); i++) {
+        y_lb.set_val(i, (int)gurobi_model.getVar(I_ids[i]).get(GRB_DoubleAttr_LB));
+        y_ub.set_val(i, (int)gurobi_model.getVar(I_ids[i]).get(GRB_DoubleAttr_UB));
+    }
+    var<> x("x", x_lb, x_ub);
+    var<int> y("y", y_lb, y_ub);
+
+    param<> rhs("rhs");
+    int nb_lin = 0;
+    int nb_nonlin = 0;
+//    int index = 0;
+    _name = fname;
+
+    if(!C.empty())
+        add(x.in(C));
+    if(!I.empty()){
+        add(y.in(I));
+        replace_integers();
+    }
+    auto y_rel = get_var<double>("y");
+    
+    map<int,vector<int>> constr_sparsity;
+    vector<int> C_lin, C_nonlin, C_quad;
+    GRBQuadExpr quad_obj = gurobi_model.getObjective();
+    GRBLinExpr lin_obj = quad_obj.getLinExpr();
+
+    func<> gravityObj = lin_obj.getConstant();
+    for (int j = 0; j < lin_obj.size(); j++) {
+        double coeff = lin_obj.getCoeff(j);
+        if (coeff == 0.0) {
+            continue;
+        }
+        GRBVar gurobi_var = lin_obj.getVar(j);
+        auto const vtype = gurobi_var.get(GRB_CharAttr_VType);
+        const std::string vname = gurobi_var.get(GRB_StringAttr_VarName);
+        if (vtype == GRB_CONTINUOUS) {
+            gravityObj += coeff*x(vname);
+        }
+        else {
+            gravityObj += coeff*y_rel(vname);
+        }
+    }
+
+    // Get model objsense
+    int objsense = gurobi_model.get(GRB_IntAttr_ModelSense);
+    if (objsense == GRB_MAXIMIZE) {
+        max(gravityObj);
+    } else{
+        min(gravityObj);
+    }
+        
+    for (int i = 0; i < n_constraints; i++) {
+        GRBConstr constr = gurobi_model.getConstr(i);
+        std::string constr_name = constr.get(GRB_StringAttr_ConstrName);
+        char sense = constr.get(GRB_CharAttr_Sense);
+        double rhs = constr.get(GRB_DoubleAttr_RHS);
+
+        GRBLinExpr row = gurobi_model.getRow(constr);
+        Constraint<double> expr(constr_name);
+        for (int j = 0; j < row.size(); j++) {
+            double coeff = row.getCoeff(j);
+            if (coeff == 0.0) {
+                continue;
+            }
+            
+            GRBVar var = row.getVar(j);
+
+            char vtype = var.get(GRB_CharAttr_VType);
+            std::string var_name = var.get(GRB_StringAttr_VarName);
+
+            if (vtype == GRB_CONTINUOUS) {
+                expr += coeff*x(var_name);
+            } else {
+                expr += coeff*y_rel(var_name);
+            }
+        }
+        auto nb_int_vars = expr.nb_int_lterms(0);
+        auto nb_cont_vars = expr.nb_cont_lterms(0);
+        string key = to_string(nb_int_vars)+"_"+to_string(nb_cont_vars);
+        expr -= rhs;
+        if (sense == GRB_EQUAL) {
+            string cname = "lin_eq_"+key;
+            auto it = _cons_name.find("lin_eq_"+key);
+            if(it!=_cons_name.end()){
+                it->second->add_linear_row(make_shared<Constraint<>>(expr),0);
+            }
+            else{
+                Constraint<> eq(cname);
+                param<> c0("c0_eq_"+key);
+                c0 = expr.eval_cst(0);
+                indices eq_ids("lin_eq_"+key);
+                eq_ids.insert("inst_1");
+                vector<indices> x_ids(nb_cont_vars);/* indices for each symbolic continuous variable */
+                vector<indices> y_ids(nb_int_vars);/* indices for each symbolic integer variable */
+                vector<param<>> x_coefs(nb_cont_vars);/* coefficient multiplying each symbolic continuous variable */
+                vector<param<>> y_coefs(nb_int_vars);/* coefficient multiplying each symbolic integer variable */
+                for(int i = 0; i<nb_cont_vars;i++){
+                    indices coef_eq_ids("coef_lin_eq_x_coefs_"+key+"_"+to_string(i));
+                    coef_eq_ids.insert("inst_1");
+                    x_ids[i].set_name(key+"_"+to_string(i)+"_lin_eq_x_ids");
+                    x_ids[i] = *x._indices;
+                    x_ids[i].add_ref(expr.get_lterm_cont_var_id(i,0));
+                    x_coefs[i] = param<>("coef_lin_eq_x_coefs_"+key+"_"+to_string(i));
+                    x_coefs[i] = expr.eval_lterm_cont_coef(i,0);
+                    eq += x_coefs[i].in(coef_eq_ids)*x.in(x_ids[i]);
+                }
+                for(int i = 0; i<nb_int_vars;i++){
+                    indices coef_eq_ids("coef_lin_eq_y_coefs_"+key+"_"+to_string(i));
+                    coef_eq_ids.insert("inst_1");
+                    y_ids[i].set_name(key+"_"+to_string(i)+"_lin_eq_y_ids");
+                    y_ids[i] = *y._indices;
+                    y_ids[i].add_ref(expr.get_lterm_int_var_id(i,0));
+                    y_coefs[i] = param<>("coef_lin_eq_y_coefs_"+key+"_"+to_string(i));
+                    y_coefs[i] = expr.eval_lterm_int_coef(i,0);
+                    eq += y_coefs[i].in(coef_eq_ids)*y_rel.in(y_ids[i]);
+                }
+                indices cst_eq_ids("cst_lin_eq_"+key);
+                cst_eq_ids.insert("inst_1");
+                eq += c0.in(cst_eq_ids);
+                add(eq.in(eq_ids)==0);
+            }
+
+        }
+        else{
+            if (sense == GRB_GREATER_EQUAL) {
+                expr *= -1;
+            }
+            string cname = "lin_ineq_"+key;
+            auto it = _cons_name.find("lin_ineq_"+key);
+            if(it!=_cons_name.end()){
+                it->second->add_linear_row(make_shared<Constraint<>>(expr),0);
+            }
+            else{
+                Constraint<> leq(cname);
+                param<> c0("c0_ineq_"+key);
+                c0 = expr.eval_cst(0);
+                indices leq_ids("lin_ineq_"+key);
+                leq_ids.insert("inst_1");
+                vector<indices> x_ids(nb_cont_vars);/* indices for each symbolic continuous variable */
+                vector<indices> y_ids(nb_int_vars);/* indices for each symbolic integer variable */
+                vector<param<>> x_coefs(nb_cont_vars);/* coefficient multiplying each symbolic continuous variable */
+                vector<param<>> y_coefs(nb_int_vars);/* coefficient multiplying each symbolic integer variable */
+                for(int i = 0; i<nb_cont_vars;i++){
+                    indices coef_leq_ids("coef_lin_ineq_x_coefs_"+key+"_"+to_string(i));
+                    coef_leq_ids.insert("inst_1");
+                    x_ids[i].set_name(key+"_"+to_string(i)+"_lin_ineq_x_ids");
+                    x_ids[i] = *x._indices;
+                    x_ids[i].add_ref(expr.get_lterm_cont_var_id(i,0));
+                    x_coefs[i] = param<>("coef_lin_ineq_x_coefs_"+key+"_"+to_string(i));
+                    x_coefs[i] = expr.eval_lterm_cont_coef(i,0);
+                    leq += x_coefs[i].in(coef_leq_ids)*x.in(x_ids[i]);
+                }
+                for(int i = 0; i<nb_int_vars;i++){
+                    indices coef_leq_ids("coef_lin_ineq_y_coefs_"+key+"_"+to_string(i));
+                    coef_leq_ids.insert("inst_1");
+                    y_ids[i].set_name(key+"_"+to_string(i)+"_lin_ineq_y_ids");
+                    y_ids[i] = *y._indices;
+                    y_ids[i].add_ref(expr.get_lterm_int_var_id(i,0));
+                    y_coefs[i] = param<>("coef_lin_ineq_y_coefs_"+key+"_"+to_string(i));
+                    y_coefs[i] = expr.eval_lterm_int_coef(i,0);
+                    leq += y_coefs[i].in(coef_leq_ids)*y_rel.in(y_ids[i]);
+                }
+                indices cst_ineq_ids("cst_lin_ineq_"+key);
+                cst_ineq_ids.insert("inst_1");
+                leq += c0.in(cst_ineq_ids);
+                add(leq.in(leq_ids)<=0);
+            }
+        }
+//        eq.add_linear_row(con,0);
+    }
+
+    reindex();
+#endif
+    return 0;
+}
+
 template <typename type>
 template<typename T,typename std::enable_if<is_arithmetic<T>::value>::type*>
 Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
@@ -6520,6 +6741,7 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
     lifted._dim[1] = c._dim[1];
     return lifted;
 }
+
 template <typename type>
 template<typename T>
 shared_ptr<Model<type>> Model<type>::outer_approximate_continuous_relaxation(int nb_max, int& constr_viol)
@@ -6544,6 +6766,7 @@ shared_ptr<Model<type>> Model<type>::outer_approximate_continuous_relaxation(int
     }
     return lin_model;
 }
+
 template <typename type>
 template<typename T>
 void Model<type>::populate_original_interval(shared_ptr<Model<type>>& obbt_model, map<string, bool>& fixed_point, map<string, double>& ub_original,map<string, double>& lb_original,map<string, double>& interval_original,map<string, double>& interval_new, int& count_skip, int& count_var, double range_tol){
@@ -6608,6 +6831,7 @@ void Model<type>::populate_original_interval(shared_ptr<Model<type>>& obbt_model
         
     }
 }
+
 template <typename type>
 template<typename T>
 double Model<type>::populate_final_interval_gap(const shared_ptr<Model<type>>& obbt_model, const map<string, double>& interval_original, map<string, double>& interval_new, double& sum, bool& xb_true, const double zero_tol, int count_var){
@@ -6645,6 +6869,7 @@ double Model<type>::populate_final_interval_gap(const shared_ptr<Model<type>>& o
     DebugOff("Average interval reduction "<<avg<<endl);
     return avg;
 }
+
 template <typename type>
 template<typename T>
 void Model<type>::create_batch_models(shared_ptr<Model<type>>& obbt_model, vector<shared_ptr<Model<type>>>& batch_models, int nb_threads, double upper_bound, double lb_scale_value){
@@ -6664,6 +6889,7 @@ void Model<type>::create_batch_models(shared_ptr<Model<type>>& obbt_model, vecto
 //        batch_models.at(i)->print_solution();
     }
 }
+
 template <typename type>
 template<typename T>
 void Model<type>::update_upper_bound(shared_ptr<Model<type>>& obbt_model, vector<shared_ptr<Model<type>>>& batch_models, vector<double>& ub_sol, SolverType ub_solver_type, double ub_solver_tol, bool& terminate, bool linearize, double& upper_bound, double lb_scale_value, double lower_bound,  double& gap,  const double abs_tol, const double rel_tol, const double zero_tol){
@@ -6732,6 +6958,7 @@ void Model<type>::update_upper_bound(shared_ptr<Model<type>>& obbt_model, vector
         }
     }
 }
+
 template <typename type>
 template<typename T>
 void Model<type>::batch_models_obj_lb_constr(vector<shared_ptr<Model<type>>>& batch_models, int nb_threads, double lower_bound_lin, double lower_bound_old, double lower_bound_nonlin_init, double upper_bound, double ub_scale_value){
@@ -6757,6 +6984,7 @@ void Model<type>::batch_models_obj_lb_constr(vector<shared_ptr<Model<type>>>& ba
         }
     }
 }
+
 template<typename type>
 template<typename T>
 void Model<type>::model_fix_int(shared_ptr<gravity::Model<double>> relax){
@@ -6775,6 +7003,7 @@ void Model<type>::model_fix_int(shared_ptr<gravity::Model<double>> relax){
         }
     }
 }
+
 template<typename type>
 template<typename T>
 double Model<type>::upper_bound_integral(SolverType ub_solver_type, double ub_solver_tol, vector<double>& ub_sol){
@@ -6812,6 +7041,7 @@ double Model<type>::upper_bound_integral(SolverType ub_solver_type, double ub_so
     }
     return ubi;
 }
+
 //Check if OBBT has converged, can check every gap_count_int intervals
 template <typename type>
 template<typename T>
@@ -6868,6 +7098,8 @@ void Model<type>::compute_iter_gap(double& gap, double& active_tol, bool& termin
 #endif
         DebugOn("Gap "<<std::setprecision(9)<<gap<<" ub "<<std::setprecision(9)<<upper_bound<<" lb "<<std::setprecision(9)<<lower_bound<<" at iteration "<<iter<<endl);
 }
+
+
 template <typename type>
 template<typename T,
 typename std::enable_if<is_same<T,double>::value>::type*>
@@ -7017,6 +7249,8 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int,double
 //    relaxed_model->print();
     return res;
 }
+
+
 /** function to run one global iteration of the obbt algorithm
  @param[in] relaxed model: original nonlinear nonconvex model
  @param[in] max_time: max_time to run the run_obbt algorithm
@@ -7208,6 +7442,9 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
     std::get<10>(res)=fail;
     return res;
 }
+
+
+
 template std::tuple<bool,int,double,double,double,double,double,double,int,int,int,double> gravity::Model<double>::run_obbt<double, (void*)0>(shared_ptr<Model<double>> relaxed_model, double max_time, unsigned max_iter, double rel_tol, double abs_tol, unsigned nb_threads, SolverType ub_solver_type, SolverType lb_solver_type, double ub_solver_tol, double lb_solver_tol, double range_tol, bool linearize, bool scale_objective, bool lag, int nb_refine,  int nb_root_refine, int nb_root_ref_init, double viol_obbt_init, double viol_root_init, bool initialize_primal, double upper_bound_prev);
 
 
@@ -7223,7 +7460,7 @@ template void Model<double>::model_fix_int(shared_ptr<gravity::Model<double>> re
 template shared_ptr<Model<double>> Model<double>::outer_approximate_continuous_relaxation(int nb_max, int& constr_viol);
 template Constraint<Cpx> Model<Cpx>::lift(Constraint<Cpx>& c, string model_type);
 template Constraint<> Model<>::lift(Constraint<>& c, string model_type);
-
+template int gravity::Model<double>::readMPS<double, (void*)0>(const string&);
 
 //    template void Model<double>::run_obbt(double max_time, unsigned max_iter);
 //    template func<double> constant<double>::get_real() const;

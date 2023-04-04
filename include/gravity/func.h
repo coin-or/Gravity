@@ -267,8 +267,100 @@ namespace gravity {
         };
         
         
+        
+        /** Return true if p appears only once in linear part of the function */
+        bool appear_once_linear(const shared_ptr<param_>& p) const{
+            int n = 0;
+            for (const auto &lt: *_lterms) {
+                if(lt.second._p->has_common_ids(p))
+                    n++;
+            }
+            return n==1;
+        }
+        
+        /** Return true if p appears in quadratic part of the function */
+        bool in_quad_part(const shared_ptr<param_>& p) const{
+            for (const auto &qt: *_qterms) {
+                if(qt.second._p->first->has_common_ids(p) || qt.second._p->second->has_common_ids(p))
+                    return true;
+            }
+            return false;
+        }
+        
+        
+        
+        /** Return the number of linear terms involving only continuous vars in this function */
+        int nb_cont_lterms(int i) const{
+            int n = 0;
+            for (const auto &lt: *_lterms) {
+                if(!lt.second._p->_is_relaxed){
+                    if(lt.second._p->is_matrix_indexed())
+                        n += lt.second._p->_indices->_ids->at(i).size();
+                    else
+                        n++;
+                }
+            }
+            return n;
+        }
+        
+        /** Return the number of linear terms involving only integer vars in this function */
+        int nb_int_lterms(int i) const{
+            int n = 0;
+            for (const auto &lt: *_lterms) {
+                if(lt.second._p->_is_relaxed){
+                    if(lt.second._p->is_matrix_indexed())
+                        n += lt.second._p->_indices->_ids->at(i).size();
+                    else
+                        n++;
+                }
+            }
+            return n;
+        }
+        
+        /** Return the number of quadratic terms involving only continuous vars in this function */
+        int nb_cont_quad_terms(int i) const{
+            int n = 0;
+            for (const auto &qt: *_qterms) {
+                if(!qt.second._p->first->_is_relaxed && !qt.second._p->second->_is_relaxed){
+                    n++;
+                }
+            }
+            return n;
+        }
+        
+        /** Return the number of quadratic terms involving only integers vars in this function */
+        int nb_int_quad_terms(int i) const{
+            int n = 0;
+            for (const auto &qt: *_qterms) {
+                if(qt.second._p->first->_is_relaxed && qt.second._p->second->_is_relaxed)
+                    n++;
+            }
+            return n;
+        }
+        
+        /** Return the number of quadratic terms involving the product of a continuous and an integer var in this function */
+        int nb_hyb_quad_terms(int i) const{
+            int n = 0;
+            for (const auto &qt: *_qterms) {
+                if(qt.second._p->first->_is_relaxed != qt.second._p->second->_is_relaxed)
+                    n++;
+            }
+            return n;
+        }
+        
         /** Return the number of linear terms in this function */
-        unsigned nb_linear_terms() const;
+        int nb_linear_terms(int inst) const{
+            int n = 0;
+            for (auto &pair:*_lterms) {
+                if (pair.second._coef->_is_transposed || pair.second._coef->is_matrix() || pair.second._p->is_matrix_indexed()) {
+                    n += pair.second._p->get_dim(inst);
+                }
+                else{
+                    n += 1;
+                }
+            }
+            return n;
+        }
         
         /** The function iterates over key references in _ids and keeps only the unique entries */
         void keep_unique_keys();

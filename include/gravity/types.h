@@ -1481,7 +1481,15 @@ public:
     
     
     
-    
+    /** Adds a reference in _ids
+     */
+    void add_ref(int key_id){
+        if(!_ids){
+            _ids = make_shared<vector<vector<size_t>>>();
+            _ids->resize(1);
+        }
+        _ids->at(0).push_back(key_id);
+    }
     
     /** Adds a reference to the key specified as argument, i.e., adds the corresponding index in _ids
      @throw invalid_argument if key is not part of _keys_map
@@ -1695,6 +1703,8 @@ indices union_ids(const indices& ids1, Args&&... args) {
     res.set_name(name.substr(0,name.size()-1) + ")");
     return res;
 }
+
+indices intersect(const indices& s1, const indices& s2);
 
 indices operator-(const indices& s1, const indices& s2);
 

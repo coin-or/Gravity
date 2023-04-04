@@ -7910,6 +7910,8 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
         //    add_on_off(MC4, on);
         //        }
         
+        template<typename T=type,typename std::enable_if<is_arithmetic<T>::value>::type* = nullptr>
+        int readMPS(const string& fname);
         
         //functions for the evaluation of the objective function
         template<class T=type>

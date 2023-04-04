@@ -4186,13 +4186,6 @@ namespace gravity{
 //
 //
 
-/** Return the number of linear terms in this function */
-unsigned func_::nb_linear_terms() const{
-    return _lterms->size();
-}
-
-
-    
 
     template<typename type>
     double func<type>::get_scale_factor(double unit){
