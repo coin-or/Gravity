@@ -670,6 +670,11 @@ namespace gravity {
         void    set_lb(const string& key, type v);
         void    set_ub(const string& key, type v);
         
+        void    fix(); /**<  Fix lb and ub to current var value */
+                
+        void    fix(int i); /**<  Fix lb and ub for given index to current var value */
+        void    fix(const string& key); /**<  Fix lb and ub for given key to current var value */
+        
         void in_q_cone(); /**< States that the variable is contained in a quadratic cone, for mosek */
         
         

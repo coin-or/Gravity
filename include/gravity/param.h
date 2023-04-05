@@ -570,7 +570,9 @@ namespace gravity {
         virtual void get_double_val(size_t pos, double& x) const{};
         
         /** round the value stored at position i to the nearest integer */
-        virtual void round_vals(){};
+        virtual void round_vals(double cutoff=0.5){};
+        
+        virtual void fix(){};
 
         /** Fill x with the variable's lower bound values */
         virtual void get_double_lb(double* x) const{};
@@ -2488,6 +2490,36 @@ namespace gravity {
             throw invalid_argument("Cannot call set_double_val_ with a non-arithmetic type.");
         }
         
+        /** round the value stored at position i to the nearest integer */
+        void round_vals(double cutoff=0.5){round_vals_(cutoff);};
+        
+        template<class T=type, typename enable_if<is_arithmetic<T>::value>::type* = nullptr>
+        void round_vals_(double cutoff=0.5){
+            for (size_t i = 0; i < get_dim(); i++) {
+                auto abs_v = std::abs(_val->at(i));
+                if(abs_v - std::floor((T)abs_v) > cutoff){
+                    if(_val->at(i)<0)
+                        _val->at(i) = std::floor((T)_val->at(i));
+                    else
+                        _val->at(i) = std::ceil((T)_val->at(i));
+                }
+                else {
+                    if(_val->at(i)<0)
+                        _val->at(i) = std::ceil((T)_val->at(i));
+                    else
+                        _val->at(i) = std::floor((T)_val->at(i));
+                }
+            }
+        };
+        
+        template<class T=type, typename enable_if<is_same<T, Cpx>::value>::type* = nullptr>
+        void round_vals_(double cutoff=0.5){
+            for (size_t i = 0; i < get_dim(); i++) {
+                _val->at(i).real(std::round(_val->at(i).real()));
+                _val->at(i).imag(std::round(_val->at(i).imag()));
+            }
+        };
+        
         /**
          Initialize the model variables using values from x
          @param[in] x values to initialize to
@@ -2532,23 +2564,7 @@ namespace gravity {
             throw invalid_argument("Cannot call get_double_val_ with a non-arithmetic type.");
         }
         
-        /** round the value stored at position i to the nearest integer */
-        void round_vals(){round_vals_();};
-        
-        template<class T=type, typename enable_if<is_arithmetic<T>::value>::type* = nullptr>
-        void round_vals_(){
-            for (size_t i = 0; i < get_dim(); i++) {
-                _val->at(i) = std::round((T)_val->at(i));
-            }
-        };
-        
-        template<class T=type, typename enable_if<is_same<T, Cpx>::value>::type* = nullptr>
-        void round_vals_(){
-            for (size_t i = 0; i < get_dim(); i++) {
-                _val->at(i).real(std::round(_val->at(i).real()));
-                _val->at(i).imag(std::round(_val->at(i).imag()));
-            }
-        };
+    
         
         
         param& operator=(const func<type>& f) {

@@ -5792,16 +5792,46 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
             return _int_vars.at(idx);
         }
         
-        void round_solution(){
-            for (auto &v_pair:_vars) {
-                if(v_pair.second->_is_relaxed){
-                    v_pair.second->round_vals();
-                    auto int_var = get_int_var(v_pair.second->get_id());
-                    int_var->copy_vals(v_pair.second);
-                }
-            }
-        }
         
+        void round_and_fix(double cutoff=0.5){round_solution(true,cutoff);};
+                
+                void reset_int_vars_bounds(){
+                    for (auto &v_pair:_vars) {
+                        if(v_pair.second->_is_relaxed){
+                            auto int_var = get_int_var(v_pair.second->get_id());
+                            v_pair.second->copy_bounds(int_var);
+                        }
+                    }
+                }
+                
+                void reset_int_var_bounds(const string& vname){
+                    auto v = get_var_ptr(vname);
+                    if(v->_is_relaxed){
+                        auto int_var = get_int_var(v->get_id());
+                        v->copy_bounds(int_var);
+                    }
+                }
+                
+                void round_solution(bool fix = false, double cutoff=0.5){
+                    for (auto &v_pair:_vars) {
+                        if(v_pair.second->_is_relaxed){
+                            v_pair.second->round_vals(cutoff);
+                            if(fix)
+                                v_pair.second->fix();
+        //                    auto int_var = get_int_var(v_pair.second->get_id());
+        //                    int_var->copy_vals(v_pair.second);
+                        }
+                    }
+                }
+                
+                void update_int_vars(){
+                    for (auto &v_pair:_vars) {
+                        if(v_pair.second->_is_relaxed){
+                            auto int_var = get_int_var(v_pair.second->get_id());
+                            int_var->copy_vals(v_pair.second);
+                        }
+                    }
+                }
         
         void print_symbolic(){
             cout << "-------------------------" << endl;

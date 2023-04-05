@@ -3,11 +3,16 @@
 #include "MPSParser.hpp"
 
 int main(int argc, char** argv) {
-    string fname = string(prj_dir)+"/data_sets/VNN/mip_lay-16_0.mps";
+    string fname = string(prj_dir)+"/data_sets/VNN/mip_lay-16_5.mps";
     Model<> model("new_mip");
     model.readMPS(fname);
+    model.print();
+//    return 0;
 //    model = model_from_file(fname);
-    solver<> MIP_Solver(model, gurobi);
+    solver<> MIP_Solver(model, ipopt);
+    MIP_Solver.run();
+    model.print_solution();
+//    model.round_and_fix();
     MIP_Solver.run();
 //    model.print();
     model.print_symbolic();

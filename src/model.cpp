@@ -889,7 +889,20 @@ int Model<type>::readMPS(const string& fname){
     } else{
         min(gravityObj);
     }
-        
+//    var<> obj("obj");
+//    add(obj.in(R(1)));
+//
+//    Constraint<> min_obj("min_obj");
+//    vector<var<>> vars;
+//    for(int i = 0; i < 9; i++){
+//        if(i!=9)
+//            vars.push_back(x("lay/16_"+to_string(i)));
+//    }
+//    min_obj = obj - gravity::min(vars);
+//    add(min_obj == 0);
+//
+//    min(obj);
+    
     for (int i = 0; i < n_constraints; i++) {
         GRBConstr constr = gurobi_model.getConstr(i);
         std::string constr_name = constr.get(GRB_StringAttr_ConstrName);
