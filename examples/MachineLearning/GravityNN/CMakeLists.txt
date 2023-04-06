@@ -5,15 +5,21 @@ file(DOWNLOAD "https://github.com/onnx/models/raw/main/vision/classification/mni
 PROTOBUF_GENERATE_CPP(ONNX_PROTO_SRCS ONNX_PROTO_HDRS ${CMAKE_CURRENT_BINARY_DIR}/onnx.proto)
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
+find_package(PkgConfig QUIET)
+pkg_check_modules(PC_Protobuf protobuf)
+message(${PC_Protobuf_INCLUDEDIR})
 
-find_package(PROTOBUF)
+include_directories(${PC_Protobuf_INCLUDEDIR})
 
+
+file(GLOB GravityNN_HEADERS MachineLearning/GravityNN/*.hpp)
 add_executable(
-    onnx_parser
-	ONNX/ONNX.cpp
-    ${ONNX_PROTO_SRCS}
-    ${ONNX_PROTO_HDRS}
+  GravityNN
+	MachineLearning/GravityNN/GravityNN.cpp
+	${GravityNN_HEADERS}
+	${ONNX_PROTO_SRCS}
+  ${ONNX_PROTO_HDRS}
 )
 message(${ONNX_PROTO_SRCS})
 message(${ONNX_PROTO_HDRS})
-target_link_libraries(onnx_parser ${PROTOBUF_LIBRARIES} gravity)
+target_link_libraries(GravityNN ${PROTOBUF_LIBRARIES} gravity)

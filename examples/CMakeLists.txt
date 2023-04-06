@@ -92,4 +92,4 @@ add_test(NAME gravity_test COMMAND gravity_test)
 # # target_link_libraries(poolingsdp gravity)
 
 # include(ONNX/CMakeLists.txt)
-include(MachineLearning/AB-Crown/CMakeLists.txt)
+include(MachineLearning/GravityNN/CMakeLists.txt)
