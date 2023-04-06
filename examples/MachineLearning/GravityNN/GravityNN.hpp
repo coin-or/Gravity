@@ -2,11 +2,13 @@
 #include <gravity/model.h>
 #include <gravity/func.h>
 #include <map>
+#include "onnx.hpp"
+#include "NeuralNet.hpp"
 
 using namespace gravity;
 
 
-int read_onnx(std::string path);
+
 
 #ifdef USE_GUROBI
 #include <gurobi_c++.h>
