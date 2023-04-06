@@ -22,7 +22,13 @@
 using namespace std;
 using namespace gravity;
 
+/*
+This test case creates a model with two symbolic variables, x and y, both of size 8. The test case then creates two parameter objects to define lower and upper bounds for x and y, respectively. The variable x is then defined as a var object, bounded by x_lb and x_ub. Similarly, the variable y is defined as a var object, bounded by y_lb and y_ub. The test case then creates two index objects, x_ids and y_ids, to define the indices of x and y, respectively.
 
+The test case adds x and y to the model using the add() function and their corresponding index objects. Next, an index set y_mat is created based on the indices of y. The test case then adds four rows to y_mat and populates them with elements from the index set y_ids according to a specific pattern.
+
+Finally, a linear constraint LinCons is created to represent the linear equation x(i)-x(i+1)-sum(y(j))=0, where i is in [1,4] and j is in y_mat. The constraint is added to the model and then checked to ensure that the model has the expected number of variables and constraints.
+*/
 
 TEST_CASE("Add in row") {
     Model<> M("Test");
