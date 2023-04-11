@@ -13,8 +13,7 @@ void build_graph(const onnx::GraphProto& graph) {
     // Parse initializers
     std::cout << "Initializers: " << std::endl;
     for (const auto& initializer : graph.initializer()) {
-        auto param = parse_tensor(initializer);
-        initializers[param._name] = param;
+        initializers[initializer.name()] = initializer;
     }
 
     for (const auto& node : graph.node()) {
