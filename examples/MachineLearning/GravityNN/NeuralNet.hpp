@@ -7,11 +7,11 @@ class Layer: public Node {
 public:
     Layer(
         int idx,
-        onnx::NodeProto node,
+        onnx::NodeProto _node,
         std::map<std::string, onnx::TensorProto> global_initializers
-    ): Node(node.name(), idx) {
+    ): Node(_node.name(), idx){
+        this->node = _node;
         this->_type_name = node.op_type();
-
         for (auto input: node.input()) {
             if (global_initializers.count(input) == 0) {
                 continue;
@@ -61,6 +61,7 @@ public:
 
         int layer_idx = 0;
         for (auto& node: graph.node()) {
+            auto out = node.output();
             Layer* layer = new Layer(layer_idx, node, initializers);
             layers.push_back(layer);
             for (auto& output: layer->outputs()) {
@@ -70,7 +71,7 @@ public:
 
             add_node(layer);
         }
-
+        
         int arc_idx = 0;
         for (auto& layer: layers) {
             for (auto& input: layer->inputs()) {
@@ -82,7 +83,7 @@ public:
                 Arc* arc = new Arc(src, layer);
                 arc->_id = arc_idx;
                 arc_idx++;
-
+                arc->connect();
                 add_arc(arc);
             }
         }

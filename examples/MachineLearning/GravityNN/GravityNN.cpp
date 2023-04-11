@@ -3,7 +3,7 @@
 #include "GravityNN.hpp"
 
 int main(int argc, char** argv) {
-    string fname = string(prj_dir)+"/data_sets/VNN/mip_lay-16_0.mps";
+    string fname = string(prj_dir)+"/data_sets/VNN/mip_lay-18_0.mps";
     if(argc==2){
         fname=argv[1];
     }

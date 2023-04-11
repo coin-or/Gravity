@@ -22,6 +22,73 @@
 using namespace std;
 using namespace gravity;
 
+
+TEST_CASE("testing matrix operations") {
+    gravity::param<float> A("A");
+    A.set_size(4, 4);
+    // Make identity matrix
+    for (int i = 0; i < 4; i++) {
+        A.set_val(i, i, 1.0);
+    }
+    gravity::param<float> x("x");
+    x.set_size(4, 1);
+    x.set_val(0, 1.0);
+    x.set_val(1, 2.0);
+    x.set_val(2, 3.0);
+    x.set_val(3, 4.0);
+    x.print();
+
+    auto y = A*x;
+    y.print();
+    y.print_symbolic();
+
+    gravity::func<float> fx = 1*x;
+    gravity::func<float> fA = 1*A;
+    auto fy = fA*fx;
+    fy.eval_all();
+    fy.print();
+    fy.print_symbolic();
+}
+
+TEST_CASE("testing max operator") {
+    gravity::param<float> rel_inp("input");
+    rel_inp.set_size(3);
+    rel_inp.set_val(0, -1.0f);
+    rel_inp.set_val(1, 0.0f);
+    rel_inp.set_val(2, 1.0f);
+
+    gravity::param<float> zero("zero");
+    zero.set_size(rel_inp.get_dim());
+    auto output = gravity::max(zero, rel_inp);
+    output.print();
+}
+
+TEST_CASE("testing matrix multiplication A*X where A is a param and X a variable") {
+    param<> A("A");
+    A.set_size(3,4);
+    for (auto i = 0; i<3;i++) {
+        for (auto j = 0; j<4;j++) {
+            A.set_val(i, j, 10*i+j);
+        }
+    }
+    A.print();
+    CHECK(A.eval(1,2)==12);
+    CHECK(A(1,2).eval()==12);
+    auto tr_A = A.tr();
+    tr_A.print();
+    CHECK(tr_A.eval(2,1)==12);
+    CHECK(tr_A(2,1).eval()==12);
+    
+    var<> X("X",0,1);
+    
+    X.in(range(1,3), range(1,4));
+    X.print();
+    Constraint<> AX("AX");
+    AX = A*X.in_matrix(1, 0);
+    CHECK(AX.get_nb_instances()==3);
+    AX.print();
+}
+
 TEST_CASE("testing MISDP solvers"){
     var<> x1("x1", -10, 150);
     

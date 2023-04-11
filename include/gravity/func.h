@@ -951,7 +951,11 @@ namespace gravity {
         func vec() const{
             auto f(*this);
             if(func_is_param()){
-                auto vi = f._vars->begin()->second.first;
+                shared_ptr<param_> vi;
+                if(!f._vars->empty())
+                    vi = f._vars->begin()->second.first;
+                else
+                    vi = f._params->begin()->second.first;
                 if(!vi->_is_vector){
                     vi->_is_vector = true;
                     vi->_name = "["+vi->_name+"]";
