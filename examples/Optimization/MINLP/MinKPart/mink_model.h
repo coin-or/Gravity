@@ -127,9 +127,7 @@ infile.close();
 auto node_pairs=g.get_node_pairs();
 
     
-map<string, vector<pair<string, double>>> map_x;
-map<string, vector<pair<string, double>>> map_y;
-map<string, double> map_const;
+
 
 
 
@@ -140,6 +138,14 @@ m->sdp_dual=false;
 
 //auto node_pairs_chord = g.get_node_pairs_chord;
 auto node_pairs_chord = g.get_node_pairs_chord(g._bags);
+    
+    
+    vector<vector<pair<pair<size_t,size_t>, double>>> Xij_x_map(node_pairs_chord.size());
+    vector<vector<pair<pair<size_t,size_t>, double>>> Xii_x_map(nodes.size());
+    vector<vector<pair<pair<size_t,size_t>, double>>> Xij_y_map(node_pairs_chord.size());
+    vector<vector<pair<pair<size_t,size_t>, double>>> Xii_y_map(nodes.size());
+    vector<double> Xij_cons_map(node_pairs_chord.size(),0);
+    vector<double> Xii_cons_map(nodes.size(),0);
 
 var<> X("X", 1, 1);
 X._psd_diag=true;

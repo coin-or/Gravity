@@ -19,7 +19,6 @@ using namespace std;
 
 int main(int argc, char * argv[]){
     //string fname=string(prj_dir)+"/data_sets/MISDP/2x3_3bars.cbf";
-    //string fname=string(prj_dir)+"/data_sets/MISDP/band50_3.txt";
     //string fname=string(prj_dir)+"/data_sets/MISDP/rip_zeroone_153005l.txt";
     string fname=string(prj_dir)+"/data_sets/MISDP/rip_band404003l.txt";
     //string fname=string(prj_dir)+"/data_sets/MISDP/spinglass2g_33.txt";
@@ -31,7 +30,7 @@ int main(int argc, char * argv[]){
     
     
 
-    bool root_refine = true;
+    bool root_refine = false;
     if(argc>=2){
         fname=argv[1];
     }
@@ -40,7 +39,7 @@ int main(int argc, char * argv[]){
     }
     if(argc>=4){
         /*Write sparse input file for RIP instance*/
-        CBF_read_sparse_rip(fname.c_str());
+        CBF_write_sparse_rip(fname.c_str());
     }
     else{
     auto m=make_shared<Model<double>>("rip");
@@ -71,6 +70,6 @@ int main(int argc, char * argv[]){
     fout<<out_file_name1<<"&"<<m->get_obj_val()<<"&"<<tf-ts<<"&"<<eig_value1<<"&"<<m->_rel_obj_val<<"&"<<m->num_cuts[0]<<"&"<<m->num_cuts[1]<<"&"<<m->num_cuts[2]<<"&"<<m->num_cuts[3]<<"&"<<m->num_cuts[4]<<"&"<<m->num_cuts[5]<<"\n";
     fout.close();
     cout<<out_file_name1<<" obj "<<m->get_obj_val()<<" time "<<tf-ts<<" smallest eig "<<eig_value1<<" lower bound  "<<m->_rel_obj_val<<endl;
-    cout<<"soc incumbent "<<m->num_cuts[0]<<" eig bags incumbent "<<m->num_cuts[1]<<" eig full incumbent "<<m->num_cuts[2]<<" soc mipnode "<<m->num_cuts[3]<<" eig bags mipnode "<<m->num_cuts[4]<<" eig full mipnode "<<m->num_cuts[5]<<"\n";
+    cout<<"soc incumbent "<<m->num_cuts[0]<<"threed incumbent "<<m->num_cuts[1]<<" eig bags incumbent "<<m->num_cuts[2]<<" eig full incumbent "<<m->num_cuts[3]<<" soc mipnode "<<m->num_cuts[4]<<" eig bags mipnode "<<m->num_cuts[6]<<" eig full mipnode "<<m->num_cuts[7]<<"\n";
     }
 }

@@ -245,7 +245,7 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
         map<string, double>                                  map_const;
         vector<double>                                       Xij_cons_map;
         vector<double>                                       Xii_cons_map;
-        bool                                                 sdp_dual=false;
+        bool                                                 sdp_dual=false, add_soc=false, add_threed=false, add_hierarc=false;
         bool                                                 _complex = false;
          template<typename T=type>
         void merge_vars(const shared_ptr<expr<T>>& e, bool share_bounds = false){/**<  Transfer all variables and parameters to the model. */
@@ -701,6 +701,9 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
             _ub_map=m._ub_map;
             _lb_map=m._lb_map;
             sdp_dual=m.sdp_dual;
+            add_soc=m.add_soc;
+            add_threed=m.add_threed;
+            add_hierarc=m.add_hierarc;
             _complex=m._complex;
             _rel_obj_val=m._rel_obj_val;
             num_cuts=m.num_cuts;

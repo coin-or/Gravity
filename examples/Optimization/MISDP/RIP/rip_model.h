@@ -57,7 +57,7 @@ return neg_eig_value;
 }
 /*For testing sparse primal RIP models; sparse data files are created from full data files; read_misdp may be used to test dense dual RIP model*/
 Net model_rip(string fname, shared_ptr<Model<double>>& m) {
-    int k=5;
+    int k, objsense;
 Net g;
   int Num_nodes = 0;
   int Num_edges = 0;
@@ -69,6 +69,8 @@ Net g;
     istringstream iss(sLine);
     iss >> Num_nodes;
     iss >> Num_edges;
+    iss>>k;
+    iss>>objsense;
   } else {
     fprintf(stderr, "can’t open input file %s\n", fname.c_str());
     exit(1);
@@ -78,7 +80,9 @@ Net g;
   Node* node = nullptr;
     indices nodes;
     DebugOn("nodes "<<Num_nodes<<endl);
-    DebugOn("edges "<<Num_edges<<endl);
+    DebugOn("edges in full matrix "<<Num_edges<<endl);
+    DebugOn("k Isometry "<<k<<endl);
+    DebugOn("Objective sense "<<objsense<<endl);
 
   for (int i = 0; i < Num_nodes; i++) {
     name = to_string(i);
@@ -101,34 +105,42 @@ Net g;
     istringstream iss(sLine);
     iss >> src_a >> dest_a >> weight;
     // cout << src  << ", " << dest << ", " << weight << endl;
-      if(std::abs(weight)>=1e-9){
+      
       if(src_a!=dest_a){
-      if(src_a<dest_a){
-          src=to_string(src_a);
-          dest=to_string(dest_a);
-      }
-      else{
-          src=to_string(dest_a);
-          dest=to_string(src_a);
-      }
-          
-
-    name = src + "," + dest;  //
-
-    arc = new Arc(name);
-    arc->_src = g.get_node(src);
-    arc->_dest = g.get_node(dest);
-    arc->_weight = weight;
-    g.add_arc(arc);
-    arc->connect();
-    w.add_val(name, weight);
+          if(std::abs(weight)>=1e-9){
+              if(src_a<dest_a){
+                  src=to_string(src_a);
+                  dest=to_string(dest_a);
+              }
+              else{
+                  src=to_string(dest_a);
+                  dest=to_string(src_a);
+              }
+              
+              
+              name = src + "," + dest;  //
+              
+              arc = new Arc(name);
+              arc->_src = g.get_node(src);
+              arc->_dest = g.get_node(dest);
+              arc->_weight = weight;
+              g.add_arc(arc);
+              arc->connect();
+              w.add_val(name, weight);
+          }
       }
       else{
           v.add_val(to_string(src_a), weight);
       }
-      }
+      
   }
 infile.close();
+    for (int i = 0; i < Num_nodes; i++) {
+        name = to_string(i);
+        if(!v._indices->has_key(name)){
+            v.add_val(name, 0);
+        }
+    }
     
 auto node_pairs=g.get_node_pairs();
 
@@ -158,7 +170,7 @@ var<> X("X", 0, 1);
 m->add(X.in(nodes));
    // X.initialize_all(1.0/(Num_nodes*1.0));
 
-var<> Xij("Xij", -1.0, 1.0);
+var<> Xij("Xij", -0.5, 0.5);
 m->add(Xij.in(node_pairs_chord));
 
 
@@ -180,23 +192,41 @@ m->add(sum_Xii==0);
     Constraint<> yi_Xi("yi_Xi");
     yi_Xi=y*(-1)-X;
    // m->add(yi_Xi.in(nodes)<=0);
-
+//
+//    /*Tightened cut from Gally paper o Restricted Isometry*/
 //    Constraint<> Xij_yi("Xij_yi");
-//    Xij_yi=Xij-y.to(node_pairs_chord);
+//    Xij_yi=Xij-y.to(node_pairs_chord)*0.5;
 //    m->add(Xij_yi.in(node_pairs_chord) <= 0);
 //
 //    Constraint<> yi_Xij("yi_Xij");
-//    yi_Xij=y.to(node_pairs_chord)*(-1)-Xij;
+//    yi_Xij=y.to(node_pairs_chord)*(-1)*0.5-Xij;
 //    m->add(yi_Xij.in(node_pairs_chord) <= 0);
 //
 //    Constraint<> Xij_yia("Xij_yia");
-//    Xij_yia=Xij-y.from(node_pairs_chord);
+//    Xij_yia=Xij-y.from(node_pairs_chord)*0.5;
 //    m->add(Xij_yia.in(node_pairs_chord) <= 0);
 //
 //    Constraint<> yi_Xija("yi_Xija");
-//    yi_Xija=y.from(node_pairs_chord)*(-1)-Xij;
+//    yi_Xija=y.from(node_pairs_chord)*(-1)*0.5-Xij;
 //    m->add(yi_Xija.in(node_pairs_chord) <= 0);
-//
+    
+    
+        Constraint<> Xij_yi("Xij_yi");
+        Xij_yi=Xij-y.to(node_pairs_chord);
+        m->add(Xij_yi.in(node_pairs_chord) <= 0);
+    
+        Constraint<> yi_Xij("yi_Xij");
+        yi_Xij=y.to(node_pairs_chord)*(-1)-Xij;
+        m->add(yi_Xij.in(node_pairs_chord) <= 0);
+    
+        Constraint<> Xij_yia("Xij_yia");
+        Xij_yia=Xij-y.from(node_pairs_chord);
+        m->add(Xij_yia.in(node_pairs_chord) <= 0);
+    
+        Constraint<> yi_Xija("yi_Xija");
+        yi_Xija=y.from(node_pairs_chord)*(-1)-Xij;
+        m->add(yi_Xija.in(node_pairs_chord) <= 0);
+
     Constraint<> SOC("SOC");
     SOC = Xij*Xij - X.from(node_pairs_chord)*X.to(node_pairs_chord);
     SOC.add_to_callback();
@@ -221,7 +251,7 @@ m->add(sum_Xii==0);
     m->sdp_dual=false;
     for(auto b:g._bags){
         pair<int,vector<string>> bn;
-        if(b.second.size()>=3){
+        if(b.second.size()>=2){
             bn.first=count++;
             DebugOn("bag "<<count<<endl);
             for(auto n:b.second){
@@ -239,7 +269,11 @@ m->add(sum_Xii==0);
     }
     DebugOn("true edges "<<node_pairs.size());
 func<> obj=w.tr()*Xij+v.tr()*X;
-m->min(obj);
+    if(objsense==0){
+        m->min(obj);
+    }else{
+        m->max(obj);
+    }
     
     DebugOn("largest ub "<<obj._range->second<<endl);
 

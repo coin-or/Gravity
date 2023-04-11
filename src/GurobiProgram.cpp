@@ -20,33 +20,27 @@ public:
         m=mn;
         interior=interiorn;
         //vec_expi=vec_exp;
-        m->num_cuts.resize(9,0);
+        m->num_cuts.resize(12,0);
     }
     ~cuts(){
-        DebugOn("soc_viol_user "<<soc_viol_user<<" "<<soc_viol<<endl);
-        DebugOn("soc_found_user "<<soc_found_user<<" "<<soc_found<<endl);
-        DebugOn("soc_added_user "<<soc_added_user<<" "<<soc_added<<endl);
-        DebugOn("det_viol_user "<<det_viol_user<<" "<<det_viol<<endl);
-        DebugOn("det_found_user "<<det_found_user<<" "<<det_found<<endl);
-        DebugOn("det_added_user "<<det_added_user<<" "<<det_added<<endl);
     }
 protected:
     void callback() {
         try {
             bool incumbent=true;
             bool mipnode=true;
-            bool hierarc = false;
             bool add_full=false;
             bool add_bag=false;
-            bool add_soc=true;
-            bool add_threed=true;
+            bool add_threed=m->add_threed;
+            bool add_soc=m->add_soc;
+            bool hierarc = m->add_hierarc;
             if(m->sdp_dual){
                 add_full=true;
             }
             else{
                 add_bag=true;
             }
-            if(m->_bag_names.size()==1)
+            if(m->_bag_names.size()==1 && add_full)
                 add_bag=false;
             bool add_bag_iteration;
             bool add_full_iteration;
@@ -80,10 +74,10 @@ protected:
                                 m->num_cuts[0]++;
                             }
                         }
-//                        if(hierarc && res.size()>=1){
-//                            add_bag_iteration=false;
-//                            add_full_iteration=false;
-//                        }
+                        //                        if(hierarc && res.size()>=1){
+                        //                            add_bag_iteration=false;
+                        //                            add_full_iteration=false;
+                        //                        }
                     }
                     if(add_threed){
                         m->set_solution(vec_x);
@@ -123,7 +117,7 @@ protected:
                                 }
                                 expr += res1[i][j].second;
                                 addLazy(expr, GRB_LESS_EQUAL, 0);
-                                m->num_cuts[1]++;
+                                m->num_cuts[2]++;
                             }
                         }
                         if(res1.size()>=1 && hierarc)
@@ -144,7 +138,7 @@ protected:
                                 }
                                 expr += res2[i][j].second;
                                 addLazy(expr, GRB_LESS_EQUAL, 0);
-                                m->num_cuts[2]++;
+                                m->num_cuts[3]++;
                             }
                         }
                     }
@@ -180,13 +174,13 @@ protected:
                                         }
                                         expr += res[i][j].second;
                                         addLazy(expr, GRB_LESS_EQUAL, 0);
-                                        m->num_cuts[3]++;
+                                        m->num_cuts[4]++;
                                     }
                                 }
-//                                if(hierarc && res.size()>=1){
-//                                    add_bag_iteration=false;
-//                                    add_full_iteration=false;
-//                                }
+                                //                                if(hierarc && res.size()>=1){
+                                //                                    add_bag_iteration=false;
+                                //                                    add_full_iteration=false;
+                                //                                }
                             }
                             if(add_threed){
                                 m->set_solution(vec_x);
@@ -203,7 +197,7 @@ protected:
                                         }
                                         expr += res[i][j].second;
                                         addLazy(expr, GRB_LESS_EQUAL, 0);
-                                        m->num_cuts[4]++;
+                                        m->num_cuts[5]++;
                                     }
                                 }
                                 if(hierarc && res.size()>=1){
@@ -227,7 +221,7 @@ protected:
                                         }
                                         expr += res1[i][j].second;
                                         addLazy(expr, GRB_LESS_EQUAL, 0);
-                                        m->num_cuts[4]++;
+                                        m->num_cuts[6]++;
                                     }
                                 }
                                 if(res1.size()>=1 && hierarc)
@@ -253,7 +247,7 @@ protected:
                                         cut_str += to_string(res2[i][j].second)+" <= 0\n";
                                         DebugOff(cut_str);
                                         addLazy(expr, GRB_LESS_EQUAL, 0);
-                                        m->num_cuts[5]++;
+                                        m->num_cuts[7]++;
                                     }
                                 }
                             }
@@ -290,12 +284,6 @@ public:
         m->num_cuts.resize(8,0);
     }
     ~cuts_primal_complex(){
-        DebugOn("soc_viol_user "<<soc_viol_user<<" "<<soc_viol<<endl);
-        DebugOn("soc_found_user "<<soc_found_user<<" "<<soc_found<<endl);
-        DebugOn("soc_added_user "<<soc_added_user<<" "<<soc_added<<endl);
-        DebugOn("det_viol_user "<<det_viol_user<<" "<<det_viol<<endl);
-        DebugOn("det_found_user "<<det_found_user<<" "<<det_found<<endl);
-        DebugOn("det_added_user "<<det_added_user<<" "<<det_added<<endl);
     }
 protected:
     void callback() {
@@ -315,19 +303,19 @@ protected:
                     }
                     m->set_solution(vec_x);
                     if(  true ){
-//                        auto res1=m->cutting_planes_square(1e-6);
-//                        if(res1.size()>=1){
-//                            for(auto i=0;i<res1.size();i++){
-//                                GRBLinExpr expr = 0;
-//                                int j=0;
-//                                for(j=0;j<res1[i].size()-1;j+=2){
-//                                    int c=res1[i][j];
-//                                    expr += res1[i][j+1]*vars[c];
-//                                }
-//                                expr+=res1[i][j];
-//                                addLazy(expr, GRB_LESS_EQUAL, 0);
-//                            }
-//                        }
+                        //                        auto res1=m->cutting_planes_square(1e-6);
+                        //                        if(res1.size()>=1){
+                        //                            for(auto i=0;i<res1.size();i++){
+                        //                                GRBLinExpr expr = 0;
+                        //                                int j=0;
+                        //                                for(j=0;j<res1[i].size()-1;j+=2){
+                        //                                    int c=res1[i][j];
+                        //                                    expr += res1[i][j+1]*vars[c];
+                        //                                }
+                        //                                expr+=res1[i][j];
+                        //                                addLazy(expr, GRB_LESS_EQUAL, 0);
+                        //                            }
+                        //                        }
                         
                         if(true){
                             m->set_solution(vec_x);
@@ -483,9 +471,9 @@ bool GurobiProgram::solve(bool relax, double mipgap, double time_limit){
     else
         unrelax_model();
     //    relax_model();
-//    grb_mod->set(GRB_DoubleParam_MIPGap, 1e-6);
+    //    grb_mod->set(GRB_DoubleParam_MIPGap, 1e-6);
     grb_mod->set(GRB_DoubleParam_FeasibilityTol, 1e-9);
-   grb_mod->set(GRB_DoubleParam_OptimalityTol, 1e-6);
+    grb_mod->set(GRB_DoubleParam_OptimalityTol, 1e-9);
     // grb_mod->set(GRB_IntParam_StartNodeLimit, -3);
     //    grb_mod->getEnv().set(GRB_IntParam_DualReductions, 0);
     //    grb_mod->getEnv().set(GRB_IntParam_PreCrush, 1);
@@ -493,10 +481,10 @@ bool GurobiProgram::solve(bool relax, double mipgap, double time_limit){
     //    grb_mod->getEnv().set(GRB_IntParam_NodeMethod, 1);
     grb_mod->getEnv().set(GRB_IntParam_LazyConstraints, 1);
     grb_mod->set(GRB_IntParam_Threads, 8);
-//    grb_mod->set(GRB_DoubleParam_IntFeasTol, 1e-9);
+    grb_mod->set(GRB_DoubleParam_IntFeasTol, 1e-9);
     //       grb_mod->set(GRB_IntParam_NumericFocus,3);
     //     grb_mod->set(GRB_IntParam_PreCrush,0);
-//     grb_mod->set(GRB_IntParam_MIPFocus,3);
+    //     grb_mod->set(GRB_IntParam_MIPFocus,3);
     //    grb_mod->set(GRB_IntParam_IntegralityFocus,1);
     //grb_mod->set(GRB_IntParam_MIPFocus,1);
     //    grb_mod->set(GRB_IntParam_PumpPasses,50);
@@ -566,25 +554,30 @@ bool GurobiProgram::solve(bool relax, double mipgap, double time_limit){
     auto ts=get_wall_time();
     while(not_sdp && count<=3000 && !_model->_complex){
         int soc_viol=0, soc_added=0, soc_found;
-        bool hierarc = false;
+        bool incumbent=true;
+        bool mipnode=true;
         bool add_full=false;
         bool add_bag=false;
-        bool add_soc=true;
-        bool add_threed=true;
+        bool add_threed=_model->add_threed;
+        bool add_soc=_model->add_soc;
+        bool hierarc = _model->add_hierarc;
         if(_model->sdp_dual){
             add_full=true;
         }
         else{
             add_bag=true;
         }
-        if(_model->_bag_names.size()==1)
+        if(_model->_bag_names.size()==1 && add_full){
             add_bag=false;
+        }
         bool add_bag_iteration;
         bool add_full_iteration;
         add_bag_iteration=add_bag;
         add_full_iteration=add_full;
         /* Found an integer feasible solution */
         bool add_cut=false;
+        
+        
         if(add_soc){
             
             auto res= _model->cutting_planes_soc(1e-6, soc_found, soc_added);
@@ -600,7 +593,7 @@ bool GurobiProgram::solve(bool relax, double mipgap, double time_limit){
                     }
                     expr += res[i][j].second;
                     grb_mod->addConstr(expr, GRB_LESS_EQUAL, 0);
-                    _model->num_cuts[0]++;
+                    _model->num_cuts[8]++;
                 }
             }
             if(hierarc && res.size()>=1){
@@ -608,25 +601,48 @@ bool GurobiProgram::solve(bool relax, double mipgap, double time_limit){
                 add_full_iteration=false;
             }
         }
-//        if(add_bag_iteration){
-//            auto res1=_model->cuts_eigen_bags(1e-6);
-//            if(res1.size()>=1){
-//                add_cut=true;
-//                for(auto i=0;i<res1.size();i++){
-//                    GRBLinExpr expr = 0;
-//                    int j;
-//                    for(j=0;j<res1[i].size()-1;j+=2){
-//                        int c=res1[i][j];
-//                        expr += res1[i][j+1]*_grb_vars[c];
-//                    }
-//                    expr += res1[i][j];
-//                    grb_mod->addConstr(expr, GRB_LESS_EQUAL, 0);
-//                    _model->num_cuts[1]++;
-//                }
-//            }
-//            if(res1.size()>=1 && hierarc)
-//                add_full_iteration=false;
-//        }
+        if(add_threed){
+            
+            auto res= _model->cutting_planes_threed(1e-9, soc_found, soc_added);
+            if(res.size()>=1){
+                for(auto i=0;i<res.size();i++){
+                    GRBLinExpr expr = 0;
+                    size_t j=0;
+                    for(j=0;j<res[i].size()-1;j++){
+                        auto c=res[i][j];
+                        size_t symb_id = c.first.first;
+                        size_t v_id = *_model->_vars.at(symb_id)->_id;
+                        expr += c.second*_grb_vars[v_id+c.first.second];
+                    }
+                    expr += res[i][j].second;
+                    grb_mod->addConstr(expr, GRB_LESS_EQUAL, 0);
+                    _model->num_cuts[9]++;
+                }
+            }
+        }
+        
+        if(add_bag_iteration){
+            
+            auto res=_model->cuts_eigen_bags(1e-6);
+            if(res.size()>=1){
+                for(auto i=0;i<res.size();i++){
+                    GRBLinExpr expr = 0;
+                    size_t j=0;
+                    for(j=0;j<res[i].size()-1;j++){
+                        auto c=res[i][j];
+                        size_t symb_id = c.first.first;
+                        size_t v_id = *_model->_vars.at(symb_id)->_id;
+                        expr += c.second*_grb_vars[v_id+c.first.second];
+                    }
+                    expr += res[i][j].second;
+                    grb_mod->addConstr(expr, GRB_LESS_EQUAL, 0);
+                    _model->num_cuts[10]++;
+                }
+            }
+            if(res.size()>=1 && hierarc)
+                add_full_iteration=false;
+        }
+        
         if(add_full_iteration){
             auto res2=_model->cuts_eigen_full(1e-6);
             if(res2.size()>=1){
@@ -640,7 +656,7 @@ bool GurobiProgram::solve(bool relax, double mipgap, double time_limit){
                     }
                     expr += res2[i][j].second;
                     grb_mod->addConstr(expr, GRB_LESS_EQUAL, 0);
-                    _model->num_cuts[2]++;
+                    _model->num_cuts[11]++;
                 }
             }
         }

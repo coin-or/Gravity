@@ -2077,6 +2077,12 @@ bool Model<type>::scale_cut(const double active_tol, const vector<pair<pair<size
     const double max_allowed=1e3;
     const double min_allowed=1e-9;
     double min_coef=numeric_limits<double>::max(), max_coef=numeric_limits<double>::min();
+    double cost_first=0;
+    for(auto i=0;i<cut_vec.size()-1;i++){
+        size_t symb_id = cut_vec[i].first.first;
+        size_t v_id = *_vars.at(symb_id)->_id;
+        cost_first+=xsol[v_id+cut_vec[i].first.second]*cut_vec[i].second;
+    }
     for(auto it=cut_vec.begin();it!=cut_vec.end();it++){
         if(std::next(it)==cut_vec.end()){
             const_coef=it->second;
@@ -2091,8 +2097,24 @@ bool Model<type>::scale_cut(const double active_tol, const vector<pair<pair<size
             }
         }
     }
+    cost_first+=const_coef;
+    if(cost_first>=1e-9 && cost_first<=1e-8){
+        scale=1000;
+        min_coef*=scale;
+        max_coef*=scale;
+    }
+    else if(cost_first>=1e-8 && cost_first<=1e-7){
+        scale=100;
+        min_coef*=scale;
+        max_coef*=scale;
+    }
+    else if(cost_first>=1e-7 && cost_first<=1e-6){
+        scale=10;
+        min_coef*=scale;
+        max_coef*=scale;
+    }
     if(max_coef>=max_allowed){
-        scale=max_allowed/max_coef;
+        scale*=max_allowed/max_coef;
         max_coef=max_allowed;
         min_coef*=scale;
     }
@@ -2663,49 +2685,46 @@ template<typename type>
 template<typename T>
 double Model<type>::check_PSD_bags()
 {
-    bool has_psd = false;
-    for (auto &it: _vars)
-    {
+    shared_ptr<var<double>> Xii, Xij;
+    for(auto it:_vars){
         auto v = it.second;
-        if(v->is_psd()){
-            has_psd = true;
+        if(v->is_psd_diag()){
+            Xii = static_pointer_cast<var<double>>(v);
+            Xij = static_pointer_cast<var<double>>(v->get_off_diag());
             break;
         }
     }
-    if(!has_psd){
-        return 0;
-    }
+
     const double active_tol=1e-9;
     double neg_eig_value=1;
     for(auto b:_bag_names){
         int num=b.first;
-        var<double> X=get_var<double>("X");
-        var<double> Xij=get_var<double>("Xij");
+       
         
         auto dim=b.second.size();
         Eigen::MatrixXd mat_X(dim,dim);
         int count=0;
         for(auto n:b.second){
-            mat_X(count,count)=X.eval(n);
+            mat_X(count,count)=Xii->eval(n);
             count++;
         }
         for(auto i=0;i<b.second.size()-1;i++){
             for(auto j=i+1;j<b.second.size();j++){
-                mat_X(i,j)=Xij.eval(b.second[i]+","+b.second[j]);
+                mat_X(i,j)=Xij->eval(b.second[i]+","+b.second[j]);
                 mat_X(j,i)=mat_X(i,j);
             }
         }
         Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> es;
         es.compute(mat_X);
-        DebugOn("Bag eig values "<<endl);
         for(auto m=0;m<dim;m++){
-            if(es.eigenvalues()[m]<=-active_tol)
+            if(es.eigenvalues()[m]<=-active_tol){
                 DebugOn("negative eigen value "<<endl);
+                DebugOn(std::setprecision(12)<<es.eigenvalues()[m]<<"\t");
+            }
             if(es.eigenvalues()[m]<=neg_eig_value)
                 neg_eig_value=es.eigenvalues()[m];
-            DebugOn(std::setprecision(12)<<es.eigenvalues()[m]<<"\t");
+           
         }
-        DebugOn(endl);
         
     }
     DebugOn(endl);

@@ -106,6 +106,10 @@ Net CBF_read(const char *file, shared_ptr<Model<double>>& m, bool add_3d=false);
 // -------------------------------------
 
 Net CBF_read(const char *file, shared_ptr<Model<double>>& m, bool add_3d) {
+    m->sdp_dual=true;
+    m->add_soc=true;
+    m->add_threed=true;
+    m->add_hierarc=false;
     Net g;
     CBFresponsee res = CBF_RES_OK;
     long long int linecount = 0;
@@ -499,7 +503,6 @@ Net CBF_read(const char *file, shared_ptr<Model<double>>& m, bool add_3d) {
         g.sdp_3d_cuts=false;
         g.get_tree_decomp_bags();
         std::vector<pair<int,std::vector<string>>> _bag_names;
-        m->sdp_dual=true;
         std::vector<pair<string,vector<Node*>>> bags_3d;
         if(!m->sdp_dual){
            bags_3d=g.decompose_bags_3d();
@@ -714,7 +717,7 @@ Net CBF_read(const char *file, shared_ptr<Model<double>>& m, bool add_3d) {
         for(auto b:g._bags){
             pair<int,vector<string>> bn;
             bn.first=count++;
-            if(b.second.size()>=3){
+            if((m->add_soc && m->add_threed && b.second.size()>3)||(m->add_soc && !m->add_threed && b.second.size()>=3)||(!m->add_soc && b.second.size()>=2)){
                 DebugOn("bag "<<count<<endl);
                 for(auto n:b.second){
                     bn.second.push_back(n->_name);
@@ -798,7 +801,7 @@ Net CBF_read(const char *file, shared_ptr<Model<double>>& m, bool add_3d) {
     return g;
 }
 
-void CBF_read_sparse_rip(const char *file) {
+void CBF_write_sparse_rip(const char *file) {
     CBFresponsee res = CBF_RES_OK;
     long long int linecount = 0;
     CBFFILE *pFile = NULL;
