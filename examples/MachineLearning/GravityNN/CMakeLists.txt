@@ -24,11 +24,3 @@ message(${ONNX_PROTO_SRCS})
 message(${ONNX_PROTO_HDRS})
 target_link_libraries(GravityNN ${PROTOBUF_LIBRARIES} gravity)
 
-add_executable(
-  try2
-	MachineLearning/GravityNN/try2.cpp
-	${GravityNN_HEADERS}
-	${ONNX_PROTO_SRCS}
-  ${ONNX_PROTO_HDRS}
-)
-target_link_libraries(try2 ${PROTOBUF_LIBRARIES} gravity)

@@ -113,20 +113,10 @@ public:
         
         auto A = this->get_parameter(this->inputs.at(0), hidden_states);
         auto B = this->get_parameter(this->inputs.at(1), hidden_states);
-        gravity::func<float> Y;
-
-        if (this->transA) {
-            Y = this->alpha * A.tr();
-        } else {
-            Y = this->alpha * A;
-        }
-
-        if (this->transB) {
-            Y *= B.tr();
-        } else {
-            Y *= B;
-        }
-
+        A._is_transposed = transA;
+        B._is_transposed = transB;
+        auto Y = this->alpha * A * B;
+        Y.eval_all();
         if (this->has_optional_C) {
             auto C = this->get_parameter(this->inputs[2], hidden_states);
             Y += this->beta * C;
@@ -174,13 +164,16 @@ public:
 };
 
 gravity::param<float> parse_tensor(const onnx::TensorProto& tensor) {
+    std::list<gravity::indices> dims;
     std::vector<size_t> shape;
+    gravity::indices ids;
     for (int i = 0; i < tensor.dims_size(); i++) {
+        dims.push_back(gravity::range(0,tensor.dims(i)-1));
         shape.push_back(tensor.dims(i));
     }
-
+    ids = gravity::indices(dims);
     gravity::param<float> weight(tensor.name());
-    weight.set_size(shape);
+    weight.in(ids);
 
     std::cout << "Parsing weight: [";
     for (int i = 0; i < shape.size(); i++) {
@@ -207,20 +200,8 @@ gravity::param<float> parse_tensor(const onnx::TensorProto& tensor) {
             data_.at(i) = tensor.float_data(i);
         }
     }
-
-    if (shape.size() == 2) {
-        for (int i = 0; i < shape[0]; i++) {
-            for (int j = 0; j < shape[1]; j++) {
-                weight.set_val(i, j, data_.at(i * shape[1] + j));
-            }
-        }
-    } else if (shape.size() == 1) {
-        for (int i = 0; i < data_.size(); i++) {
-            weight.set_val(i, data_.at(i));
-        }
-    } else {
-        std::cout << "Unsupported tensor shape" << std::endl;
+    for (int i = 0; i < data_.size(); i++) {
+        weight.set_val(i, data_.at(i));
     }
-
     return weight;
 }
