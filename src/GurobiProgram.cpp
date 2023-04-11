@@ -30,7 +30,7 @@ protected:
             bool incumbent=true;
             bool mipnode=true;
             bool add_full=false;
-            bool add_bag=false;
+            bool add_bag=m->add_bag;
             bool add_threed=m->add_threed;
             bool add_soc=m->add_soc;
             bool hierarc = m->add_hierarc;

@@ -56,25 +56,40 @@ using namespace std;
 int main(int argc, char * argv[]){
 
     string fname=string(prj_dir)+"/data_sets/MISDP/2x7_3bars.cbf";
-    bool root_refine = false, add_soc=false, add_threed=false, hierarc=false;
+    bool root_refine = false, add_soc=false, add_threed=false, add_bag=false, hierarc=false;
+    string root_refine_s = "false", add_soc_s="false", add_threed_s="false", add_bag_s="false", hierarc_s="false";
     if(argc>=2){
         fname=argv[1];
     }
     if(argc>=3){
-        root_refine = argv[2];
+        root_refine_s=argv[2];
+        if(root_refine_s.compare("true")==0)
+            root_refine = true;
     }
     if(argc>=4){
-        add_soc = argv[3];
+        add_soc_s=argv[3];
+        if(add_soc_s=="true")
+            add_soc = true;
     }
     if(argc>=5){
-        add_threed = argv[4];
+        add_threed_s=argv[4];
+        if(add_threed_s=="true")
+            add_threed = true;
     }
     if(argc>=6){
-        hierarc = argv[5];
+        add_bag_s=argv[5];
+        if(add_bag_s=="true")
+            add_bag = true;
+    }
+    if(argc>=7){
+        hierarc_s=argv[6];
+        if(hierarc_s=="true")
+            hierarc = true;
     }
     auto m=make_shared<Model<double>>("misdp_test");
     m->add_soc=add_soc;
     m->add_threed=add_threed;
+    m->add_bag=add_bag;
     m->add_hierarc=hierarc;
     
     auto g=CBF_read(fname.c_str(), m);
@@ -90,35 +105,7 @@ int main(int argc, char * argv[]){
     bool relax = false;
     auto ts=get_wall_time();
     if(root_refine){
-        //auto m2=m->copy();
         sc.run(relax = true);
-       // m->print_solution();
-//      upper_bound_heur=true;
-//        if(upper_bound_heur){
-//            auto y2d=m->get_var<int>("y");
-//            auto y2=m2->get_var<int>("y");
-//
-//            for(auto k:*y2d.get_keys()){
-//                if(y2d.eval(k)<0.5){
-//                    y2.set_lb(k,0);
-//                    y2.set_ub(k,0);
-//
-//                }
-//                else{
-//                    y2.set_lb(k,1);
-//                    y2.set_ub(k,1);
-//                }
-//            }
-//            solver<> s2(m2,gurobi);
-//            s2.run();
-//            //check_PSD(m1);
-//            if(m2->_status==0){
-//                vector<double> sol(m->_nb_vars);
-//                m2->get_solution(sol);
-//                m->set_solution(sol);
-//            }
-//
-//        }
     }
     sc.run();
     auto tf=get_wall_time();
