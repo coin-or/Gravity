@@ -703,6 +703,7 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
             sdp_dual=m.sdp_dual;
             add_soc=m.add_soc;
             add_threed=m.add_threed;
+            add_bag=m.add_bag;
             add_hierarc=m.add_hierarc;
             _complex=m._complex;
             _rel_obj_val=m._rel_obj_val;

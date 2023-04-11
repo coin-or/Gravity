@@ -557,7 +557,7 @@ bool GurobiProgram::solve(bool relax, double mipgap, double time_limit){
         bool incumbent=true;
         bool mipnode=true;
         bool add_full=false;
-        bool add_bag=false;
+        bool add_bag=_model->add_bag;
         bool add_threed=_model->add_threed;
         bool add_soc=_model->add_soc;
         bool hierarc = _model->add_hierarc;
