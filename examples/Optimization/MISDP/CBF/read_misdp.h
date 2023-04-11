@@ -107,9 +107,6 @@ Net CBF_read(const char *file, shared_ptr<Model<double>>& m, bool add_3d=false);
 
 Net CBF_read(const char *file, shared_ptr<Model<double>>& m, bool add_3d) {
     m->sdp_dual=true;
-    m->add_soc=true;
-    m->add_threed=true;
-    m->add_hierarc=false;
     Net g;
     CBFresponsee res = CBF_RES_OK;
     long long int linecount = 0;

@@ -56,14 +56,26 @@ using namespace std;
 int main(int argc, char * argv[]){
 
     string fname=string(prj_dir)+"/data_sets/MISDP/2x7_3bars.cbf";
-    bool root_refine = false;
+    bool root_refine = false, add_soc=false, add_threed=false, hierarc=false;
     if(argc>=2){
         fname=argv[1];
     }
     if(argc>=3){
-        root_refine = true;
+        root_refine = argv[2];
+    }
+    if(argc>=4){
+        add_soc = argv[3];
+    }
+    if(argc>=5){
+        add_threed = argv[4];
+    }
+    if(argc>=6){
+        hierarc = argv[5];
     }
     auto m=make_shared<Model<double>>("misdp_test");
+    m->add_soc=add_soc;
+    m->add_threed=add_threed;
+    m->add_hierarc=hierarc;
     
     auto g=CBF_read(fname.c_str(), m);
     m->print();
@@ -73,47 +85,7 @@ int main(int argc, char * argv[]){
     
     double max_time = 300;
     DebugOn("Instance "<<fname<<endl);
-    
-//    m->reset();
-    bool upper_bound_heur=false;
 
-    if(upper_bound_heur){
-        vector<double> sol(m->_nb_vars);
-        auto m2=m->copy();
-        auto m1=m->copy();
-        var<double> Xa=m2->get_var<double>("X");
-        var<double> Xija=m2->get_var<double>("Xij");
-        // m2->min(sum(Xija)-sum(Xa));
-        auto o=25*(*m2->_obj)+sum(Xija)-sum(Xa);
-        m2->min(o);
-        Constraint<> diag_cut("diag_cut");
-        diag_cut=sum(Xija)-sum(Xa);
-        m2->add(diag_cut<=0);
-        //m2->print();
-        solver<> s(m2,ipopt);
-        s.run();
-        m2->print_solution();
-        auto y2d=m2->get_var<double>("y");
-        auto y1=m1->get_var<int>("y");
-        
-        for(auto k:*y2d.get_keys()){
-            if(y2d.eval(k)<0.5){
-                y1.set_lb(k,0);
-                y1.set_ub(k,0);
-                
-            }
-            else{
-                y1.set_lb(k,1);
-                y1.set_ub(k,1);
-            }
-        }
-        solver<> s1(m1,gurobi);
-        s1.run();
-        //check_PSD(m1);
-        if(m1->_status==0){
-            m1->get_solution(sol);
-        }
-    }
     solver<> sc(m,gurobi);
     bool relax = false;
     auto ts=get_wall_time();
