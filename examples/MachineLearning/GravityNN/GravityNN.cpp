@@ -6,7 +6,7 @@
 #include <gravity/model.h>
 #include <gravity/func.h>
 
-void build_graph(const onnx::GraphProto& graph) {
+std::vector<Layer*> build_graph(const onnx::GraphProto& graph) {
     std::vector<Layer*> layers;
     Initializers initializers;
 
@@ -29,17 +29,18 @@ void build_graph(const onnx::GraphProto& graph) {
         layer->print();
     }
 
-    gravity::param<float> input("input");
-    input = {1, 2, 3, 4};
-    HiddenStates hidden_states;
-    hidden_states[layers[0]->inputs[0]] = input;
-
-    for (const auto& layer : layers) {
-        layer->forward(hidden_states);
-    }
-
-    auto output = hidden_states[(*layers.end())->outputs[0]];
-    output.print();
+//    gravity::param<float> input("input");
+//    input = {1, 2, 3, 4};
+//    HiddenStates hidden_states;
+//    hidden_states[layers[0]->inputs[0]] = input;
+//
+//    for (const auto& layer : layers) {
+//        layer->forward(hidden_states);
+//    }
+//
+//    auto output = hidden_states[(*layers.end())->outputs[0]];
+//    output.print();
+    return layers;
 }
 
 int main() {
@@ -50,6 +51,10 @@ int main() {
     onnx::GraphProto graph = model.graph();
 
     // Print the graph.
-    build_graph(graph);
+    auto layers = build_graph(graph);
+    
+    for(auto l:layers){
+        delete l;
+    }
     return 0;
 }

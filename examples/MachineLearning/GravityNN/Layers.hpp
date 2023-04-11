@@ -28,9 +28,9 @@ public:
     virtual ~Layer() = default;
 
     virtual void forward(HiddenStates& hidden_states) = 0;
-    virtual void print() = 0;
+    virtual void print() const = 0;
 
-    void print_io() {
+    void print_io() const {
         std::cout << "| inputs: " << std::endl;
         for (const auto& input : this->inputs) {
             std::cout << "|   " << input << std::endl;
@@ -124,7 +124,7 @@ public:
         hidden_states[this->outputs[0]] = Y;
     }
 
-    void print() override {
+    void print() const override{
         std::cout << "---------------------------------" << std::endl;
         std::cout << "| GEMM: " << this->name << std::endl;
         std::cout << "---------------------------------" << std::endl;
@@ -154,7 +154,7 @@ public:
         hidden_states[this->outputs[0]] = output;
     }
 
-    void print() override {
+    void print() const override{
         std::cout << "---------------------------------" << std::endl;
         std::cout << "| ReLU: " << this->name << std::endl;
         std::cout << "---------------------------------" << std::endl;
