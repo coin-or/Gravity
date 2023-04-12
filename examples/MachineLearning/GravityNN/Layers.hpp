@@ -9,6 +9,26 @@
 typedef std::map<std::string, onnx::TensorProto> Initializers;
 typedef std::map<std::string, gravity::func<float>> HiddenStates;
 
+vector<size_t> get_input_dim(const ::google::protobuf::RepeatedPtrField< ::onnx::ValueInfoProto > &info)
+{
+    vector<size_t> dims;
+  for (auto input_data: info)
+  {
+    auto shape = input_data.type().tensor_type().shape();
+    std::cout << "  " << input_data.name() << ":";
+    std::cout << "[";
+    if (shape.dim_size() != 0)
+    {
+      int size = shape.dim_size();
+      for (int i = 0; i < size; ++i)
+      {
+        dims.push_back(shape.dim(i).dim_value());
+      }
+    }
+  }
+    return dims;
+}
+
 class Tensor {
 public:
     Tensor() {}
@@ -109,6 +129,7 @@ public:
 
     std::vector<std::string> inputs;
     std::vector<std::string> outputs;
+    std::vector<size_t> var_dims;
 };
 
 class GEMM : public Layer {
@@ -117,14 +138,7 @@ public:
         Y = alpha * A’ * B’ + beta * C
     */
     GEMM(const onnx::NodeProto& node, const Initializers& global_initializers): Layer(node, global_initializers) {
-        this->A = Tensor(this->inputs.at(0), global_initializers);
-        this->B = Tensor(this->inputs.at(1), global_initializers);
-
-        if (this->inputs.size() == 3) {
-            this->C = Tensor(this->inputs.at(2), global_initializers);
-            this->has_optional_C = true;
-        }
-
+        
         const auto* alpha_attr = find_attribute(node, "alpha");
         if (alpha_attr) {
             this->alpha = alpha_attr->f();
@@ -141,6 +155,22 @@ public:
         if (transB_attr) {
             this->transB = transB_attr->i();
         }
+        
+        this->A = Tensor(this->inputs.at(0), global_initializers);
+        this->B = Tensor(this->inputs.at(1), global_initializers);
+        if(this->B.shape.size()==2){
+            this->var_dims = this->B.shape;
+            if(this->transB){
+                this->var_dims[0] = this->B.shape[1];
+                this->var_dims[1] = this->B.shape[0];
+            }
+        }
+        if (this->inputs.size() == 3) {
+            this->C = Tensor(this->inputs.at(2), global_initializers);
+            this->has_optional_C = true;
+        }
+
+        
     }
 
     void forward(HiddenStates& hidden_states) override {
@@ -185,6 +215,7 @@ class ReLU : public Layer {
 public:
     ReLU(const onnx::NodeProto& node, const Initializers& global_initializers): Layer(node, global_initializers) {
         this->X = Tensor(this->inputs.at(0), global_initializers);
+//        this->var_dims = this->B.shape;
     }
     void forward(HiddenStates& hidden_states) override {
         auto fX = this->X.get(hidden_states);
