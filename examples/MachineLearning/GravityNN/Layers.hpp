@@ -9,6 +9,8 @@
 typedef std::map<std::string, onnx::TensorProto> Initializers;
 typedef std::map<std::string, gravity::func<float>> HiddenStates;
 
+typedef enum { _gemm, _relu, _conv, _matmul, _add} OType; /* Operator Type */
+
 vector<size_t> get_input_dim(const ::google::protobuf::RepeatedPtrField< ::onnx::ValueInfoProto > &info)
 {
     vector<size_t> dims;
@@ -84,6 +86,7 @@ public:
     std::string name;
     std::vector<float> data;
     std::vector<size_t> shape;
+    
 };
 
 // Define the base Layer class
@@ -126,10 +129,83 @@ public:
 
     // Name of the layer
     std::string name;
+    OType operator_type;
     bool is_activation_func = false;
     std::vector<std::string> inputs;
     std::vector<std::string> outputs;
     std::vector<size_t> var_dims;
+};
+
+/* Matrix multiply results from A * B */
+class MatMul : public Layer {
+public:
+    /*
+        Y = A * B
+    */
+    MatMul(const onnx::NodeProto& node, const Initializers& global_initializers): Layer(node, global_initializers) {
+        operator_type = _matmul;
+        
+        
+        this->A = Tensor(this->inputs.at(0), global_initializers);
+        this->B = Tensor(this->inputs.at(1), global_initializers);
+        if(this->B.shape.size()==2){
+            this->var_dims = this->B.shape;
+        }
+    }
+
+    void forward(HiddenStates& hidden_states) override {
+        auto fA = this->A.get(hidden_states);
+        auto fB = this->B.get(hidden_states);
+        auto Y = fA * fB;
+        Y.eval_all();
+        hidden_states[this->outputs[0]] = Y;
+    }
+
+    void print() const override{
+        std::cout << "---------------------------------" << std::endl;
+        std::cout << "| MatMul: " << this->name << std::endl;
+        std::cout << "---------------------------------" << std::endl;
+        this->print_io();
+        std::cout << "---------------------------------" << std::endl;
+    }
+
+    Tensor A;
+    Tensor B;
+
+};
+
+/* Performs element-wise binary addition */
+class Add : public Layer {
+public:
+    /*
+        Y = A + B
+    */
+    Add(const onnx::NodeProto& node, const Initializers& global_initializers): Layer(node, global_initializers) {
+        operator_type = _add;
+        this->A = Tensor(this->inputs.at(0), global_initializers);
+        this->B = Tensor(this->inputs.at(1), global_initializers);
+        this->var_dims = this->B.shape;
+    }
+
+    void forward(HiddenStates& hidden_states) override {
+        auto fA = this->A.get(hidden_states);
+        auto fB = this->B.get(hidden_states);
+        auto Y = fA + fB;
+        Y.eval_all();
+        hidden_states[this->outputs[0]] = Y;
+    }
+
+    void print() const override{
+        std::cout << "---------------------------------" << std::endl;
+        std::cout << "| Add: " << this->name << std::endl;
+        std::cout << "---------------------------------" << std::endl;
+        this->print_io();
+        std::cout << "---------------------------------" << std::endl;
+    }
+
+    Tensor A;
+    Tensor B;
+
 };
 
 class GEMM : public Layer {
@@ -138,7 +214,7 @@ public:
         Y = alpha * A’ * B’ + beta * C
     */
     GEMM(const onnx::NodeProto& node, const Initializers& global_initializers): Layer(node, global_initializers) {
-        
+        operator_type = _gemm;
         const auto* alpha_attr = find_attribute(node, "alpha");
         if (alpha_attr) {
             this->alpha = alpha_attr->f();
@@ -214,6 +290,7 @@ public:
 class ReLU : public Layer {
 public:
     ReLU(const onnx::NodeProto& node, const Initializers& global_initializers): Layer(node, global_initializers) {
+        operator_type = _relu;
         this->X = Tensor(this->inputs.at(0), global_initializers);
         this->is_activation_func = true;
     }
