@@ -126,7 +126,7 @@ public:
 
     // Name of the layer
     std::string name;
-
+    bool is_activation_func = false;
     std::vector<std::string> inputs;
     std::vector<std::string> outputs;
     std::vector<size_t> var_dims;
@@ -215,7 +215,7 @@ class ReLU : public Layer {
 public:
     ReLU(const onnx::NodeProto& node, const Initializers& global_initializers): Layer(node, global_initializers) {
         this->X = Tensor(this->inputs.at(0), global_initializers);
-//        this->var_dims = this->B.shape;
+        this->is_activation_func = true;
     }
     void forward(HiddenStates& hidden_states) override {
         auto fX = this->X.get(hidden_states);

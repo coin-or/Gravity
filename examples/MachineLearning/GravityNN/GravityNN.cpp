@@ -55,32 +55,38 @@ int main() {
     
     auto layers = build_graph(graph);
     auto input_dims = get_input_dim(graph.input());/* Getting input layer dim */
-    indices ids("ids");
+    indices x_ids("x_ids"), y_ids("y_ids");/*< x_ids for continuous vars, y_ids for binary vars */
     for(auto j = 0; j < input_dims[1];j++){
-        ids.add("input"+to_string(j));
+        x_ids.add("input"+to_string(j));
     }
     auto nb_layers = layers.size();
     vector<size_t> dims;
+    bool is_activation_func = false;
     for(auto i = 0; i<nb_layers; i++){
         auto l = layers[i];
-        if(i+1<nb_layers && layers[i+1]->var_dims.empty())/*< The next layer is an activation layer (e.g. ReLU), no need to introduce variables for this layer */
+        if(i+1<nb_layers && layers[i+1]->is_activation_func)/*< The next layer is an activation layer (e.g. ReLU), no need to introduce variables for this layer */
             continue;
         indices M("M_"+l->name);
-        if(l->var_dims.empty()){/*< Activation function such as ReLU, use the output of the prvious layer to index the RelU output vars */
+        if(l->is_activation_func){/*< Activation function such as ReLU, use the output of the prvious layer to index the RelU output vars */
             dims = layers[i-1]->var_dims;
         }
         else {
             dims = l->var_dims;
         }
         for(auto j = 0; j < dims[1];j++){
-            ids.add(l->name+","+to_string(j));
+            x_ids.add(l->name+","+to_string(j));
+            if(l->is_activation_func){
+                y_ids.add(l->name+","+to_string(j));
+            }
         }
     }
     
     
     Model<> NN("NN_"+fname.substr(fname.find_last_of("/")));
     var<> x("x");
-    NN.add(x.in(ids));
+    var<int> y("y", 0, 1);
+    NN.add(x.in(x_ids));
+    NN.add(y.in(y_ids));
     NN.print();
     for(auto l:layers){
         delete l;
