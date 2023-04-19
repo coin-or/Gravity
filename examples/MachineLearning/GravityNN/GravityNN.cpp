@@ -52,8 +52,11 @@ std::vector<Layer*> build_graph(const onnx::GraphProto& graph) {
 
 
 using namespace gravity;
-int main() {
-    string fname = string(prj_dir)+"/data_sets/VNN/MatMul_Add.onnx";
+int main (int argc, char * argv[]){
+    string fname = string(prj_dir)+"/data_sets/VNN/simple.onnx";
+    if(argc>=2){
+        fname=argv[1];
+    }
     std::fstream input(fname, std::ios::in | std::ios::binary);
     onnx::ModelProto model;
     bool isSuccess = model.ParseFromIstream(&input);
@@ -68,6 +71,9 @@ int main() {
     /* Indexing params */
     indices B_ids("B_ids"), C_ids("C_ids");/*< x_ids for continuous vars, y_ids for binary vars */
 
+    param<> B("B"), C("C");
+    B.in(B_ids);
+    C.in(C_ids);
     /* Creating variables' indexing sets */
     for(auto j = 0; j < input_dims[1];j++){
         x_ids.add("input"+to_string(j));
@@ -102,25 +108,19 @@ int main() {
             
     }
     /* Indexing constraints */
-    indices ReLUs("ReLUs"), x_ReLUs("x_ReLUs"), Gemms("Gemms"), x_Gemms("x_Gemms"), Adds("Adds"), x_Adds("x_Adds"), MatMuls("MatMuls"), x_MatMuls("MatMuls");
-    param<> B("B");
+    indices ReLUs("ReLUs"), x_ReLUs("x_ReLUs"), B_ReLUs("B_ReLUs"), C_ReLUs("C_ReLUs"), Gemms("Gemms"), x_Gemms_in("x_Gemms_in"), x_Gemms_out("x_Gemms_out"), Adds("Adds"), x_Adds("x_Adds"), MatMuls("MatMuls"), x_MatMuls("MatMuls"), B_Gemm("B_Gemm");
+    B_Gemm = B_ids;
+    B_ReLUs = B_ids;
+    C_ReLUs = C_ids;
     x_ReLUs = x_ids;
-    x_Gemms = x_ids;
+    x_Gemms_in = x_ids;
+    x_Gemms_out = x_ids;
     x_MatMuls = x_ids;
     x_Adds = x_ids;
-    size_t idx = 0;
+    size_t relu_row_id = 0, gemm_row_id = 0;
+    string key;
     for(auto i = 0; i<nb_layers; i++){
         auto l = layers[i];
-        if(i+1<nb_layers && l->var_dims.size()==2 && layers[i+1]->is_activation_func){/*< The next layer is an activation layer (e.g. ReLU), no need to introduce variables for this layer */
-            for(auto j = 0; j < l->var_dims[1];j++){
-                if(layers[i+1]->operator_type==_relu){
-                    for(auto k = 0; k < l->var_dims[0];k++){
-                            x_ReLUs.add_in_row(idx, l->name+","+to_string(k));
-                    }
-                    idx++;
-                }
-            }
-        }
         switch (l->operator_type) {
             case _relu:
                 /* Creating ReLU indexing sets */
@@ -136,23 +136,71 @@ int main() {
                 }
                 break;
                 
-            case _gemm:
+            case _gemm:{
+                bool add_Gemm_constraint = false;
+                size_t B_idx = 0, C_idx = 0;
                 for(auto j = 0; j < l->var_dims[1];j++){
-                    Gemms.add(l->name+","+to_string(j));
+                    
+                    auto gemm = (GEMM*)l;
+                    if(gemm->has_optional_C){
+                        C.add_val(l->name+","+to_string(j), gemm->C.data.at(C_idx++));
+                    }
+                    if(i+1>=nb_layers || !layers[i+1]->is_activation_func){
+                        add_Gemm_constraint = true;
+                        Gemms.add(l->name+","+to_string(j));
+                    }
+                    else if(layers[i+1]->operator_type==_relu){
+                        C_ReLUs.add_ref(l->name+","+to_string(j));
+                    }
+                    for(auto k = 0; k < l->var_dims[0]; k++){
+                        key = gemm->name+","+to_string(k)+","+to_string(j);
+                        B.add_val(key, gemm->B.data.at(B_idx++));
+                        if(add_Gemm_constraint){
+                            B_Gemm.add_in_row(gemm_row_id, key);
+                            if(i==0){
+                                x_Gemms_in.add_in_row(gemm_row_id, "input"+to_string(k));
+                            }
+                            else{
+                                x_Gemms_in.add_in_row(gemm_row_id, layers[i-1]->name+","+to_string(j));
+                            }
+                        }
+
+                    }
+                    if(add_Gemm_constraint){
+                        gemm_row_id++;
+                    }
                 }
                 
+            }
+                break;
             case _add:
                 for(auto j = 0; j < l->var_dims[0];j++){
                     auto Add_layer = (Add*)l;
                     Adds.add(l->name+","+to_string(j));
                     B.add_val(l->name+","+to_string(j), Add_layer->B.data[j]);
                 }
-
+                break;
             default:
                 break;
         }
-        
-        
+    }
+    
+    for(auto i = 0; i<nb_layers; i++){
+        auto l = layers[i];
+        if(i+1<nb_layers && l->var_dims.size()==2 && layers[i+1]->is_activation_func){/*< The next layer is an activation layer (e.g. ReLU), no need to introduce variables for this layer */
+            for(auto j = 0; j < l->var_dims[1];j++){
+                if(layers[i+1]->operator_type==_relu){
+                    for(auto k = 0; k < l->var_dims[0];k++){
+                        if(i==0)
+                            x_ReLUs.add_in_row(relu_row_id, "input"+to_string(k));
+                        else
+                            x_ReLUs.add_in_row(relu_row_id, l->name+","+to_string(k));
+                        B_ReLUs.add_in_row(relu_row_id, l->name+","+to_string(k)+","+to_string(j));
+                    }
+                    relu_row_id++;
+                }
+            }
+        }
     }
         
     Model<> NN("NN_"+fname.substr(fname.find_last_of("/")));
@@ -162,11 +210,11 @@ int main() {
     NN.add(y.in(y_ids));
    
     Constraint<> ReLU("ReLU");
-    ReLU = x.in(x_ReLUs) - x.in(ReLUs);// make this one disjunctive in y
+    ReLU = B.in(B_ReLUs)*x.in(x_ReLUs) + C.in(C_ReLUs) - x.in(ReLUs);// make this one disjunctive in y
     NN.add(ReLU.in(ReLUs) == 0);
     
     Constraint<> Gemm("Gemm");
-    Gemm = x.in(x_Gemms);
+    Gemm = x.in(Gemms) - (B.in(B_Gemm)*x.in(x_Gemms_in) + C.in(Gemms));
     NN.add(Gemm.in(Gemms) == 0);
     
     Constraint<> Add("Add");
