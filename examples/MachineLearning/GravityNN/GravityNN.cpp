@@ -3,8 +3,6 @@
 #include <onnx.pb.h>
 #include <vector>
 #include "Layers.hpp"
-#include <gravity/model.h>
-#include <gravity/func.h>
 
 std::vector<Layer*> build_graph(const onnx::GraphProto& graph) {
     std::vector<Layer*> layers;
@@ -49,6 +47,7 @@ std::vector<Layer*> build_graph(const onnx::GraphProto& graph) {
 }
 
 
+#include <gravity/solver.h>
 
 
 using namespace gravity;
@@ -137,7 +136,9 @@ int main (int argc, char * argv[]){
                 break;
                 
             case _gemm:{
-                bool add_Gemm_constraint = false;
+                bool add_Gemm_constraint = true;
+                if(i+1<nb_layers && layers[i+1]->operator_type==_relu)
+                    add_Gemm_constraint = false;
                 size_t B_idx = 0, C_idx = 0;
                 for(auto j = 0; j < l->var_dims[1];j++){
                     
@@ -145,11 +146,10 @@ int main (int argc, char * argv[]){
                     if(gemm->has_optional_C){
                         C.add_val(l->name+","+to_string(j), gemm->C.data.at(C_idx++));
                     }
-                    if(i+1>=nb_layers || !layers[i+1]->is_activation_func){
-                        add_Gemm_constraint = true;
+                    if(add_Gemm_constraint){
                         Gemms.add(l->name+","+to_string(j));
                     }
-                    else if(layers[i+1]->operator_type==_relu){
+                    else{
                         C_ReLUs.add_ref(l->name+","+to_string(j));
                     }
                     for(auto k = 0; k < l->var_dims[0]; k++){
@@ -161,7 +161,7 @@ int main (int argc, char * argv[]){
                                 x_Gemms_in.add_in_row(gemm_row_id, "input"+to_string(k));
                             }
                             else{
-                                x_Gemms_in.add_in_row(gemm_row_id, layers[i-1]->name+","+to_string(j));
+                                x_Gemms_in.add_in_row(gemm_row_id, layers[i-1]->name+","+to_string(k));
                             }
                         }
 
@@ -194,7 +194,7 @@ int main (int argc, char * argv[]){
                         if(i==0)
                             x_ReLUs.add_in_row(relu_row_id, "input"+to_string(k));
                         else
-                            x_ReLUs.add_in_row(relu_row_id, l->name+","+to_string(k));
+                            x_ReLUs.add_in_row(relu_row_id, layers[i-1]->name+","+to_string(k));
                         B_ReLUs.add_in_row(relu_row_id, l->name+","+to_string(k)+","+to_string(j));
                     }
                     relu_row_id++;
@@ -204,14 +204,46 @@ int main (int argc, char * argv[]){
     }
         
     Model<> NN("NN_"+fname.substr(fname.find_last_of("/")));
-    var<> x("x", -1, 1);
+    param<> x_lb("x_lb"), x_ub("x_ub");
+    x_lb.in(x_ids);x_ub.in(x_ids);
+    x_lb = -100;
+    x_ub = 100;
+    for(auto j = 0; j < input_dims[1];j++){
+        x_lb.set_val(j, -2);
+        x_ub.set_val(j, 2);
+    }
+    
+    for(auto const &key: *ReLUs._keys){
+        x_lb.set_val(key, 0);
+    }
+    
+    
+    var<> x("x", x_lb, x_ub);
     var<int> y("y", 0, 1);
     NN.add(x.in(x_ids));
     NN.add(y.in(y_ids));
    
+    /* Objective function */
+    NN.max(x(layers.back()->name+",0"));
+    
+    /* Constraints */
     Constraint<> ReLU("ReLU");
-    ReLU = B.in(B_ReLUs)*x.in(x_ReLUs) + C.in(C_ReLUs) - x.in(ReLUs);// make this one disjunctive in y
-    NN.add(ReLU.in(ReLUs) == 0);
+    ReLU = x.in(ReLUs) - (B.in(B_ReLUs)*x.in(x_ReLUs) + C.in(C_ReLUs));
+    NN.add(ReLU.in(ReLUs) >= 0);
+    
+    Constraint<> ReLU_on("ReLU_on");
+    ReLU_on = x.in(ReLUs) - (B.in(B_ReLUs)*x.in(x_ReLUs) + C.in(C_ReLUs)) - 1000*(1-y.in(ReLUs));
+    NN.add(ReLU_on.in(ReLUs) <= 0);
+    
+    
+    Constraint<> ReLU_off("ReLU_off");
+    ReLU_off = (B.in(B_ReLUs)*x.in(x_ReLUs) + C.in(C_ReLUs)) - 1000*y.in(ReLUs);
+    NN.add(ReLU_off.in(ReLUs) <= 0);
+    
+    Constraint<> ReLU_y_off("ReLU_y_off");
+    ReLU_y_off = x.in(ReLUs) - 1000*y.in(ReLUs);
+    NN.add(ReLU_y_off.in(ReLUs) <= 0);
+    
     
     Constraint<> Gemm("Gemm");
     Gemm = x.in(Gemms) - (B.in(B_Gemm)*x.in(x_Gemms_in) + C.in(Gemms));
@@ -222,6 +254,11 @@ int main (int argc, char * argv[]){
     NN.add(Add.in(Adds) == 0);
 
     NN.print();
+    
+    solver<> S(NN,gurobi);
+    S.run();
+    
+    NN.print_solution();
     for(auto l:layers){
         delete l;
     }
