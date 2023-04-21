@@ -139,10 +139,16 @@ int main (int argc, char * argv[]){
                 bool add_Gemm_constraint = true;
                 if(i+1<nb_layers && layers[i+1]->operator_type==_relu)
                     add_Gemm_constraint = false;
+                auto gemm = (GEMM*)l;
                 size_t B_idx = 0, C_idx = 0;
+                for(auto j = 0; j < l->var_dims[0];j++){
+                    for(auto k = 0; k < l->var_dims[1]; k++){
+                        key = gemm->name+","+to_string(j)+","+to_string(k);
+                        B.add_val(key, gemm->B.data.at(B_idx++));
+                    }
+                }
+//                B.print_vals(3);
                 for(auto j = 0; j < l->var_dims[1];j++){
-                    
-                    auto gemm = (GEMM*)l;
                     if(gemm->has_optional_C){
                         C.add_val(l->name+","+to_string(j), gemm->C.data.at(C_idx++));
                     }
@@ -154,7 +160,6 @@ int main (int argc, char * argv[]){
                     }
                     for(auto k = 0; k < l->var_dims[0]; k++){
                         key = gemm->name+","+to_string(k)+","+to_string(j);
-                        B.add_val(key, gemm->B.data.at(B_idx++));
                         if(add_Gemm_constraint){
                             B_Gemm.add_in_row(gemm_row_id, key);
                             if(i==0){
@@ -164,7 +169,6 @@ int main (int argc, char * argv[]){
                                 x_Gemms_in.add_in_row(gemm_row_id, layers[i-1]->name+","+to_string(k));
                             }
                         }
-
                     }
                     if(add_Gemm_constraint){
                         gemm_row_id++;
@@ -187,18 +191,17 @@ int main (int argc, char * argv[]){
     
     for(auto i = 0; i<nb_layers; i++){
         auto l = layers[i];
-        if(i+1<nb_layers && l->var_dims.size()==2 && layers[i+1]->is_activation_func){/*< The next layer is an activation layer (e.g. ReLU), no need to introduce variables for this layer */
+        if(i+1<nb_layers && l->var_dims.size()==2 && layers[i+1]->operator_type==_relu){/*< The next layer is an activation layer (e.g. ReLU), no need to introduce variables for this layer */
             for(auto j = 0; j < l->var_dims[1];j++){
-                if(layers[i+1]->operator_type==_relu){
-                    for(auto k = 0; k < l->var_dims[0];k++){
-                        if(i==0)
-                            x_ReLUs.add_in_row(relu_row_id, "input"+to_string(k));
-                        else
-                            x_ReLUs.add_in_row(relu_row_id, layers[i-1]->name+","+to_string(k));
-                        B_ReLUs.add_in_row(relu_row_id, l->name+","+to_string(k)+","+to_string(j));
-                    }
-                    relu_row_id++;
+                for(auto k = 0; k < l->var_dims[0];k++){
+                    if(i==0)
+                        x_ReLUs.add_in_row(relu_row_id, "input"+to_string(k));
+                    else
+                        x_ReLUs.add_in_row(relu_row_id, layers[i-1]->name+","+to_string(k));
+                    B_ReLUs.add_in_row(relu_row_id, l->name+","+to_string(k)+","+to_string(j));
                 }
+                relu_row_id++;
+    
             }
         }
     }
@@ -206,8 +209,8 @@ int main (int argc, char * argv[]){
     Model<> NN("NN_"+fname.substr(fname.find_last_of("/")));
     param<> x_lb("x_lb"), x_ub("x_ub");
     x_lb.in(x_ids);x_ub.in(x_ids);
-    x_lb = -100;
-    x_ub = 100;
+    x_lb = -1000;
+    x_ub = 1000;
     for(auto j = 0; j < input_dims[1];j++){
         x_lb.set_val(j, -2);
         x_ub.set_val(j, 2);
@@ -228,17 +231,17 @@ int main (int argc, char * argv[]){
     
     /* Constraints */
     Constraint<> ReLU("ReLU");
-    ReLU = x.in(ReLUs) - (B.in(B_ReLUs)*x.in(x_ReLUs) + C.in(C_ReLUs));
+    ReLU = x.in(ReLUs) - (x.in(x_ReLUs)*B.in(B_ReLUs) + C.in(C_ReLUs));
     NN.add(ReLU.in(ReLUs) >= 0);
     
     Constraint<> ReLU_on("ReLU_on");
-    ReLU_on = x.in(ReLUs) - (B.in(B_ReLUs)*x.in(x_ReLUs) + C.in(C_ReLUs)) - 1000*(1-y.in(ReLUs));
+    ReLU_on = x.in(ReLUs) - (x.in(x_ReLUs)*B.in(B_ReLUs) + C.in(C_ReLUs)) - 1000*(1-y.in(ReLUs));
     NN.add(ReLU_on.in(ReLUs) <= 0);
     
     
-    Constraint<> ReLU_off("ReLU_off");
-    ReLU_off = (B.in(B_ReLUs)*x.in(x_ReLUs) + C.in(C_ReLUs)) - 1000*y.in(ReLUs);
-    NN.add(ReLU_off.in(ReLUs) <= 0);
+//    Constraint<> ReLU_off("ReLU_off");
+//    ReLU_off = (B.in(B_ReLUs)*x.in(x_ReLUs) + C.in(C_ReLUs)) - 1000*y.in(ReLUs);
+//    NN.add(ReLU_off.in(ReLUs) <= 0);
     
     Constraint<> ReLU_y_off("ReLU_y_off");
     ReLU_y_off = x.in(ReLUs) - 1000*y.in(ReLUs);
@@ -246,7 +249,7 @@ int main (int argc, char * argv[]){
     
     
     Constraint<> Gemm("Gemm");
-    Gemm = x.in(Gemms) - (B.in(B_Gemm)*x.in(x_Gemms_in) + C.in(Gemms));
+    Gemm = x.in(Gemms) - (x.in(x_Gemms_in)*B.in(B_Gemm) + C.in(Gemms));
     NN.add(Gemm.in(Gemms) == 0);
     
     Constraint<> Add("Add");

@@ -484,14 +484,14 @@ bool GurobiProgram::solve(bool relax, double mipgap, double time_limit){
         unrelax_model();
     //    relax_model();
 //    grb_mod->set(GRB_DoubleParam_MIPGap, 1e-6);
-    grb_mod->set(GRB_DoubleParam_FeasibilityTol, 1e-9);
-   grb_mod->set(GRB_DoubleParam_OptimalityTol, 1e-6);
+//    grb_mod->set(GRB_DoubleParam_FeasibilityTol, 1e-9);
+//   grb_mod->set(GRB_DoubleParam_OptimalityTol, 1e-6);
     // grb_mod->set(GRB_IntParam_StartNodeLimit, -3);
     //    grb_mod->getEnv().set(GRB_IntParam_DualReductions, 0);
     //    grb_mod->getEnv().set(GRB_IntParam_PreCrush, 1);
     //        grb_mod->getEnv().set(GRB_IntParam_Method, 1);
     //    grb_mod->getEnv().set(GRB_IntParam_NodeMethod, 1);
-    grb_mod->getEnv().set(GRB_IntParam_LazyConstraints, 1);
+//    grb_mod->getEnv().set(GRB_IntParam_LazyConstraints, 1);
     grb_mod->set(GRB_IntParam_Threads, 8);
 //    grb_mod->set(GRB_DoubleParam_IntFeasTol, 1e-9);
     //       grb_mod->set(GRB_IntParam_NumericFocus,3);
@@ -521,22 +521,22 @@ bool GurobiProgram::solve(bool relax, double mipgap, double time_limit){
     
     //interior=lin->add_outer_app_solution(*_model);
     //interior.print_solution();
-    cuts cb = cuts(_grb_vars, n, _model, interior);
-    cuts_primal_complex cbp=cuts_primal_complex(_grb_vars, n, _model, interior);
+//    cuts cb = cuts(_grb_vars, n, _model, interior);
+//    cuts_primal_complex cbp=cuts_primal_complex(_grb_vars, n, _model, interior);
     //vector<GRBLinExpr> vec_expr;
-    if(_model->_complex){
-        if(!relax){
-            grb_mod->setCallback(&cbp);
-            grb_mod->update();
-        }
-    }
-    else{
-        //cuts cb(_grb_vars, n, _model, interior);
-        if(!relax){
-            grb_mod->setCallback(&cb);
-            grb_mod->update();
-        }
-    }
+//    if(_model->_complex){
+//        if(!relax){
+//            grb_mod->setCallback(&cbp);
+//            grb_mod->update();
+//        }
+//    }
+//    else{
+//        //cuts cb(_grb_vars, n, _model, interior);
+//        if(!relax){
+//            grb_mod->setCallback(&cb);
+//            grb_mod->update();
+//        }
+//    }
     
     //grb_mod->set(GRB_IntParam_RINS,1);
     // grb_mod->set(GRB_DoubleParam_Heuristics, 0.5);
