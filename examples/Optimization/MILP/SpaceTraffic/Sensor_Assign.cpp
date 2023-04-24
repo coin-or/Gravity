@@ -9,10 +9,236 @@
 #include "Sensor_Assign.hpp"
 
 int main(int argc, const char * argv[]) {
-    myModel m = myModel();
-    vector<param<double>> par = m.readData(argc, argv);
-    m.InitBilevel(par[0], par[1], par[2]);
-    //int s = 0;
+    
+    int time_horizon = 3600;
+    int nb_steps = 60;
+    double dt = time_horizon/nb_steps;
+    double mu = 398600.435507; // GM in km^3/s^2
+    int dist = 10;
+    
+    /* Model */
+    Model<> Mopt("Mopt");
+    
+    /* Index sets */
+    indices T("T"), T_excl_first("T_excl_first"), T_excl_last("T_excl_last");
+    T = range(1,nb_steps);
+    T_excl_first = range(2,nb_steps);
+    T_excl_last = range(1,nb_steps-1);
+    
+    /* Input parameters */
+    param<> x_p("x_p"),y_p("y_p"),z_p("z_p"),vx_p("vx_p"),vy_p("vy_p"),vz_p("vz_p");/*< Primary coorindates and velocity */
+    x_p.in(T);y_p.in(T);z_p.in(T);
+    vx_p.in(T);vy_p.in(T);vz_p.in(T);
+    
+    /* Variables */
+    var<> x("x"), y("y"), z("z");/*< (x,y,z) object coordinates */
+    var<> vx("vx"), vy("vy"), vz("vz");/*< (vx,vy,vz) object velocity */
+    var<> ux("ux"), uy("uy"), uz("uz");/*< (ux,uy,uz) thrust applied at given coordinates */
+    /* Runge-Kutta auxiliary variables */
+    var<> k1_x("k1_x"), k2_x("k2_x"), k3_x("k3_x"), k4_x("k4_x");
+    var<> k1_y("k1_y"), k2_y("k2_y"), k3_y("k3_y"), k4_y("k4_y");
+    var<> k1_z("k1_z"), k2_z("k2_z"), k3_z("k3_z"), k4_z("k4_z");
+    var<> k1_vx("k1_vx"), k2_vx("k2_vx"), k3_vx("k3_vx"), k4_vx("k4_vx");
+    var<> k1_vy("k1_vy"), k2_vy("k2_vy"), k3_vy("k3_vy"), k4_vy("k4_vy");
+    var<> k1_vz("k1_vz"), k2_vz("k2_vz"), k3_vz("k3_vz"), k4_vz("k4_vz");
+    var<> r1("r1"), r2("r2"), r3("r3"), r4("r4");/*< r^2 = x^2 + y^2 + z^2 */
+    var<> rc1("rc1"), rc2("rc2"), rc3("rc3"), rc4("rc4");/*< rci = ri^3*/
+    
+    Mopt.add(x.in(T), y.in(T), z.in(T), vx.in(T), vy.in(T), vz.in(T), ux.in(T), uy.in(T), uz.in(T), k1_x.in(T), k2_x.in(T), k3_x.in(T), k4_x.in(T), k1_y.in(T), k2_y.in(T), k3_y.in(T), k4_y.in(T), k1_z.in(T), k2_z.in(T), k3_z.in(T), k4_z.in(T), k1_vx.in(T), k2_vx.in(T), k3_vx.in(T), k4_vx.in(T), k1_vy.in(T), k2_vy.in(T), k3_vy.in(T), k4_vy.in(T), k1_vz.in(T), k2_vz.in(T), k3_vz.in(T), k4_vz.in(T), r1.in(T), r2.in(T), r3.in(T), r4.in(T), rc1.in(T), rc2.in(T), rc3.in(T), rc4.in(T));
+    
+    
+    /* Constraints */
+    
+    Constraint<> linking_x("linking_x");
+    linking_x = x.in(T_excl_first) - (x.in(T_excl_last) + dt/6*(k1_x.in(T_excl_last) + 2*k2_x.in(T_excl_last) + 2*k3_x.in(T_excl_last) + k4_x.in(T_excl_last)));
+    Mopt.add(linking_x.in(T_excl_first)==0);
+    
+    Constraint<> linking_y("linking_y");
+    linking_y = y.in(T_excl_first) - (y.in(T_excl_last) + dt/6*(k1_y.in(T_excl_last) + 2*k2_y.in(T_excl_last) + 2*k3_y.in(T_excl_last) + k4_y.in(T_excl_last)));
+    Mopt.add(linking_y.in(T_excl_first)==0);
+    
+    Constraint<> linking_z("linking_z");
+    linking_z = z.in(T_excl_first) - (z.in(T_excl_last) + dt/6*(k1_z.in(T_excl_last) + 2*k2_z.in(T_excl_last) + 2*k3_z.in(T_excl_last) + k4_z.in(T_excl_last)));
+    Mopt.add(linking_z.in(T_excl_first)==0);
+    
+    Constraint<> linking_vx("linking_vx");
+    linking_vx = vx.in(T_excl_first) - (vx.in(T_excl_last) + dt/6*(k1_vx.in(T_excl_last) + 2*k2_vx.in(T_excl_last) + 2*k3_vx.in(T_excl_last) + k4_vx.in(T_excl_last)));
+    Mopt.add(linking_vx.in(T_excl_first)==0);
+    
+    Constraint<> linking_vy("linking_vy");
+    linking_vy = vy.in(T_excl_first) - (vy.in(T_excl_last) + dt/6*(k1_vy.in(T_excl_last) + 2*k2_vy.in(T_excl_last) + 2*k3_vy.in(T_excl_last) + k4_vy.in(T_excl_last)));
+    Mopt.add(linking_vy.in(T_excl_first)==0);
+    
+    Constraint<> linking_vz("linking_vz");
+    linking_vz = vz.in(T_excl_first) - (vz.in(T_excl_last) + dt/6*(k1_vz.in(T_excl_last) + 2*k2_vz.in(T_excl_last) + 2*k3_vz.in(T_excl_last) + k4_vz.in(T_excl_last)));
+    Mopt.add(linking_vz.in(T_excl_first)==0);
+    
+    Constraint<> k1_x_def("k1_x_def");
+    k1_x_def = k1_x - vx;
+    Mopt.add(k1_x_def.in(T)==0);
+    
+    Constraint<> k1_y_def("k1_y_def");
+    k1_y_def = k1_y - vy;
+    Mopt.add(k1_y_def.in(T)==0);
+    
+    Constraint<> k1_z_def("k1_z_def");
+    k1_z_def = k1_z - vz;
+    Mopt.add(k1_z_def.in(T)==0);
+    
+    Constraint<> k1_vx_def("k1_vx_def");
+    k1_vx_def = k1_vx*rc1 - (ux*rc1 - mu*x);
+    Mopt.add(k1_vx_def.in(T)==0);
+    
+    Constraint<> k1_vy_def("k1_vy_def");
+    k1_vy_def = k1_vy*rc1 - (uy*rc1 - mu*y);
+    Mopt.add(k1_vy_def.in(T)==0);
+    
+    Constraint<> k1_vz_def("k1_vz_def");
+    k1_vz_def = k1_vz*rc1 - (uz*rc1 - mu*z);
+    Mopt.add(k1_vz_def.in(T)==0);
+    
+    
+    Constraint<> k2_x_def("k2_x_def");
+    k2_x_def = k2_x - (vx + k1_vx*dt/2.);
+    Mopt.add(k2_x_def.in(T)==0);
+    
+    Constraint<> k2_y_def("k2_y_def");
+    k2_y_def = k2_y - (vy + k1_vy*dt/2.);
+    Mopt.add(k2_y_def.in(T)==0);
+    
+    Constraint<> k2_z_def("k2_z_def");
+    k2_z_def = k2_z - (vz + k1_vz*dt/2.);
+    Mopt.add(k2_z_def.in(T)==0);
+    
+    Constraint<> k2_vx_def("k2_vx_def");
+    k2_vx_def = rc2.in(T_excl_last)*k2_vx.in(T_excl_last) - (rc2.in(T_excl_last)*(ux.in(T_excl_last) + ux.in(T_excl_first))/2. - mu*(x.in(T_excl_last) + k1_x.in(T_excl_last)*dt/2.));
+    Mopt.add(k2_vx_def.in(T_excl_last)==0);
+    
+    Constraint<> k2_vy_def("k2_vy_def");
+    k2_vy_def = rc2.in(T_excl_last)*k2_vy.in(T_excl_last) - (rc2.in(T_excl_last)*(uy.in(T_excl_last) + uy.in(T_excl_first))/2. - mu*(y.in(T_excl_last) + k1_y.in(T_excl_last)*dt/2.));
+    Mopt.add(k2_vy_def.in(T_excl_last)==0);
+    
+    Constraint<> k2_vz_def("k2_vz_def");
+    k2_vz_def = rc2.in(T_excl_last)*k2_vz.in(T_excl_last) - (rc2.in(T_excl_last)*(uz.in(T_excl_last) + uz.in(T_excl_first))/2. - mu*(z.in(T_excl_last) + k1_z.in(T_excl_last)*dt/2.));
+    Mopt.add(k2_vz_def.in(T_excl_last)==0);
+    
+    Constraint<> k3_x_def("k3_x_def");
+    k3_x_def = k3_x - (vx + k2_vx*dt/2.);
+    Mopt.add(k3_x_def.in(T)==0);
+    
+    Constraint<> k3_y_def("k3_y_def");
+    k3_y_def = k3_y - (vy + k2_vy*dt/2.);
+    Mopt.add(k3_y_def.in(T)==0);
+    
+    Constraint<> k3_z_def("k3_z_def");
+    k3_z_def = k3_z - (vz + k2_vz*dt/2.);
+    Mopt.add(k3_z_def.in(T)==0);
+    
+    Constraint<> k3_vx_def("k3_vx_def");
+    k3_vx_def = rc3.in(T_excl_last)*k3_vx.in(T_excl_last) - (rc3.in(T_excl_last)*(ux.in(T_excl_last) + ux.in(T_excl_first))/2. - mu*(x.in(T_excl_last) + k2_x.in(T_excl_last)*dt/2.));
+    Mopt.add(k3_vx_def.in(T_excl_last)==0);
+    
+    Constraint<> k3_vy_def("k3_vy_def");
+    k3_vy_def = rc3.in(T_excl_last)*k3_vy.in(T_excl_last) - (rc3.in(T_excl_last)*(uy.in(T_excl_last) + uy.in(T_excl_first))/2. - mu*(y.in(T_excl_last) + k2_y.in(T_excl_last)*dt/2.));
+    Mopt.add(k3_vy_def.in(T_excl_last)==0);
+    
+    Constraint<> k3_vz_def("k3_vz_def");
+    k3_vz_def = rc3.in(T_excl_last)*k3_vz.in(T_excl_last) - (rc3.in(T_excl_last)*(uz.in(T_excl_last) + uz.in(T_excl_first))/2. - mu*(z.in(T_excl_last) + k2_z.in(T_excl_last)*dt/2.));
+    Mopt.add(k3_vz_def.in(T_excl_last)==0);
+    
+    
+    Constraint<> k4_x_def("k4_x_def");
+    k4_x_def = k4_x - (vx + k3_vx*dt);
+    Mopt.add(k4_x_def.in(T)==0);
+    
+    Constraint<> k4_y_def("k4_y_def");
+    k4_y_def = k4_y - (vy + k3_vy*dt);
+    Mopt.add(k4_y_def.in(T)==0);
+    
+    Constraint<> k4_z_def("k4_z_def");
+    k4_z_def = k4_z - (vz + k3_vz*dt);
+    Mopt.add(k4_z_def.in(T)==0);
+    
+    Constraint<> k4_vx_def("k4_vx_def");
+    k4_vx_def = rc4.in(T_excl_last)*k4_vx.in(T_excl_last) - (rc4.in(T_excl_last)*ux.in(T_excl_first) - mu*(x.in(T_excl_last) + k3_x.in(T_excl_last)*dt));
+    Mopt.add(k4_vx_def.in(T_excl_last)==0);
+    
+    Constraint<> k4_vy_def("k4_vy_def");
+    k4_vy_def = rc4.in(T_excl_last)*k4_vy.in(T_excl_last) - (rc4.in(T_excl_last)*uy.in(T_excl_first) - mu*(y.in(T_excl_last) + k3_y.in(T_excl_last)*dt));
+    Mopt.add(k4_vy_def.in(T_excl_last)==0);
+    
+    Constraint<> k4_vz_def("k4_vz_def");
+    k4_vz_def = rc4.in(T_excl_last)*k4_vz.in(T_excl_last) - (rc4.in(T_excl_last)*uz.in(T_excl_first) - mu*(z.in(T_excl_last) + k3_z.in(T_excl_last)*dt));
+    Mopt.add(k4_vz_def.in(T_excl_last)==0);
+    
+    Constraint<> r1_def("r1_def");
+    r1_def = r1*r1 - (x*x + y*y + z*z);
+    Mopt.add(r1_def.in(T)==0);
+    
+    Constraint<> r2_def("r2_def");
+    r2_def = r2*r2 - (pow(x+k1_x*dt/2.,2) + pow(y+k1_y*dt/2.,2) + pow(z+k1_z*dt/2.,2));
+    Mopt.add(r2_def.in(T)==0);
+    
+    Constraint<> r3_def("r3_def");
+    r3_def = r3*r3 - (pow(x+k2_x*dt/2.,2) + pow(y+k2_y*dt/2.,2) + pow(z+k2_z*dt/2.,2));
+    Mopt.add(r3_def.in(T)==0);
+    
+    Constraint<> r4_def("r4_def");
+    r4_def = r4*r4 - (pow(x+k3_x*dt/2.,2) + pow(y+k3_y*dt/2.,2) + pow(z+k3_z*dt/2.,2));
+    Mopt.add(r4_def.in(T)==0);
+    
+    Constraint<> rc1_def("rc1_def");
+    rc1_def = rc1 - pow(r1,3);
+    Mopt.add(rc1_def.in(T)==0);
+    
+    Constraint<> rc2_def("rc2_def");
+    rc2_def = rc2 - pow(r2,3);
+    Mopt.add(rc2_def.in(T)==0);
+    
+    Constraint<> rc3_def("rc3_def");
+    rc3_def = rc3 - pow(r3,3);
+    Mopt.add(rc3_def.in(T)==0);
+    
+    Constraint<> rc4_def("rc4_def");
+    rc4_def = rc4 - pow(r4,3);
+    Mopt.add(rc4_def.in(T)==0);
+    
+    /* Initial Conditions */
+    
+    indices T_start("T_start");
+    T_start.add(*T._keys->begin());
+    
+    z_p.set_val(0, 6500);
+    vx_p.set_val(0, 4);
+    vy_p.set_val(0, 8);
+    double ro = 1000;
+    
+    Constraint<> x_init("x_init");
+    x_init = x.in(T_start) - (x_p.in(T_start) + ro);
+    Mopt.add(x_init.in(T_start)==0);
+    
+    Constraint<> y_init("y_init");
+    y_init = y.in(T_start) - y_p.in(T_start);
+    Mopt.add(y_init.in(T_start)==0);
+    
+    Constraint<> z_init("z_init");
+    z_init = z.in(T_start) - z_p.in(T_start);
+    Mopt.add(z_init.in(T_start)==0);
+    
+    Constraint<> vx_init("vx_init");
+    vx_init = vx.in(T_start) - vx_p.in(T_start);
+    Mopt.add(vx_init.in(T_start)==0);
+    
+    Constraint<> vy_init("vy_init");
+    vy_init = vy.in(T_start) - vy_p.in(T_start);
+    Mopt.add(vy_init.in(T_start)==0);
+    
+    Constraint<> vz_init("vz_init");
+    vz_init = vz.in(T_start) - vz_p.in(T_start);
+    Mopt.add(vz_init.in(T_start)==0);
+    
+    Mopt.print();
+    
     return 0;
 }
 
