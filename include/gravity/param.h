@@ -1224,20 +1224,14 @@ namespace gravity {
                     throw invalid_argument("Param set_val(size_t i, type val) out of range");
                 }
                 _val->at(_indices->_ids->at(0).at(i)) = val;
-                if(_val->at(_indices->_ids->at(0).at(i))==_range->first ||  _val->at(_indices->_ids->at(0).at(i))==_range->second || val<_range->first || val>_range->second){
-                    reset_range();
-                }
             }
             if (_val->size()<=i){
                 throw invalid_argument("Param set_val(size_t i, type val) out of range");
             }
-            if(_val->at(i)==_range->first ||  _val->at(i)==_range->second || val<_range->first || val>_range->second){
-                _val->at(i) = val;
-                reset_range();
-            }
             else{
                 _val->at(i) = val;
             }
+            update_range(val);
         }
 
         void set_val(type val) {
@@ -2318,10 +2312,10 @@ namespace gravity {
                     }
                     else {
                         for (size_t i = 0; i < _dim[0]; i++) {
-                            if(eval(i)>1e-4){
+//                            if(eval(i)>1e-4){
                                 str += "[" + _indices->_keys->at(i) + "] = " + to_string_with_precision(eval(i), prec);
                                 str += " \n";
-                            }
+//                            }
                         }
                     }
                 }
