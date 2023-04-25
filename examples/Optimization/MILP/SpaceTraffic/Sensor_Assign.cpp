@@ -10,8 +10,8 @@
 #include <gravity/rapidcsv.h>
 int main(int argc, const char * argv[]) {
     
-    int time_horizon = 600;
-    int nb_steps = 60;
+    int time_horizon = 3600;
+    int nb_steps = 360;
     double scale = 1;
     double dt = time_horizon/nb_steps;
     double mu = 398600.435507; // GM in km^3/s^2
@@ -51,8 +51,8 @@ int main(int argc, const char * argv[]) {
     /* Variables */
     var<> x("x",-1e4, 1e4), y("y", -1e4, 1e4), z("z", 1e3, 1e4);/*< (x,y,z) object coordinates */
     var<> vx("vx", -1e2, 1e2), vy("vy", -1e2, 1e2), vz("vz", -1e2, 1e2);/*< (vx,vy,vz) object velocity */
-//    var<> ux("ux", -1e2, 1e2), uy("uy", -1e2, 1e2), uz("uz", -1e2, 1e2);/*< (ux,uy,uz) thrust applied at given coordinates */
-    var<> ux("ux", 0, 0), uy("uy", 0, 0), uz("uz", -1e2, 1e2);/*< (ux,uy,uz) thrust applied at given coordinates */
+    var<> ux("ux", -1e4, 1e4), uy("uy", -1e4, 1e4), uz("uz", -1e4, 1e4);/*< (ux,uy,uz) thrust applied at given coordinates */
+//    var<> ux("ux", 0, 0), uy("uy", 0, 0), uz("uz", -1e2, 1e2);/*< (ux,uy,uz) thrust applied at given coordinates */
     /* Runge-Kutta auxiliary variables */
     var<> k1_x("k1_x"), k2_x("k2_x"), k3_x("k3_x"), k4_x("k4_x");
     var<> k1_y("k1_y"), k2_y("k2_y"), k3_y("k3_y"), k4_y("k4_y");
@@ -71,20 +71,20 @@ int main(int argc, const char * argv[]) {
     
     /* Constraints */
     
-//    Constraint<> min_dist_def("min_dist_def");
-//    min_dist_def = dist_sqr - (pow(x-x_p,2) + pow(y-y_p,2) + pow(z-z_p,2));
-//    Mopt.add(min_dist_def.in(T)==0);
-    
-//    Constraint<> min_dx_lb("min_dx_lb");
-//    min_dx_lb = (x - x_p);
-//    Mopt.add(min_dx_lb.in(T) >= min_dist);
+    Constraint<> min_dist_def("min_dist_def");
+    min_dist_def = abs(x-x_p) + abs(y-y_p) + abs(z-z_p);
+    Mopt.add(min_dist_def.in(T) >= min_dist);
 //
+//    Constraint<> min_dx_lb("min_dx_lb");
+//    min_dx_lb = abs(x - x_p);
+//    Mopt.add(min_dx_lb.in(T) >= min_dist);
+
 //    Constraint<> min_dx_ub("min_dx_ub");
 //    min_dx_ub = (x_p - x);
 //    Mopt.add(min_dx_ub.in(T) >= min_dist);
-//
+
 //    Constraint<> min_dy_lb("min_dy_lb");
-//    min_dy_lb = (y - y_p);
+//    min_dy_lb = abs(y - y_p);
 //    Mopt.add(min_dy_lb.in(T) >= min_dist);
 //
 //    Constraint<> min_dy_ub("min_dy_ub");
@@ -92,7 +92,7 @@ int main(int argc, const char * argv[]) {
 //    Mopt.add(min_dy_ub.in(T) >= min_dist);
 //
 //    Constraint<> min_dz_lb("min_dz_lb");
-//    min_dz_lb = (z - z_p);
+//    min_dz_lb = abs(z - z_p);
 //    Mopt.add(min_dz_lb.in(T) >= min_dist);
 //
 //    Constraint<> min_dz_ub("min_dz_ub");
