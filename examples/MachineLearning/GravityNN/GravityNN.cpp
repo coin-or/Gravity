@@ -52,7 +52,7 @@ std::vector<Layer*> build_graph(const onnx::GraphProto& graph) {
 
 using namespace gravity;
 int main (int argc, char * argv[]){
-    string fname = string(prj_dir)+"/data_sets/VNN/simple.onnx";
+    string fname = string(prj_dir)+"/data_sets/VNN/tll_bound.onnx";
     if(argc>=2){
         fname=argv[1];
     }
@@ -60,13 +60,13 @@ int main (int argc, char * argv[]){
     onnx::ModelProto model;
     bool isSuccess = model.ParseFromIstream(&input);
     onnx::GraphProto graph = model.graph();
-    
+
     auto layers = build_graph(graph);
     auto input_dims = get_input_dim(graph.input());/* Getting input layer dim */
     /* INDEX SETS */
     /* Indexing variables */
     indices x_ids("x_ids"), y_ids("y_ids");/*< x_ids for continuous vars, y_ids for binary vars */
-    
+
     /* Indexing params */
     indices B_ids("B_ids"), C_ids("C_ids");/*< x_ids for continuous vars, y_ids for binary vars */
 
@@ -104,7 +104,7 @@ int main (int argc, char * argv[]){
                 x_ids.add(l->name+","+to_string(j));
             }
         }
-            
+
     }
     /* Indexing constraints */
     indices ReLUs("ReLUs"), x_ReLUs("x_ReLUs"), B_ReLUs("B_ReLUs"), C_ReLUs("C_ReLUs"), Gemms("Gemms"), x_Gemms_in("x_Gemms_in"), x_Gemms_out("x_Gemms_out"), Adds("Adds"), x_Adds("x_Adds"), MatMuls("MatMuls"), x_MatMuls("MatMuls"), B_Gemm("B_Gemm");
@@ -134,7 +134,7 @@ int main (int argc, char * argv[]){
                     }
                 }
                 break;
-                
+
             case _gemm:{
                 bool add_Gemm_constraint = true;
                 if(i+1<nb_layers && layers[i+1]->operator_type==_relu)
@@ -174,7 +174,7 @@ int main (int argc, char * argv[]){
                         gemm_row_id++;
                     }
                 }
-                
+
             }
                 break;
             case _add:
@@ -188,7 +188,7 @@ int main (int argc, char * argv[]){
                 break;
         }
     }
-    
+
     for(auto i = 0; i<nb_layers; i++){
         auto l = layers[i];
         if(i+1<nb_layers && l->var_dims.size()==2 && layers[i+1]->operator_type==_relu){/*< The next layer is an activation layer (e.g. ReLU), no need to introduce variables for this layer */
@@ -201,11 +201,11 @@ int main (int argc, char * argv[]){
                     B_ReLUs.add_in_row(relu_row_id, l->name+","+to_string(k)+","+to_string(j));
                 }
                 relu_row_id++;
-    
+
             }
         }
     }
-        
+
     Model<> NN("NN_"+fname.substr(fname.find_last_of("/")));
     param<> x_lb("x_lb"), x_ub("x_ub");
     x_lb.in(x_ids);x_ub.in(x_ids);
@@ -215,57 +215,57 @@ int main (int argc, char * argv[]){
         x_lb.set_val(j, -2);
         x_ub.set_val(j, 2);
     }
-    
+
     for(auto const &key: *ReLUs._keys){
         x_lb.set_val(key, 0);
     }
-    
-    
+
+
     var<> x("x", x_lb, x_ub);
     var<int> y("y", 0, 1);
     NN.add(x.in(x_ids));
     NN.add(y.in(y_ids));
-   
+
     /* Objective function */
     NN.max(x(layers.back()->name+",0"));
-    
+
     /* Constraints */
     Constraint<> ReLU("ReLU");
     ReLU = x.in(ReLUs) - (x.in(x_ReLUs)*B.in(B_ReLUs) + C.in(C_ReLUs));
     NN.add(ReLU.in(ReLUs) >= 0);
-    
+
     Constraint<> ReLU_on("ReLU_on");
     ReLU_on = x.in(ReLUs) - (x.in(x_ReLUs)*B.in(B_ReLUs) + C.in(C_ReLUs)) - 1000*(1-y.in(ReLUs));
     NN.add(ReLU_on.in(ReLUs) <= 0);
-    
-    
+
+
 //    Constraint<> ReLU_off("ReLU_off");
 //    ReLU_off = (B.in(B_ReLUs)*x.in(x_ReLUs) + C.in(C_ReLUs)) - 1000*y.in(ReLUs);
 //    NN.add(ReLU_off.in(ReLUs) <= 0);
-    
+
     Constraint<> ReLU_y_off("ReLU_y_off");
     ReLU_y_off = x.in(ReLUs) - 1000*y.in(ReLUs);
     NN.add(ReLU_y_off.in(ReLUs) <= 0);
-    
-    
+
+
     Constraint<> Gemm("Gemm");
     Gemm = x.in(Gemms) - (x.in(x_Gemms_in)*B.in(B_Gemm) + C.in(Gemms));
     NN.add(Gemm.in(Gemms) == 0);
-    
+
     Constraint<> Add("Add");
     Add = x.in(Adds) + B.in(Adds);
     NN.add(Add.in(Adds) == 0);
 
     NN.print();
-    
+
     solver<> S(NN,gurobi);
     S.run();
-    
+
     NN.print_solution();
     for(auto l:layers){
         delete l;
     }
-    
+
 
     return 0;
 }

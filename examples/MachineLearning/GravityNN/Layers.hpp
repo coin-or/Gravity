@@ -48,16 +48,21 @@ public:
         this->is_initializer = true;
         this->shape = std::vector<size_t>(tensor.dims().begin(), tensor.dims().end());
 
-        if (tensor.raw_data().empty()) {
-            throw std::runtime_error("Tensor " + tensor.name() + " has no data");
+        if (!tensor.raw_data().empty()) {
+            // throw std::runtime_error("Tensor " + tensor.name() + " has no data");
+            const void* raw_data = tensor.raw_data().data();
+            const size_t num_bytes = tensor.raw_data().size();
+            const size_t num_floats = num_bytes / sizeof(float);
+
+            data.resize(num_floats);
+            std::memcpy(data.data(), raw_data, num_bytes);
+        } else {
+            std::cout << "Reading float data" << std::endl;
+            this->data.clear();
+            for (auto val : tensor.float_data()) {
+                data.push_back(val);
+            }
         }
-
-        const void* raw_data = tensor.raw_data().data();
-        const size_t num_bytes = tensor.raw_data().size();
-        const size_t num_floats = num_bytes / sizeof(float);
-
-        data.resize(num_floats);
-        std::memcpy(data.data(), raw_data, num_bytes);
     }
 
     gravity::func<float> get(HiddenStates& hidden_states) const {
@@ -86,7 +91,6 @@ public:
     std::string name;
     std::vector<float> data;
     std::vector<size_t> shape;
-    
 };
 
 // Define the base Layer class
@@ -100,6 +104,21 @@ public:
             this->outputs.push_back(output);
         }
         this->name = node.name();
+
+        // Try to find upper and lower bounds for each output
+        for (auto out_name: this->outputs)
+        {
+            auto lower_name = out_name + "_lower";
+            if (global_initializers.count(lower_name) == 0) {
+                auto lower = Tensor(out_name + "_lower", global_initializers);
+                this->lowers.push_back(lower);
+            }
+            auto upper_name = out_name + "_upper";
+            if (global_initializers.count(lower_name) == 0) {
+                auto upper = Tensor(out_name + "_upper", global_initializers);
+                this->uppers.push_back(upper);
+            }
+        }
     }
 
     virtual ~Layer() = default;
@@ -120,6 +139,7 @@ public:
 
     const onnx::AttributeProto* find_attribute(const onnx::NodeProto& node, const std::string& name) {
         for (const auto& attr : node.attribute()) {
+            std::cout << "Name: " << attr.name() << std::endl;
             if (attr.name() == name) {
                 return &attr;
             }
@@ -134,6 +154,9 @@ public:
     std::vector<std::string> inputs;
     std::vector<std::string> outputs;
     std::vector<size_t> var_dims;
+
+    std::vector<Tensor> lowers;
+    std::vector<Tensor> uppers;
 };
 
 /* Matrix multiply results from A * B */
@@ -145,7 +168,7 @@ public:
     MatMul(const onnx::NodeProto& node, const Initializers& global_initializers): Layer(node, global_initializers) {
         operator_type = _matmul;
         
-        
+
         this->A = Tensor(this->inputs.at(0), global_initializers);
         this->B = Tensor(this->inputs.at(1), global_initializers);
         if(this->B.shape.size()==2){
