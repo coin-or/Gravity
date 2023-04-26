@@ -6284,7 +6284,7 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
                     UB_off = (pair.second._p->get_double_ub(inst_id));
                     
                     auto lifted = pair.second._p->is_lifted();
-                    if (lifted || (num_partns == 1) || in_SOC_partn){ //if lifted to LB_on values should be the global bounds since the number of partitions is 1, similarly if number of partitions is 1
+                    if (lifted || (num_partns == 1) || in_SOC_partn){ //if lifted the LB_on values should be the global bounds since the number of partitions is 1, similarly if number of partitions is 1
                         LB_on = (pair.second._p->get_double_lb(inst_id));
                         UB_on = (pair.second._p->get_double_ub(inst_id));
                     }
@@ -6336,6 +6336,40 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
             }
             
         }
+        
+        void add_on_off(Constraint<type>& c, const var<int>& on){
+            if (c.get_ftype() != lin_) {
+                throw invalid_argument("Calling add_on_off with a nonlinear constraint.\n");
+            }
+//            c._on_off_bin = get_ptr_var<int>(on.get_name());
+//            // all the cases are standardized into the leq form, then for each case, we obtain the _onCoef and _offCoef for the constraint and add it to the model with the proper LHS value for each subset S
+//            if (c.get_ctype() == eq) {
+//                add_constraint(res2.in(*c._indices)<=0);
+                
+//            }
+            
+//            else if (c.get_ctype() == leq) {
+//                get_on_off_coefficients_standard(c);
+//                auto offCoef = c._offCoef.deep_copy();
+//                auto onCoef = c._onCoef.deep_copy();
+//                Constraint<type> res1(c.get_name() + "_on/off");
+//                res1 = LHS - offCoef*(1-on) - onCoef*on;
+//                add_constraint(res1.in(*c._indices)<=0);
+//            }
+//            
+//            else { //if c.get_ctype() == geq
+//                Constraint<type> n_c(c);
+//                n_c *= -1;
+//                n_c._ctype = leq;
+//                get_on_off_coefficients_standard(n_c);
+//                auto offCoef = n_c._offCoef.deep_copy();
+//                auto onCoef = n_c._onCoef.deep_copy();
+//                Constraint<type> res2(c.get_name() + "_on/off");
+//                res2 = -1 * LHS - offCoef*(1-on) - onCoef*on;
+//                add_constraint(res2.in(*c._indices)<=0);
+//            }
+        }
+        
         
         //This function adds on-off version of a given linear constraint and the binary variables to activate. The boolean option handles all the facet definining inequalities of the convex hull (if true), else it only adds the Big_M version of the constraint
         //INPUT: linear constraint to be activated, corresponding binary variables to form a disjunctive union, big_M version of the constraint or the whole convex hull

@@ -30,6 +30,7 @@ public:
     vector<bool>                _violated;
     param<double>               _onCoef; /**< Coefficient vector for on in on/off constraints */
     param<double>               _offCoef; /**< Coefficient vector for off in on/off constraints */
+    shared_ptr<param_>          _on_off_bin; /**< Pointer to the binary variable for on/off constraints */
     
     
     
@@ -202,6 +203,7 @@ public:
         _all_satisfied = c._all_satisfied;
         _violated = c._violated;
         _relaxed = c._relaxed;
+        _on_off_bin = c._on_off_bin;
         this->func<type>::operator=(c);
         this->_name = c._name;
         this->_is_constraint = true;
@@ -239,6 +241,7 @@ public:
         _all_satisfied = c._all_satisfied;
         _violated = c._violated;
         _relaxed = c._relaxed;
+        _on_off_bin = c._on_off_bin;
         this->func<type>::operator=(move(c));
         this->_name = c._name;
         this->_is_constraint = true;
