@@ -205,7 +205,6 @@ int main (int argc, char * argv[]){
             }
         }
     }
-
     Model<> NN("NN_"+fname.substr(fname.find_last_of("/")));
     param<> x_lb("x_lb"), x_ub("x_ub");
     x_lb.in(x_ids);x_ub.in(x_ids);
@@ -237,11 +236,16 @@ int main (int argc, char * argv[]){
     Constraint<> ReLU_on("ReLU_on");
     ReLU_on = x.in(ReLUs) - (x.in(x_ReLUs)*B.in(B_ReLUs) + C.in(C_ReLUs)) - 1000*(1-y.in(ReLUs));
     NN.add(ReLU_on.in(ReLUs) <= 0);
-
-
+    
+//    Constraint<> ReLU_on("ReLU_on");
+//    ReLU_on = x.in(ReLUs) - (x.in(x_ReLUs)*B.in(B_ReLUs) + C.in(C_ReLUs));
+//    NN.add_on_off(ReLU_on.in(ReLUs) <= 0, y.in(ReLUs));
+//
+    
 //    Constraint<> ReLU_off("ReLU_off");
 //    ReLU_off = (B.in(B_ReLUs)*x.in(x_ReLUs) + C.in(C_ReLUs)) - 1000*y.in(ReLUs);
 //    NN.add(ReLU_off.in(ReLUs) <= 0);
+//
 
     Constraint<> ReLU_y_off("ReLU_y_off");
     ReLU_y_off = x.in(ReLUs) - 1000*y.in(ReLUs);
@@ -257,6 +261,8 @@ int main (int argc, char * argv[]){
     NN.add(Add.in(Adds) == 0);
 
     NN.print();
+    NN.write();
+    
 
     solver<> S(NN,gurobi);
     S.run();
