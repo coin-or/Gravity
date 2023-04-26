@@ -4,6 +4,6 @@ build/
 .vscode
 bin/
 data_sets/Classification
-include/GravityConfig.h
+include/gravity/GravityConfig.h
 lib/
 thirdparty/

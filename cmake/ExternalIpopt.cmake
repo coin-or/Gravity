@@ -57,6 +57,7 @@ elseif(DIST STREQUAL "centos")
     endif()
 else()
     message(STATUS ">>>> Found unknown distribution <<<<")
+    set(IADES_DOWNLOAD_URL https://github.com/IDAES/idaes-ext/releases/download/2.4.1/idaes-solvers-ubuntu2004-64.tar.gz)
 endif()
 
 set(IPOPT_ROOT_DIR ${PROJECT_SOURCE_DIR}/thirdparty/Ipopt CACHE INTERNAL "")
