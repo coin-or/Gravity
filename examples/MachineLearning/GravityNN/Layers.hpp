@@ -87,10 +87,29 @@ public:
         return weight;
     }
 
+    void _transpose() {
+        if (this->shape.size() != 2) {
+            throw std::runtime_error("Cannot transpose tensor with shape " + std::to_string(this->shape.size()));
+        }
+        if (!this->_is_initializer) {
+            throw std::runtime_error("Cannot transpose non-initializer tensor");
+        }
+
+        // Tranpose data if needed, it is stored row-major
+        std::vector<float> data = this->B.data;
+        for (size_t i = 0; i < this->B.shape[0]; i++) {
+            for (size_t j = 0; j < this->B.shape[1]; j++) {
+                this->B.data[j * this->B.shape[0] + i] = data[i * this->B.shape[1] + j];
+            }
+        }
+    }
+
     bool is_initializer;
     std::string name;
     std::vector<float> data;
     std::vector<size_t> shape;
+
+
 };
 
 // Define the base Layer class
@@ -263,6 +282,7 @@ public:
                 this->var_dims[0] = this->B.shape[1];
                 this->var_dims[1] = this->B.shape[0];
             }
+            this->B._transpose();
         }
         if (this->inputs.size() == 3) {
             this->C = Tensor(this->inputs.at(2), global_initializers);
