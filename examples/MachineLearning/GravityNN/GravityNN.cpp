@@ -18,7 +18,7 @@ std::vector<Layer*> build_graph(const onnx::GraphProto& graph) {
         if (node.op_type() == "Gemm") {
             layers.push_back(new GEMM(node, initializers));
         } else if (node.op_type() == "Relu") {
-            layers.push_back(new ReLU(node, initializers));
+            layers.push_back(new ReLU(graph, node, initializers));
         }
         else if (node.op_type() == "MatMul") {
             layers.push_back(new MatMul(node, initializers));
@@ -219,6 +219,25 @@ int main (int argc, char * argv[]){
         x_lb.set_val(key, 0);
     }
 
+    for(auto i = 0; i<nb_layers; i++){
+        auto l = layers[i];
+        if(i+1<nb_layers && layers[i+1]->operator_type==_relu)
+            continue;
+        auto layer_name = l->name;
+        size_t dim = 0;
+        if(l->lowers.size()>0){
+            if(l->var_dims.size()==2){
+                dim = l->var_dims[1];
+            }
+            else{
+                dim = l->var_dims[0];
+            }
+            for(auto j = 0; j < dim;j++){
+                x_lb.set_val(layer_name+","+to_string(j), l->lowers[0].data[j]);
+                x_ub.set_val(layer_name+","+to_string(j), l->uppers[0].data[j]);
+            }
+        }
+    }
 
     var<> x("x", x_lb, x_ub);
     var<int> y("y", 0, 1);

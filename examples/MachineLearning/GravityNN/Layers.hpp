@@ -91,15 +91,15 @@ public:
         if (this->shape.size() != 2) {
             throw std::runtime_error("Cannot transpose tensor with shape " + std::to_string(this->shape.size()));
         }
-        if (!this->_is_initializer) {
+        if (!this->is_initializer) {
             throw std::runtime_error("Cannot transpose non-initializer tensor");
         }
 
         // Tranpose data if needed, it is stored row-major
-        std::vector<float> data = this->B.data;
-        for (size_t i = 0; i < this->B.shape[0]; i++) {
-            for (size_t j = 0; j < this->B.shape[1]; j++) {
-                this->B.data[j * this->B.shape[0] + i] = data[i * this->B.shape[1] + j];
+        std::vector<float> temp_data = this->data;
+        for (size_t i = 0; i < this->shape[0]; i++) {
+            for (size_t j = 0; j < this->shape[1]; j++) {
+                this->data[j * this->shape[0] + i] = temp_data[i * this->shape[1] + j];
             }
         }
     }
@@ -118,9 +118,11 @@ public:
     Layer(const onnx::NodeProto& node, const Initializers& global_initializers) {
         for (const auto& input : node.input()) {
             this->inputs.push_back(input);
+            this->input_names.insert(input);
         }
         for (const auto& output : node.output()) {
             this->outputs.push_back(output);
+            this->output_names.insert(output);
         }
         this->name = node.name();
 
@@ -128,12 +130,12 @@ public:
         for (auto out_name: this->outputs)
         {
             auto lower_name = out_name + "_lower";
-            if (global_initializers.count(lower_name) == 0) {
+            if (global_initializers.count(lower_name) != 0) {
                 auto lower = Tensor(out_name + "_lower", global_initializers);
                 this->lowers.push_back(lower);
             }
             auto upper_name = out_name + "_upper";
-            if (global_initializers.count(lower_name) == 0) {
+            if (global_initializers.count(lower_name) != 0) {
                 auto upper = Tensor(out_name + "_upper", global_initializers);
                 this->uppers.push_back(upper);
             }
@@ -172,6 +174,8 @@ public:
     bool is_activation_func = false;
     std::vector<std::string> inputs;
     std::vector<std::string> outputs;
+    std::set<std::string> input_names;
+    std::set<std::string> output_names;
     std::vector<size_t> var_dims;
 
     std::vector<Tensor> lowers;
@@ -332,10 +336,23 @@ public:
 
 class ReLU : public Layer {
 public:
-    ReLU(const onnx::NodeProto& node, const Initializers& global_initializers): Layer(node, global_initializers) {
+    ReLU(const onnx::GraphProto& graph, const onnx::NodeProto& node, const Initializers& global_initializers): Layer(node, global_initializers) {
         operator_type = _relu;
         this->X = Tensor(this->inputs.at(0), global_initializers);
         this->is_activation_func = true;
+        for (auto vinfo: graph.value_info()) {
+            if (output_names.count(vinfo.name())>0){
+                auto shape = vinfo.type().tensor_type().shape();
+                if (shape.dim_size() != 0)
+                {
+                  int size = shape.dim_size();
+                  for (int i = 0; i < size; ++i)
+                  {
+                    var_dims.push_back(shape.dim(i).dim_value());
+                  }
+                }
+            }
+        }
     }
     void forward(HiddenStates& hidden_states) override {
         auto fX = this->X.get(hidden_states);
