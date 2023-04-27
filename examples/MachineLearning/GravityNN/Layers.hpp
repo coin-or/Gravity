@@ -7,6 +7,7 @@
 #include <gravity/func.h>
 
 typedef std::map<std::string, onnx::TensorProto> Initializers;
+typedef std::map<std::string, onnx::ValueInfoProto> TensorShapes;
 typedef std::map<std::string, gravity::func<float>> HiddenStates;
 
 typedef enum { _gemm, _relu, _conv, _matmul, _add} OType; /* Operator Type */
@@ -35,19 +36,18 @@ class Tensor {
 public:
     Tensor() {}
 
-    Tensor(std::string name, const Initializers& global_initializers) {
+    Tensor(std::string name, const Initializers& global_initializers, const TensorShapes& tensor_shapes) {
         this->name = name;
 
-        if (global_initializers.count(name) == 0) {
-            this->is_initializer = false;
+        this->is_initializer = global_initializers.count(name) != 0;
+
+        this->_get_metadata(tensor_shapes, global_initializers);
+
+        if (!this->is_initializer) {
             return;
         }
 
         auto& tensor = global_initializers.at(name);
-
-        this->is_initializer = true;
-        this->shape = std::vector<size_t>(tensor.dims().begin(), tensor.dims().end());
-
         if (!tensor.raw_data().empty()) {
             // throw std::runtime_error("Tensor " + tensor.name() + " has no data");
             const void* raw_data = tensor.raw_data().data();
@@ -102,65 +102,77 @@ public:
                 this->data[j * this->shape[0] + i] = temp_data[i * this->shape[1] + j];
             }
         }
+
+        // Swap shape
+        std::swap(this->shape[0], this->shape[1]);
     }
 
-    bool is_initializer;
+    void _get_metadata(const TensorShapes& tensor_shapes, const Initializers& global_initializers) {
+        if (tensor_shapes.count(name) > 0) {
+            auto& vinfo = tensor_shapes.at(name);
+            this->shape.clear();
+            for (auto dim : vinfo.type().tensor_type().shape().dim()) {
+                this->shape.push_back(dim.dim_value());
+            }
+        } else if (global_initializers.count(name) > 0) {
+            auto& tensor = global_initializers.at(name);
+            this->shape = std::vector<size_t>(tensor.dims().begin(), tensor.dims().end());
+        } else {
+            throw std::runtime_error("Tensor " + name + " is not an initializer and has no value info. Please run shape inference on model with *NO* dynamic axes.");
+        }
+    }
+
     std::string name;
     std::vector<float> data;
     std::vector<size_t> shape;
 
-
+    bool is_initializer;
 };
 
 // Define the base Layer class
 class Layer {
 public:
-    Layer(const onnx::NodeProto& node, const Initializers& global_initializers) {
+    Layer(const onnx::NodeProto& node, const Initializers& global_initializers, const TensorShapes& shapes) {
         for (const auto& input : node.input()) {
-            this->inputs.push_back(input);
-            this->input_names.insert(input);
+            this->inputs.push_back(Tensor(input, global_initializers, shapes));
         }
         for (const auto& output : node.output()) {
-            this->outputs.push_back(output);
-            this->output_names.insert(output);
+            this->outputs.push_back(Tensor(output, global_initializers, shapes));
         }
         this->name = node.name();
 
         // Try to find upper and lower bounds for each output
-        for (auto out_name: this->outputs)
+        for (auto out: this->outputs)
         {
-            auto lower_name = out_name + "_lower";
+            auto lower_name = out.name + "_lower";
             if (global_initializers.count(lower_name) != 0) {
-                auto lower = Tensor(out_name + "_lower", global_initializers);
+                auto lower = Tensor(lower_name, global_initializers, shapes);
                 this->lowers.push_back(lower);
             }
-            auto upper_name = out_name + "_upper";
+            auto upper_name = out.name + "_upper";
             if (global_initializers.count(lower_name) != 0) {
-                auto upper = Tensor(out_name + "_upper", global_initializers);
+                auto upper = Tensor(upper_name, global_initializers, shapes);
                 this->uppers.push_back(upper);
             }
         }
     }
 
     virtual ~Layer() = default;
-
-    virtual void forward(HiddenStates& hidden_states) = 0;
     virtual void print() const = 0;
 
     void print_io() const {
         std::cout << "| inputs: " << std::endl;
         for (const auto& input : this->inputs) {
-            std::cout << "|   " << input << std::endl;
+            std::cout << "|   " << input.name << std::endl;
         }
         std::cout << "| outputs: " << std::endl;
         for (const auto& output : this->outputs) {
-            std::cout << "|   " << output << std::endl;
+            std::cout << "|   " << output.name << std::endl;
         }
     }
 
     const onnx::AttributeProto* find_attribute(const onnx::NodeProto& node, const std::string& name) {
         for (const auto& attr : node.attribute()) {
-            std::cout << "Name: " << attr.name() << std::endl;
             if (attr.name() == name) {
                 return &attr;
             }
@@ -172,10 +184,8 @@ public:
     std::string name;
     OType operator_type;
     bool is_activation_func = false;
-    std::vector<std::string> inputs;
-    std::vector<std::string> outputs;
-    std::set<std::string> input_names;
-    std::set<std::string> output_names;
+    std::vector<Tensor> inputs;
+    std::vector<Tensor> outputs;
     std::vector<size_t> var_dims;
 
     std::vector<Tensor> lowers;
@@ -188,23 +198,14 @@ public:
     /*
         Y = A * B
     */
-    MatMul(const onnx::NodeProto& node, const Initializers& global_initializers): Layer(node, global_initializers) {
+    MatMul(const onnx::NodeProto& node, const Initializers& global_initializers, const TensorShapes& shapes): Layer(node, global_initializers, shapes) {
         operator_type = _matmul;
         
-
-        this->A = Tensor(this->inputs.at(0), global_initializers);
-        this->B = Tensor(this->inputs.at(1), global_initializers);
+        this->A = this->inputs.at(0);
+        this->B = this->inputs.at(1);
         if(this->B.shape.size()==2){
             this->var_dims = this->B.shape;
         }
-    }
-
-    void forward(HiddenStates& hidden_states) override {
-        auto fA = this->A.get(hidden_states);
-        auto fB = this->B.get(hidden_states);
-        auto Y = fA * fB;
-        Y.eval_all();
-        hidden_states[this->outputs[0]] = Y;
     }
 
     void print() const override{
@@ -226,19 +227,11 @@ public:
     /*
         Y = A + B
     */
-    Add(const onnx::NodeProto& node, const Initializers& global_initializers): Layer(node, global_initializers) {
+    Add(const onnx::NodeProto& node, const Initializers& global_initializers, const TensorShapes& shapes): Layer(node, global_initializers, shapes) {
         operator_type = _add;
-        this->A = Tensor(this->inputs.at(0), global_initializers);
-        this->B = Tensor(this->inputs.at(1), global_initializers);
+        this->A = this->inputs.at(0);
+        this->B = this->inputs.at(1);
         this->var_dims = this->B.shape;
-    }
-
-    void forward(HiddenStates& hidden_states) override {
-        auto fA = this->A.get(hidden_states);
-        auto fB = this->B.get(hidden_states);
-        auto Y = fA + fB;
-        Y.eval_all();
-        hidden_states[this->outputs[0]] = Y;
     }
 
     void print() const override{
@@ -251,7 +244,6 @@ public:
 
     Tensor A;
     Tensor B;
-
 };
 
 class GEMM : public Layer {
@@ -259,7 +251,7 @@ public:
     /*
         Y = alpha * A’ * B’ + beta * C
     */
-    GEMM(const onnx::NodeProto& node, const Initializers& global_initializers): Layer(node, global_initializers) {
+    GEMM(const onnx::NodeProto& node, const Initializers& global_initializers, const TensorShapes& shapes): Layer(node, global_initializers, shapes) {
         operator_type = _gemm;
         const auto* alpha_attr = find_attribute(node, "alpha");
         if (alpha_attr) {
@@ -278,36 +270,19 @@ public:
             this->transB = transB_attr->i();
         }
         
-        this->A = Tensor(this->inputs.at(0), global_initializers);
-        this->B = Tensor(this->inputs.at(1), global_initializers);
+        this->A = this->inputs.at(0);
+        this->B = this->inputs.at(1);
         if(this->B.shape.size()==2){
-            this->var_dims = this->B.shape;
             if(this->transB){
-                this->var_dims[0] = this->B.shape[1];
-                this->var_dims[1] = this->B.shape[0];
+                this->B._transpose();
             }
-            this->B._transpose();
         }
         if (this->inputs.size() == 3) {
-            this->C = Tensor(this->inputs.at(2), global_initializers);
+            this->C = this->inputs.at(2);
             this->has_optional_C = true;
         }
 
-        
-    }
-
-    void forward(HiddenStates& hidden_states) override {
-        auto fA = this->A.get(hidden_states);
-        auto fB = this->B.get(hidden_states);
-        fA._is_transposed = transA;
-        fB._is_transposed = transB;
-        auto Y = this->alpha * fA * fB;
-        Y.eval_all();
-        if (this->has_optional_C) {
-            auto fC = this->C.get(hidden_states);
-            Y += this->beta * fC;
-        }
-        hidden_states[this->outputs[0]] = Y;
+        this->var_dims = this->B.shape;
     }
 
     void print() const override{
@@ -333,35 +308,14 @@ public:
     bool has_optional_C = false;
 };
 
-
-class ReLU : public Layer {
+class Relu : public Layer {
 public:
-    ReLU(const onnx::GraphProto& graph, const onnx::NodeProto& node, const Initializers& global_initializers): Layer(node, global_initializers) {
+    Relu(const onnx::NodeProto& node, const Initializers& global_initializers, const TensorShapes& shapes): Layer(node, global_initializers, shapes) {
         operator_type = _relu;
-        this->X = Tensor(this->inputs.at(0), global_initializers);
+        this->X = this->inputs.at(0);
         this->is_activation_func = true;
-        for (auto vinfo: graph.value_info()) {
-            if (output_names.count(vinfo.name())>0){
-                auto shape = vinfo.type().tensor_type().shape();
-                if (shape.dim_size() != 0)
-                {
-                  int size = shape.dim_size();
-                  for (int i = 0; i < size; ++i)
-                  {
-                    var_dims.push_back(shape.dim(i).dim_value());
-                  }
-                }
-            }
-        }
-    }
-    void forward(HiddenStates& hidden_states) override {
-        auto fX = this->X.get(hidden_states);
 
-        gravity::param<float> zero("zero");
-        zero.set_size(fX.get_dim());
-
-        auto output = gravity::max(fX, zero);
-        hidden_states[this->outputs[0]] = output;
+        this->var_dims = this->X.shape;
     }
 
     void print() const override{

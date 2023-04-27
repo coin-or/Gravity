@@ -7,6 +7,7 @@
 std::vector<Layer*> build_graph(const onnx::GraphProto& graph) {
     std::vector<Layer*> layers;
     Initializers initializers;
+    TensorShapes shapes;
 
     // Parse initializers
     std::cout << "Initializers: " << std::endl;
@@ -14,17 +15,28 @@ std::vector<Layer*> build_graph(const onnx::GraphProto& graph) {
         initializers[initializer.name()] = initializer;
     }
 
+    // ValueInfoProto
+    for (const auto& vinfo : graph.value_info()) {
+        shapes[vinfo.name()] = vinfo;
+    }
+    for (const auto& input : graph.input()) {
+        shapes[input.name()] = input;
+    }
+    for (const auto& output : graph.output()) {
+        shapes[output.name()] = output;
+    }
+
     for (const auto& node : graph.node()) {
         if (node.op_type() == "Gemm") {
-            layers.push_back(new GEMM(node, initializers));
+            layers.push_back(new GEMM(node, initializers, shapes));
         } else if (node.op_type() == "Relu") {
-            layers.push_back(new ReLU(graph, node, initializers));
+            layers.push_back(new Relu(node, initializers, shapes));
         }
         else if (node.op_type() == "MatMul") {
-            layers.push_back(new MatMul(node, initializers));
+            layers.push_back(new MatMul(node, initializers, shapes));
         }
         else if (node.op_type() == "Add") {
-            layers.push_back(new Add(node, initializers));
+            layers.push_back(new Add(node, initializers, shapes));
         }
     }
 
@@ -32,17 +44,6 @@ std::vector<Layer*> build_graph(const onnx::GraphProto& graph) {
         layer->print();
     }
 
-//    gravity::param<float> input("input");
-//    input = {1, 2, 3, 4};
-//    HiddenStates hidden_states;
-//    hidden_states[layers[0]->inputs[0]] = input;
-//
-//    for (const auto& layer : layers) {
-//        layer->forward(hidden_states);
-//    }
-//
-//    auto output = hidden_states[(*layers.end())->outputs[0]];
-//    output.print();
     return layers;
 }
 
