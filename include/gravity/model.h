@@ -6337,37 +6337,13 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
             
         }
         
-        void add_on_off(Constraint<type>& c, const var<int>& on){
+        void add_on_off(Constraint<type>& c, const var<int>& on, bool on_status){
             if (c.get_ftype() != lin_) {
                 throw invalid_argument("Calling add_on_off with a nonlinear constraint.\n");
             }
-//            c._on_off_bin = get_ptr_var<int>(on.get_name());
-//            // all the cases are standardized into the leq form, then for each case, we obtain the _onCoef and _offCoef for the constraint and add it to the model with the proper LHS value for each subset S
-//            if (c.get_ctype() == eq) {
-//                add_constraint(res2.in(*c._indices)<=0);
-                
-//            }
-            
-//            else if (c.get_ctype() == leq) {
-//                get_on_off_coefficients_standard(c);
-//                auto offCoef = c._offCoef.deep_copy();
-//                auto onCoef = c._onCoef.deep_copy();
-//                Constraint<type> res1(c.get_name() + "_on/off");
-//                res1 = LHS - offCoef*(1-on) - onCoef*on;
-//                add_constraint(res1.in(*c._indices)<=0);
-//            }
-//            
-//            else { //if c.get_ctype() == geq
-//                Constraint<type> n_c(c);
-//                n_c *= -1;
-//                n_c._ctype = leq;
-//                get_on_off_coefficients_standard(n_c);
-//                auto offCoef = n_c._offCoef.deep_copy();
-//                auto onCoef = n_c._onCoef.deep_copy();
-//                Constraint<type> res2(c.get_name() + "_on/off");
-//                res2 = -1 * LHS - offCoef*(1-on) - onCoef*on;
-//                add_constraint(res2.in(*c._indices)<=0);
-//            }
+            c._on_off_bin = get_ptr_var<int>(on.get_name(false, true));
+            c._on_off = on_status;
+            add_constraint(c);
         }
         
         

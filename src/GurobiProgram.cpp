@@ -974,10 +974,24 @@ void GurobiProgram::create_grb_constraints(){
                     linlhs += lterm;
                 }
                 linlhs += c->eval(c->get_cst(), i);
-                if(c->_indices)
-                    grb_mod->addConstr(linlhs,sense,0,c->get_name()+"("+c->_indices->_keys->at(i)+")");
-                else
-                    grb_mod->addConstr(linlhs,sense,0,c->get_name());
+                if(c->_indices){
+                    if(c->_on_off_bin){
+                        auto gvar = _grb_vars[c->_on_off_bin->get_id() + c->_on_off_bin->get_id_inst(i)];
+                        grb_mod->addGenConstrIndicator(gvar, c->_on_off, linlhs, sense, 0, c->get_name()+"("+c->_indices->_keys->at(i)+")");
+                    }
+                    else{
+                        grb_mod->addConstr(linlhs,sense,0,c->get_name()+"("+c->_indices->_keys->at(i)+")");
+                    }
+                }
+                else{
+                    if(c->_on_off_bin){
+                        auto gvar = _grb_vars[c->_on_off_bin->get_id() + c->_on_off_bin->get_id_inst(i)];
+                        grb_mod->addGenConstrIndicator(gvar, c->_on_off, linlhs, sense, 0, c->get_name());
+                    }
+                    else{
+                        grb_mod->addConstr(linlhs,sense,0,c->get_name());
+                    }
+                }
             }
             
             // }

@@ -253,13 +253,13 @@ int main (int argc, char * argv[]){
     ReLU = x.in(ReLUs) - (x.in(x_ReLUs)*B.in(B_ReLUs) + C.in(C_ReLUs));
     NN.add(ReLU.in(ReLUs) >= 0);
 
-    Constraint<> ReLU_on("ReLU_on");
-    ReLU_on = x.in(ReLUs) - (x.in(x_ReLUs)*B.in(B_ReLUs) + C.in(C_ReLUs)) - 1000*(1-y.in(ReLUs));
-    NN.add(ReLU_on.in(ReLUs) <= 0);
-    
 //    Constraint<> ReLU_on("ReLU_on");
-//    ReLU_on = x.in(ReLUs) - (x.in(x_ReLUs)*B.in(B_ReLUs) + C.in(C_ReLUs));
-//    NN.add_on_off(ReLU_on.in(ReLUs) <= 0, y.in(ReLUs));
+//    ReLU_on = x.in(ReLUs) - (x.in(x_ReLUs)*B.in(B_ReLUs) + C.in(C_ReLUs)) - 1000*(1-y.in(ReLUs));
+//    NN.add(ReLU_on.in(ReLUs) <= 0);
+    
+    Constraint<> ReLU_on("ReLU_on");
+    ReLU_on = x.in(ReLUs) - (x.in(x_ReLUs)*B.in(B_ReLUs) + C.in(C_ReLUs));
+    NN.add_on_off(ReLU_on.in(ReLUs) <= 0, y.in(ReLUs), true);
 //
     
 //    Constraint<> ReLU_off("ReLU_off");
@@ -268,8 +268,8 @@ int main (int argc, char * argv[]){
 //
 
     Constraint<> ReLU_y_off("ReLU_y_off");
-    ReLU_y_off = x.in(ReLUs) - 1000*y.in(ReLUs);
-    NN.add(ReLU_y_off.in(ReLUs) <= 0);
+    ReLU_y_off = x.in(ReLUs);
+    NN.add_on_off(ReLU_y_off.in(ReLUs) <= 0, y.in(ReLUs), false);
 
 
     Constraint<> Gemm("Gemm");
