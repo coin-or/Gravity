@@ -4,39 +4,43 @@
 #include <vector>
 #include "Layers.hpp"
 
-std::vector<Layer*> build_graph(const onnx::GraphProto& graph) {
-    std::vector<Layer*> layers;
-    Initializers initializers;
-    TensorShapes shapes;
+std::pair<std::vector<Layer*>, std::vector<size_t>> build_graph(std::string fname) {
+    std::fstream input(fname, std::ios::in | std::ios::binary);
+    onnx::ModelProto model;
+    bool isSuccess = model.ParseFromIstream(&input);
+    onnx::GraphProto graph = model.graph();
 
-    // Parse initializers
-    std::cout << "Initializers: " << std::endl;
+    std::vector<Layer*> layers;
+    Tensors tensors;
+    // Tensors with data
     for (const auto& initializer : graph.initializer()) {
-        initializers[initializer.name()] = initializer;
+        tensors[initializer.name()] = Tensor(initializer);
     }
 
-    // ValueInfoProto
+    // Tensor with shape/metadata only
     for (const auto& vinfo : graph.value_info()) {
-        shapes[vinfo.name()] = vinfo;
+        tensors[vinfo.name()] = Tensor(vinfo);
     }
     for (const auto& input : graph.input()) {
-        shapes[input.name()] = input;
+        tensors[input.name()] = Tensor(input);
     }
     for (const auto& output : graph.output()) {
-        shapes[output.name()] = output;
+        tensors[output.name()] = Tensor(output);
     }
 
     for (const auto& node : graph.node()) {
         if (node.op_type() == "Gemm") {
-            layers.push_back(new GEMM(node, initializers, shapes));
+            layers.push_back(new GEMM(node, tensors));
         } else if (node.op_type() == "Relu") {
-            layers.push_back(new Relu(node, initializers, shapes));
+            layers.push_back(new Relu(node, tensors));
         }
         else if (node.op_type() == "MatMul") {
-            layers.push_back(new MatMul(node, initializers, shapes));
+            layers.push_back(new MatMul(node, tensors));
         }
         else if (node.op_type() == "Add") {
-            layers.push_back(new Add(node, initializers, shapes));
+            layers.push_back(new Add(node, tensors));
+        } else {
+            throw std::runtime_error("Unsupported operator " + node.op_type());
         }
     }
 
@@ -44,7 +48,14 @@ std::vector<Layer*> build_graph(const onnx::GraphProto& graph) {
         layer->print();
     }
 
-    return layers;
+    std::vector<size_t> input_dims;
+    if (graph.input_size() > 1) {
+        throw std::runtime_error("Network has more than one input. Not supported.");
+    } else {
+        input_dims = tensors[graph.input(0).name()].shape;
+    }
+
+    return std::make_pair(layers, input_dims);
 }
 
 
@@ -57,13 +68,11 @@ int main (int argc, char * argv[]){
     if(argc>=2){
         fname=argv[1];
     }
-    std::fstream input(fname, std::ios::in | std::ios::binary);
-    onnx::ModelProto model;
-    bool isSuccess = model.ParseFromIstream(&input);
-    onnx::GraphProto graph = model.graph();
 
-    auto layers = build_graph(graph);
-    auto input_dims = get_input_dim(graph.input());/* Getting input layer dim */
+    auto tmp = build_graph(fname);
+    auto layers = tmp.first;
+    auto input_dims = tmp.second;
+
     /* INDEX SETS */
     /* Indexing variables */
     indices x_ids("x_ids"), y_ids("y_ids");/*< x_ids for continuous vars, y_ids for binary vars */
@@ -145,13 +154,13 @@ int main (int argc, char * argv[]){
                 for(auto j = 0; j < l->var_dims[0];j++){
                     for(auto k = 0; k < l->var_dims[1]; k++){
                         key = gemm->name+","+to_string(j)+","+to_string(k);
-                        B.add_val(key, gemm->B.data.at(B_idx++));
+                        B.add_val(key, gemm->B(B_idx++));
                     }
                 }
 //                B.print_vals(3);
                 for(auto j = 0; j < l->var_dims[1];j++){
                     if(gemm->has_optional_C){
-                        C.add_val(l->name+","+to_string(j), gemm->C.data.at(C_idx++));
+                        C.add_val(l->name+","+to_string(j), gemm->C(C_idx++));
                     }
                     if(add_Gemm_constraint){
                         Gemms.add(l->name+","+to_string(j));
@@ -182,7 +191,7 @@ int main (int argc, char * argv[]){
                 for(auto j = 0; j < l->var_dims[0];j++){
                     auto Add_layer = (Add*)l;
                     Adds.add(l->name+","+to_string(j));
-                    B.add_val(l->name+","+to_string(j), Add_layer->B.data[j]);
+                    B.add_val(l->name+","+to_string(j), Add_layer->B(j));
                 }
                 break;
             default:
@@ -234,8 +243,8 @@ int main (int argc, char * argv[]){
                 dim = l->var_dims[0];
             }
             for(auto j = 0; j < dim;j++){
-                x_lb.set_val(layer_name+","+to_string(j), l->lowers[0].data[j]);
-                x_ub.set_val(layer_name+","+to_string(j), l->uppers[0].data[j]);
+                x_lb.set_val(layer_name+","+to_string(j), l->lowers[0](j));
+                x_ub.set_val(layer_name+","+to_string(j), l->uppers[0](j));
             }
         }
     }
