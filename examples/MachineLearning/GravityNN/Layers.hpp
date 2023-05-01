@@ -57,7 +57,7 @@ public:
             data.resize(num_floats);
             std::memcpy(data.data(), raw_data, num_bytes);
         } else {
-            std::cout << "Reading float data" << std::endl;
+//            std::cout << "Reading float data" << std::endl;
             this->data.clear();
             for (auto val : tensor.float_data()) {
                 data.push_back(val);

@@ -3,6 +3,8 @@
 #include <onnx.pb.h>
 #include <vector>
 #include "Layers.hpp"
+#include "smtlib2abstractparser.h"
+#include "smtlib2abstractparser_private.h"
 
 std::vector<Layer*> build_graph(const onnx::GraphProto& graph) {
     std::vector<Layer*> layers;
@@ -40,9 +42,9 @@ std::vector<Layer*> build_graph(const onnx::GraphProto& graph) {
         }
     }
 
-    for (const auto& layer : layers) {
-        layer->print();
-    }
+//    for (const auto& layer : layers) {
+//        layer->print();
+//    }
 
     return layers;
 }
@@ -246,7 +248,7 @@ int main (int argc, char * argv[]){
     NN.add(y.in(y_ids));
 
     /* Objective function */
-    NN.max(x(layers.back()->name+",0"));
+    NN.min(x(layers.back()->name+",0"));
 
     /* Constraints */
     Constraint<> ReLU("ReLU");
@@ -280,8 +282,8 @@ int main (int argc, char * argv[]){
     Add = x.in(Adds) + B.in(Adds);
     NN.add(Add.in(Adds) == 0);
 
-    NN.print();
-    NN.write();
+//    NN.print();
+//    NN.write();
     
 
     solver<> S(NN,gurobi);

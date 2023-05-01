@@ -39,6 +39,9 @@ option(HiGHS "Link to HiGHS libraries" OFF)
 # Find IPOPT (optional)
 option(Ipopt "Link to IPOPT libraries" ON)
 
+option(SMTLIB "Link to SMTLIB libraries" ON)
+
+
 option(MP "Link to AMPL MP libraries" OFF)
 
 option(CoinUtils "Link to CoinUtils libraries" OFF)
@@ -291,6 +294,18 @@ include(ExternalIpopt)
 endif (IPOPT_FOUND)
 endif(Ipopt)
 
+#SMTLIB
+find_package(SMTLIB)
+if (SMTLIB_FOUND)
+    message("-- Found SMTLIB : ${SMTLIB_INCLUDE_DIRS}")
+else(SMTLIB_FOUND)
+    message("-- Cannot find SMTLIB")
+    include(ExternalSMTLIB)
+ set(SMTLIB_INCLUDE_DIR ${THIRDPARTY_INSTALL_PATH}/Install/SMTLIB)
+ set(SMTLIB_LIBRARIES ${THIRDPARTY_INSTALL_PATH}/Install/SMTLIB)
+endif (SMTLIB_FOUND)
+
+include_directories(${SMTLIB_INCLUDE_DIR})
 # Eigen
 find_package(Eigen)
 if (EIGEN_FOUND)
