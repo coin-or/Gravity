@@ -5,9 +5,9 @@
 #include <vector>
 #include <gravity/model.h>
 #include <gravity/func.h>
+#include "utils.hpp"
 
-
-typedef enum { _gemm, _relu, _conv, _matmul, _add} OType; /* Operator Type */
+typedef enum { _gemm, _relu, _conv, _matmul, _add, _flatten } OType; /* Operator Type */
 
 class Tensor {
 public:
@@ -275,4 +275,134 @@ public:
     }
 
     Tensor X;
+};
+
+class Conv : public Layer {
+public:
+    Conv(const onnx::NodeProto& node, const Tensors& tensors): Layer(node, tensors) {
+        operator_type = _conv;
+        // -2 because we don't count the batch and channel dimensions
+        size_t num_spatial_dims = this->inputs.at(0).shape.size() - 2;
+
+        this->dilations = std::vector<size_t>(num_spatial_dims, 1);
+        this->pads = std::vector<size_t>(num_spatial_dims*2, 0);
+        this->strides = std::vector<size_t>(num_spatial_dims, 1);
+
+        if (const auto* auto_pad_attr = find_attribute(node, "auto_pad")) {
+            this->auto_pad = auto_pad_attr->s();
+            if (this->auto_pad != "NOTSET") {
+                throw std::runtime_error("Conv: Only auto_pad=NOTSET is supported");
+            }
+        }
+        
+        if (const auto* group_attr = find_attribute(node, "group")) {
+            this->group = group_attr->i();
+            if (this->group != 1) {
+                throw std::runtime_error("Conv: Only group=1 is supported");
+            }
+        }
+
+        if (const auto* dilations_attr = find_attribute(node, "dilations")) {
+            this->dilations = std::vector<size_t>(dilations_attr->ints().begin(), dilations_attr->ints().end());
+            if (this->dilations.size() != 2) {
+                throw std::runtime_error("Conv: Only 2D dilations is supported");
+            }
+            if (this->dilations[0] != 1 || this->dilations[1] != 1) {
+                throw std::runtime_error("Conv: Only dilations=1 is supported");
+            }
+        }
+        
+        if (const auto* kernel_shape_attr = find_attribute(node, "kernel_shape")) {
+            this->kernel_shape = std::vector<size_t>(kernel_shape_attr->ints().begin(), kernel_shape_attr->ints().end());
+            if (this->kernel_shape.size() != 2) {
+                throw std::runtime_error("Conv: Only 2D kernel_shape is supported");
+            }
+        } else {
+            throw std::runtime_error("Conv: kernel_shape attribute is required for us. If you see this error, go annoy Haydn.");
+        }
+
+        if (const auto* pads_attr = find_attribute(node, "pads")) {
+            this->pads = std::vector<size_t>(pads_attr->ints().begin(), pads_attr->ints().end());
+            if (this->pads.size() != 4) {
+                throw std::runtime_error("Conv: Only 4D pads is supported");
+            }
+        }
+
+        if (const auto* strides_attr = find_attribute(node, "strides")) {
+            this->strides = std::vector<size_t>(strides_attr->ints().begin(), strides_attr->ints().end());
+            if (this->strides.size() != 2) {
+                throw std::runtime_error("Conv: Only 2D strides is supported");
+            }
+        }
+    }
+
+    void print() const override{
+        std::cout << "---------------------------------" << std::endl;
+        std::cout << "| Conv: " << this->name << std::endl;
+        std::cout << "---------------------------------" << std::endl;
+        std::cout << "| auto_pad: "  << this->auto_pad << std::endl;
+        std::cout << "| group: "   << this->group << std::endl;
+        std::cout << "| dilations: " << print_vector(this->dilations) << std::endl;
+        std::cout << "| kernel_shape: " << print_vector(this->kernel_shape) << std::endl;
+        std::cout << "| pads: " << print_vector(this->pads) << std::endl;
+        std::cout << "| strides: " << print_vector(this->strides) << std::endl;
+        this->print_io();
+        std::cout << "---------------------------------" << std::endl;
+    }
+
+    std::string auto_pad = "NOTSET";
+    size_t group = 1;
+
+    std::vector<size_t> dilations;
+    std::vector<size_t> kernel_shape;
+    std::vector<size_t> pads;
+    std::vector<size_t> strides;
+
+    /*
+    auto_pad : string (default is NOTSET)
+        auto_pad must be either NOTSET, SAME_UPPER, SAME_LOWER or VALID. Where default value is NOTSET, 
+        which means explicit padding is used. SAME_UPPER or SAME_LOWER mean pad the input so that
+        `output_shape[i] = ceil(input_shape[i] / strides[i])` for each axis `i`. The padding is split 
+        between the two sides equally or almost equally (depending on whether it is even or odd). 
+        In case the padding is an odd number, the extra padding is added at the end for SAME_UPPER 
+        and at the beginning for SAME_LOWER.
+    dilations : list of ints
+        dilation value along each spatial axis of the filter. If not present, the dilation defaults is 
+        1 along each spatial axis.
+    group : int (default is 1)
+        number of groups input channels and output channels are divided into.
+    kernel_shape : list of ints
+        The shape of the convolution kernel. If not present, should be inferred from input W.
+    pads : list of ints
+        Padding for the beginning and ending along each spatial axis, it can take any value greater than
+        or equal to 0. The value represent the number of pixels added to the beginning and end part of 
+        the corresponding axis. `pads` format should be as follow [x1_begin, x2_begin...x1_end, x2_end,...],
+        where xi_begin the number of pixels added at the beginning of axis `i` and xi_end, the number of 
+        pixels added at the end of axis `i`. This attribute cannot be used simultaneously with auto_pad 
+        attribute. If not present, the padding defaults to 0 along start and end of each spatial axis.
+    strides : list of ints
+        Stride along each spatial axis. If not present, the stride defaults is 1 along each spatial axis.
+    */
+};
+
+class Flatten : public Layer {
+public:
+    Flatten(const onnx::NodeProto& node, const Tensors& tensors): Layer(node, tensors) {
+        operator_type = _flatten;
+
+        if (const auto* axis_attr = find_attribute(node, "axis")) {
+            this->axis = axis_attr->i();
+        }
+    }
+
+    void print() const override{
+        std::cout << "---------------------------------" << std::endl;
+        std::cout << "| Flatten: " << this->name << std::endl;
+        std::cout << "---------------------------------" << std::endl;
+        std::cout << "| axis: " << this->axis << std::endl;
+        this->print_io();
+        std::cout << "---------------------------------" << std::endl;
+    }
+
+    int axis;
 };

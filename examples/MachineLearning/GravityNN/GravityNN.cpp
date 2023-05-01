@@ -33,12 +33,14 @@ std::pair<std::vector<Layer*>, std::vector<size_t>> build_graph(std::string fnam
             layers.push_back(new GEMM(node, tensors));
         } else if (node.op_type() == "Relu") {
             layers.push_back(new Relu(node, tensors));
-        }
-        else if (node.op_type() == "MatMul") {
+        } else if (node.op_type() == "MatMul") {
             layers.push_back(new MatMul(node, tensors));
-        }
-        else if (node.op_type() == "Add") {
+        } else if (node.op_type() == "Add") {
             layers.push_back(new Add(node, tensors));
+        } else if (node.op_type() == "Conv") {
+            layers.push_back(new Conv(node, tensors));
+        } else if (node.op_type() == "Flatten") {
+            layers.push_back(new Flatten(node, tensors));
         } else {
             throw std::runtime_error("Unsupported operator " + node.op_type());
         }
@@ -64,7 +66,7 @@ std::pair<std::vector<Layer*>, std::vector<size_t>> build_graph(std::string fnam
 
 using namespace gravity;
 int main (int argc, char * argv[]){
-    string fname = string(prj_dir)+"/data_sets/VNN/tll_bound.onnx";
+    string fname = string(prj_dir)+"/data_sets/VNN/convnet.onnx";
     if(argc>=2){
         fname=argv[1];
     }
