@@ -1,6 +1,10 @@
 set(SMTLIB_ROOT_DIR "$ENV{SMTLIB_ROOT_DIR}" CACHE PATH "SMTLIB root directory.")
 message("Looking for SMTLIB in ${SMTLIB_ROOT_DIR}")
 
+find_path(SMTLIB_INCLUDE_DIR
+	NAMES gmp.h 
+	HINTS /usr/local/include	
+)
 
 find_path(SMTLIB_INCLUDE_DIR
 	NAMES smtlib2utils.h 

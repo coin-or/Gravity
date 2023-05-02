@@ -277,6 +277,7 @@ public:
     Tensor X;
 };
 
+/* The convolution operator consumes an input tensor and a filter, and computes the output. */
 class Conv : public Layer {
 public:
     Conv(const onnx::NodeProto& node, const Tensors& tensors): Layer(node, tensors) {

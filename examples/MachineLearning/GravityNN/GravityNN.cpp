@@ -3,8 +3,7 @@
 #include <onnx.pb.h>
 #include <vector>
 #include "Layers.hpp"
-#include "smtlib2abstractparser.h"
-#include "smtlib2abstractparser_private.h"
+//#include "smtlib2yices.h"
 
 std::pair<std::vector<Layer*>, std::vector<size_t>> build_graph(std::string fname) {
     std::fstream input(fname, std::ios::in | std::ios::binary);
@@ -42,7 +41,7 @@ std::pair<std::vector<Layer*>, std::vector<size_t>> build_graph(std::string fnam
         } else if (node.op_type() == "Conv") {
             layers.push_back(new Conv(node, tensors));
         } else if (node.op_type() == "Flatten") {
-            layers.push_back(new Flatten(node, tensors));
+//            layers.push_back(new Flatten(node, tensors));
         } else {
             throw std::runtime_error("Unsupported operator " + node.op_type());
         }
@@ -76,9 +75,9 @@ int main (int argc, char * argv[]){
     if(argc>=2){
         fname_onnx=argv[1];
     }
-    smtlib2_yices_parser *yp = smtlib2_yices_parser_new();
-    smtlib2_abstract_parser_parse((smtlib2_abstract_parser *)yp, stdin);
-    smtlib2_yices_parser_delete(yp);
+//    smtlib2_yices_parser *yp = smtlib2_yices_parser_new();
+//    smtlib2_abstract_parser_parse((smtlib2_abstract_parser *)yp, stdin);
+//    smtlib2_yices_parser_delete(yp);
 
     auto tmp = build_graph(fname_onnx);
     auto layers = tmp.first;
@@ -89,13 +88,15 @@ int main (int argc, char * argv[]){
     indices x_ids("x_ids"), y_ids("y_ids");/*< x_ids for continuous vars, y_ids for binary vars */
 
     /* Indexing params */
-    indices B_ids("B_ids"), C_ids("C_ids");/*< x_ids for continuous vars, y_ids for binary vars */
+    indices B_ids("B_ids"), C_ids("C_ids"), W_ids("W_ids");/*< x_ids for continuous vars, y_ids for binary vars */
 
-    param<> B("B"), C("C");
+    param<> B("B"), C("C"), W("W");
     B.in(B_ids);
     C.in(C_ids);
+    W.in(W_ids);
     /* Creating variables' indexing sets */
-    for(auto j = 0; j < input_dims[1];j++){
+    size_t n_input = accumulate(input_dims.begin(), input_dims.end(), 1, multiplies<size_t>());
+    for(auto j = 0; j < n_input;j++){
         x_ids.add("input"+to_string(j));
     }
     auto nb_layers = layers.size();
@@ -106,47 +107,44 @@ int main (int argc, char * argv[]){
         if(i+1<nb_layers && l->var_dims.size()==2 && layers[i+1]->operator_type==_relu){/*< The next layer is an activation layer (e.g. ReLU), no need to introduce variables for this layer */
             continue;
         }
-        if(l->is_activation_func){/*< Activation functions (e.g., ReLU) use the output of the previous layer to index the output vars */
-            dims = layers[i-1]->var_dims;
-        }
-        else {
-            dims = l->var_dims;
-        }
-        if(dims.size()==2){
-            for(auto j = 0; j < dims[1];j++){
-                x_ids.add(l->name+","+to_string(j));
-                if(l->operator_type==_relu){
-                    y_ids.add(l->name+","+to_string(j));
-                }
+        for(auto j = 0; j < l->outputs[0].numel;j++){
+            x_ids.add(l->name+","+to_string(j));
+            if(l->operator_type==_relu){
+                y_ids.add(l->name+","+to_string(j));
             }
         }
-        else{
-            for(auto j = 0; j < dims[0];j++){
-                x_ids.add(l->name+","+to_string(j));
-            }
-        }
-
     }
     /* Indexing constraints */
-    indices ReLUs("ReLUs"), x_ReLUs("x_ReLUs"), B_ReLUs("B_ReLUs"), C_ReLUs("C_ReLUs"), Gemms("Gemms"), x_Gemms_in("x_Gemms_in"), x_Gemms_out("x_Gemms_out"), Adds("Adds"), x_Adds("x_Adds"), MatMuls("MatMuls"), x_MatMuls("MatMuls"), B_Gemm("B_Gemm");
+    indices ReLUs("ReLUs"), Conv_ReLUs("Conv_ReLUs"), Gemm_ReLUs("Gemm_ReLUs"), x_Gemm_ReLUs("x_Gemm_ReLUs"), x_Conv_ReLUs("x_Conv_ReLUs"), B_Gemm_ReLUs("B_Gemm_ReLUs"), C_Gemm_ReLUs("C_Gemm_ReLUs"), B_Conv_ReLUs("B_Conv_ReLUs"), Gemms("Gemms"), x_Gemms_in("x_Gemms_in"), x_Convs_in("x_Convs_in"), x_Gemms_out("x_Gemms_out"), Adds("Adds"), x_Adds("x_Adds"), MatMuls("MatMuls"), x_MatMuls("MatMuls"), B_Gemm("B_Gemm"), W_Conv("W_Conv"), Convs("Convs");
+    Conv_ReLUs = ReLUs;
+    Gemm_ReLUs = ReLUs;
     B_Gemm = B_ids;
-    B_ReLUs = B_ids;
-    C_ReLUs = C_ids;
-    x_ReLUs = x_ids;
+    B_Gemm_ReLUs = B_ids;
+    B_Conv_ReLUs = B_ids;
+    C_Gemm_ReLUs = C_ids;
+    x_Gemm_ReLUs = x_ids;
+    x_Conv_ReLUs = x_ids;
     x_Gemms_in = x_ids;
     x_Gemms_out = x_ids;
     x_MatMuls = x_ids;
     x_Adds = x_ids;
-    size_t relu_row_id = 0, gemm_row_id = 0;
+    size_t relu_row_id = 0, gemm_row_id = 0, conv_row_id = 0;
     string key;
     for(auto i = 0; i<nb_layers; i++){
         auto l = layers[i];
         switch (l->operator_type) {
             case _relu:
                 /* Creating ReLU indexing sets */
-                if(layers[i-1]->var_dims.size()==2){
-                    for(auto j = 0; j < layers[i-1]->var_dims[1];j++){
+                if(layers[i-1]->operator_type==_gemm){
+                    for(auto j = 0; j < layers[i-1]->outputs[0].numel;j++){
                         ReLUs.add(l->name+","+to_string(j));
+                        Gemm_ReLUs.add_ref(l->name+","+to_string(j));
+                    }
+                }
+                else if(layers[i-1]->operator_type==_conv){
+                    for(auto j = 0; j < layers[i-1]->outputs[0].numel;j++){
+                        ReLUs.add(l->name+","+to_string(j));
+                        Conv_ReLUs.add_ref(l->name+","+to_string(j));
                     }
                 }
                 else{
@@ -155,7 +153,52 @@ int main (int argc, char * argv[]){
                     }
                 }
                 break;
-
+            case _conv:{
+                bool add_Conv_constraint = true;
+                if(i+1<nb_layers && layers[i+1]->operator_type==_relu)
+                    add_Conv_constraint = false;
+                auto conv = (Conv*)l;
+                size_t W_idx = 0, B_idx = 0;
+                for(auto h = 0; h < l->inputs[1].shape[0]; h++) {
+                    for(auto i = 0; i < l->inputs[1].shape[1]; i++) {
+                        for(auto j = 0; j < l->inputs[1].shape[2]; j++) {
+                            for(auto k = 0; k < l->inputs[1].shape[3]; k++) {
+                                key = conv->name+","+to_string(h)+","+to_string(i)+","+to_string(j)+","+to_string(k);
+                                W.add_val(key, conv->inputs[1](W_idx++));
+                            }
+                        }
+                    }
+                }
+                for(auto h = 0; h < l->inputs[2].shape[0]; h++) {
+                    B.add_val(l->name+","+to_string(h), conv->inputs[2](B_idx++));
+                    if(add_Conv_constraint){
+                        Convs.add(l->name+","+to_string(h));
+                    }
+                }
+                
+                if(!add_Conv_constraint){
+                    for(auto h = 0; h < l->outputs[0].numel; h++) {
+                            B_Conv_ReLUs.add_ref(l->name+","+to_string(h%l->inputs[2].shape[0]));
+                    }
+                }
+                for(auto k = 0; k < l->inputs[0].numel; k++){
+                    key = conv->name+","+to_string(k);
+                    if(add_Conv_constraint){
+                        if(i==0){
+                            x_Gemms_in.add_in_row(gemm_row_id, "input"+to_string(k));
+                        }
+                        else{
+                            x_Gemms_in.add_in_row(gemm_row_id, layers[i-1]->name+","+to_string(k));
+                        }
+                    }
+                }
+                    if(add_Conv_constraint){
+                        conv_row_id++;
+                    }
+//                }
+//                B.print_vals(6);
+                break;
+            }
             case _gemm:{
                 bool add_Gemm_constraint = true;
                 if(i+1<nb_layers && layers[i+1]->operator_type==_relu)
@@ -177,7 +220,7 @@ int main (int argc, char * argv[]){
                         Gemms.add(l->name+","+to_string(j));
                     }
                     else{
-                        C_ReLUs.add_ref(l->name+","+to_string(j));
+                        C_Gemm_ReLUs.add_ref(l->name+","+to_string(j));
                     }
                     for(auto k = 0; k < l->var_dims[0]; k++){
                         key = gemm->name+","+to_string(k)+","+to_string(j);
@@ -212,21 +255,49 @@ int main (int argc, char * argv[]){
 
     for(auto i = 0; i<nb_layers; i++){
         auto l = layers[i];
-        if(i+1<nb_layers && l->var_dims.size()==2 && layers[i+1]->operator_type==_relu){/*< The next layer is an activation layer (e.g. ReLU), no need to introduce variables for this layer */
+        if(i+1<nb_layers && l->operator_type==_gemm && layers[i+1]->operator_type==_relu){/*< The next layer is an activation layer (e.g. ReLU), no need to introduce variables for this layer */
             for(auto j = 0; j < l->var_dims[1];j++){
                 for(auto k = 0; k < l->var_dims[0];k++){
                     if(i==0)
-                        x_ReLUs.add_in_row(relu_row_id, "input"+to_string(k));
+                        x_Gemm_ReLUs.add_in_row(relu_row_id, "input"+to_string(k));
                     else
-                        x_ReLUs.add_in_row(relu_row_id, layers[i-1]->name+","+to_string(k));
-                    B_ReLUs.add_in_row(relu_row_id, l->name+","+to_string(k)+","+to_string(j));
+                        x_Gemm_ReLUs.add_in_row(relu_row_id, layers[i-1]->name+","+to_string(k));
+                    B_Gemm_ReLUs.add_in_row(relu_row_id, l->name+","+to_string(k)+","+to_string(j));
                 }
                 relu_row_id++;
 
             }
         }
+        // The equation convolves the filter with the specified input region
+        // Iterate over the filter
+        if(i+1<nb_layers && l->operator_type==_conv && layers[i+1]->operator_type==_relu){/*< The next layer is an activation layer (e.g. ReLU), no need to introduce variables for this layer */
+            auto conv = (Conv*)l;
+            string lname = l->name+",";
+            if(i==0)
+                lname = "input";
+            for(auto i = 0; i < l->outputs[0].shape[3]; i++) {
+                for(auto j = 0; j < l->outputs[0].shape[2]; j++) {
+                    for(auto k = 0; k < l->outputs[0].shape[1]; k++) {
+                        
+                        for(auto di = 0; di < l->inputs[1].shape[3]; di++) {
+                            for(auto dj = 0; dj < l->inputs[1].shape[2]; dj++) {
+                                for(auto dk = 0; dk < l->inputs[1].shape[1]; dk++) {
+                                    auto w_ind = (conv->strides[0]*i+di - conv->pads[0]);
+                                    auto h_ind = (conv->strides[1]*j+dj - conv->pads[3]);
+                                    if(h_ind < conv->inputs[0].shape[2] && h_ind >= 0 && w_ind < conv->inputs[0].shape[3] && w_ind >= 0){
+                                        x_Conv_ReLUs.add_in_row(conv_row_id, lname+to_string(dk*conv->inputs[0].shape[2]*conv->inputs[0].shape[3] + w_ind*conv->inputs[0].shape[3] + h_ind));
+                                        W_Conv.add_in_row(conv_row_id, conv->name+","+to_string(k)+","+to_string(dk)+","+to_string(di)+","+to_string(dj));
+                                    }
+                                }
+                            }
+                        }
+                        conv_row_id++;
+                    }
+                }
+            }
+        }
     }
-    Model<> NN("NN_"+fname.substr(fname.find_last_of("/")));
+    Model<> NN("NN_"+fname_onnx.substr(fname_onnx.find_last_of("/")));
     param<> x_lb("x_lb"), x_ub("x_ub");
     x_lb.in(x_ids);x_ub.in(x_ids);
     x_lb = -1000;
@@ -246,14 +317,8 @@ int main (int argc, char * argv[]){
             continue;
         auto layer_name = l->name;
         size_t dim = 0;
-        if(l->lowers.size()>0){
-            if(l->var_dims.size()==2){
-                dim = l->var_dims[1];
-            }
-            else{
-                dim = l->var_dims[0];
-            }
-            for(auto j = 0; j < dim;j++){
+        if(l->operator_type!=_flatten & l->lowers.size()>0){
+            for(auto j = 0; j < l->outputs[0].numel;j++){
                 x_lb.set_val(layer_name+","+to_string(j), l->lowers[0](j));
                 x_ub.set_val(layer_name+","+to_string(j), l->uppers[0](j));
             }
@@ -266,20 +331,25 @@ int main (int argc, char * argv[]){
     NN.add(y.in(y_ids));
 
     /* Objective function */
-    NN.min(x(layers.back()->name+",0"));
+    NN.max(x(layers.back()->name+",0"));
 
+    
+    Constraint<> Conv_ReLU("Conv_ReLU");
+    Conv_ReLU = x.in(Conv_ReLUs) -  (x.in(x_Conv_ReLUs)*W.in(W_Conv) + B.in(B_Conv_ReLUs));
+    NN.add(Conv_ReLU.in(Conv_ReLUs) >= 0);
+    
     /* Constraints */
-    Constraint<> ReLU("ReLU");
-    ReLU = x.in(ReLUs) - (x.in(x_ReLUs)*B.in(B_ReLUs) + C.in(C_ReLUs));
-    NN.add(ReLU.in(ReLUs) >= 0);
+    Constraint<> Gemm_ReLU("Gemm_ReLU");
+    Gemm_ReLU = x.in(Gemm_ReLUs) - (x.in(x_Gemm_ReLUs)*B.in(B_Gemm_ReLUs) + C.in(C_Gemm_ReLUs));
+    NN.add(Gemm_ReLU.in(Gemm_ReLUs) >= 0);
 
 //    Constraint<> ReLU_on("ReLU_on");
 //    ReLU_on = x.in(ReLUs) - (x.in(x_ReLUs)*B.in(B_ReLUs) + C.in(C_ReLUs)) - 1000*(1-y.in(ReLUs));
 //    NN.add(ReLU_on.in(ReLUs) <= 0);
     
     Constraint<> ReLU_on("ReLU_on");
-    ReLU_on = x.in(ReLUs) - (x.in(x_ReLUs)*B.in(B_ReLUs) + C.in(C_ReLUs));
-    NN.add_on_off(ReLU_on.in(ReLUs) <= 0, y.in(ReLUs), true);
+    ReLU_on = x.in(Gemm_ReLUs) - (x.in(x_Gemm_ReLUs)*B.in(B_Gemm_ReLUs) + C.in(C_Gemm_ReLUs));
+    NN.add_on_off(ReLU_on.in(Gemm_ReLUs) <= 0, y.in(Gemm_ReLUs), true);
 //
     
 //    Constraint<> ReLU_off("ReLU_off");
@@ -288,19 +358,24 @@ int main (int argc, char * argv[]){
 //
 
     Constraint<> ReLU_y_off("ReLU_y_off");
-    ReLU_y_off = x.in(ReLUs);
-    NN.add_on_off(ReLU_y_off.in(ReLUs) <= 0, y.in(ReLUs), false);
+    ReLU_y_off = x.in(Gemm_ReLUs);
+    NN.add_on_off(ReLU_y_off.in(Gemm_ReLUs) <= 0, y.in(Gemm_ReLUs), false);
 
 
     Constraint<> Gemm("Gemm");
     Gemm = x.in(Gemms) - (x.in(x_Gemms_in)*B.in(B_Gemm) + C.in(Gemms));
     NN.add(Gemm.in(Gemms) == 0);
 
+    Constraint<> Conv("Conv");
+    Conv = x.in(Convs) - (x.in(x_Convs_in)*W.in(W_Conv) + B.in(Convs));
+    NN.add(Conv.in(Convs) == 0);
+
+    
     Constraint<> Add("Add");
     Add = x.in(Adds) + B.in(Adds);
     NN.add(Add.in(Adds) == 0);
 
-//    NN.print();
+    NN.print();
 //    NN.write();
     
 

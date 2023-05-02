@@ -296,6 +296,7 @@ endif(Ipopt)
 
 #SMTLIB
 find_package(SMTLIB)
+include_directories(${PROJECT_SOURCE_DIR}/thirdparty/yices-1.0.40/include)
 if (SMTLIB_FOUND)
     message("-- Found SMTLIB : ${SMTLIB_INCLUDE_DIRS}")
 else(SMTLIB_FOUND)
