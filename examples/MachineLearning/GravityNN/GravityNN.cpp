@@ -68,12 +68,19 @@ std::pair<std::vector<Layer*>, std::vector<size_t>> build_graph(std::string fnam
 
 using namespace gravity;
 int main (int argc, char * argv[]){
-    string fname = string(prj_dir)+"/data_sets/VNN/convnet.onnx";
+    string fname_onnx = string(prj_dir)+"/data_sets/VNN/mnist_x6_bounded.onnx";
     if(argc>=2){
-        fname=argv[1];
+        fname_onnx=argv[1];
     }
+    string fname_vnnlib = string(prj_dir)+"/data_sets/VNN/mnist_x6_bounded.vnnlib";
+    if(argc>=2){
+        fname_onnx=argv[1];
+    }
+    smtlib2_yices_parser *yp = smtlib2_yices_parser_new();
+    smtlib2_abstract_parser_parse((smtlib2_abstract_parser *)yp, stdin);
+    smtlib2_yices_parser_delete(yp);
 
-    auto tmp = build_graph(fname);
+    auto tmp = build_graph(fname_onnx);
     auto layers = tmp.first;
     auto input_dims = tmp.second;
 

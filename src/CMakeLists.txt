@@ -60,6 +60,10 @@ endif()
 
 
 add_library(gravity STATIC ${SOURCES} ${HEADERS})
+if(ADD_SMTLIB)
+ add_dependencies(gravity SMTLIB)
+endif(ADD_SMTLIB)
+
 if(ADD_EIGEN)
  add_dependencies(gravity eigen)
 endif(ADD_EIGEN)
