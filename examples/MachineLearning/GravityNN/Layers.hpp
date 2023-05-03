@@ -5,80 +5,10 @@
 #include <vector>
 #include <gravity/model.h>
 #include <gravity/func.h>
-#include "utils.hpp"
+#include "Tensor.hpp"
 
 typedef enum { _gemm, _relu, _conv, _matmul, _add, _flatten } OType; /* Operator Type */
 
-class Tensor {
-public:
-    Tensor() {}
-
-    Tensor(const onnx::TensorProto& tensor) {
-        this->name = tensor.name();
-        this->is_initializer = true;
-
-        this->shape = std::vector<size_t>(tensor.dims().begin(), tensor.dims().end());
-        this->numel = std::accumulate(this->shape.begin(), this->shape.end(), 1, std::multiplies<size_t>());
-        if (!tensor.raw_data().empty()) {
-            const void* raw_data = tensor.raw_data().data();
-            data.resize(this->numel);
-            std::memcpy(data.data(), raw_data, this->numel * sizeof(float));
-        } else if (!tensor.float_data().empty()) {
-            this->data = std::vector<float>(tensor.float_data().begin(), tensor.float_data().end());
-        } else {
-            throw std::runtime_error("Tensor " + tensor.name() + " has data in neither raw_data nor float_data.");
-        }
-    }
-
-    Tensor(const onnx::ValueInfoProto& vinfo) {
-        this->name = vinfo.name();
-        this->is_initializer = false;
-
-        this->shape.clear();
-        for (auto dim : vinfo.type().tensor_type().shape().dim()) {
-            this->shape.push_back(dim.dim_value());
-        }
-        this->numel = std::accumulate(this->shape.begin(), this->shape.end(), 1, std::multiplies<size_t>());
-    }
-
-    void _transpose() {
-        if (this->shape.size() != 2) {
-            throw std::runtime_error("Cannot transpose tensor with shape " + std::to_string(this->shape.size()));
-        }
-        if (!this->is_initializer) {
-            throw std::runtime_error("Cannot transpose non-initializer tensor");
-        }
-
-        // Tranpose data if needed, it is stored row-major
-        std::vector<float> temp_data = this->data;
-        for (size_t i = 0; i < this->shape[0]; i++) {
-            for (size_t j = 0; j < this->shape[1]; j++) {
-                this->data[j * this->shape[0] + i] = temp_data[i * this->shape[1] + j];
-            }
-        }
-
-        // Swap shape
-        std::swap(this->shape[0], this->shape[1]);
-    }
-
-    float operator()(size_t i) const {
-        if (!this->is_initializer) {
-            throw std::runtime_error("Reading from non-initializer tensor. Perhaps you're assuming this tensor is a weight when it's actually an output of a previous layer?");
-        }
-        return this->data.at(i);
-    }
-
-    std::string name;
-    std::vector<size_t> shape;
-    size_t numel;
-    bool is_initializer;
-
-private:
-    std::vector<float> data;
-};
-typedef std::map<std::string, Tensor> Tensors;
-
-// Define the base Layer class
 class Layer {
 public:
     Layer(const onnx::NodeProto& node, const Tensors& tensors) {
@@ -130,7 +60,10 @@ public:
     // Name of the layer
     std::string name;
     OType operator_type;
+
     bool is_activation_func = false;
+    bool is_pre_activation = false;
+
     std::vector<Tensor> inputs;
     std::vector<Tensor> outputs;
     std::vector<size_t> var_dims;
@@ -407,3 +340,4 @@ public:
 
     int axis;
 };
+
