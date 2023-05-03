@@ -19,10 +19,10 @@ std::string print_vector(const std::vector<T>& v) {
 
 template <typename T>
 std::string vec_to_index(const std::vector<T>& v) {
-    std::string out = ",";
-    for (size_t i = 0; i < v.size()-1; ++i) {
-        out += std::to_string(v[i]) + ",";
+    std::string out;
+    out.reserve(v.size()*2);
+    for (auto& val : v) {
+        out += "," + std::to_string(val);
     }
-    out += std::to_string(v[v.size()-1]);
     return out;
 }

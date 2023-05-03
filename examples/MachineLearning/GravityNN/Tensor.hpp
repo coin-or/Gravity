@@ -64,6 +64,9 @@ public:
     }
 
     void add_params(gravity::param<>& p, std::string& name) const {
+        if (!this->is_initializer) {
+            throw std::runtime_error("Reading from non-initializer tensor. Perhaps you're assuming this tensor is a weight when it's actually an output of a previous layer?");
+        }
         for (size_t i = 0; i < this->numel; i++) {
             std::string key = name + this->unflatten(i);
             p.add_val(key, this->data[i]);

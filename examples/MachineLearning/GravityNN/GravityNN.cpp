@@ -102,13 +102,12 @@ int main(int argc, char * argv[]){
         }
     }
     /* Indexing constraints */
-    indices ReLUs("ReLUs"), x_ReLUs("x_ReLUs"), B_ReLUs("B_ReLUs"), C_ReLUs("C_ReLUs"), Gemms("Gemms"), x_Gemms_in("x_Gemms_in"), x_Gemms_out("x_Gemms_out"), B_Gemm("B_Gemm");
+    indices ReLUs("ReLUs"), x_ReLUs("x_ReLUs"), B_ReLUs("B_ReLUs"), C_ReLUs("C_ReLUs"), Gemms("Gemms"), x_Gemms_in("x_Gemms_in"), B_Gemm("B_Gemm");
     B_Gemm = B_ids;
     B_ReLUs = B_ids;
     C_ReLUs = C_ids;
     x_ReLUs = x_ids;
     x_Gemms_in = x_ids;
-    x_Gemms_out = x_ids;
     size_t relu_row_id = 0, gemm_row_id = 0;
     string key;
     for(auto i = 0; i < layers.size(); i++){
@@ -121,8 +120,8 @@ int main(int argc, char * argv[]){
                 break;
             }
             case _gemm:{
+                auto gemm = reinterpret_cast<GEMM*>(l);
                 bool add_Gemm_constraint = !l->is_pre_activation;
-                auto gemm = (GEMM*)l;
                 gemm->B.add_params(B, gemm->name);
                 if (gemm->has_optional_C) {
                     gemm->C.add_params(C, gemm->name);
@@ -131,8 +130,7 @@ int main(int argc, char * argv[]){
                 for(auto j = 0; j < l->outputs[0].shape[1];j++){
                     if(add_Gemm_constraint){
                         Gemms.add(l->name+","+to_string(j));
-                    }
-                    else{
+                    } else {
                         C_ReLUs.add_ref(l->name+","+to_string(j));
                     }
                     for(auto k = 0; k < l->inputs[0].shape[1]; k++){

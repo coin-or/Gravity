@@ -12,6 +12,8 @@ typedef enum { _gemm, _relu, _conv, _matmul, _add, _flatten } OType; /* Operator
 class Layer {
 public:
     Layer(const onnx::NodeProto& node, const Tensors& tensors) {
+        this->_node_proto = node;
+
         for (const auto& input : node.input()) {
             this->inputs.push_back(tensors.at(input));
         }
@@ -48,8 +50,8 @@ public:
         }
     }
 
-    const onnx::AttributeProto* find_attribute(const onnx::NodeProto& node, const std::string& name) {
-        for (const auto& attr : node.attribute()) {
+    const onnx::AttributeProto* find_attribute(const std::string& name) const {
+        for (const auto& attr : this->_node_proto.attribute()) {
             if (attr.name() == name) {
                 return &attr;
             }
@@ -66,10 +68,11 @@ public:
 
     std::vector<Tensor> inputs;
     std::vector<Tensor> outputs;
-    std::vector<size_t> var_dims;
 
     std::vector<Tensor> lowers;
     std::vector<Tensor> uppers;
+
+    onnx::NodeProto _node_proto;
 };
 
 /* Matrix multiply results from A * B */
@@ -83,9 +86,6 @@ public:
         
         this->A = this->inputs.at(0);
         this->B = this->inputs.at(1);
-        if(this->B.shape.size()==2){
-            this->var_dims = this->B.shape;
-        }
     }
 
     void print() const override{
@@ -111,7 +111,6 @@ public:
 
         this->A = this->inputs.at(0);
         this->B = this->inputs.at(1);
-        this->var_dims = this->B.shape;
     }
 
     void print() const override{
@@ -134,36 +133,32 @@ public:
     GEMM(const onnx::NodeProto& node, const Tensors& tensors): Layer(node, tensors) {
         operator_type = _gemm;
 
-        const auto* alpha_attr = find_attribute(node, "alpha");
+        const auto* alpha_attr = find_attribute("alpha");
         if (alpha_attr) {
             this->alpha = alpha_attr->f();
         }
-        const auto* beta_attr = find_attribute(node, "beta");
+        const auto* beta_attr = find_attribute("beta");
         if (beta_attr) {
             this->beta = beta_attr->f();
         }
-        const auto *transA_attr = find_attribute(node, "transA");
+        const auto *transA_attr = find_attribute("transA");
         if (transA_attr) {
             this->transA = transA_attr->i();
         }
-        const auto *transB_attr = find_attribute(node, "transB");
+        const auto *transB_attr = find_attribute("transB");
         if (transB_attr) {
             this->transB = transB_attr->i();
         }
         
         this->A = this->inputs.at(0);
         this->B = this->inputs.at(1);
-        if(this->B.shape.size()==2){
-            if(this->transB){
-                this->B._transpose();
-            }
+        if(this->transB){
+            this->B._transpose();
         }
         if (this->inputs.size() == 3) {
             this->C = this->inputs.at(2);
             this->has_optional_C = true;
         }
-
-        this->var_dims = this->B.shape;
     }
 
     void print() const override{
@@ -195,8 +190,6 @@ public:
         operator_type = _relu;
         this->X = this->inputs.at(0);
         this->is_activation_func = true;
-
-        this->var_dims = this->X.shape;
     }
 
     void print() const override{
@@ -222,21 +215,21 @@ public:
         this->pads = std::vector<size_t>(num_spatial_dims*2, 0);
         this->strides = std::vector<size_t>(num_spatial_dims, 1);
 
-        if (const auto* auto_pad_attr = find_attribute(node, "auto_pad")) {
+        if (const auto* auto_pad_attr = find_attribute("auto_pad")) {
             this->auto_pad = auto_pad_attr->s();
             if (this->auto_pad != "NOTSET") {
                 throw std::runtime_error("Conv: Only auto_pad=NOTSET is supported");
             }
         }
         
-        if (const auto* group_attr = find_attribute(node, "group")) {
+        if (const auto* group_attr = find_attribute("group")) {
             this->group = group_attr->i();
             if (this->group != 1) {
                 throw std::runtime_error("Conv: Only group=1 is supported");
             }
         }
 
-        if (const auto* dilations_attr = find_attribute(node, "dilations")) {
+        if (const auto* dilations_attr = find_attribute("dilations")) {
             this->dilations = std::vector<size_t>(dilations_attr->ints().begin(), dilations_attr->ints().end());
             if (this->dilations.size() != 2) {
                 throw std::runtime_error("Conv: Only 2D dilations is supported");
@@ -246,7 +239,7 @@ public:
             }
         }
         
-        if (const auto* kernel_shape_attr = find_attribute(node, "kernel_shape")) {
+        if (const auto* kernel_shape_attr = find_attribute("kernel_shape")) {
             this->kernel_shape = std::vector<size_t>(kernel_shape_attr->ints().begin(), kernel_shape_attr->ints().end());
             if (this->kernel_shape.size() != 2) {
                 throw std::runtime_error("Conv: Only 2D kernel_shape is supported");
@@ -255,14 +248,14 @@ public:
             throw std::runtime_error("Conv: kernel_shape attribute is required for us. If you see this error, go annoy Haydn.");
         }
 
-        if (const auto* pads_attr = find_attribute(node, "pads")) {
+        if (const auto* pads_attr = find_attribute("pads")) {
             this->pads = std::vector<size_t>(pads_attr->ints().begin(), pads_attr->ints().end());
             if (this->pads.size() != 4) {
                 throw std::runtime_error("Conv: Only 4D pads is supported");
             }
         }
 
-        if (const auto* strides_attr = find_attribute(node, "strides")) {
+        if (const auto* strides_attr = find_attribute("strides")) {
             this->strides = std::vector<size_t>(strides_attr->ints().begin(), strides_attr->ints().end());
             if (this->strides.size() != 2) {
                 throw std::runtime_error("Conv: Only 2D strides is supported");
@@ -324,7 +317,7 @@ public:
     Flatten(const onnx::NodeProto& node, const Tensors& tensors): Layer(node, tensors) {
         operator_type = _flatten;
 
-        if (const auto* axis_attr = find_attribute(node, "axis")) {
+        if (const auto* axis_attr = find_attribute("axis")) {
             this->axis = axis_attr->i();
         }
     }
