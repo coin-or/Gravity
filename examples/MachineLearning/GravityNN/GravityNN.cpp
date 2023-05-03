@@ -36,12 +36,6 @@ std::pair<std::vector<Layer*>, std::vector<size_t>> build_graph(std::string fnam
             layers.push_back(new GEMM(node, tensors));
         } else if (node.op_type() == "Relu") {
             layers.push_back(new Relu(node, tensors));
-        }
-        else if (node.op_type() == "MatMul") {
-            layers.push_back(new MatMul(node, tensors));
-        }
-        else if (node.op_type() == "Add") {
-            layers.push_back(new Add(node, tensors));
         } else {
             throw std::runtime_error("Unsupported operator " + node.op_type());
         }
@@ -109,7 +103,6 @@ int main(int argc, char * argv[]){
     x_ReLUs = x_ids;
     x_Gemms_in = x_ids;
     size_t relu_row_id = 0, gemm_row_id = 0;
-    string key;
     for(auto i = 0; i < layers.size(); i++){
         auto l = layers[i];
         switch (l->operator_type) {
@@ -130,23 +123,17 @@ int main(int argc, char * argv[]){
                 for(auto j = 0; j < l->outputs[0].shape[1];j++){
                     if(add_Gemm_constraint){
                         Gemms.add(l->name+","+to_string(j));
-                    } else {
-                        C_ReLUs.add_ref(l->name+","+to_string(j));
-                    }
-                    for(auto k = 0; k < l->inputs[0].shape[1]; k++){
-                        key = gemm->name+","+to_string(k)+","+to_string(j);
-                        if(add_Gemm_constraint){
-                            B_Gemm.add_in_row(gemm_row_id, key);
-                            if(i==0){
+                        for(auto k = 0; k < l->inputs[0].shape[1]; k++){
+                            B_Gemm.add_in_row(gemm_row_id, gemm->name+","+to_string(k)+","+to_string(j));
+                            if (i==0) {
                                 x_Gemms_in.add_in_row(gemm_row_id, "input"+to_string(k));
-                            }
-                            else{
+                            } else {
                                 x_Gemms_in.add_in_row(gemm_row_id, layers[i-1]->name+","+to_string(k));
                             }
                         }
-                    }
-                    if(add_Gemm_constraint){
                         gemm_row_id++;
+                    } else {
+                        C_ReLUs.add_ref(l->name+","+to_string(j));
                     }
                 }
                 break;
@@ -161,14 +148,14 @@ int main(int argc, char * argv[]){
         if (l->is_pre_activation) {/*< The next layer is an activation layer (e.g. ReLU), no need to introduce variables for this layer */
             for(auto j = 0; j < l->outputs[0].shape[1];j++){
                 for(auto k = 0; k < l->inputs[0].shape[1];k++){
-                    if(i==0)
+                    if(i==0) {
                         x_ReLUs.add_in_row(relu_row_id, "input"+to_string(k));
-                    else
+                    } else {
                         x_ReLUs.add_in_row(relu_row_id, layers[i-1]->name+","+to_string(k));
+                    }
                     B_ReLUs.add_in_row(relu_row_id, l->name+","+to_string(k)+","+to_string(j));
                 }
                 relu_row_id++;
-
             }
         }
     }
@@ -225,7 +212,7 @@ int main(int argc, char * argv[]){
 
     NN.print();
     NN.write();
-    
+
     solver<> S(NN,gurobi);
     S.run();
 
