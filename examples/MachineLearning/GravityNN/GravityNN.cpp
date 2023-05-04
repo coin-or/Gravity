@@ -108,7 +108,6 @@ int main(int argc, char * argv[]){
 
     /* Indexing constraints */
     B_Gemm = B_ids;
-    Gemms_in = hidden_states;
     size_t relu_row_id = 0, gemm_row_id = 0;
     for(auto i = 0; i < layers.size(); i++){
         auto l = layers[i];
@@ -126,10 +125,7 @@ int main(int argc, char * argv[]){
             }
             case _gemm:{
                 auto gemm = reinterpret_cast<GEMM*>(l);
-                gemm->B.add_params(B, gemm->name);
-                if (gemm->has_optional_C) {
-                    gemm->C.add_params(C, gemm->name);
-                }
+                gemm->add_parameters({&B, &C});
                 for(auto j = 0; j < l->inputs.at(0).numel;j++){
                     Gemms_in.add_ref(input_key+to_string(j));
                 }
@@ -142,7 +138,6 @@ int main(int argc, char * argv[]){
 
                 // Expression
                 for(auto j = 0; j < l->outputs[0].shape[1];j++){
-                    std::cout << "Gemm Row " << gemm_row_id << ": " << std::endl << "\t";
                     for(auto k = 0; k < l->inputs[0].shape[1]; k++){
                         std::string weight_id = gemm->name+","+to_string(k)+","+to_string(j);
                         std::string input_id = input_key+to_string(k);

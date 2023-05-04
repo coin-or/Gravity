@@ -39,6 +39,8 @@ public:
     virtual ~Layer() = default;
     virtual void print() const = 0;
 
+    virtual void add_parameters(std::vector<gravity::param<>*> params) = 0;
+
     void print_io() const {
         std::cout << "| inputs: " << std::endl;
         for (const auto& input : this->inputs) {
@@ -111,6 +113,15 @@ public:
         }
     }
 
+    void add_parameters(std::vector<gravity::param<>*> params) override {
+        auto B = params[0];
+        auto C = params[1];
+        this->B.add_params(B, this->name);
+        if (this->has_optional_C) {
+            this->C.add_params(C, this->name);
+        }
+    }
+
     void print() const override{
         std::cout << "---------------------------------" << std::endl;
         std::cout << "| GEMM: " << this->name << std::endl;
@@ -141,6 +152,8 @@ public:
         this->X = this->inputs.at(0);
         this->is_activation_func = true;
     }
+
+    void add_parameters(std::vector<gravity::param<>*> params) override {}
 
     void print() const override{
         std::cout << "---------------------------------" << std::endl;
