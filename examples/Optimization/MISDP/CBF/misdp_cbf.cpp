@@ -94,11 +94,6 @@ int main(int argc, char * argv[]){
     
     auto g=CBF_read(fname.c_str(), m);
     m->print();
-    double ub_solver_tol=1e-6, lb_solver_tol=1e-6, range_tol=1e-4, opt_rel_tol=1e-2, opt_abs_tol=1e6;
-    unsigned max_iter=1e3;
-    SolverType ub_solver_type = ipopt, lb_solver_type = gurobi;
-    
-    double max_time = 300;
     DebugOn("Instance "<<fname<<endl);
 
     solver<> sc(m,gurobi);

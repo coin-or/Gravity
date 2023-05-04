@@ -2078,25 +2078,24 @@ bool Model<type>::scale_cut(const double active_tol, const vector<pair<pair<size
     const double min_allowed=1e-9;
     double min_coef=numeric_limits<double>::max(), max_coef=numeric_limits<double>::min();
     double cost_first=0;
+    map<pair<size_t,size_t>, double> cut_map;
     for(auto i=0;i<cut_vec.size()-1;i++){
         size_t symb_id = cut_vec[i].first.first;
         size_t v_id = *_vars.at(symb_id)->_id;
         cost_first+=xsol[v_id+cut_vec[i].first.second]*cut_vec[i].second;
+        cut_map[cut_vec[i].first]+=cut_vec[i].second;
     }
-    for(auto it=cut_vec.begin();it!=cut_vec.end();it++){
-        if(std::next(it)==cut_vec.end()){
-            const_coef=it->second;
-        }
-        else{
-            auto coef=it->second;
-            if(coef<=min_coef){
+    const_coef=cut_vec[cut_vec.size()-1].second;
+    for(auto it=cut_map.begin();it!=cut_map.end();it++){
+            auto coef=std::abs(it->second);
+            if(coef<=min_coef && coef!=0){
                 min_coef=coef;
             }
-            if(coef>=max_coef){
+            if(coef>=max_coef && coef!=0){
                 max_coef=coef;
             }
         }
-    }
+    
     cost_first+=const_coef;
     if(cost_first>=1e-9 && cost_first<=1e-8){
         scale=1000;
@@ -2118,19 +2117,15 @@ bool Model<type>::scale_cut(const double active_tol, const vector<pair<pair<size
         max_coef=max_allowed;
         min_coef*=scale;
     }
-    if(min_coef<=min_allowed && min_coef>=min_allowed*0.01 && max_coef<=max_allowed*0.1)
+    if(min_coef<=min_allowed && min_coef>=min_allowed*0.1 && max_coef<=max_allowed*0.1)
         scale*=10;
-    else if(min_coef<=min_allowed && min_coef>=min_allowed*0.001 && max_coef<=max_allowed*0.01)
+    else if(min_coef<=min_allowed && min_coef>=min_allowed*0.01 && max_coef<=max_allowed*0.01)
         scale*=100;
     
     auto cut_size=cut_vec.size()-1;
     const_coef*=scale;
     int count=0;
-    for(auto it=cut_vec.begin();it!=cut_vec.end();it++){
-        if(std::next(it)==cut_vec.end()){
-            break;
-        }
-        else{
+    for(auto it=cut_map.begin();it!=cut_map.end();it++){
             scaled_cut.push_back({it->first,it->second*scale});
             if(std::abs(scaled_cut.back().second)<=min_allowed && scaled_cut.back().second!=0){
                 size_t symb_id = it->first.first;
@@ -2144,7 +2139,6 @@ bool Model<type>::scale_cut(const double active_tol, const vector<pair<pair<size
                     scaled_cut.back().second=0;
                 }
             }
-        }
     }
     scaled_cut.push_back({{-1,-1},const_coef});
     for(auto i=0;i<scaled_cut.size()-1;i++){

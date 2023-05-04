@@ -471,9 +471,10 @@ bool GurobiProgram::solve(bool relax, double mipgap, double time_limit){
     else
         unrelax_model();
     //    relax_model();
-    //    grb_mod->set(GRB_DoubleParam_MIPGap, 1e-6);
+    
+    grb_mod->set(GRB_DoubleParam_MIPGap, 1e-6);
     grb_mod->set(GRB_DoubleParam_FeasibilityTol, 1e-9);
-    grb_mod->set(GRB_DoubleParam_OptimalityTol, 1e-9);
+    grb_mod->set(GRB_DoubleParam_OptimalityTol, 1e-6);
     // grb_mod->set(GRB_IntParam_StartNodeLimit, -3);
     //    grb_mod->getEnv().set(GRB_IntParam_DualReductions, 0);
     //    grb_mod->getEnv().set(GRB_IntParam_PreCrush, 1);
@@ -603,7 +604,7 @@ bool GurobiProgram::solve(bool relax, double mipgap, double time_limit){
         }
         if(add_threed){
             
-            auto res= _model->cutting_planes_threed(1e-9, soc_found, soc_added);
+            auto res= _model->cutting_planes_threed(1e-6, soc_found, soc_added);
             if(res.size()>=1){
                 for(auto i=0;i<res.size();i++){
                     GRBLinExpr expr = 0;
@@ -652,7 +653,9 @@ bool GurobiProgram::solve(bool relax, double mipgap, double time_limit){
                     size_t j=0;
                     for(j=0;j<res2[i].size()-1;j++){
                         auto c=res2[i][j];
-                        expr += c.second*_grb_vars[c.first.first+c.first.second];
+                        size_t symb_id = c.first.first;
+                        size_t v_id = *_model->_vars.at(symb_id)->_id;
+                        expr += c.second*_grb_vars[v_id+c.first.second];
                     }
                     expr += res2[i][j].second;
                     grb_mod->addConstr(expr, GRB_LESS_EQUAL, 0);
