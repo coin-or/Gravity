@@ -1689,8 +1689,8 @@ vector<vector<pair<pair<size_t,size_t>,double>>> Model<type>::cuts_eigen_bags(co
                         if(res_cut){
                             res.push_back(scaled_cut);
                         }
-                        else{
-                            res.push_back(cut_vec);
+                        else if(!sdp_dual){
+                            res.push_back(scaled_cut);
                         }
                         scaled_cut.clear();
                         cut_vec.clear();
@@ -2058,7 +2058,7 @@ vector<vector<pair<pair<size_t,size_t>,double>>> Model<type>::cuts_eigen_full(co
                             res.push_back(scaled_cut);
                         }
                         else{
-                            res.push_back(cut_vec);
+                            res.push_back(scaled_cut);
                         }
                         scaled_cut.clear();
                         cut_vec.clear();
@@ -2084,9 +2084,10 @@ bool Model<type>::scale_cut(const double active_tol, const vector<pair<pair<size
     get_solution(xsol);
     const double max_allowed=1e3;
     const double min_allowed=1e-9;
-    double min_coef=numeric_limits<double>::max(), max_coef=numeric_limits<double>::min();
+    double min_coef=numeric_limits<double>::max(), max_coef=-min_coef;
     double cost_first=0;
     map<pair<size_t,size_t>, double> cut_map;
+    scaled_cut.clear();
     for(auto i=0;i<cut_vec.size()-1;i++){
         size_t symb_id = cut_vec[i].first.first;
         size_t v_id = *_vars.at(symb_id)->_id;
@@ -2123,7 +2124,7 @@ bool Model<type>::scale_cut(const double active_tol, const vector<pair<pair<size
     if(max_coef>=max_allowed){
         scale*=max_allowed/max_coef;
         max_coef=max_allowed;
-        min_coef*=scale;
+        min_coef*=max_allowed/max_coef;
     }
     if(min_coef<=min_allowed && min_coef>=min_allowed*0.1 && max_coef<=max_allowed*0.1)
         scale*=10;
