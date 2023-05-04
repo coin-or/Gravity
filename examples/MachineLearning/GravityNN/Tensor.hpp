@@ -96,7 +96,7 @@ public:
 
     void _set_shape(const std::vector<size_t>& shape) {
         this->shape = shape;
-        this->numel = std::accumulate(this->shape.begin(), this->shape.end(), 1, std::multiplies<size_t>());
+        this->numel = vecprod(this->shape);
         this->ndims = this->shape.size();
     }
 

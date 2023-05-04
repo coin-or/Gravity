@@ -26,3 +26,8 @@ std::string vec_to_index(const std::vector<T>& v) {
     }
     return out;
 }
+
+template <typename T>
+T vecprod (const std::vector<T>& v) {
+    return std::accumulate(v.begin(), v.end(), 1, std::multiplies<T>());
+}

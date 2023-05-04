@@ -7,7 +7,7 @@
 
 using namespace gravity;
 
-std::tuple<std::vector<Layer*>, std::vector<size_t>, Tensors> build_graph(std::string fname) {
+std::tuple<std::vector<Layer*>, size_t, Tensors> build_graph(std::string fname) {
     std::fstream input(fname, std::ios::in | std::ios::binary);
     onnx::ModelProto model;
     bool isSuccess = model.ParseFromIstream(&input);
@@ -55,8 +55,9 @@ std::tuple<std::vector<Layer*>, std::vector<size_t>, Tensors> build_graph(std::s
     } else {
         input_dims = tensors[graph.input(0).name()].shape;
     }
+    size_t input_numel = vecprod(input_dims);
 
-    return {layers, input_dims, tensors};
+    return {layers, input_numel, tensors};
 }
 
 int main(int argc, char * argv[]){
@@ -67,7 +68,7 @@ int main(int argc, char * argv[]){
 
     auto tmp = build_graph(fname);
     auto layers = std::get<0>(tmp);
-    auto input_dims = std::get<1>(tmp);
+    auto input_numel = std::get<1>(tmp);
     auto tensors = std::get<2>(tmp);
 
 
@@ -154,7 +155,7 @@ int main(int argc, char * argv[]){
     if (tensors.count("Input0_lower") != 0) {
         auto lower = tensors.at("Input0_lower");
         auto upper = tensors.at("Input0_upper");
-        for(auto j = 0; j < input_dims[1];j++){
+        for(auto j = 0; j < input_numel;j++){
             x_lb.set_val(layers[0]->name+"_in,"+to_string(j), lower(j));
             x_ub.set_val(layers[0]->name+"_in,"+to_string(j), upper(j));
         }
@@ -179,10 +180,7 @@ int main(int argc, char * argv[]){
     NN.add(y.in(y_ids));
 
     /* Objective function */
-    NN.max(
-        x(layers.back()->name+"_out,0") -
-        x(layers.back()->name+"_out,6")
-    );
+    NN.max(x(layers.back()->name+"_out,0"));
 
     /* Constraints */
     Constraint<> ReLU("ReLU");
@@ -211,7 +209,15 @@ int main(int argc, char * argv[]){
     solver<> S(NN,gurobi);
     S.run();
 
-    NN.print_solution();
+    // NN.print_solution();
+
+    auto sol = std::vector<double>();
+    NN.get_solution(sol);
+    sol.resize(input_numel);
+
+    std::cout << "Solution: " << print_vector(sol) << std::endl;
+
+
     for(auto l:layers){
         delete l;
     }
