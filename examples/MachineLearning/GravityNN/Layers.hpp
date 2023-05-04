@@ -104,7 +104,6 @@ public:
         this->B = this->inputs.at(1);
         if(this->transB){
             this->B._transpose();
-//            this->inputs[1]._transpose();
         }
         if (this->inputs.size() == 3) {
             this->C = this->inputs.at(2);

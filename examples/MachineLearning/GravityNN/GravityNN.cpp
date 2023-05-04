@@ -71,53 +71,56 @@ int main(int argc, char * argv[]){
     auto input_numel = std::get<1>(tmp);
     auto tensors = std::get<2>(tmp);
 
+    // Global indices
+    indices hidden_states("hidden_states"), y_ids("y_ids");/*< x_ids for continuous vars, y_ids for binary vars */
 
-    /* INDEX SETS */
-    /* Indexing variables */
-    indices Layer_ids("Layer_ids"), y_ids("y_ids");/*< x_ids for continuous vars, y_ids for binary vars */
+    // Gemm indices
+    indices Gemms("Gemms"), Gemms_out("Gemms"), Gemms_in("Gemms_in"), B_Gemm("B_Gemm"), C_Gemm("C_Gemm");
+    Gemms_out = hidden_states;
+    Gemms_in  = hidden_states;
+    C_Gemm    = Gemms;
 
-    /* Indexing params */
-    indices B_ids("B_ids"), C_ids("C_ids");/*< x_ids for continuous vars, y_ids for binary vars */
-    indices ReLUs("ReLUs"), ReLUs_in("ReLUs_in"), ReLUs_out("ReLUs_out"), Layers_in("Layers_in"), Layers_out("Layers_out"), Gemms("Gemms"), Gemms_in("Gemms_in"), Gemms_out("Gemms_out"), B_Gemm("B_Gemm"), C_Gemm("C_Gemm");
+    // ReLU indices
+    indices ReLUs("ReLUs"), ReLUs_out("ReLUs"), ReLUs_in("ReLUs_in");
+    ReLUs_out = hidden_states;
+    ReLUs_in  = hidden_states;
+
+    // Params
     param<> B("B"), C("C");
+    indices B_ids("B_ids"), C_ids("C_ids");
     B.in(B_ids);
     C.in(C_ids);
-    Gemms_in = Layer_ids;
-    Gemms_out = Layer_ids;
-    ReLUs_in = Layer_ids;
-    ReLUs_out = Layer_ids;
-    C_Gemm = Gemms;
-    Layers_in = Layer_ids;
-    Layers_out = Layer_ids;
+
+    for (auto i = 0; i < input_numel; i++) {
+        hidden_states.add("input,"+to_string(i));
+    }
 
     for(auto i = 0; i < layers.size(); i++){
         auto l = layers[i];
-        for(auto j = 0; j < l->inputs.at(0).numel; j++){
-            Layer_ids.add(l->name+"_in,"+to_string(j));
-            if(i>0)
-                Layers_out.add_ref(l->name+"_in,"+to_string(j));
+        for(auto j = 0; j < l->outputs.at(0).numel; j++){
+            std::string key = l->name+"_out,"+to_string(j);
+            hidden_states.add(key);
             if(l->operator_type==_relu){
                 y_ids.add(l->name+","+to_string(j));
             }
         }
-        for(auto j = 0; j < l->outputs.at(0).numel; j++){
-            Layer_ids.add(l->name+"_out,"+to_string(j));
-            if(i< layers.size()-1)
-                Layers_in.add_ref(l->name+"_out,"+to_string(j));
-        }
     }
+
     /* Indexing constraints */
     B_Gemm = B_ids;
-    Gemms_in = Layer_ids;
+    Gemms_in = hidden_states;
     size_t relu_row_id = 0, gemm_row_id = 0;
     for(auto i = 0; i < layers.size(); i++){
         auto l = layers[i];
+        // Input indexing
+        std::string input_key = (i == 0) ? "input," : layers[i-1]->name+"_out,";
+        std::string output_key = l->name+"_out,";
         switch (l->operator_type) {
             case _relu: {
-                for(auto j = 0; j < l->outputs.at(0).numel;j++){
-                    ReLUs.add(l->name+","+to_string(j));
-                    ReLUs_in.add_ref(l->name+"_in,"+to_string(j));
-                    ReLUs_out.add_ref(l->name+"_out,"+to_string(j));
+                for(auto j = 0; j < l->inputs.at(0).numel;j++){
+                    ReLUs.add(l->name + "," + to_string(j));
+                    ReLUs_out.add_ref(output_key+to_string(j));
+                    ReLUs_in.add_ref(input_key+to_string(j));
                 }
                 break;
             }
@@ -127,56 +130,68 @@ int main(int argc, char * argv[]){
                 if (gemm->has_optional_C) {
                     gemm->C.add_params(C, gemm->name);
                 }
+                for(auto j = 0; j < l->inputs.at(0).numel;j++){
+                    Gemms_in.add_ref(input_key+to_string(j));
+                }
 
+                // Output indexing
+                for (auto j = 0; j < l->outputs.at(0).numel; j++) {
+                    Gemms.add(gemm->name + "," + to_string(j));
+                    Gemms_out.add_ref(output_key+to_string(j));
+                }
 
+                // Expression
                 for(auto j = 0; j < l->outputs[0].shape[1];j++){
-                    Gemms.add(l->name+","+to_string(j));
-                    Gemms_out.add_ref(l->name+"_out,"+to_string(j));
+                    std::cout << "Gemm Row " << gemm_row_id << ": " << std::endl << "\t";
                     for(auto k = 0; k < l->inputs[0].shape[1]; k++){
-                        B_Gemm.add_in_row(gemm_row_id, gemm->name+","+to_string(k)+","+to_string(j));
-                        Gemms_in.add_in_row(gemm_row_id, gemm->name+"_in,"+to_string(k));
+                        std::string weight_id = gemm->name+","+to_string(k)+","+to_string(j);
+                        std::string input_id = input_key+to_string(k);
+
+                        B_Gemm.add_in_row(gemm_row_id, weight_id);
+                        Gemms_in.add_in_row(gemm_row_id, input_id);
                     }
                     gemm_row_id++;
                 }
                 break;
             }
-            default:
+            default:{
                 break;
+            }
         }
     }
 
 
     Model<> NN("NN_"+fname.substr(fname.find_last_of("/")));
     param<> x_lb("x_lb"), x_ub("x_ub");
-    x_lb.in(Layer_ids);x_ub.in(Layer_ids);
-    x_lb = -1000;
-    x_ub = 1000;
+    x_lb.in(hidden_states);x_ub.in(hidden_states);
+    x_lb = std::numeric_limits<double>::lowest();
+    x_ub = std::numeric_limits<double>::max();
 
     if (tensors.count("Input0_lower") != 0) {
         auto lower = tensors.at("Input0_lower");
         auto upper = tensors.at("Input0_upper");
         for(auto j = 0; j < input_numel;j++){
-            x_lb.set_val(layers[0]->name+"_in,"+to_string(j), lower(j));
-            x_ub.set_val(layers[0]->name+"_in,"+to_string(j), upper(j));
+            x_lb.set_val("input,"+to_string(j), lower(j));
+            x_ub.set_val("input,"+to_string(j), upper(j));
         }
     }
 
     for(auto i = 0; i < ReLUs_out.size(); i++){
-        auto key = ReLUs_out._keys->at(ReLUs_out.get_id_inst(i));
-        x_lb.set_val(key, 0);
+       auto key = ReLUs_out._keys->at(ReLUs_out.get_id_inst(i));
+       x_lb.set_val(key, 0);
     }
 
     for(auto i = 0; i < layers.size(); i++){
-        auto l = layers[i];
-        for(auto j = 0; j < l->lowers[0].numel;j++){
-            x_lb.set_val(l->name+"_out,"+to_string(j), l->lowers[0](j));
-            x_ub.set_val(l->name+"_out,"+to_string(j), l->uppers[0](j));
-        }
+       auto l = layers[i];
+       for(auto j = 0; j < l->lowers[0].numel;j++){
+           x_lb.set_val(l->name+"_out,"+to_string(j), l->lowers[0](j));
+           x_ub.set_val(l->name+"_out,"+to_string(j), l->uppers[0](j));
+       }
     }
 
     var<> x("x", x_lb, x_ub);
     var<int> y("y", 0, 1);
-    NN.add(x.in(Layer_ids));
+    NN.add(x.in(hidden_states));
     NN.add(y.in(y_ids));
 
     /* Objective function */
@@ -199,17 +214,13 @@ int main(int argc, char * argv[]){
     Gemm = x.in(Gemms_out) - (x.in(Gemms_in)*B.in(B_Gemm) + C.in(C_Gemm));
     NN.add(Gemm.in(Gemms) == 0);
 
-    Constraint<> Linking_Layers("Linking_Layers");
-    Linking_Layers = x.in(Layers_in) - x.in(Layers_out);
-    NN.add(Linking_Layers.in(range(1,Layers_in.size())) == 0);
-
     NN.print();
     NN.write();
 
     solver<> S(NN,gurobi);
     S.run();
 
-    // NN.print_solution();
+    NN.print_solution();
 
     auto sol = std::vector<double>();
     NN.get_solution(sol);
