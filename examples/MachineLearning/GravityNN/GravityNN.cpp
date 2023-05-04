@@ -7,7 +7,7 @@
 
 using namespace gravity;
 
-std::pair<std::vector<Layer*>, std::vector<size_t>> build_graph(std::string fname) {
+std::tuple<std::vector<Layer*>, std::vector<size_t>, Tensors> build_graph(std::string fname) {
     std::fstream input(fname, std::ios::in | std::ios::binary);
     onnx::ModelProto model;
     bool isSuccess = model.ParseFromIstream(&input);
@@ -56,7 +56,7 @@ std::pair<std::vector<Layer*>, std::vector<size_t>> build_graph(std::string fnam
         input_dims = tensors[graph.input(0).name()].shape;
     }
 
-    return std::make_pair(layers, input_dims);
+    return {layers, input_dims, tensors};
 }
 
 int main(int argc, char * argv[]){
@@ -66,8 +66,10 @@ int main(int argc, char * argv[]){
     }
 
     auto tmp = build_graph(fname);
-    auto layers = tmp.first;
-    auto input_dims = tmp.second;
+    auto layers = std::get<0>(tmp);
+    auto input_dims = std::get<1>(tmp);
+    auto tensors = std::get<2>(tmp);
+
 
     /* INDEX SETS */
     /* Indexing variables */
@@ -84,19 +86,11 @@ int main(int argc, char * argv[]){
     ReLUs_in = Layer_ids;
     ReLUs_out = Layer_ids;
     C_Gemm = Gemms;
-//    Layer_ids.add("input");
     Layers_in = Layer_ids;
     Layers_out = Layer_ids;
-    /* Creating variables' indexing sets */
-//    for(auto j = 0; j < input_dims[1];j++){
-//        Layer_ids.add("input"+to_string(j));
-//    }
+
     for(auto i = 0; i < layers.size(); i++){
         auto l = layers[i];
-        if(i>0){
-            if(l->inputs.at(0).numel != layers[i-1]->outputs.at(0).numel)
-                DebugOn("oops");
-        }
         for(auto j = 0; j < l->inputs.at(0).numel; j++){
             Layer_ids.add(l->name+"_in,"+to_string(j));
             if(i>0)
@@ -132,7 +126,7 @@ int main(int argc, char * argv[]){
                 if (gemm->has_optional_C) {
                     gemm->C.add_params(C, gemm->name);
                 }
-                
+
 
                 for(auto j = 0; j < l->outputs[0].shape[1];j++){
                     Gemms.add(l->name+","+to_string(j));
@@ -150,16 +144,20 @@ int main(int argc, char * argv[]){
         }
     }
 
-    
 
     Model<> NN("NN_"+fname.substr(fname.find_last_of("/")));
     param<> x_lb("x_lb"), x_ub("x_ub");
     x_lb.in(Layer_ids);x_ub.in(Layer_ids);
     x_lb = -1000;
     x_ub = 1000;
-    for(auto j = 0; j < input_dims[1];j++){
-        x_lb.set_val(layers[0]->name+"_in,"+to_string(j), -2);
-        x_ub.set_val(layers[0]->name+"_in,"+to_string(j), 2);
+
+    if (tensors.count("Input0_lower") != 0) {
+        auto lower = tensors.at("Input0_lower");
+        auto upper = tensors.at("Input0_upper");
+        for(auto j = 0; j < input_dims[1];j++){
+            x_lb.set_val(layers[0]->name+"_in,"+to_string(j), lower(j));
+            x_ub.set_val(layers[0]->name+"_in,"+to_string(j), upper(j));
+        }
     }
 
     for(auto i = 0; i < ReLUs_out.size(); i++){
@@ -167,16 +165,13 @@ int main(int argc, char * argv[]){
         x_lb.set_val(key, 0);
     }
 
-//    for(auto i = 0; i < layers.size(); i++){
-//        auto l = layers[i];
-//        if(l->is_pre_activation)
-//            continue;
-//
-//        for(auto j = 0; j < l->lowers[0].numel;j++){
-//            x_lb.set_val(l->name+","+to_string(j), l->lowers[0](j));
-//            x_ub.set_val(l->name+","+to_string(j), l->uppers[0](j));
-//        }
-//    }
+    for(auto i = 0; i < layers.size(); i++){
+        auto l = layers[i];
+        for(auto j = 0; j < l->lowers[0].numel;j++){
+            x_lb.set_val(l->name+"_out,"+to_string(j), l->lowers[0](j));
+            x_ub.set_val(l->name+"_out,"+to_string(j), l->uppers[0](j));
+        }
+    }
 
     var<> x("x", x_lb, x_ub);
     var<int> y("y", 0, 1);
@@ -184,7 +179,10 @@ int main(int argc, char * argv[]){
     NN.add(y.in(y_ids));
 
     /* Objective function */
-    NN.max(x(layers.back()->name+"_out,0"));
+    NN.max(
+        x(layers.back()->name+"_out,0") -
+        x(layers.back()->name+"_out,6")
+    );
 
     /* Constraints */
     Constraint<> ReLU("ReLU");
@@ -202,13 +200,11 @@ int main(int argc, char * argv[]){
     Constraint<> Gemm("Gemm");
     Gemm = x.in(Gemms_out) - (x.in(Gemms_in)*B.in(B_Gemm) + C.in(C_Gemm));
     NN.add(Gemm.in(Gemms) == 0);
-    
-    
+
     Constraint<> Linking_Layers("Linking_Layers");
     Linking_Layers = x.in(Layers_in) - x.in(Layers_out);
     NN.add(Linking_Layers.in(range(1,Layers_in.size())) == 0);
 
-    
     NN.print();
     NN.write();
 
