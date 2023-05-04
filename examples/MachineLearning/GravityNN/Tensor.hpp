@@ -69,6 +69,7 @@ public:
         }
         for (size_t i = 0; i < this->numel; i++) {
             std::string key = name + this->unflatten(i);
+            std::cout << "Adding param " << key << std::endl;
             p->add_val(key, this->data[i]);
         }
     }
@@ -92,6 +93,23 @@ public:
         indices[this->ndims - 1] = r;
 
         return vec_to_index(indices);
+    }
+
+    size_t flatten(std::vector<size_t> indices) {
+        if (indices.size() != this->ndims) {
+            throw std::runtime_error("Cannot flatten indices of size " + std::to_string(indices.size()) + " into tensor of size " + std::to_string(this->ndims));
+        }
+
+        size_t idx = 0;
+        for (size_t k=0; k < this->ndims; k++) {
+            size_t prod = 1;
+            for (size_t l = k+1; l < this->ndims; l++) {
+                prod *= this->shape[l];
+            }
+            idx += indices[k] * prod;
+        }
+
+        return idx;
     }
 
     void _set_shape(const std::vector<size_t>& shape) {

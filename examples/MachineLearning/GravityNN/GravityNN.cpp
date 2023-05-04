@@ -36,6 +36,8 @@ std::tuple<std::vector<Layer*>, size_t, Tensors> build_graph(std::string fname) 
             layers.push_back(new GEMM(node, tensors));
         } else if (node.op_type() == "Relu") {
             layers.push_back(new Relu(node, tensors));
+        } else if (node.op_type() == "Conv") {
+            layers.push_back(new Conv(node, tensors));
         } else {
             throw std::runtime_error("Unsupported operator " + node.op_type());
         }
@@ -73,23 +75,34 @@ int main(int argc, char * argv[]){
 
     // Global indices
     indices hidden_states("hidden_states"), y_ids("y_ids");/*< x_ids for continuous vars, y_ids for binary vars */
+    
+    // Params
+    param<> B("B"), C("C"), W("W");
+    indices B_ids("B_ids"), C_ids("C_ids"), W_ids("W_ids");
+    B.in(B_ids);
+    C.in(C_ids);
+    W.in(W_ids);
 
     // Gemm indices
-    indices Gemms("Gemms"), Gemms_out("Gemms"), Gemms_in("Gemms_in"), B_Gemm("B_Gemm"), C_Gemm("C_Gemm");
+    indices Gemms("Gemms"), Gemms_out("Gemms_out"), Gemms_in("Gemms_in"), B_Gemm("B_Gemm"), C_Gemm("C_Gemm");
     Gemms_out = hidden_states;
     Gemms_in  = hidden_states;
+    B_Gemm    = B_ids;
     C_Gemm    = Gemms;
+
+    // Conv indices
+    indices Convs("Convs"); // Constraint indices, 1 per output
+    indices Convs_out("Convs_out"), Convs_in("Convs_in"); // Input/output indices, 1 per input/output
+    indices W_Conv("W_Conv"), B_Conv("B_Conv"); // Parameter indices, 1 per parameter (weight / bias)
+    Convs_out = hidden_states;
+    Convs_in  = hidden_states;
+    W_Conv    = W_ids;
+    B_Conv    = Convs;
 
     // ReLU indices
     indices ReLUs("ReLUs"), ReLUs_out("ReLUs"), ReLUs_in("ReLUs_in");
     ReLUs_out = hidden_states;
     ReLUs_in  = hidden_states;
-
-    // Params
-    param<> B("B"), C("C");
-    indices B_ids("B_ids"), C_ids("C_ids");
-    B.in(B_ids);
-    C.in(C_ids);
 
     for (auto i = 0; i < input_numel; i++) {
         hidden_states.add("input,"+to_string(i));
@@ -106,9 +119,7 @@ int main(int argc, char * argv[]){
         }
     }
 
-    /* Indexing constraints */
-    B_Gemm = B_ids;
-    size_t relu_row_id = 0, gemm_row_id = 0;
+    size_t gemm_row_id = 0, conv_row_id = 0;
     for(auto i = 0; i < layers.size(); i++){
         auto l = layers[i];
         // Input indexing
@@ -126,9 +137,6 @@ int main(int argc, char * argv[]){
             case _gemm:{
                 auto gemm = reinterpret_cast<GEMM*>(l);
                 gemm->add_parameters({&B, &C});
-                for(auto j = 0; j < l->inputs.at(0).numel;j++){
-                    Gemms_in.add_ref(input_key+to_string(j));
-                }
 
                 // Output indexing
                 for (auto j = 0; j < l->outputs.at(0).numel; j++) {
@@ -146,6 +154,73 @@ int main(int argc, char * argv[]){
                         Gemms_in.add_in_row(gemm_row_id, input_id);
                     }
                     gemm_row_id++;
+                }
+                break;
+            }
+            case _conv:{
+                std::cout << "########################################"<< std::endl;
+                std::cout << "Conv layer: " << l->name << std::endl;
+                auto conv = reinterpret_cast<Conv*>(l);
+                conv->add_parameters({&W, &B});
+
+                // std::cout << "Input keys: " << std::endl;
+                // for(auto j = 0; j < l->inputs.at(0).numel;j++){
+                //     std::string key = input_key+to_string(j);
+                //     std::cout << "\t" << key << std::endl;
+                //     Convs_in.add_ref(key);
+                // }
+
+                // Output indexing
+                std::cout << "Output keys: " << std::endl;
+                for (auto j = 0; j < l->outputs.at(0).numel; j++) {
+                    std::cout << "\t" << output_key+to_string(j) << std::endl;
+                    Convs.add(conv->name + "," + to_string(j));
+                }
+
+                // Shape (N x C x H x W)
+                size_t out_chan = l->outputs[0].shape[1];
+                size_t out_height = l->outputs[0].shape[2];
+                size_t out_width = l->outputs[0].shape[3];
+
+                size_t in_chan = l->inputs[0].shape[1];
+                size_t in_height = l->inputs[0].shape[2];
+                size_t in_width = l->inputs[0].shape[3];
+
+                // Shape (M x C/group x kH x kW)
+                size_t filter_channels = l->inputs[1].shape[1];
+                size_t filter_height = l->inputs[1].shape[2];
+                size_t filter_width = l->inputs[1].shape[3];
+
+                // Convolution implementation
+                for (size_t i = 0; i < out_width; i++) {
+                    for (size_t j = 0; j < out_height; j++) {
+                        for (size_t k = 0; k < out_chan; k++) {
+                            std::cout << "Conv Constraint " << conv_row_id << std::endl << "\t";
+                            Convs_out.add_ref(output_key+to_string(conv->outputs.at(0).flatten({0, k, i, j})));
+                            for (size_t di = 0; di < filter_width; di++) {
+                                for (size_t dj = 0; dj < filter_height; dj++) {
+                                    for (size_t dk = 0; dk < filter_channels; dk++) {
+                                        auto w_ind = (conv->strides[0]*i+di - conv->pads[0]);
+                                        auto h_ind = (conv->strides[1]*j+dj - conv->pads[3]);
+                                        if ((h_ind < in_height) && (h_ind >= 0) && (w_ind < in_width) && (w_ind >= 0)) {
+                                            std::string w_idx = to_string(k)+","+to_string(dk)+","+to_string(di)+","+to_string(dj);
+                                            std::string i_idx = to_string(0)+","+to_string(dk)+","+to_string(w_ind)+","+to_string(h_ind);
+
+                                            std::string weight_id = conv->name + "," + w_idx;
+                                            std::string input_id = input_key+to_string(conv->inputs.at(0).flatten({0, dk, w_ind, h_ind}));
+
+                                            std::cout << "W[" << w_idx << "]" << " * " << "I[" << i_idx << "]" << " + ";
+                                            W_Conv.add_in_row(conv_row_id, weight_id);
+                                            Convs_in.add_in_row(conv_row_id, input_id);
+                                        }
+                                    }
+                                }
+                            }
+
+                            std::cout << std::endl;
+                            conv_row_id++;
+                        }
+                    }
                 }
                 break;
             }
@@ -208,6 +283,11 @@ int main(int argc, char * argv[]){
     Constraint<> Gemm("Gemm");
     Gemm = x.in(Gemms_out) - (x.in(Gemms_in)*B.in(B_Gemm) + C.in(C_Gemm));
     NN.add(Gemm.in(Gemms) == 0);
+
+    Constraint<> Conv_("Conv");
+    // Conv_ = x.in(Convs_out) - (x.in(Convs_in)*B.in(B_Conv) + C.in(C_Conv));
+    Conv_ = x.in(Convs_out) - (x.in(Convs_in)*W.in(W_Conv));
+    NN.add(Conv_.in(Convs) == 0);
 
     NN.print();
     NN.write();
