@@ -31,3 +31,22 @@ template <typename T>
 T vecprod (const std::vector<T>& v) {
     return std::accumulate(v.begin(), v.end(), 1, std::multiplies<T>());
 }
+
+
+onnx::GraphProto _open_file(const std::string& onnx_path) {
+    // Check if file exists
+    std::ifstream f(onnx_path.c_str());
+    if (!f.good()) {
+        throw std::runtime_error("File " + onnx_path + " does not exist.");
+    }
+
+    std::fstream input(onnx_path, std::ios::in | std::ios::binary);
+    onnx::ModelProto model;
+    bool isSuccess = model.ParseFromIstream(&input);
+    if (!isSuccess) {
+        throw std::runtime_error("Failed to parse onnx file.");
+    }
+    onnx::GraphProto graph = model.graph();
+
+    return graph;
+}

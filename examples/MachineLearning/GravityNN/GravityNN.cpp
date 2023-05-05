@@ -4,74 +4,17 @@
 #include <vector>
 #include "Layers.hpp"
 #include <gravity/solver.h>
+#include "NeuralNet.hpp"
 
 using namespace gravity;
 
-std::tuple<std::vector<Layer*>, size_t, Tensors> build_graph(std::string fname) {
-    std::fstream input(fname, std::ios::in | std::ios::binary);
-    onnx::ModelProto model;
-    bool isSuccess = model.ParseFromIstream(&input);
-    onnx::GraphProto graph = model.graph();
-
-    std::vector<Layer*> layers;
-    Tensors tensors;
-    // Tensors with data
-    for (const auto& initializer : graph.initializer()) {
-        tensors[initializer.name()] = Tensor(initializer);
-    }
-
-    // Tensor with shape/metadata only
-    for (const auto& vinfo : graph.value_info()) {
-        tensors[vinfo.name()] = Tensor(vinfo);
-    }
-    for (const auto& input : graph.input()) {
-        tensors[input.name()] = Tensor(input);
-    }
-    for (const auto& output : graph.output()) {
-        tensors[output.name()] = Tensor(output);
-    }
-
-    for (const auto& node : graph.node()) {
-        if (node.op_type() == "Gemm") {
-            layers.push_back(new GEMM(node, tensors));
-        } else if (node.op_type() == "Relu") {
-            layers.push_back(new Relu(node, tensors));
-        } else if (node.op_type() == "Conv") {
-            layers.push_back(new Conv(node, tensors));
-        } else {
-            throw std::runtime_error("Unsupported operator " + node.op_type());
-        }
-    }
-
-    for (auto i = 0; i < layers.size()-1; i++) {
-        layers[i]->is_pre_activation = layers[i+1]->is_activation_func;
-    }
-
-    for (const auto& layer : layers) {
-        layer->print();
-    }
-
-    std::vector<size_t> input_dims;
-    if (graph.input_size() > 1) {
-        throw std::runtime_error("Network has more than one input. Not supported.");
-    } else {
-        input_dims = tensors[graph.input(0).name()].shape;
-    }
-    size_t input_numel = vecprod(input_dims);
-
-    return {layers, input_numel, tensors};
-}
-
 int main(int argc, char * argv[]){
     string fname = string(prj_dir)+"/data_sets/VNN/tll_bound.onnx";
-    if(argc>=2){
-        fname=argv[1];
+    if(argc >= 2) {
+        fname = argv[1];
     }
 
-    auto tmp = build_graph(fname);
-    auto layers = std::get<0>(tmp);
-    auto input_numel = std::get<1>(tmp);
-    auto tensors = std::get<2>(tmp);
+    NeuralNet nn(fname);
 
     // Global indices
     indices hidden_states("hidden_states"), y_ids("y_ids");/*< x_ids for continuous vars, y_ids for binary vars */
@@ -104,12 +47,12 @@ int main(int argc, char * argv[]){
     ReLUs_out = hidden_states;
     ReLUs_in  = hidden_states;
 
-    for (auto i = 0; i < input_numel; i++) {
+    for (auto i = 0; i < nn.input_numel; i++) {
         hidden_states.add("input,"+to_string(i));
     }
 
-    for(auto i = 0; i < layers.size(); i++){
-        auto l = layers[i];
+    for(auto i = 0; i < nn.layers.size(); i++){
+        auto l = nn.layers[i];
         for(auto j = 0; j < l->outputs.at(0).numel; j++){
             std::string key = l->name+"_out,"+to_string(j);
             hidden_states.add(key);
@@ -120,15 +63,16 @@ int main(int argc, char * argv[]){
     }
 
     size_t gemm_row_id = 0, conv_row_id = 0;
-    for(auto i = 0; i < layers.size(); i++){
-        auto l = layers[i];
+    for(auto i = 0; i < nn.layers.size(); i++){
+        auto l = nn.layers[i];
         // Input indexing
-        std::string input_key = (i == 0) ? "input," : layers[i-1]->name+"_out,";
+        std::string input_key = (i == 0) ? "input," : nn.layers[i-1]->name+"_out,";
         std::string output_key = l->name+"_out,";
         switch (l->operator_type) {
             case _relu: {
-                for(auto j = 0; j < l->inputs.at(0).numel;j++){
-                    ReLUs.add(l->name + "," + to_string(j));
+                auto relu = reinterpret_cast<Relu*>(l);
+                for(auto j = 0; j < relu->X->numel;j++){
+                    ReLUs.add(relu->name + "," + to_string(j));
                     ReLUs_out.add_ref(output_key+to_string(j));
                     ReLUs_in.add_ref(input_key+to_string(j));
                 }
@@ -138,15 +82,14 @@ int main(int argc, char * argv[]){
                 auto gemm = reinterpret_cast<GEMM*>(l);
                 gemm->add_parameters({&B, &C});
 
-                // Output indexing
-                for (auto j = 0; j < l->outputs.at(0).numel; j++) {
+                for (auto j = 0; j < gemm->Y->numel; j++) {
                     Gemms.add(gemm->name + "," + to_string(j));
-                    Gemms_out.add_ref(output_key+to_string(j));
                 }
 
                 // Expression
-                for(auto j = 0; j < l->outputs[0].shape[1];j++){
-                    for(auto k = 0; k < l->inputs[0].shape[1]; k++){
+                for(auto j = 0; j < gemm->out_dim; j++){
+                    Gemms_out.add_ref(output_key+to_string(j));
+                    for(auto k = 0; k < gemm->in_dim; k++){
                         std::string weight_id = gemm->name+","+to_string(k)+","+to_string(j);
                         std::string input_id = input_key+to_string(k);
 
@@ -162,14 +105,14 @@ int main(int argc, char * argv[]){
                 conv->add_parameters({&W, &B});
 
                 // Output indexing
-                for (auto j = 0; j < l->outputs.at(0).numel; j++) {
+                for (auto j = 0; j < conv->Y->numel; j++) {
                     Convs.add(conv->name + "," + to_string(j));
                 }
 
                 for (int oh = 0; oh < conv->out_h; oh++) {
                     for (int ow = 0; ow < conv->out_w; ow++) {
                         for (int oc = 0; oc < conv->out_c; oc++) {
-                            Convs_out.add_ref(output_key+to_string(conv->outputs.at(0).flatten(0, oc, oh, ow)));
+                            Convs_out.add_ref(output_key+to_string(conv->Y->flatten(0, oc, oh, ow)));
                             for (int kh = 0; kh < conv->kern_h; kh++) {
                                 for (int kw = 0; kw < conv->kern_w; kw++) {
                                     for (int kc = 0; kc < conv->kern_c; kc++) {
@@ -206,10 +149,10 @@ int main(int argc, char * argv[]){
     x_lb = std::numeric_limits<double>::lowest();
     x_ub = std::numeric_limits<double>::max();
 
-    if (tensors.count("Input0_lower") != 0) {
-        auto lower = tensors.at("Input0_lower");
-        auto upper = tensors.at("Input0_upper");
-        for(auto j = 0; j < input_numel;j++){
+    if (nn.tensors.count("Input0_lower") != 0) {
+        auto lower = nn.tensors.at("Input0_lower");
+        auto upper = nn.tensors.at("Input0_upper");
+        for(auto j = 0; j < nn.input_numel;j++){
             x_lb.set_val("input,"+to_string(j), lower(j));
             x_ub.set_val("input,"+to_string(j), upper(j));
         }
@@ -220,8 +163,8 @@ int main(int argc, char * argv[]){
        x_lb.set_val(key, 0);
     }
 
-    for(auto i = 0; i < layers.size(); i++){
-       auto l = layers[i];
+    for(auto i = 0; i < nn.layers.size(); i++){
+       auto l = nn.layers[i];
        for(auto j = 0; j < l->lowers[0].numel;j++){
            x_lb.set_val(l->name+"_out,"+to_string(j), l->lowers[0](j));
            x_ub.set_val(l->name+"_out,"+to_string(j), l->uppers[0](j));
@@ -234,7 +177,7 @@ int main(int argc, char * argv[]){
     NN.add(y.in(y_ids));
 
     /* Objective function */
-    NN.max(x(layers.back()->name+"_out,0"));
+    NN.max(x(nn.layers.back()->name+"_out,0"));
 
     /* Constraints */
     Constraint<> ReLU("ReLU");
@@ -257,7 +200,7 @@ int main(int argc, char * argv[]){
     Conv_ = x.in(Convs_out) - (x.in(Convs_in)*W.in(W_Conv) + B.in(B_Conv));
     NN.add(Conv_.in(Convs) == 0);
 
-    // NN.print();
+    NN.print();
     NN.write();
 
     solver<> S(NN,gurobi);
@@ -267,13 +210,9 @@ int main(int argc, char * argv[]){
 
     auto sol = std::vector<double>();
     NN.get_solution(sol);
-    sol.resize(input_numel);
+    sol.resize(nn.input_numel);
 
     std::cout << "Solution: " << print_vector(sol) << std::endl;
-
-    for(auto l:layers){
-        delete l;
-    }
 
     return 0;
 }
