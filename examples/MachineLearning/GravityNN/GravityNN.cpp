@@ -163,13 +163,6 @@ int main(int argc, char * argv[]){
                 auto conv = reinterpret_cast<Conv*>(l);
                 conv->add_parameters({&W, &B});
 
-                // std::cout << "Input keys: " << std::endl;
-                // for(auto j = 0; j < l->inputs.at(0).numel;j++){
-                //     std::string key = input_key+to_string(j);
-                //     std::cout << "\t" << key << std::endl;
-                //     Convs_in.add_ref(key);
-                // }
-
                 // Output indexing
                 std::cout << "Output keys: " << std::endl;
                 for (auto j = 0; j < l->outputs.at(0).numel; j++) {
@@ -177,37 +170,22 @@ int main(int argc, char * argv[]){
                     Convs.add(conv->name + "," + to_string(j));
                 }
 
-                // Shape (N x C x H x W)
-                size_t out_chan = l->outputs[0].shape[1];
-                size_t out_height = l->outputs[0].shape[2];
-                size_t out_width = l->outputs[0].shape[3];
-
-                size_t in_chan = l->inputs[0].shape[1];
-                size_t in_height = l->inputs[0].shape[2];
-                size_t in_width = l->inputs[0].shape[3];
-
-                // Shape (M x C/group x kH x kW)
-                size_t filter_channels = l->inputs[1].shape[1];
-                size_t filter_height = l->inputs[1].shape[2];
-                size_t filter_width = l->inputs[1].shape[3];
-
-                // Convolution implementation
-                for (size_t i = 0; i < out_width; i++) {
-                    for (size_t j = 0; j < out_height; j++) {
-                        for (size_t k = 0; k < out_chan; k++) {
+                for (int oh = 0; oh < conv->out_h; oh++) {
+                    for (int ow = 0; ow < conv->out_w; ow++) {
+                        for (int oc = 0; oc < conv->out_c; oc++) {
                             std::cout << "Conv Constraint " << conv_row_id << std::endl << "\t";
-                            Convs_out.add_ref(output_key+to_string(conv->outputs.at(0).flatten({0, k, i, j})));
-                            for (size_t di = 0; di < filter_width; di++) {
-                                for (size_t dj = 0; dj < filter_height; dj++) {
-                                    for (size_t dk = 0; dk < filter_channels; dk++) {
-                                        auto w_ind = (conv->strides[0]*i+di - conv->pads[0]);
-                                        auto h_ind = (conv->strides[1]*j+dj - conv->pads[3]);
-                                        if ((h_ind < in_height) && (h_ind >= 0) && (w_ind < in_width) && (w_ind >= 0)) {
-                                            std::string w_idx = to_string(k)+","+to_string(dk)+","+to_string(di)+","+to_string(dj);
-                                            std::string i_idx = to_string(0)+","+to_string(dk)+","+to_string(w_ind)+","+to_string(h_ind);
+                            Convs_out.add_ref(output_key+to_string(conv->outputs.at(0).flatten(0, oc, oh, ow)));
+                            for (int kh = 0; kh < conv->kern_h; kh++) {
+                                for (int kw = 0; kw < conv->kern_w; kw++) {
+                                    for (int kc = 0; kc < conv->kern_c; kc++) {
+                                        int h_ind = (conv->strides[0]*oh + conv->dilations[0]*kh - conv->pads[0]);
+                                        int w_ind = (conv->strides[1]*ow + conv->dilations[1]*kw - conv->pads[3]);
+                                        if ((h_ind < conv->inp_h) && (h_ind >= 0) && (w_ind < conv->inp_w) && (w_ind >= 0)) {
+                                            std::string w_idx = to_string(oc)+","+to_string(kc)+","+to_string(kh)+","+to_string(kw);
+                                            std::string i_idx = to_string(0)+","+to_string(kc)+","+to_string(h_ind)+","+to_string(w_ind);
 
                                             std::string weight_id = conv->name + "," + w_idx;
-                                            std::string input_id = input_key+to_string(conv->inputs.at(0).flatten({0, dk, w_ind, h_ind}));
+                                            std::string input_id = input_key+to_string(conv->inputs.at(0).flatten(0, kc, h_ind, w_ind));
 
                                             std::cout << "W[" << w_idx << "]" << " * " << "I[" << i_idx << "]" << " + ";
                                             W_Conv.add_in_row(conv_row_id, weight_id);
@@ -285,8 +263,8 @@ int main(int argc, char * argv[]){
     NN.add(Gemm.in(Gemms) == 0);
 
     Constraint<> Conv_("Conv");
-    // Conv_ = x.in(Convs_out) - (x.in(Convs_in)*B.in(B_Conv) + C.in(C_Conv));
     Conv_ = x.in(Convs_out) - (x.in(Convs_in)*W.in(W_Conv));
+    // Conv_ = x.in(Convs_out) - (x.in(Convs_in)*W.in(W_Conv) + B.in(B_Conv));
     NN.add(Conv_.in(Convs) == 0);
 
     NN.print();

@@ -95,21 +95,32 @@ public:
         return vec_to_index(indices);
     }
 
-    size_t flatten(std::vector<size_t> indices) {
-        if (indices.size() != this->ndims) {
-            throw std::runtime_error("Cannot flatten indices of size " + std::to_string(indices.size()) + " into tensor of size " + std::to_string(this->ndims));
+    size_t flatten(size_t i) {
+        if (this->ndims != 1) {
+            throw std::runtime_error("Cannot flatten indices of size " + std::to_string(this->ndims) + " into tensor of size 1");
         }
+        return i;
+    }
 
-        size_t idx = 0;
-        for (size_t k=0; k < this->ndims; k++) {
-            size_t prod = 1;
-            for (size_t l = k+1; l < this->ndims; l++) {
-                prod *= this->shape[l];
-            }
-            idx += indices[k] * prod;
+    size_t flatten(size_t i, size_t j) {
+        if (this->ndims != 2) {
+            throw std::runtime_error("Cannot flatten indices of size " + std::to_string(this->ndims) + " into tensor of size 2");
         }
+        return i * this->shape[1] + j;
+    }
 
-        return idx;
+    size_t flatten(size_t i, size_t j, size_t k) {
+        if (this->ndims != 3) {
+            throw std::runtime_error("Cannot flatten indices of size " + std::to_string(this->ndims) + " into tensor of size 3");
+        }
+        return i * this->shape[1] * this->shape[2] + j * this->shape[2] + k;
+    }
+
+    size_t flatten(size_t i, size_t j, size_t k, size_t l) {
+        if (this->ndims != 4) {
+            throw std::runtime_error("Cannot flatten indices of size " + std::to_string(this->ndims) + " into tensor of size 4");
+        }
+        return i * this->shape[1] * this->shape[2] * this->shape[3] + j * this->shape[2] * this->shape[3] + k * this->shape[3] + l;
     }
 
     void _set_shape(const std::vector<size_t>& shape) {

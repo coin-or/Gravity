@@ -196,9 +196,6 @@ public:
             if (this->dilations.size() != 2) {
                 throw std::runtime_error("Conv: Only 2D dilations is supported");
             }
-            if (this->dilations[0] != 1 || this->dilations[1] != 1) {
-                throw std::runtime_error("Conv: Only dilations=1 is supported");
-            }
         }
         
         if (const auto* kernel_shape_attr = find_attribute("kernel_shape")) {
@@ -230,6 +227,18 @@ public:
             this->has_optional_B = true;
             this->B = this->inputs.at(2);
         }
+
+        this->out_c = this->outputs[0].shape[1];
+        this->out_h = this->outputs[0].shape[2];
+        this->out_w = this->outputs[0].shape[3];
+
+        this->inp_c = this->inputs[0].shape[1];
+        this->inp_h = this->inputs[0].shape[2];
+        this->inp_w = this->inputs[0].shape[3];
+
+        this->kern_c = this->inputs[1].shape[1];
+        this->kern_h = this->inputs[1].shape[2];
+        this->kern_w = this->inputs[1].shape[3];
     }
 
     void print() const override{
@@ -268,6 +277,19 @@ public:
     Tensor B;
 
     bool has_optional_B = false;
+
+
+    size_t out_c;
+    size_t out_h;
+    size_t out_w;
+
+    size_t inp_c;
+    size_t inp_h;
+    size_t inp_w;
+
+    size_t kern_c;
+    size_t kern_h;
+    size_t kern_w;
 
     /*
     auto_pad : string (default is NOTSET)
