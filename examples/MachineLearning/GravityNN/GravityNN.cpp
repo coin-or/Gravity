@@ -158,22 +158,17 @@ int main(int argc, char * argv[]){
                 break;
             }
             case _conv:{
-                std::cout << "########################################"<< std::endl;
-                std::cout << "Conv layer: " << l->name << std::endl;
                 auto conv = reinterpret_cast<Conv*>(l);
                 conv->add_parameters({&W, &B});
 
                 // Output indexing
-                std::cout << "Output keys: " << std::endl;
                 for (auto j = 0; j < l->outputs.at(0).numel; j++) {
-                    std::cout << "\t" << output_key+to_string(j) << std::endl;
                     Convs.add(conv->name + "," + to_string(j));
                 }
 
                 for (int oh = 0; oh < conv->out_h; oh++) {
                     for (int ow = 0; ow < conv->out_w; ow++) {
                         for (int oc = 0; oc < conv->out_c; oc++) {
-                            std::cout << "Conv Constraint " << conv_row_id << std::endl << "\t";
                             Convs_out.add_ref(output_key+to_string(conv->outputs.at(0).flatten(0, oc, oh, ow)));
                             for (int kh = 0; kh < conv->kern_h; kh++) {
                                 for (int kw = 0; kw < conv->kern_w; kw++) {
@@ -182,12 +177,9 @@ int main(int argc, char * argv[]){
                                         int w_ind = (conv->strides[1]*ow + conv->dilations[1]*kw - conv->pads[3]);
                                         if ((h_ind < conv->inp_h) && (h_ind >= 0) && (w_ind < conv->inp_w) && (w_ind >= 0)) {
                                             std::string w_idx = to_string(oc)+","+to_string(kc)+","+to_string(kh)+","+to_string(kw);
-                                            std::string i_idx = to_string(0)+","+to_string(kc)+","+to_string(h_ind)+","+to_string(w_ind);
-
                                             std::string weight_id = conv->name + "," + w_idx;
                                             std::string input_id = input_key+to_string(conv->inputs.at(0).flatten(0, kc, h_ind, w_ind));
 
-                                            std::cout << "W[" << w_idx << "]" << " * " << "I[" << i_idx << "]" << " + ";
                                             W_Conv.add_in_row(conv_row_id, weight_id);
                                             Convs_in.add_in_row(conv_row_id, input_id);
                                         }
@@ -195,7 +187,6 @@ int main(int argc, char * argv[]){
                                 }
                             }
 
-                            std::cout << std::endl;
                             conv_row_id++;
                         }
                     }
@@ -263,11 +254,10 @@ int main(int argc, char * argv[]){
     NN.add(Gemm.in(Gemms) == 0);
 
     Constraint<> Conv_("Conv");
-    Conv_ = x.in(Convs_out) - (x.in(Convs_in)*W.in(W_Conv));
-    // Conv_ = x.in(Convs_out) - (x.in(Convs_in)*W.in(W_Conv) + B.in(B_Conv));
+    Conv_ = x.in(Convs_out) - (x.in(Convs_in)*W.in(W_Conv) + B.in(B_Conv));
     NN.add(Conv_.in(Convs) == 0);
 
-    NN.print();
+    // NN.print();
     NN.write();
 
     solver<> S(NN,gurobi);
@@ -280,7 +270,6 @@ int main(int argc, char * argv[]){
     sol.resize(input_numel);
 
     std::cout << "Solution: " << print_vector(sol) << std::endl;
-
 
     for(auto l:layers){
         delete l;

@@ -63,13 +63,12 @@ public:
         return this->data.at(i);
     }
 
-    void add_params(gravity::param<>* p, std::string& name) const {
+    void add_params(gravity::param<>* p, const std::string& name) const {
         if (!this->is_initializer) {
             throw std::runtime_error("Reading from non-initializer tensor. Perhaps you're assuming this tensor is a weight when it's actually an output of a previous layer?");
         }
         for (size_t i = 0; i < this->numel; i++) {
             std::string key = name + this->unflatten(i);
-            std::cout << "Adding param " << key << std::endl;
             p->add_val(key, this->data[i]);
         }
     }
@@ -95,28 +94,28 @@ public:
         return vec_to_index(indices);
     }
 
-    size_t flatten(size_t i) {
+    size_t flatten(size_t i) const {
         if (this->ndims != 1) {
             throw std::runtime_error("Cannot flatten indices of size " + std::to_string(this->ndims) + " into tensor of size 1");
         }
         return i;
     }
 
-    size_t flatten(size_t i, size_t j) {
+    size_t flatten(size_t i, size_t j) const {
         if (this->ndims != 2) {
             throw std::runtime_error("Cannot flatten indices of size " + std::to_string(this->ndims) + " into tensor of size 2");
         }
         return i * this->shape[1] + j;
     }
 
-    size_t flatten(size_t i, size_t j, size_t k) {
+    size_t flatten(size_t i, size_t j, size_t k) const {
         if (this->ndims != 3) {
             throw std::runtime_error("Cannot flatten indices of size " + std::to_string(this->ndims) + " into tensor of size 3");
         }
         return i * this->shape[1] * this->shape[2] + j * this->shape[2] + k;
     }
 
-    size_t flatten(size_t i, size_t j, size_t k, size_t l) {
+    size_t flatten(size_t i, size_t j, size_t k, size_t l) const {
         if (this->ndims != 4) {
             throw std::runtime_error("Cannot flatten indices of size " + std::to_string(this->ndims) + " into tensor of size 4");
         }

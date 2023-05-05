@@ -39,7 +39,7 @@ public:
     virtual ~Layer() = default;
     virtual void print() const = 0;
 
-    virtual void add_parameters(std::vector<gravity::param<>*> params) = 0;
+    virtual void add_parameters(std::vector<gravity::param<>*> params) const = 0;
 
     void print_io() const {
         std::cout << "| inputs: " << std::endl;
@@ -113,7 +113,7 @@ public:
         }
     }
 
-    void add_parameters(std::vector<gravity::param<>*> params) override {
+    void add_parameters(std::vector<gravity::param<>*> params) const override {
         auto B = params[0];
         auto C = params[1];
         this->B.add_params(B, this->name);
@@ -153,7 +153,7 @@ public:
         this->is_activation_func = true;
     }
 
-    void add_parameters(std::vector<gravity::param<>*> params) override {}
+    void add_parameters(std::vector<gravity::param<>*> params) const override {}
 
     void print() const override{
         std::cout << "---------------------------------" << std::endl;
@@ -255,13 +255,17 @@ public:
         std::cout << "---------------------------------" << std::endl;
     }
 
-    void add_parameters(std::vector<gravity::param<>*> params) override {
+    void add_parameters(std::vector<gravity::param<>*> params) const override {
         auto W = params[0];
         auto B = params[1];
         this->W.add_params(W, this->name);
 
+        // We have to do this because the bias is applied per "pixel"
+        // and does not have the same number of elements as the output
         if (this->has_optional_B) {
-            this->B.add_params(B, this->name);
+            for (auto j = 0; j < this->outputs.at(0).numel; j++) {
+                B->add_val(this->name+","+to_string(j), this->B(j % this->out_c));
+            }
         }
     }
 
@@ -278,7 +282,6 @@ public:
 
     bool has_optional_B = false;
 
-
     size_t out_c;
     size_t out_h;
     size_t out_w;
@@ -290,30 +293,4 @@ public:
     size_t kern_c;
     size_t kern_h;
     size_t kern_w;
-
-    /*
-    auto_pad : string (default is NOTSET)
-        auto_pad must be either NOTSET, SAME_UPPER, SAME_LOWER or VALID. Where default value is NOTSET, 
-        which means explicit padding is used. SAME_UPPER or SAME_LOWER mean pad the input so that
-        `output_shape[i] = ceil(input_shape[i] / strides[i])` for each axis `i`. The padding is split 
-        between the two sides equally or almost equally (depending on whether it is even or odd). 
-        In case the padding is an odd number, the extra padding is added at the end for SAME_UPPER 
-        and at the beginning for SAME_LOWER.
-    dilations : list of ints
-        dilation value along each spatial axis of the filter. If not present, the dilation defaults is 
-        1 along each spatial axis.
-    group : int (default is 1)
-        number of groups input channels and output channels are divided into.
-    kernel_shape : list of ints
-        The shape of the convolution kernel. If not present, should be inferred from input W.
-    pads : list of ints
-        Padding for the beginning and ending along each spatial axis, it can take any value greater than
-        or equal to 0. The value represent the number of pixels added to the beginning and end part of 
-        the corresponding axis. `pads` format should be as follow [x1_begin, x2_begin...x1_end, x2_end,...],
-        where xi_begin the number of pixels added at the beginning of axis `i` and xi_end, the number of 
-        pixels added at the end of axis `i`. This attribute cannot be used simultaneously with auto_pad 
-        attribute. If not present, the padding defaults to 0 along start and end of each spatial axis.
-    strides : list of ints
-        Stride along each spatial axis. If not present, the stride defaults is 1 along each spatial axis.
-    */
 };
