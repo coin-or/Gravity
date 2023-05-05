@@ -496,14 +496,14 @@ bool GurobiProgram::solve(bool relax, double mipgap, double time_limit){
 //    grb_mod->set(GRB_DoubleParam_IntFeasTol, 1e-9);
     //       grb_mod->set(GRB_IntParam_NumericFocus,3);
     //     grb_mod->set(GRB_IntParam_PreCrush,0);
-//     grb_mod->set(GRB_IntParam_MIPFocus,3);
+     grb_mod->set(GRB_IntParam_MIPFocus,1);
     //    grb_mod->set(GRB_IntParam_IntegralityFocus,1);
     //grb_mod->set(GRB_IntParam_MIPFocus,1);
     //    grb_mod->set(GRB_IntParam_PumpPasses,50);
     //    grb_mod->set(GRB_IntParam_RINS,1000);
     //    grb_mod->set(GRB_IntParam_Cuts,0);
     
-    grb_mod->set(GRB_DoubleParam_TimeLimit,25200);
+    grb_mod->set(GRB_DoubleParam_TimeLimit,time_limit);
     grb_mod->set(GRB_IntParam_OutputFlag,1);
     //grb_mod->set(GRB_DoubleParam_Cutoff,5.33);
     //  grb_mod->set(GRB_IntParam_MinRelNodes,0);
@@ -771,7 +771,7 @@ void GurobiProgram::prepare_model(){
     fill_in_grb_vmap();
     create_grb_constraints();
     set_grb_objective();
-    grb_mod->write("gurobiprint.lp");
+//    grb_mod->write("gurobiprint.lp");
     //    print_constraints();
 }
 void GurobiProgram::update_model(){

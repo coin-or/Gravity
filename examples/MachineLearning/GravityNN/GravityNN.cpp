@@ -297,11 +297,66 @@ int main (int argc, char * argv[]){
             }
         }
     }
-    Model<> NN("NN_"+fname_onnx.substr(fname_onnx.find_last_of("/")));
+    Model<> NN("NN_"+fname_onnx.substr(fname_onnx.find_last_of("/")+1));
+    param<> x_lb("x_lb"), x_ub("x_ub");
+    param<> s_lb("s_lb"), s_ub("s_ub");
+    param<int> y_lb("y_lb"), y_ub("y_ub");
+    x_lb.in(x_ids);x_ub.in(x_ids);
+    y_lb.in(y_ids);y_ub.in(y_ids);
+    s_lb.in(y_ids);s_ub.in(y_ids);
+    x_lb = numeric_limits<double>::lowest();
+    x_ub = numeric_limits<double>::max();
+    s_lb = 0;
+    s_ub = numeric_limits<double>::max();
+    y_lb = 0;
+    y_ub = 1;
+
+    
+    for(auto const &key: *ReLUs._keys){
+        x_lb.set_val(key, 0);
+    }
+    size_t nb_Relus_fixed = 0;
+    for(auto i = 0; i<nb_layers; i++){
+        auto l = layers[i];
+        if(i+1<nb_layers && layers[i+1]->operator_type==_relu)
+            continue;
+        auto layer_name = l->name;
+        if(l->operator_type!=_flatten & l->lowers.size()>0){
+            for(auto j = 0; j < l->outputs[0].numel;j++){
+                x_lb.set_val(layer_name+","+to_string(j), l->lowers[0](j));
+                x_ub.set_val(layer_name+","+to_string(j), l->uppers[0](j));
+                if(l->operator_type==_relu){
+                    if(l->uppers[0](j)==0){
+                        y_ub.set_val(layer_name+","+to_string(j), 0);
+                        x_ub.set_val(layer_name+","+to_string(j), 0);
+                        nb_Relus_fixed++;
+                    }
+                    if(l->lowers[0](j)>0){
+                        y_lb.set_val(layer_name+","+to_string(j), 1);
+                        s_ub.set_val(layer_name+","+to_string(j), 0);
+                        nb_Relus_fixed++;
+                    }
+                }
+            }
+        }
+    }
+    DebugOn("Fixed " << nb_Relus_fixed << " ReLUs\n");
+    if (tensors.count("Input0_lower") != 0) {
+        auto lower = tensors.at("Input0_lower");
+        auto upper = tensors.at("Input0_upper");
+        for(auto j = 0; j < input_dims[1];j++){
+            x_lb.set_val("input"+to_string(j), lower(j));
+            x_ub.set_val("input"+to_string(j), upper(j));
+        }
+    }
 //    param<> x_lb("x_lb"), x_ub("x_ub");
 //    x_lb.in(x_ids);x_ub.in(x_ids);
-//    x_lb = numeric_limits<double>::lowest();
-//    x_ub = numeric_limits<double>::max();
+//    x_lb = -1000;
+//    x_ub = 1000;
+//    for(auto j = 0; j < input_dims[1];j++){
+//        x_lb.set_val(j, -2);
+//        x_ub.set_val(j, 2);
+//    }
 //
 //    for(auto const &key: *ReLUs._keys){
 //        x_lb.set_val(key, 0);
@@ -313,61 +368,28 @@ int main (int argc, char * argv[]){
 //            continue;
 //        auto layer_name = l->name;
 //        size_t dim = 0;
-//        if(l->operator_type!=_flatten & l->lowers.size()>0){
-//            for(auto j = 0; j < l->outputs[0].numel;j++){
+//        if(l->lowers.size()>0){
+//            if(l->var_dims.size()==2){
+//                dim = l->var_dims[1];
+//            }
+//            else{
+//                dim = l->var_dims[0];
+//            }
+//            for(auto j = 0; j < dim;j++){
 //                x_lb.set_val(layer_name+","+to_string(j), l->lowers[0](j));
 //                x_ub.set_val(layer_name+","+to_string(j), l->uppers[0](j));
 //            }
 //        }
 //    }
-//    if (tensors.count("Input0_lower") != 0) {
-//        auto lower = tensors.at("Input0_lower");
-//        auto upper = tensors.at("Input0_upper");
-//        for(auto j = 0; j < input_dims[1];j++){
-//            x_lb.set_val("input"+to_string(j), lower(j));
-//            x_ub.set_val("input"+to_string(j), upper(j));
-//        }
-//    }
-    param<> x_lb("x_lb"), x_ub("x_ub");
-    x_lb.in(x_ids);x_ub.in(x_ids);
-    x_lb = -1000;
-    x_ub = 1000;
-    for(auto j = 0; j < input_dims[1];j++){
-        x_lb.set_val(j, -2);
-        x_ub.set_val(j, 2);
-    }
-
-    for(auto const &key: *ReLUs._keys){
-        x_lb.set_val(key, 0);
-    }
-
-    for(auto i = 0; i<nb_layers; i++){
-        auto l = layers[i];
-        if(i+1<nb_layers && layers[i+1]->operator_type==_relu)
-            continue;
-        auto layer_name = l->name;
-        size_t dim = 0;
-        if(l->lowers.size()>0){
-            if(l->var_dims.size()==2){
-                dim = l->var_dims[1];
-            }
-            else{
-                dim = l->var_dims[0];
-            }
-            for(auto j = 0; j < dim;j++){
-                x_lb.set_val(layer_name+","+to_string(j), l->lowers[0](j));
-                x_ub.set_val(layer_name+","+to_string(j), l->uppers[0](j));
-            }
-        }
-    }
     var<> x("x", x_lb, x_ub);
-    var<int> y("y", 0, 1);
+    var<int> y("y", y_lb, y_ub);
+    var<> s("s", s_lb, s_ub);
     NN.add(x.in(x_ids));
     NN.add(y.in(y_ids));
 
     /* Objective function */
-//    NN.max(x(layers.back()->name+",0") - x(layers.back()->name+",6"));
-    NN.max(x(layers.back()->name+",0"));
+    NN.min(x(layers.back()->name+",4") - x(layers.back()->name+",1"));
+//    NN.max(x(layers.back()->name+",0"));
 
     
 //    Constraint<> Conv_ReLU("Conv_ReLU");
@@ -396,29 +418,93 @@ int main (int argc, char * argv[]){
     Constraint<> ReLU_y_off("ReLU_y_off");
     ReLU_y_off = x.in(Gemm_ReLUs);
     NN.add_on_off(ReLU_y_off.in(Gemm_ReLUs) <= 0, y.in(Gemm_ReLUs), false);
+    
+//    Constraint<> ReLU_off("ReLU_off");
+//    ReLU_off = x.in(Gemm_ReLUs) - 1e-4;
+//    NN.add_on_off(ReLU_off.in(Gemm_ReLUs) >= 0, y.in(Gemm_ReLUs), true);
 
 
     Constraint<> Gemm("Gemm");
     Gemm = x.in(Gemms) - (x.in(x_Gemms_in)*B.in(B_Gemm) + C.in(Gemms));
     NN.add(Gemm.in(Gemms) == 0);
 
-    Constraint<> Conv("Conv");
-    Conv = x.in(Convs) - (x.in(x_Convs_in)*W.in(W_Conv) + B.in(Convs));
-    NN.add(Conv.in(Convs) == 0);
+//    Constraint<> Conv("Conv");
+//    Conv = x.in(Convs) - (x.in(x_Convs_in)*W.in(W_Conv) + B.in(Convs));
+//    NN.add(Conv.in(Convs) == 0);
 
     
-    Constraint<> Add("Add");
-    Add = x.in(Adds) + B.in(Adds);
-    NN.add(Add.in(Adds) == 0);
+//    Constraint<> Add("Add");
+//    Add = x.in(Adds) + B.in(Adds);
+//    NN.add(Add.in(Adds) == 0);
 
-    NN.print();
-//    NN.write();
+//    NN.print();
+    NN.write();
     
 
-    solver<> S(NN,gurobi);
-    S.run();
+//    solver<> S(NN,gurobi);
+//    S.run(1e-4, 1800);
+//    NN.print_solution();
+    bool build_NLP=true;
+    if(build_NLP){
+        Model<> NLP("NLP_"+fname_onnx.substr(fname_onnx.find_last_of("/")+1));
+        
+        NLP.add(x.in(x_ids));
+//        NLP.add(y.in(y_ids));
+        NLP.add(s.in(y_ids));
 
-    NN.print_solution();
+        /* Objective function */
+        NLP.min(x(layers.back()->name+",4") - x(layers.back()->name+",0"));
+    //    NLP.max(x(layers.back()->name+",0"));
+
+        
+    //    Constraint<> Conv_ReLU("Conv_ReLU");
+    //    Conv_ReLU = x.in(Conv_ReLUs) -  (x.in(x_Conv_ReLUs)*W.in(W_Conv) + B.in(B_Conv_ReLUs));
+    //    NLP.add(Conv_ReLU.in(Conv_ReLUs) >= 0);
+        
+        /* Constraints */
+        Constraint<> Gemm_ReLU("Gemm_ReLU");
+        Gemm_ReLU = x.in(Gemm_ReLUs) - s.in(Gemm_ReLUs) - (x.in(x_Gemm_ReLUs)*B.in(B_Gemm_ReLUs) + C.in(C_Gemm_ReLUs));
+        NLP.add(Gemm_ReLU.in(Gemm_ReLUs) == 0);
+        
+        Constraint<> Complement("Complement");
+        Complement = x.in(ReLUs)*s.in(ReLUs);
+        NLP.add(Complement.in(ReLUs) <= 0);
+
+    //    Constraint<> ReLU_on("ReLU_on");
+    //    ReLU_on = x.in(ReLUs) - (x.in(x_ReLUs)*B.in(B_ReLUs) + C.in(C_ReLUs)) - 1000*(1-y.in(ReLUs));
+    //    NLP.add(ReLU_on.in(ReLUs) <= 0);
+        
+//        Constraint<> ReLU_on("ReLU_on");
+//        ReLU_on = x.in(Gemm_ReLUs) - (x.in(x_Gemm_ReLUs)*B.in(B_Gemm_ReLUs) + C.in(C_Gemm_ReLUs));
+//        NLP.add_on_off(ReLU_on.in(Gemm_ReLUs) <= 0, y.in(Gemm_ReLUs), true);
+    //
+        
+    //    Constraint<> ReLU_off("ReLU_off");
+    //    ReLU_off = (B.in(B_ReLUs)*x.in(x_ReLUs) + C.in(C_ReLUs)) - 1000*y.in(ReLUs);
+    //    NLP.add(ReLU_off.in(ReLUs) <= 0);
+    //
+
+//        Constraint<> ReLU_y_off("ReLU_y_off");
+//        ReLU_y_off = x.in(Gemm_ReLUs);
+//        NLP.add_on_off(ReLU_y_off.in(Gemm_ReLUs) <= 0, y.in(Gemm_ReLUs), false);
+
+
+        Constraint<> Gemm("Gemm");
+        Gemm = x.in(Gemms) - (x.in(x_Gemms_in)*B.in(B_Gemm) + C.in(Gemms));
+        NLP.add(Gemm.in(Gemms) == 0);
+        NLP.write();
+        solver<> S(NLP,ipopt);
+        S.run(1e-4, 1800);
+        NLP.print_solution();
+        size_t nb_z_comp = 0;
+        for (auto i = 0; i<y_ids.size(); i++) {
+            auto key = y_ids._keys->at(i);
+            if(s.eval(i)<=1e-6 && std::abs(x.eval(key)) <= 1e-6)
+                nb_z_comp++;
+        }
+        DebugOn("Number of zero complementarities = " << nb_z_comp << endl);
+    }
+    
     for(auto l:layers){
         delete l;
     }
