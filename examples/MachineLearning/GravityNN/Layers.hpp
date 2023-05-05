@@ -266,6 +266,10 @@ public:
             for (auto j = 0; j < this->outputs.at(0).numel; j++) {
                 B->add_val(this->name+","+to_string(j), this->B(j % this->out_c));
             }
+        } else {
+            for (auto j = 0; j < this->outputs.at(0).numel; j++) {
+                B->add_val(this->name+","+to_string(j), 0.0);
+            }
         }
     }
 
