@@ -5,7 +5,7 @@
 #include "Layers.hpp"
 //#include "smtlib2yices.h"
 
-std::pair<std::vector<Layer*>, std::vector<size_t>> build_graph(std::string fname) {
+std::tuple<std::vector<Layer*>, std::vector<size_t>, Tensors> build_graph(std::string fname) {
     std::fstream input(fname, std::ios::in | std::ios::binary);
     onnx::ModelProto model;
     bool isSuccess = model.ParseFromIstream(&input);
@@ -41,7 +41,7 @@ std::pair<std::vector<Layer*>, std::vector<size_t>> build_graph(std::string fnam
         } else if (node.op_type() == "Conv") {
             layers.push_back(new Conv(node, tensors));
         } else if (node.op_type() == "Flatten") {
-//            layers.push_back(new Flatten(node, tensors));
+            layers.push_back(new Flatten(node, tensors));
         } else {
             throw std::runtime_error("Unsupported operator " + node.op_type());
         }
@@ -57,8 +57,7 @@ std::pair<std::vector<Layer*>, std::vector<size_t>> build_graph(std::string fnam
     } else {
         input_dims = tensors[graph.input(0).name()].shape;
     }
-
-    return std::make_pair(layers, input_dims);
+    return {layers,input_dims,tensors};
 }
 
 
@@ -80,8 +79,9 @@ int main (int argc, char * argv[]){
 //    smtlib2_yices_parser_delete(yp);
 
     auto tmp = build_graph(fname_onnx);
-    auto layers = tmp.first;
-    auto input_dims = tmp.second;
+    auto layers = std::get<0>(tmp);
+    auto input_dims = std::get<1>(tmp);
+    auto tensors = std::get<2>(tmp);
 
     /* INDEX SETS */
     /* Indexing variables */
@@ -104,7 +104,7 @@ int main (int argc, char * argv[]){
     bool is_activation_func = false;
     for(auto i = 0; i<nb_layers; i++){
         auto l = layers[i];
-        if(i+1<nb_layers && l->var_dims.size()==2 && layers[i+1]->operator_type==_relu){/*< The next layer is an activation layer (e.g. ReLU), no need to introduce variables for this layer */
+        if(i+1<nb_layers && layers[i+1]->operator_type==_relu){/*< The next layer is an activation layer (e.g. ReLU), no need to introduce variables for this layer */
             continue;
         }
         for(auto j = 0; j < l->outputs[0].numel;j++){
@@ -185,10 +185,10 @@ int main (int argc, char * argv[]){
                     key = conv->name+","+to_string(k);
                     if(add_Conv_constraint){
                         if(i==0){
-                            x_Gemms_in.add_in_row(gemm_row_id, "input"+to_string(k));
+                            x_Convs_in.add_in_row(conv_row_id, "input"+to_string(k));
                         }
                         else{
-                            x_Gemms_in.add_in_row(gemm_row_id, layers[i-1]->name+","+to_string(k));
+                            x_Convs_in.add_in_row(conv_row_id, layers[i-1]->name+","+to_string(k));
                         }
                     }
                 }
@@ -298,6 +298,36 @@ int main (int argc, char * argv[]){
         }
     }
     Model<> NN("NN_"+fname_onnx.substr(fname_onnx.find_last_of("/")));
+//    param<> x_lb("x_lb"), x_ub("x_ub");
+//    x_lb.in(x_ids);x_ub.in(x_ids);
+//    x_lb = numeric_limits<double>::lowest();
+//    x_ub = numeric_limits<double>::max();
+//
+//    for(auto const &key: *ReLUs._keys){
+//        x_lb.set_val(key, 0);
+//    }
+//
+//    for(auto i = 0; i<nb_layers; i++){
+//        auto l = layers[i];
+//        if(i+1<nb_layers && layers[i+1]->operator_type==_relu)
+//            continue;
+//        auto layer_name = l->name;
+//        size_t dim = 0;
+//        if(l->operator_type!=_flatten & l->lowers.size()>0){
+//            for(auto j = 0; j < l->outputs[0].numel;j++){
+//                x_lb.set_val(layer_name+","+to_string(j), l->lowers[0](j));
+//                x_ub.set_val(layer_name+","+to_string(j), l->uppers[0](j));
+//            }
+//        }
+//    }
+//    if (tensors.count("Input0_lower") != 0) {
+//        auto lower = tensors.at("Input0_lower");
+//        auto upper = tensors.at("Input0_upper");
+//        for(auto j = 0; j < input_dims[1];j++){
+//            x_lb.set_val("input"+to_string(j), lower(j));
+//            x_ub.set_val("input"+to_string(j), upper(j));
+//        }
+//    }
     param<> x_lb("x_lb"), x_ub("x_ub");
     x_lb.in(x_ids);x_ub.in(x_ids);
     x_lb = -1000;
@@ -317,26 +347,32 @@ int main (int argc, char * argv[]){
             continue;
         auto layer_name = l->name;
         size_t dim = 0;
-        if(l->operator_type!=_flatten & l->lowers.size()>0){
-            for(auto j = 0; j < l->outputs[0].numel;j++){
+        if(l->lowers.size()>0){
+            if(l->var_dims.size()==2){
+                dim = l->var_dims[1];
+            }
+            else{
+                dim = l->var_dims[0];
+            }
+            for(auto j = 0; j < dim;j++){
                 x_lb.set_val(layer_name+","+to_string(j), l->lowers[0](j));
                 x_ub.set_val(layer_name+","+to_string(j), l->uppers[0](j));
             }
         }
     }
-
     var<> x("x", x_lb, x_ub);
     var<int> y("y", 0, 1);
     NN.add(x.in(x_ids));
     NN.add(y.in(y_ids));
 
     /* Objective function */
+//    NN.max(x(layers.back()->name+",0") - x(layers.back()->name+",6"));
     NN.max(x(layers.back()->name+",0"));
 
     
-    Constraint<> Conv_ReLU("Conv_ReLU");
-    Conv_ReLU = x.in(Conv_ReLUs) -  (x.in(x_Conv_ReLUs)*W.in(W_Conv) + B.in(B_Conv_ReLUs));
-    NN.add(Conv_ReLU.in(Conv_ReLUs) >= 0);
+//    Constraint<> Conv_ReLU("Conv_ReLU");
+//    Conv_ReLU = x.in(Conv_ReLUs) -  (x.in(x_Conv_ReLUs)*W.in(W_Conv) + B.in(B_Conv_ReLUs));
+//    NN.add(Conv_ReLU.in(Conv_ReLUs) >= 0);
     
     /* Constraints */
     Constraint<> Gemm_ReLU("Gemm_ReLU");
