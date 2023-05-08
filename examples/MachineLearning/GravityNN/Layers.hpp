@@ -8,7 +8,7 @@
 
 using namespace gravity;
 
-typedef enum { _gemm, _relu, _conv, _input } OType; /* Operator Type */
+typedef enum { _gemm, _relu, _conv, _input, _noop } OType; /* Operator Type */
 
 class Layer: public Node {
 public:
@@ -41,11 +41,11 @@ public:
         {
             auto lower_name = out + "_lower";
             if (tensors.count(lower_name) != 0) {
-                this->lowers.push_back(tensors.at(lower_name));
+                this->lowers.push_back(&tensors.at(lower_name));
             }
             auto upper_name = out + "_upper";
             if (tensors.count(lower_name) != 0) {
-                this->uppers.push_back(tensors.at(upper_name));
+                this->uppers.push_back(&tensors.at(upper_name));
             }
         }
     }
@@ -79,8 +79,8 @@ public:
 
     bool is_activation_func = false;
 
-    std::vector<Tensor> lowers;
-    std::vector<Tensor> uppers;
+    std::vector<Tensor*> lowers;
+    std::vector<Tensor*> uppers;
 
     // Names for inputs from other layers, NOT including initializers
     std::vector<std::string> input_names;
@@ -109,13 +109,14 @@ public:
         if (const auto *transB_attr = find_attribute("transB", node)) {
             this->transB = transB_attr->i();
         }
-        
+
         this->A = &tensors.at(node.input(0));
         this->B = &tensors.at(node.input(1));
         this->Y = &tensors.at(node.output(0));
         if(this->transB){
             this->B->_transpose();
         }
+
         if (node.input_size() == 3) {
             this->C = &tensors.at(node.input(2));
         }
@@ -127,30 +128,30 @@ public:
     void add_parameters(std::vector<gravity::param<>*> params) const override {
         auto B = params[0];
         auto C = params[1];
-        this->B->add_params(B, this->name);
+        this->B->add_params(B);
         if (this->C) {
-            this->C->add_params(C, this->name);
+            this->C->add_params(C);
         }
     }
 
-    void build_constraints(indices& Gemms, indices& Gemms_in, indices& Gemms_out, indices& B_Gemm, param<>& B, param<>& C, size_t& row_id) {
+    void build_constraints(indices& Gemms, indices& Gemms_in, indices& Gemms_out, indices& B_Gemm, indices& C_Gemm, param<>& B, param<>& C, size_t& row_id) {
         this->add_parameters({&B, &C});
         for (auto j = 0; j < this->Y->numel; j++) {
             Gemms.add(this->name + "," + to_string(j));
         }
 
-        std::string input_key = this->get_inputs()[0]->name + "_out,";
-        std::string output_key = this->name + "_out,";
-
         // Expression
         for(auto j = 0; j < this->out_dim; j++){
-            Gemms_out.add_ref(output_key+to_string(j));
+            Gemms_out.add_ref(this->Y->strkey(j));
             for(auto k = 0; k < this->in_dim; k++){
-                std::string weight_id = this->name+","+to_string(k)+","+to_string(j);
-                std::string input_id = input_key+to_string(k);
-
-                B_Gemm.add_in_row(row_id, weight_id);
-                Gemms_in.add_in_row(row_id, input_id);
+                B_Gemm.add_in_row(row_id, this->B->strkey(k, j));
+                Gemms_in.add_in_row(row_id, this->A->strkey(k));
+            }
+            // Add bias
+            if (this->C) {
+                C_Gemm.add_in_row(row_id, this->C->strkey(j));
+            } else {
+                C_Gemm.add_empty_row();
             }
             row_id++;
         }
@@ -172,22 +173,22 @@ public:
     Relu(const onnx::NodeProto& node, Tensors& tensors): Layer(node, tensors) {
         operator_type = _relu;
         this->X = &tensors.at(node.input(0));
+        this->Y = &tensors.at(node.output(0));
         this->is_activation_func = true;
     }
 
     void add_parameters(std::vector<gravity::param<>*> params) const override {}
 
     void build_constraints(indices& ReLUs, indices& ReLUs_in, indices& ReLUs_out) {
-        std::string input_key = this->get_inputs()[0]->name + "_out,";
-        std::string output_key = this->name + "_out,";
         for(auto j = 0; j < this->X->numel;j++){
             ReLUs.add(this->name + "," + to_string(j));
-            ReLUs_out.add_ref(output_key+to_string(j));
-            ReLUs_in.add_ref(input_key+to_string(j));
+            ReLUs_in.add_ref(this->X->strkey(j));
+            ReLUs_out.add_ref(this->Y->strkey(j));
         }
     }
 
     Tensor* X; // Input
+    Tensor* Y; // Output
 };
 
 class Conv : public Layer {
@@ -196,12 +197,11 @@ public:
         operator_type = _conv;
         this->X = &tensors.at(node.input(0));
         this->W = &tensors.at(node.input(1));
-        this->Y = &tensors.at(node.output(0));
         if (node.input_size() == 3) {
             this->B = &tensors.at(node.input(2));
-            this->has_optional_B = true;
         }
 
+        this->Y = &tensors.at(node.output(0));
 
         // -2 because we don't count the batch and channel dimensions
         size_t num_spatial_dims = this->X->shape.size() - 2;
@@ -219,7 +219,7 @@ public:
                 throw std::runtime_error("Conv: Only auto_pad=NOTSET is supported");
             }
         }
-        
+
         if (const auto* group_attr = find_attribute("group", node)) {
             this->group = group_attr->i();
             if (this->group != 1) {
@@ -230,7 +230,7 @@ public:
         if (const auto* dilations_attr = find_attribute("dilations", node)) {
             this->dilations = std::vector<size_t>(dilations_attr->ints().begin(), dilations_attr->ints().end());
         }
-        
+
         if (const auto* kernel_shape_attr = find_attribute("kernel_shape", node)) {
             this->kernel_shape = std::vector<size_t>(kernel_shape_attr->ints().begin(), kernel_shape_attr->ints().end());
             if (this->kernel_shape.size() != 2) {
@@ -261,10 +261,8 @@ public:
         this->kern_w = this->W->shape[3];
     }
 
-    void build_constraints(indices& Convs, indices& Convs_in, indices& Convs_out, indices& W_Conv, param<>& W, param<>& B, size_t& row_id) {
+    void build_constraints(indices& Convs, indices& Convs_in, indices& Convs_out, indices& W_Conv, indices& B_Conv, param<>& W, param<>& B, size_t& row_id) {
         this->add_parameters({&W, &B});
-        std::string input_key = this->get_inputs()[0]->name + "_out,";
-        std::string output_key = this->name + "_out,";
 
         // Output indexing
         for (auto j = 0; j < this->Y->numel; j++) {
@@ -274,22 +272,24 @@ public:
         for (int oh = 0; oh < this->out_h; oh++) {
             for (int ow = 0; ow < this->out_w; ow++) {
                 for (int oc = 0; oc < this->out_c; oc++) {
-                    Convs_out.add_ref(output_key+to_string(this->Y->flatten(0, oc, oh, ow)));
+                    Convs_out.add_ref(this->Y->strkey(0, oc, oh, ow));
                     for (int kh = 0; kh < this->kern_h; kh++) {
                         for (int kw = 0; kw < this->kern_w; kw++) {
                             for (int kc = 0; kc < this->kern_c; kc++) {
                                 int h_ind = (this->strides[0]*oh + this->dilations[0]*kh - this->pads[0]);
                                 int w_ind = (this->strides[1]*ow + this->dilations[1]*kw - this->pads[3]);
                                 if ((h_ind < this->inp_h) && (h_ind >= 0) && (w_ind < this->inp_w) && (w_ind >= 0)) {
-                                    std::string w_idx = to_string(oc)+","+to_string(kc)+","+to_string(kh)+","+to_string(kw);
-                                    std::string weight_id = this->name + "," + w_idx;
-                                    std::string input_id = input_key+to_string(this->X->flatten(0, kc, h_ind, w_ind));
-
-                                    W_Conv.add_in_row(row_id, weight_id);
-                                    Convs_in.add_in_row(row_id, input_id);
+                                    W_Conv.add_in_row(row_id, this->W->strkey(oc, kc, kh, kw));
+                                    Convs_in.add_in_row(row_id, this->X->strkey(0, kc, h_ind, w_ind));
                                 }
                             }
                         }
+                    }
+                    // Add bias
+                    if (this->B) {
+                        B_Conv.add_in_row(row_id, this->B->strkey(oc));
+                    } else {
+                        B_Conv.add_empty_row();
                     }
                     row_id++;
                 }
@@ -300,18 +300,9 @@ public:
     void add_parameters(std::vector<gravity::param<>*> params) const override {
         auto W = params[0];
         auto B = params[1];
-        this->W->add_params(W, this->name);
-
-        // We have to do this because the bias is applied per "pixel"
-        // and does not have the same number of elements as the output
-        if (this->has_optional_B) {
-            for (auto j = 0; j < this->Y->numel; j++) {
-                B->add_val(this->name+","+to_string(j), this->B->operator()(j % this->out_c));
-            }
-        } else {
-            for (auto j = 0; j < this->Y->numel; j++) {
-                B->add_val(this->name+","+to_string(j), 0.0);
-            }
+        this->W->add_params(W);
+        if (this->B) {
+            this->B->add_params(B);
         }
     }
 
@@ -323,10 +314,8 @@ public:
     std::vector<size_t> pads;
     std::vector<size_t> strides;
 
-    Tensor *W, *B; // Weight and bias
+    Tensor *W, *B = nullptr; // Weight and bias
     Tensor *X, *Y; // Input and output
-
-    bool has_optional_B = false;
 
     size_t out_c, out_h, out_w;
     size_t inp_c, inp_h, inp_w;
@@ -337,8 +326,28 @@ class Input : public Layer {
 public:
     Input(const onnx::ValueInfoProto& node, Tensors& tensors): Layer(node, tensors) {
         operator_type = _input;
-        // this->X = &this->outputs.at(0);
-    } 
+    }
 
     void add_parameters(std::vector<gravity::param<>*> params) const override {}
+};
+
+class NoOp : public Layer {
+public:
+    NoOp(const onnx::NodeProto& node, Tensors& tensors): Layer(node, tensors) {
+        operator_type = _noop;
+        this->X = &tensors[node.input(0)];
+        this->Y = &tensors[node.output(0)];
+    }
+
+    void add_parameters(std::vector<gravity::param<>*> params) const override {}
+
+    void build_constraints(indices& NoOps, indices& NoOps_in, indices& NoOps_out) {
+        for(auto j = 0; j < this->X->numel;j++){
+            NoOps.add(this->name + "," + to_string(j));
+            NoOps_in.add_ref(this->X->strkey(j));
+            NoOps_out.add_ref(this->Y->strkey(j));
+        }
+    }
+
+    Tensor *X, *Y; // Input and output
 };

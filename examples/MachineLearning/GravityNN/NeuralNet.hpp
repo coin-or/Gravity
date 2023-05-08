@@ -6,6 +6,8 @@
 #include "Layers.hpp"
 #include <gravity/Net.h>
 
+std::set<std::string> noops = {"Flatten"};
+
 class NeuralNet: public Net {
 public:
     NeuralNet(const std::string& onnx_path) {
@@ -30,6 +32,8 @@ public:
                 node_ptr = new Relu(node, this->tensors);
             } else if (node.op_type() == "Conv") {
                 node_ptr = new Conv(node, this->tensors);
+            } else if (noops.count(node.op_type())) {
+                node_ptr = new NoOp(node, this->tensors);
             } else {
                 throw std::runtime_error("Unsupported operator " + node.op_type());
             }
@@ -47,7 +51,7 @@ public:
         for (auto l: this->layers) {
             for (auto output: l->outputs) {
                 for (auto i = 0; i < output->numel; i++) {
-                    hidden_states.add(l->name + "_out,"+to_string(i));
+                    hidden_states.add(output->strkey(i));
                     if (l->operator_type == _relu) {
                         y_ids.add(l->name + "," + to_string(i));
                     }
@@ -61,8 +65,8 @@ public:
             // Enforce lb of 0 for relu
             if (l->operator_type == _relu) {
                 auto relu = dynamic_cast<Relu*>(l);
-                for(auto j = 0; j < relu->X->numel;j++){
-                    x_lb.set_val(l->name+"_out,"+to_string(j), 0.0);
+                for(auto j = 0; j < relu->Y->numel;j++){
+                    x_lb.set_val(relu->Y->name + "," + to_string(j), 0.0);
                 }
             }
 
@@ -70,9 +74,12 @@ public:
             if (l->lowers.size() == 0) {
                 continue;
             }
-            for(auto j = 0; j < l->lowers[0].numel;j++){
-                x_lb.set_val(l->name+"_out,"+to_string(j), l->lowers[0](j));
-                x_ub.set_val(l->name+"_out,"+to_string(j), l->uppers[0](j));
+
+            for (size_t o = 0; o < l->outputs.size(); o++) {
+                for(auto j = 0; j < l->lowers[o]->numel; j++){
+                    x_lb.set_val(l->outputs[o]->name + "," + to_string(j), (*l->lowers[o])(j));
+                    x_ub.set_val(l->outputs[o]->name + "," + to_string(j), (*l->uppers[o])(j));
+                }
             }
         }
     }

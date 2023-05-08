@@ -31,7 +31,7 @@ int main(int argc, char * argv[]){
     Gemms_out = hidden_states;
     Gemms_in  = hidden_states;
     B_Gemm    = B_ids;
-    C_Gemm    = Gemms;
+    C_Gemm    = C_ids;
 
     // Conv indices
     indices Convs("Convs"); // Constraint indices, 1 per output
@@ -40,12 +40,17 @@ int main(int argc, char * argv[]){
     Convs_out = hidden_states;
     Convs_in  = hidden_states;
     W_Conv    = W_ids;
-    B_Conv    = Convs;
+    B_Conv    = B_ids;
 
     // ReLU indices
     indices ReLUs("ReLUs"), ReLUs_out("ReLUs"), ReLUs_in("ReLUs_in");
     ReLUs_out = hidden_states;
     ReLUs_in  = hidden_states;
+
+    // NoOp indices
+    indices NoOps("NoOps"), NoOps_out("NoOps_out"), NoOps_in("NoOps_in");
+    NoOps_out = hidden_states;
+    NoOps_in  = hidden_states;
 
     nn.index_hidden_states(hidden_states, y_ids);
 
@@ -59,12 +64,17 @@ int main(int argc, char * argv[]){
             }
             case _gemm:{
                 auto gemm = dynamic_cast<GEMM*>(l);
-                gemm->build_constraints(Gemms, Gemms_in, Gemms_out, B_Gemm, B, C, gemm_row_id);
+                gemm->build_constraints(Gemms, Gemms_in, Gemms_out, B_Gemm, C_Gemm, B, C, gemm_row_id);
                 break;
             }
             case _conv:{
                 auto conv = dynamic_cast<Conv*>(l);
-                conv->build_constraints(Convs, Convs_in, Convs_out, W_Conv, W, B, conv_row_id);
+                conv->build_constraints(Convs, Convs_in, Convs_out, W_Conv, B_Conv, W, B, conv_row_id);
+                break;
+            }
+            case _noop:{
+                auto noop = dynamic_cast<NoOp*>(l);
+                noop->build_constraints(NoOps, NoOps_in, NoOps_out);
                 break;
             }
             default:{
@@ -92,7 +102,7 @@ int main(int argc, char * argv[]){
     //    x(nn.layers.back()->name+"_out,4")
     //    -x(nn.layers.back()->name+"_out,9")
     // );
-    NN.max(x(nn.layers.back()->name+"_out,0"));
+    NN.max(x(nn.layers.back()->outputs[0]->strkey(0)));
 
     /* Constraints */
     Constraint<> ReLU("ReLU");
@@ -115,6 +125,10 @@ int main(int argc, char * argv[]){
     Conv_ = x.in(Convs_out) - (x.in(Convs_in)*W.in(W_Conv) + B.in(B_Conv));
     NN.add(Conv_.in(Convs) == 0);
 
+    Constraint<> NoOp("NoOp");
+    NoOp = x.in(NoOps_out) - x.in(NoOps_in);
+    NN.add(NoOp.in(NoOps) == 0);
+
     NN.print();
     NN.write();
 
@@ -128,6 +142,7 @@ int main(int argc, char * argv[]){
     sol.resize(nn.input_numel);
 
     std::cout << "Solution: " << print_vector(sol) << std::endl;
+    std::cout << "Obj. value: " << std::setprecision(8) << NN.get_obj_val() << std::endl;
 
     return 0;
 }

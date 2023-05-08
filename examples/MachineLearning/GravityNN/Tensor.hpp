@@ -64,69 +64,50 @@ public:
         return this->data.at(i);
     }
 
-    void add_params(gravity::param<>* p, const std::string& name) const {
+    void add_params(gravity::param<>* p) const {
         if (!this->is_initializer) {
             throw std::runtime_error("Reading from non-initializer tensor. Perhaps you're assuming this tensor is a weight when it's actually an output of a previous layer?");
         }
+
         for (size_t i = 0; i < this->numel; i++) {
-            std::string key = name + this->unflatten(i);
-            p->add_val(key, this->data[i]);
+            p->add_val(this->strkey(i), this->data[i]);
         }
     }
 
-    std::string unflatten(size_t idx) const {
-        if (this->ndims == 1) {
-            return "," + std::to_string(idx);
-        }
-
-        std::vector<size_t> indices = std::vector<size_t>(this->ndims, 0);
-
-        size_t d = this->numel;
-        size_t r = 0;
-        for(size_t i = 0; i <= ndims - 2; i ++) {
-            d /= shape[i];
-            indices[i] = idx / d;
-
-            r = idx % d;
-            idx = r;
-        }
-        indices[this->ndims - 1] = r;
-
-        return vec_to_index(indices);
+    std::string strkey(size_t idx) const {
+        size_t flat = idx;
+        this->_boundcheck(flat);
+        return this->name + "," + std::to_string(flat);
     }
 
-    size_t flatten(size_t i) const {
-        if (this->ndims != 1) {
-            throw std::runtime_error("Cannot flatten indices of size " + std::to_string(this->ndims) + " into tensor of size 1");
-        }
-        return i;
+    std::string strkey(size_t i, size_t j) const {
+        size_t flat = i * this->shape[1] + j;
+        this->_boundcheck(flat);
+        return this->name + "," + std::to_string(flat);
+    }
+    
+    std::string strkey(size_t i, size_t j, size_t k) const {
+        size_t flat = i * this->shape[1] * this->shape[2] + j * this->shape[2] + k;
+        this->_boundcheck(flat);
+        return this->name + "," + std::to_string(flat);
     }
 
-    size_t flatten(size_t i, size_t j) const {
-        if (this->ndims != 2) {
-            throw std::runtime_error("Cannot flatten indices of size " + std::to_string(this->ndims) + " into tensor of size 2");
-        }
-        return i * this->shape[1] + j;
-    }
-
-    size_t flatten(size_t i, size_t j, size_t k) const {
-        if (this->ndims != 3) {
-            throw std::runtime_error("Cannot flatten indices of size " + std::to_string(this->ndims) + " into tensor of size 3");
-        }
-        return i * this->shape[1] * this->shape[2] + j * this->shape[2] + k;
-    }
-
-    size_t flatten(size_t i, size_t j, size_t k, size_t l) const {
-        if (this->ndims != 4) {
-            throw std::runtime_error("Cannot flatten indices of size " + std::to_string(this->ndims) + " into tensor of size 4");
-        }
-        return i * this->shape[1] * this->shape[2] * this->shape[3] + j * this->shape[2] * this->shape[3] + k * this->shape[3] + l;
+    std::string strkey(size_t i, size_t j, size_t k, size_t l) const {
+        size_t flat = i * this->shape[1] * this->shape[2] * this->shape[3] + j * this->shape[2] * this->shape[3] + k * this->shape[3] + l;
+        this->_boundcheck(flat);
+        return this->name + "," + std::to_string(flat);
     }
 
     void _set_shape(const std::vector<size_t>& shape) {
         this->shape = shape;
         this->numel = vecprod(this->shape);
         this->ndims = this->shape.size();
+    }
+
+    void _boundcheck(size_t flat_idx) const {
+        if (flat_idx >= this->numel) {
+            throw std::runtime_error("Index " + std::to_string(flat_idx) + " out of bounds for tensor of size " + std::to_string(this->numel) + ".");
+        }
     }
 
     std::string name;
