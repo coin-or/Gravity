@@ -1,10 +1,12 @@
 #pragma once
+
 #include <string>
 #include <onnx.pb.h>
 #include <vector>
 #include "Layers.hpp"
+#include <gravity/Net.h>
 
-class NeuralNet {
+class NeuralNet: public Net {
 public:
     NeuralNet(const std::string& onnx_path) {
         onnx::GraphProto graph = _open_file(onnx_path);
@@ -12,48 +14,93 @@ public:
             throw std::runtime_error("Network has more than one input. Not supported.");
         }
 
-        // Tensors with data
-        for (const auto& initializer : graph.initializer()) {
-            this->tensors[initializer.name()] = Tensor(initializer);
-        }
+        this->tensors = get_tensors(graph);
 
-        // Tensor with shape/metadata only
-        for (const auto& vinfo : graph.value_info()) {
-            this->tensors[vinfo.name()] = Tensor(vinfo);
-        }
         for (const auto& input : graph.input()) {
-            this->tensors[input.name()] = Tensor(input);
-        }
-        for (const auto& output : graph.output()) {
-            this->tensors[output.name()] = Tensor(output);
+            Layer* inp_layer = new Input(input, tensors);
+            this->layers.push_back(inp_layer);
+            this->add_node(inp_layer);
         }
 
         for (const auto& node : graph.node()) {
+            Layer* node_ptr;
             if (node.op_type() == "Gemm") {
-                this->layers.push_back(new GEMM(node, tensors));
+                node_ptr = new GEMM(node, this->tensors);
             } else if (node.op_type() == "Relu") {
-                this->layers.push_back(new Relu(node, tensors));
+                node_ptr = new Relu(node, this->tensors);
             } else if (node.op_type() == "Conv") {
-                this->layers.push_back(new Conv(node, tensors));
+                node_ptr = new Conv(node, this->tensors);
             } else {
                 throw std::runtime_error("Unsupported operator " + node.op_type());
             }
+
+            this->layers.push_back(node_ptr);
+            this->add_node(node_ptr);
         }
 
-        for (auto i = 0; i < layers.size()-1; i++) {
-            this->layers[i]->is_pre_activation = this->layers[i+1]->is_activation_func;
-        }
+        this->_build_arcs();
 
         this->input_numel = vecprod(tensors[graph.input(0).name()].shape);
     }
 
-    ~NeuralNet() {
-        for (auto layer : layers) {
-            delete layer;
+    void index_hidden_states(indices& hidden_states, indices& y_ids) {
+        for (auto l: this->layers) {
+            for (auto output: l->outputs) {
+                for (auto i = 0; i < output->numel; i++) {
+                    hidden_states.add(l->name + "_out,"+to_string(i));
+                    if (l->operator_type == _relu) {
+                        y_ids.add(l->name + "," + to_string(i));
+                    }
+                }
+            }
         }
     }
 
-    std::vector<Layer*> layers;
+    void set_bounds(gravity::param<>& x_lb, gravity::param<>& x_ub) {
+        for (auto l: this->layers) {
+            // Enforce lb of 0 for relu
+            if (l->operator_type == _relu) {
+                auto relu = dynamic_cast<Relu*>(l);
+                for(auto j = 0; j < relu->X->numel;j++){
+                    x_lb.set_val(l->name+"_out,"+to_string(j), 0.0);
+                }
+            }
+
+            // Set provided bounds, skip if not provided
+            if (l->lowers.size() == 0) {
+                continue;
+            }
+            for(auto j = 0; j < l->lowers[0].numel;j++){
+                x_lb.set_val(l->name+"_out,"+to_string(j), l->lowers[0](j));
+                x_ub.set_val(l->name+"_out,"+to_string(j), l->uppers[0](j));
+            }
+        }
+    }
+
+    void _build_arcs() {
+        // build output name to layer map
+        std::map<std::string, Layer*> name_to_layer;
+        for (auto layer : this->layers) {
+            for (auto output : layer->output_names) {
+                name_to_layer.insert({output, layer});
+            }
+        }
+
+        // build arcs
+        for (auto dest : this->layers) {
+            for (auto input : dest->input_names) {
+                auto src = name_to_layer[input];
+                std::cout << "Input: " << dest->name << std::endl;
+                Arc* arc = new Arc(src, dest);
+                this->add_arc(arc);
+                arc->connect();
+            }
+        }
+        this->print();
+    }
+
     Tensors tensors;
     size_t input_numel;
+
+    std::vector<Layer*> layers;
 };

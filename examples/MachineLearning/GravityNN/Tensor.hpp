@@ -4,6 +4,7 @@
 #include <onnx.pb.h>
 #include <vector>
 #include "utils.hpp"
+#include <gravity/param.h>
 
 class Tensor {
 public:
@@ -140,3 +141,29 @@ private:
 };
 
 typedef std::map<std::string, Tensor> Tensors;
+
+Tensors get_tensors(onnx::GraphProto& graph) {
+    Tensors tensors;
+
+    // Tensor with shape/metadata only
+    for (const auto& vinfo : graph.value_info()) {
+        tensors[vinfo.name()] = Tensor(vinfo);
+    }
+
+    // Tensors with data
+    for (const auto& initializer : graph.initializer()) {
+        tensors[initializer.name()] = Tensor(initializer);
+    }
+
+    // Output tensors
+    for (const auto& output : graph.output()) {
+        tensors[output.name()] = Tensor(output);
+    }
+
+    // Input tensors
+    for (const auto& input : graph.input()) {
+        tensors[input.name()] = Tensor(input);
+    }
+
+    return tensors;
+}

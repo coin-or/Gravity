@@ -2,6 +2,7 @@
 
 #include <sstream>
 #include <vector>
+#include <numeric>
 
 template <typename T>
 std::string print_vector(const std::vector<T>& v) {
