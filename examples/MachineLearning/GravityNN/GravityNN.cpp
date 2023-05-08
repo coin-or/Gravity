@@ -494,15 +494,98 @@ int main (int argc, char * argv[]){
         NLP.add(Gemm.in(Gemms) == 0);
         NLP.write();
         solver<> S(NLP,ipopt);
-        S.run(1e-4, 1800);
+        S.run(1e-6, 1800, "ma57");
         NLP.print_solution();
+        param<> x_star("x_star");
+        x_star.in(x_ids);
+        x_star.copy_vals(x);
+        indices I_s("I_s"), I_y("I_y"), I_free("I_free");
+        indices x_Gemm_ReLUs_s("x_Gemm_ReLUs_s"), x_Gemm_ReLUs_y("x_Gemm_ReLUs_y"), x_Gemm_ReLUs_free("x_Gemm_ReLUs_free");
+        x_Gemm_ReLUs_s = x_ids;
+        x_Gemm_ReLUs_y = x_ids;
+        x_Gemm_ReLUs_free = x_ids;
+        indices B_Gemm_ReLUs_s("B_Gemm_ReLUs_s"), B_Gemm_ReLUs_y("B_Gemm_ReLUs_y"), B_Gemm_ReLUs_free("B_Gemm_ReLUs_free");
+        B_Gemm_ReLUs_s = B_ids;
+        B_Gemm_ReLUs_y = B_ids;
+        B_Gemm_ReLUs_free = B_ids;
         size_t nb_z_comp = 0;
         for (auto i = 0; i<y_ids.size(); i++) {
             auto key = y_ids._keys->at(i);
-            if(s.eval(i)<=1e-6 && std::abs(x.eval(key)) <= 1e-6)
+            if(s.eval(i)<=1e-3 && std::abs(x.eval(key)) <= 1e-3){
                 nb_z_comp++;
+                DebugOn("zero complementarities at " << key << endl);
+                I_free.add(key);
+                x_Gemm_ReLUs_free.add_empty_row();
+                B_Gemm_ReLUs_free.add_empty_row();
+                x_Gemm_ReLUs_free._ids->back() = (x_Gemm_ReLUs._ids->at(i));
+                B_Gemm_ReLUs_free._ids->back() = (B_Gemm_ReLUs._ids->at(i));
+            }
+            else{
+                if(s.eval(i)<=1e-3){
+                    I_s.add(key);
+                    x_Gemm_ReLUs_s.add_empty_row();
+                    B_Gemm_ReLUs_s.add_empty_row();
+                    x_Gemm_ReLUs_s._ids->back() = (x_Gemm_ReLUs._ids->at(i));
+                    B_Gemm_ReLUs_s._ids->back() = (B_Gemm_ReLUs._ids->at(i));
+                }
+                else{
+                    I_y.add(key);
+                    x_Gemm_ReLUs_y.add_empty_row();
+                    B_Gemm_ReLUs_y.add_empty_row();
+                    x_Gemm_ReLUs_y._ids->back() = (x_Gemm_ReLUs._ids->at(i));
+                    B_Gemm_ReLUs_y._ids->back() = (B_Gemm_ReLUs._ids->at(i));
+                }
+            }
         }
         DebugOn("Number of zero complementarities = " << nb_z_comp << endl);
+        bool solve_mip = true;
+        if(solve_mip){
+            Model<> MIP("MIP_"+fname_onnx.substr(fname_onnx.find_last_of("/")+1));
+            var<> d_x("d_x", x_lb - x_star, x_ub - x_star), d_s("d_s", pos_);
+            var<int> z("z", 0, 1);
+            MIP.add(d_x.in(x_ids), d_s.in(y_ids));
+            MIP.add(z.in(I_free));
+            for(auto const &key: *ReLUs._keys){
+                d_x.set_lb(key, 0);
+            }
+
+            /* Objective function */
+            MIP.min(d_x(layers.back()->name+",4") - d_x(layers.back()->name+",0"));
+            
+            /* Constraints */
+            Constraint<> Gemm_ReLU_s("Gemm_ReLU_s");
+            Gemm_ReLU_s = d_x.in(I_s) - (d_x.in(x_Gemm_ReLUs_s)*B.in(B_Gemm_ReLUs_s));
+            MIP.add(Gemm_ReLU_s.in(I_s) == 0);
+            
+            Constraint<> Gemm_ReLU_y("Gemm_ReLU_y");
+            Gemm_ReLU_y = -1*d_s.in(I_y) - (d_x.in(x_Gemm_ReLUs_y)*B.in(B_Gemm_ReLUs_y));
+            MIP.add(Gemm_ReLU_y.in(I_y) == 0);
+            
+            
+            Constraint<> Gemm_ReLU_free("Gemm_ReLU_free");
+            Gemm_ReLU_free = -1*d_s.in(I_free) - (d_x.in(x_Gemm_ReLUs_free)*B.in(B_Gemm_ReLUs_free));
+            MIP.add(Gemm_ReLU_free.in(I_free) == 0);
+            
+            Constraint<> Complement_x("Complement_x");
+            Complement_x = d_x.in(I_free);
+            MIP.add_on_off(Complement_x.in(I_free) <= 0, z, true);/*< if z = 1 d_x is zero */
+            
+            Constraint<> Complement_s("Complement_s");
+            Complement_s = d_s.in(I_free);
+            MIP.add_on_off(Complement_s.in(I_free) <= 0, z, false);/*< if z = 0 d_s is zero */
+        
+            
+       
+            Constraint<> Gemm("Gemm");
+            Gemm = d_x.in(Gemms) - (d_x.in(x_Gemms_in)*B.in(B_Gemm));
+            MIP.add(Gemm.in(Gemms) == 0);
+            
+            MIP.write();
+            solver<> S(MIP,gurobi);
+            S.run();
+            MIP.print_solution();
+        }
+        
     }
     
     for(auto l:layers){
