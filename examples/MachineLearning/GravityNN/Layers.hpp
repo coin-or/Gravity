@@ -150,12 +150,9 @@ public:
 
     void build_constraints(indices& Gemms, indices& Gemms_in, indices& Gemms_out, indices& B_Gemm, indices& C_Gemm, param<>& B, param<>& C, size_t& row_id) {
         this->add_parameters({&B, &C});
-        for (auto j = 0; j < this->Y->numel; j++) {
-            Gemms.add(this->name + "," + to_string(j));
-        }
-
         // Expression
         for(auto j = 0; j < this->out_dim; j++){
+            Gemms.add(this->Y->strkey(j));
             Gemms_out.add_ref(this->Y->strkey(j));
             for(auto k = 0; k < this->in_dim; k++){
                 B_Gemm.add_in_row(row_id, this->B->strkey(k, j));
@@ -195,7 +192,7 @@ public:
 
     void build_constraints(indices& ReLUs, indices& ReLUs_in, indices& ReLUs_out) {
         for(auto j = 0; j < this->X->numel;j++){
-            ReLUs.add(this->name + "," + to_string(j));
+            ReLUs.add(this->Y->strkey(j));
             ReLUs_in.add_ref(this->X->strkey(j));
             ReLUs_out.add_ref(this->Y->strkey(j));
         }
@@ -357,7 +354,7 @@ public:
 
     void build_constraints(indices& NoOps, indices& NoOps_in, indices& NoOps_out) {
         for(auto j = 0; j < this->X->numel;j++){
-            NoOps.add(this->name + "," + to_string(j));
+            NoOps.add(this->Y->strkey(j));
             NoOps_in.add_ref(this->X->strkey(j));
             NoOps_out.add_ref(this->Y->strkey(j));
         }

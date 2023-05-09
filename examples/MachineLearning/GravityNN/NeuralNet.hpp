@@ -18,10 +18,12 @@ public:
 
         this->tensors = get_tensors(graph);
 
+        this->input_numel = 0;
         for (const auto& input : graph.input()) {
             Layer* inp_layer = new Input(input, tensors);
             this->layers.push_back(inp_layer);
             this->add_node(inp_layer);
+            this->input_numel += inp_layer->outputs[0]->numel;
         }
 
         for (const auto& node : graph.node()) {
@@ -43,8 +45,6 @@ public:
         }
 
         this->_build_arcs();
-
-        this->input_numel = vecprod(tensors[graph.input(0).name()].shape);
     }
 
     void index_hidden_states(indices& hidden_states, indices& y_ids) {
@@ -53,7 +53,7 @@ public:
                 for (auto i = 0; i < output->numel; i++) {
                     hidden_states.add(output->strkey(i));
                     if (l->operator_type == _relu) {
-                        y_ids.add(l->name + "," + to_string(i));
+                        y_ids.add(output->strkey(i));
                     }
                 }
             }
@@ -64,9 +64,8 @@ public:
         for (auto l: this->layers) {
             // Enforce lb of 0 for relu
             if (l->operator_type == _relu) {
-                auto relu = dynamic_cast<Relu*>(l);
-                for(auto j = 0; j < relu->Y->numel;j++){
-                    x_lb.set_val(relu->Y->name + "," + to_string(j), 0.0);
+                for(auto j = 0; j < l->outputs[0]->numel;j++){
+                    x_lb.set_val(l->outputs[0]->strkey(j), 0.0);
                 }
             }
 
@@ -95,7 +94,7 @@ public:
                 for(auto j = 0; j < l->forward_values[o]->numel; j++){
                     x.param<double>::set_val(l->outputs[o]->strkey(j), (*l->forward_values[o])(j));
                     if (l->operator_type == _relu) {
-                        y.param<int>::set_val(l->name + "," + to_string(j), (int)((*l->forward_values[o])(j) > 0));
+                        y.param<int>::set_val(l->outputs[o]->strkey(j), (int)((*l->forward_values[o])(j) > 0));
                     }
                 }
             }
@@ -115,7 +114,6 @@ public:
         for (auto dest : this->layers) {
             for (auto input : dest->input_names) {
                 auto src = name_to_layer[input];
-                std::cout << "Input: " << dest->name << std::endl;
                 Arc* arc = new Arc(src, dest);
                 this->add_arc(arc);
                 arc->connect();

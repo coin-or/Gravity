@@ -100,11 +100,11 @@ int main(int argc, char * argv[]){
     nn.initialize_state(x, y);
     
     /* Objective function */
-    NN.min(
-        x(nn.layers.back()->outputs[0]->strkey(4))
-       -x(nn.layers.back()->outputs[0]->strkey(9))
-    );
-    // NN.max(x(nn.layers.back()->outputs[0]->strkey(0)));
+    // NN.min(
+        // x(nn.layers.back()->outputs[0]->strkey(4))
+    //    -x(nn.layers.back()->outputs[0]->strkey(9))
+    // );
+    NN.max(x(nn.layers.back()->outputs[0]->strkey(0)));
 
     NN.print_solution();
 
