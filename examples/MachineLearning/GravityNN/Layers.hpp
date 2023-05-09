@@ -29,12 +29,14 @@ public:
         this->_load_forward(tensors);
     }
 
+    // Input layer constructor
     Layer(const onnx::ValueInfoProto& input_node, Tensors& tensors): Node(input_node.name()) {
         this->name = input_node.name();
         this->operator_type = _input;
         this->output_names.push_back(input_node.name());
         this->outputs.push_back(&tensors.at(input_node.name()));
         this->_load_bounds(tensors);
+        this->_load_forward(tensors);
     }
 
     void _load_bounds(Tensors& tensors) {
