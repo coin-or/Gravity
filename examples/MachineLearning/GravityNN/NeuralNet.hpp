@@ -77,8 +77,26 @@ public:
 
             for (size_t o = 0; o < l->outputs.size(); o++) {
                 for(auto j = 0; j < l->lowers[o]->numel; j++){
-                    x_lb.set_val(l->outputs[o]->name + "," + to_string(j), (*l->lowers[o])(j));
-                    x_ub.set_val(l->outputs[o]->name + "," + to_string(j), (*l->uppers[o])(j));
+                    x_lb.set_val(l->outputs[o]->strkey(j), (*l->lowers[o])(j));
+                    x_ub.set_val(l->outputs[o]->strkey(j), (*l->uppers[o])(j));
+                }
+            }
+        }
+    }
+
+    void initialize_state(gravity::var<>& x, gravity::var<int>& y) {
+        for (auto l: this->layers) {
+            // Set provided forward values, skip if not provided
+            if (l->forward_values.size() == 0) {
+                continue;
+            }
+
+            for (size_t o = 0; o < l->outputs.size(); o++) {
+                for(auto j = 0; j < l->forward_values[o]->numel; j++){
+                    x.param<double>::set_val(l->outputs[o]->strkey(j), (*l->forward_values[o])(j));
+                    if (l->operator_type == _relu) {
+                        y.param<int>::set_val(l->name + "," + to_string(j), (int)((*l->forward_values[o])(j) > 0));
+                    }
                 }
             }
         }

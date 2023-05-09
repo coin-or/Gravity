@@ -94,13 +94,15 @@ int main(int argc, char * argv[]){
 
     var<> x("x", x_lb, x_ub);
     var<int> y("y", 0, 1);
+
     NN.add(x.in(hidden_states));
     NN.add(y.in(y_ids));
-
+    // nn.initialize_state(x, y);
+    
     /* Objective function */
     // NN.min(
-    //    x(nn.layers.back()->name+"_out,4")
-    //    -x(nn.layers.back()->name+"_out,9")
+        // x(nn.layers.back()->outputs[0]->strkey(4))
+    //    -x(nn.layers.back()->outputs[0]->strkey(9))
     // );
     NN.max(x(nn.layers.back()->outputs[0]->strkey(0)));
 

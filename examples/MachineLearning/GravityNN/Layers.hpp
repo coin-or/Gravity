@@ -26,6 +26,7 @@ public:
         this->name = node.name();
 
         this->_load_bounds(tensors);
+        this->_load_forward(tensors);
     }
 
     Layer(const onnx::ValueInfoProto& input_node, Tensors& tensors): Node(input_node.name()) {
@@ -46,6 +47,16 @@ public:
             auto upper_name = out + "_upper";
             if (tensors.count(lower_name) != 0) {
                 this->uppers.push_back(&tensors.at(upper_name));
+            }
+        }
+    }
+    
+    void _load_forward(Tensors& tensors) {
+        for (auto out: this->output_names)
+        {
+            auto forward_name = out + "_forward";
+            if (tensors.count(forward_name) != 0) {
+                this->forward_values.push_back(&tensors.at(forward_name));
             }
         }
     }
@@ -81,6 +92,7 @@ public:
 
     std::vector<Tensor*> lowers;
     std::vector<Tensor*> uppers;
+    std::vector<Tensor*> forward_values;
 
     // Names for inputs from other layers, NOT including initializers
     std::vector<std::string> input_names;
