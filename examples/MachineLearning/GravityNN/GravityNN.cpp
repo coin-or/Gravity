@@ -440,102 +440,258 @@ int main (int argc, char * argv[]){
     
     
     
-    solver<> S(NN,gurobi);
-    S.run(1e-4, 1800);
+//    solver<> S(NN,gurobi);
+//    S.run(1e-4, 1800);
 //    NN.print_solution();
-    bool build_NLP=false;
-//    if(build_NLP){
-//        Model<> NLP("NLP_"+fname_onnx.substr(fname_onnx.find_last_of("/")+1));
-//
-//        NLP.add(x.in(x_ids));
-////        NLP.add(y.in(y_ids));
-//        NLP.add(s.in(y_ids));
-//
-//        /* Objective function */
-//        NLP.min(x(layers.back()->name+",4") - x(layers.back()->name+",0"));
-//    //    NLP.max(x(layers.back()->name+",0"));
-//
-//        /* Constraints */
-//        Constraint<> Gemm_ReLU("Gemm_ReLU");
-//        Gemm_ReLU = x.in(Gemm_ReLUs) - s.in(Gemm_ReLUs) - (x.in(x_Gemm_ReLUs)*B.in(B_Gemm_ReLUs) + C.in(C_Gemm_ReLUs));
-//        NLP.add(Gemm_ReLU.in(Gemm_ReLUs) == 0);
-//
-//        Constraint<> Complement("Complement");
-//        Complement = x.in(ReLUs)*s.in(ReLUs);
-//        NLP.add(Complement.in(ReLUs) <= 0);
-//
-//
-//
-//        Constraint<> Gemm("Gemm");
-//        Gemm = x.in(Gemms) - (x.in(x_Gemms_in)*B.in(B_Gemm) + C.in(Gemms));
-//        NLP.add(Gemm.in(Gemms) == 0);
-//        NLP.write();
-//        solver<> S(NLP,ipopt);
-//
-//        bool run_NLP = true;
-//        while(run_NLP){
-//            S.run(1e-6, 1800, "ma57");
+    bool build_NLP=true;
+    if(build_NLP){
+        
+        /* Indexing constraints */
+        indices Conv_ReLUs("Conv_ReLUs"), Gemm_ReLUs("Gemm_ReLUs"), x_Gemm_ReLUs("x_Gemm_ReLUs"), x_Conv_ReLUs("x_Conv_ReLUs"), B_Gemm_ReLUs("B_Gemm_ReLUs"), C_Gemm_ReLUs("C_Gemm_ReLUs"), B_Conv_ReLUs("B_Conv_ReLUs"), Gemms("Gemms"), x_Gemms_in("x_Gemms_in"), x_Convs_in("x_Convs_in"), x_Gemms_out("x_Gemms_out"), x_Adds("x_Adds"), MatMuls("MatMuls"), x_MatMuls("MatMuls"), B_Gemm("B_Gemm"), W_Conv("W_Conv"), Convs("Convs");
+        Conv_ReLUs = ReLUs;
+        B_Gemm = B_ids;
+        B_Gemm_ReLUs = B_ids;
+        B_Conv_ReLUs = B_ids;
+        C_Gemm_ReLUs = C_ids;
+        x_Gemm_ReLUs = x_ids;
+        x_Conv_ReLUs = x_ids;
+        x_Gemms_in = x_ids;
+        x_Gemms_out = x_ids;
+        x_MatMuls = x_ids;
+        x_Adds = x_ids;
+        string key;
+        size_t relu_row_id = 0, gemm_row_id = 0, conv_row_id = 0;
+            for(auto i = 0; i<nb_layers; i++){
+                auto l = layers[i];
+                switch (l->operator_type) {
+                    case _relu:
+                        /* Creating ReLU indexing sets */
+                        if(layers[i-1]->operator_type==_gemm){
+                            for(auto j = 0; j < layers[i-1]->outputs[0].numel;j++){
+                                Gemm_ReLUs.add(l->name+","+to_string(j));
+                            }
+                        }
+                        else if(layers[i-1]->operator_type==_conv){
+                            for(auto j = 0; j < layers[i-1]->outputs[0].numel;j++){
+                                Conv_ReLUs.add_ref(l->name+","+to_string(j));
+                            }
+                        }
+                        break;
+                    case _conv:{
+                        bool add_Conv_constraint = true;
+                        if(i+1<nb_layers && layers[i+1]->operator_type==_relu)
+                            add_Conv_constraint = false;
+                        auto conv = (Conv*)l;
+                        if(!add_Conv_constraint){
+                            for(auto h = 0; h < l->outputs[0].numel; h++) {
+                                    B_Conv_ReLUs.add_ref(l->name+","+to_string(h%l->inputs[2].shape[0]));
+                            }
+                        }
+                        for(auto k = 0; k < l->inputs[0].numel; k++){
+                            key = conv->name+","+to_string(k);
+                            if(add_Conv_constraint){
+                                if(i==0){
+                                    x_Convs_in.add_in_row(conv_row_id, "input"+to_string(k));
+                                }
+                                else{
+                                    x_Convs_in.add_in_row(conv_row_id, layers[i-1]->name+","+to_string(k));
+                                }
+                            }
+                        }
+                        if(add_Conv_constraint){
+                            conv_row_id++;
+                        }
+                        break;
+                    }
+                    case _gemm:{
+                        bool add_Gemm_constraint = true;
+                        if(i+1<nb_layers && layers[i+1]->operator_type==_relu)
+                            add_Gemm_constraint = false;
+                        auto gemm = (GEMM*)l;
+                        for(auto j = 0; j < l->var_dims[1];j++){
+                            if(add_Gemm_constraint){
+                                Gemms.add(l->name+","+to_string(j));
+                                for(auto k = 0; k < l->var_dims[0]; k++){
+                                    key = gemm->name+","+to_string(k)+","+to_string(j);
+                                    B_Gemm.add_in_row(gemm_row_id, key);
+                                    if(i==0){
+                                        x_Gemms_in.add_in_row(gemm_row_id, "input"+to_string(k));
+                                    }
+                                    else{
+                                        x_Gemms_in.add_in_row(gemm_row_id, layers[i-1]->name+","+to_string(k));
+                                    }
+                                }
+                                gemm_row_id++;
+                            }
+                        }
+
+                    }
+                        break;
+                    default:
+                        break;
+                }
+            }
+
+        for(auto i = 0; i<nb_layers; i++){
+            auto l = layers[i];
+            if(i+1<nb_layers && l->operator_type==_gemm && layers[i+1]->operator_type==_relu){/*< The next layer is an activation layer (e.g. ReLU), no need to introduce variables for this layer */
+                for(auto j = 0; j < l->var_dims[1];j++){
+                    for(auto k = 0; k < l->var_dims[0];k++){
+                        if(i==0)
+                            x_Gemm_ReLUs.add_in_row(relu_row_id, "input"+to_string(k));
+                        else
+                            x_Gemm_ReLUs.add_in_row(relu_row_id, layers[i-1]->name+","+to_string(k));
+                        B_Gemm_ReLUs.add_in_row(relu_row_id, l->name+","+to_string(k)+","+to_string(j));
+                    }
+                    C_Gemm_ReLUs.add_ref(l->name+","+to_string(j));
+                    relu_row_id++;
+
+                }
+            }
+            // The equation convolves the filter with the specified input region
+            // Iterate over the filter
+            if(i+1<nb_layers && l->operator_type==_conv && layers[i+1]->operator_type==_relu){/*< The next layer is an activation layer (e.g. ReLU), no need to introduce variables for this layer */
+                auto conv = (Conv*)l;
+                string lname = l->name+",";
+                if(i==0)
+                    lname = "input";
+                for(auto i = 0; i < l->outputs[0].shape[3]; i++) {
+                    for(auto j = 0; j < l->outputs[0].shape[2]; j++) {
+                        for(auto k = 0; k < l->outputs[0].shape[1]; k++) {
+                            
+                            for(auto di = 0; di < l->inputs[1].shape[3]; di++) {
+                                for(auto dj = 0; dj < l->inputs[1].shape[2]; dj++) {
+                                    for(auto dk = 0; dk < l->inputs[1].shape[1]; dk++) {
+                                        auto w_ind = (conv->strides[0]*i+di - conv->pads[0]);
+                                        auto h_ind = (conv->strides[1]*j+dj - conv->pads[3]);
+                                        if(h_ind < conv->inputs[0].shape[2] && h_ind >= 0 && w_ind < conv->inputs[0].shape[3] && w_ind >= 0){
+                                            x_Conv_ReLUs.add_in_row(conv_row_id, lname+to_string(dk*conv->inputs[0].shape[2]*conv->inputs[0].shape[3] + w_ind*conv->inputs[0].shape[3] + h_ind));
+                                            W_Conv.add_in_row(conv_row_id, conv->name+","+to_string(k)+","+to_string(dk)+","+to_string(di)+","+to_string(dj));
+                                        }
+                                    }
+                                }
+                            }
+                            conv_row_id++;
+                        }
+                    }
+                }
+            }
+        }
+        
+        Model<> NLP("NLP_"+fname_onnx.substr(fname_onnx.find_last_of("/")+1));
+        var<> x("x", x_lb, x_ub);
+//        var<int> y("y", y_lb, y_ub);
+        var<> s("s", s_lb, s_ub);
+        
+        NLP.add(x.in(x_ids));
+//        NLP.add(y.in(y_ids));
+        NLP.add(s.in(y_ids));
+
+        /* Objective function */
+        NLP.min(x(layers.back()->name+",4") - x(layers.back()->name+",0"));
+
+        /* Constraints */
+        Constraint<> Gemm_ReLU("Gemm_ReLU");
+        Gemm_ReLU = x.in(Gemm_ReLUs) - s.in(Gemm_ReLUs) - (x.in(x_Gemm_ReLUs)*B.in(B_Gemm_ReLUs) + C.in(C_Gemm_ReLUs));
+        NLP.add(Gemm_ReLU.in(Gemm_ReLUs) == 0);
+
+        Constraint<> Complement("Complement");
+        Complement = x.in(ReLUs)*s.in(ReLUs);
+        NLP.add(Complement.in(ReLUs) <= 0);
+
+        Constraint<> Gemm("Gemm");
+        Gemm = x.in(Gemms) - (x.in(x_Gemms_in)*B.in(B_Gemm) + C.in(Gemms));
+        NLP.add(Gemm.in(Gemms) == 0);
+        NLP.write();
+        solver<> S(NLP,ipopt);
+
+        bool run_NLP = true;
+        while(run_NLP){
+            S.run(5, 1e-8, "ma57", 500);
 //            NLP.print_solution();
-//
-//
-//
-//            param<> x_star("x_star");
-//            x_star.in(x_ids);
-//            x_star.copy_vals(x);
-//            indices I_s("I_s"), I_y("I_y"), I_free("I_free");
-//            indices x_Gemm_ReLUs_s("x_Gemm_ReLUs_s"), x_Gemm_ReLUs_y("x_Gemm_ReLUs_y"), x_Gemm_ReLUs_free("x_Gemm_ReLUs_free");
-//            x_Gemm_ReLUs_s = x_ids;
-//            x_Gemm_ReLUs_y = x_ids;
-//            x_Gemm_ReLUs_free = x_ids;
-//            indices B_Gemm_ReLUs_s("B_Gemm_ReLUs_s"), B_Gemm_ReLUs_y("B_Gemm_ReLUs_y"), B_Gemm_ReLUs_free("B_Gemm_ReLUs_free");
-//            B_Gemm_ReLUs_s = B_ids;
-//            B_Gemm_ReLUs_y = B_ids;
-//            B_Gemm_ReLUs_free = B_ids;
-//            size_t nb_z_comp = 0;
-//            for (auto i = 0; i<y_ids.size(); i++) {
-//                auto key = y_ids._keys->at(i);
-//                if(s.eval(i)<=1e-3 && std::abs(x.eval(key)) <= 1e-3){
-//                    nb_z_comp++;
-//                    DebugOn("zero complementarities at " << key << endl);
-//                    I_free.add(key);
-//                    x_Gemm_ReLUs_free.add_empty_row();
-//                    B_Gemm_ReLUs_free.add_empty_row();
-//                    x_Gemm_ReLUs_free._ids->back() = (x_Gemm_ReLUs._ids->at(i));
-//                    B_Gemm_ReLUs_free._ids->back() = (B_Gemm_ReLUs._ids->at(i));
-//                }
-//                else{
-//                    if(s.eval(i)<=1e-3){
-//                        I_s.add(key);
-//                        x_Gemm_ReLUs_s.add_empty_row();
-//                        B_Gemm_ReLUs_s.add_empty_row();
-//                        x_Gemm_ReLUs_s._ids->back() = (x_Gemm_ReLUs._ids->at(i));
-//                        B_Gemm_ReLUs_s._ids->back() = (B_Gemm_ReLUs._ids->at(i));
-//                    }
-//                    else{
-//                        I_y.add(key);
-//                        x_Gemm_ReLUs_y.add_empty_row();
-//                        B_Gemm_ReLUs_y.add_empty_row();
-//                        x_Gemm_ReLUs_y._ids->back() = (x_Gemm_ReLUs._ids->at(i));
-//                        B_Gemm_ReLUs_y._ids->back() = (B_Gemm_ReLUs._ids->at(i));
-//                    }
-//                }
-//            }
-//            DebugOn("Number of zero complementarities = " << nb_z_comp << endl);
-//            bool solve_mip = true;
-//            if(solve_mip){
-//                Model<> MIP("MIP_"+fname_onnx.substr(fname_onnx.find_last_of("/")+1));
-//                var<> d_x("d_x", x_lb - x_star, x_ub - x_star), d_s("d_s", pos_);
-//                var<int> z("z", 0, 1);
-//                MIP.add(d_x.in(x_ids), d_s.in(y_ids));
-//                MIP.add(z.in(I_free));
-//                for(auto const &key: *ReLUs._keys){
+
+
+
+            param<> x_star("x_star");
+            x_star.in(x_ids);
+            x_star.copy_vals(x);
+            param<> s_star("s_star");
+            s_star.in(y_ids);
+            s_star.copy_vals(s);
+            
+            indices I_s("I_s"), I_y("I_y"), I_free("I_free");
+            indices x_Gemm_ReLUs_s("x_Gemm_ReLUs_s"), x_Gemm_ReLUs_y("x_Gemm_ReLUs_y"), x_Gemm_ReLUs_free("x_Gemm_ReLUs_free");
+            x_Gemm_ReLUs_s = x_ids;
+            x_Gemm_ReLUs_y = x_ids;
+            x_Gemm_ReLUs_free = x_ids;
+            indices B_Gemm_ReLUs_s("B_Gemm_ReLUs_s"), B_Gemm_ReLUs_y("B_Gemm_ReLUs_y"), B_Gemm_ReLUs_free("B_Gemm_ReLUs_free");
+            B_Gemm_ReLUs_s = B_ids;
+            B_Gemm_ReLUs_y = B_ids;
+            B_Gemm_ReLUs_free = B_ids;
+            size_t nb_z_comp = 0;
+            for (auto i = 0; i<y_ids.size(); i++) {
+                auto key = y_ids._keys->at(i);
+                if(s.eval(i)<=1e-4 && std::abs(x.eval(key)) <= 1e-4){
+                    nb_z_comp++;
+                    DebugOn("zero complementarities at " << key << endl);
+                    I_free.add(key);
+                    x_Gemm_ReLUs_free.add_empty_row();
+                    B_Gemm_ReLUs_free.add_empty_row();
+                    x_Gemm_ReLUs_free._ids->back() = (x_Gemm_ReLUs._ids->at(i));
+                    B_Gemm_ReLUs_free._ids->back() = (B_Gemm_ReLUs._ids->at(i));
+                }
+                else{
+                    if(s.eval(i)<=1e-4){
+                        I_s.add(key);
+                        x_Gemm_ReLUs_s.add_empty_row();
+                        B_Gemm_ReLUs_s.add_empty_row();
+                        x_Gemm_ReLUs_s._ids->back() = (x_Gemm_ReLUs._ids->at(i));
+                        B_Gemm_ReLUs_s._ids->back() = (B_Gemm_ReLUs._ids->at(i));
+                    }
+                    else{
+                        I_y.add(key);
+                        x_Gemm_ReLUs_y.add_empty_row();
+                        B_Gemm_ReLUs_y.add_empty_row();
+                        x_Gemm_ReLUs_y._ids->back() = (x_Gemm_ReLUs._ids->at(i));
+                        B_Gemm_ReLUs_y._ids->back() = (B_Gemm_ReLUs._ids->at(i));
+                    }
+                }
+            }
+            DebugOn("I_s size = " << I_s.size() << endl);
+            DebugOn("I_y size = " << I_y.size() << endl);
+            DebugOn("I_free size = " << I_free.size() << endl);
+            DebugOn("y_ids size = " << y_ids.size() << endl);
+            
+            DebugOn("Number of zero complementarities = " << nb_z_comp << endl);
+            bool solve_mip = true;
+            if(solve_mip){
+                Model<> MIP("MIP_"+fname_onnx.substr(fname_onnx.find_last_of("/")+1));
+                var<> d_x("d_x", x_lb - x_star, x_ub - x_star), d_s("d_s", pos_);
+                var<int> z("z", 0, 1);
+                MIP.add(d_x.in(x_ids), d_s.in(y_ids));
+                MIP.add(z.in(I_free));
+//                for(auto const &key: *y_ids._keys){
 //                    d_x.set_lb(key, 0);
 //                }
-//
-//                /* Objective function */
-//                MIP.min(d_x(layers.back()->name+",4") - d_x(layers.back()->name+",0"));
-//
-//                /* Constraints */
+
+                /* Objective function */
+                MIP.min(d_x(layers.back()->name+",4") - d_x(layers.back()->name+",0"));
+
+                /* Constraints */
+                
+                Constraint<> Gemm_ReLU("Gemm_ReLU");
+                Gemm_ReLU = d_x.in(Gemm_ReLUs) - d_s.in(Gemm_ReLUs) - (d_x.in(x_Gemm_ReLUs)*B.in(B_Gemm_ReLUs));
+                MIP.add(Gemm_ReLU.in(Gemm_ReLUs) == 0);
+                
+                Constraint<> Gemm_ReLU_s("Gemm_ReLU_s");
+                Gemm_ReLU_s = d_s.in(I_s);
+                MIP.add(Gemm_ReLU_s.in(I_s) == 0);
+                
+                Constraint<> Gemm_ReLU_y("Gemm_ReLU_y");
+                Gemm_ReLU_y = d_x.in(I_y);
+                MIP.add(Gemm_ReLU_y.in(I_y) == 0);
+
+                
 //                Constraint<> Gemm_ReLU_s("Gemm_ReLU_s");
 //                Gemm_ReLU_s = d_x.in(I_s) - (d_x.in(x_Gemm_ReLUs_s)*B.in(B_Gemm_ReLUs_s));
 //                MIP.add(Gemm_ReLU_s.in(I_s) == 0);
@@ -546,39 +702,58 @@ int main (int argc, char * argv[]){
 //
 //
 //                Constraint<> Gemm_ReLU_free("Gemm_ReLU_free");
-//                Gemm_ReLU_free = -1*d_s.in(I_free) - (d_x.in(x_Gemm_ReLUs_free)*B.in(B_Gemm_ReLUs_free));
+//                Gemm_ReLU_free = d_x.in(I_free) - d_s.in(I_free) - (d_x.in(x_Gemm_ReLUs_free)*B.in(B_Gemm_ReLUs_free));
 //                MIP.add(Gemm_ReLU_free.in(I_free) == 0);
-//
-//                Constraint<> Complement_x("Complement_x");
-//                Complement_x = d_x.in(I_free);
-//                MIP.add_on_off(Complement_x.in(I_free) <= 0, z, true);/*< if z = 1 d_x is zero */
-//
-//                Constraint<> Complement_s("Complement_s");
-//                Complement_s = d_s.in(I_free);
-//                MIP.add_on_off(Complement_s.in(I_free) <= 0, z, false);/*< if z = 0 d_s is zero */
-//
-//
-//
-//                Constraint<> Gemm("Gemm");
-//                Gemm = d_x.in(Gemms) - (d_x.in(x_Gemms_in)*B.in(B_Gemm));
-//                MIP.add(Gemm.in(Gemms) == 0);
-//
-//                MIP.write();
-//                solver<> S(MIP,gurobi);
-//                S.run();
-//                MIP.print_solution();
-//                if(std::abs(MIP.get_obj_val())<= 1e-6) {
-//                    run_NLP = false;
-//                }
-//                else{
-//                    auto f = x + d_x;
-//                    f.eval_all();
-//                    x.copy_vals(f);
-//                }
-//            }
-//        }
-//
-//    }
+
+                Constraint<> Complement_x("Complement_x");
+                Complement_x = d_x.in(I_free);
+                MIP.add_on_off(Complement_x.in(I_free) <= 0, z, true);/*< if z = 1 d_x is zero */
+
+                Constraint<> Complement_s("Complement_s");
+                Complement_s = d_s.in(I_free);
+                MIP.add_on_off(Complement_s.in(I_free) <= 0, z, false);/*< if z = 0 d_s is zero */
+
+
+
+                Constraint<> Gemm("Gemm");
+                Gemm = d_x.in(Gemms) - (d_x.in(x_Gemms_in)*B.in(B_Gemm));
+                MIP.add(Gemm.in(Gemms) == 0);
+
+                MIP.write();
+                solver<> S(MIP,gurobi);
+                S.run();
+                MIP.print_solution();
+                MIP.print_constraints_stats(1e-6);
+                if(std::abs(MIP.get_obj_val())<= 1e-10) {
+                    run_NLP = false;
+                }
+                else{
+//                    for(auto const &key: *I_s._keys){
+//                        d_s.param<>::set_val(key, 0);
+//                    }
+//                    for(auto const &key: *I_y._keys){
+//                        d_x.param<>::set_val(key, 0);
+//                    }
+//                    d_x.print_vals(6);
+//                    d_s.print_vals(6);
+                    
+                    
+                    auto f = x + d_x;
+                    f.eval_all();
+                    auto f_s = s + d_s;
+                    f_s.eval_all();
+                    x.copy_vals(f);
+                    s.copy_vals(f_s);
+                    
+                    x.print_vals(6);
+                    NLP.reset_constrs();
+                    NLP.print_constraints_stats(1e-6);
+//                    break;
+                }
+            }
+        }
+
+    }
     
     for(auto l:layers){
         delete l;

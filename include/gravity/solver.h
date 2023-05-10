@@ -280,10 +280,6 @@ public:
                 //            iapp->Options()->SetStringValue("mu_oracle", "probing");
                 //            iapp->Options()->SetNumericValue("gamma_phi", 1e-8);
                 //            iapp->Options()->SetNumericValue("gamma_theta", 1e-4);
-                //                                iapp->Options()->SetNumericValue("bound_push", 1e-12);
-                //                                iapp->Options()->SetNumericValue("bound_frac", 1e-12);
-                //                                iapp->Options()->SetIntegerValue("acceptable_iter", 0);
-                //            iapp->Options()->SetNumericValue("slack_bound_push", 1e-12);
                 iapp->Options()->SetNumericValue("constr_viol_tol", tol);
                 //            iapp->Options()->SetNumericValue("dual_inf_tol", 1);
                 //            iapp->Options()->SetNumericValue("compl_inf_tol", 1e-3);
@@ -294,9 +290,13 @@ public:
                 //            iapp->Options()->SetNumericValue("obj_scaling_factor", 1e-2);
                 /** Hot start if already solved */
                 if (!_model->_first_run) {
-                    mu_init = std::exp(-1)/std::exp(2);
+                    iapp->Options()->SetNumericValue("bound_push", 1e-12);
+                    iapp->Options()->SetNumericValue("bound_frac", 1e-12);
+//                                iapp->Options()->SetIntegerValue("acceptable_iter", 0);
+                    iapp->Options()->SetNumericValue("slack_bound_push", 1e-12);
+//                    mu_init = std::exp(-1)/std::exp(2);
                     DebugOn("Using Hot Start!\n");
-                    iapp->Options()->SetNumericValue("mu_init", mu_init);
+//                    iapp->Options()->SetNumericValue("mu_init", mu_init);
                     iapp->Options()->SetStringValue("warm_start_init_point", "yes");
                 }
                 iapp->Options()->SetStringValue("sb", "yes");
