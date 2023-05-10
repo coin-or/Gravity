@@ -17,6 +17,7 @@ public:
             if (!tensors.at(input).is_initializer) {
                 this->input_names.push_back(input);
             }
+            this->inputs.push_back(&tensors.at(input));
         }
         for (const auto& output : node.output()) {
             this->output_names.push_back(output);
@@ -52,7 +53,7 @@ public:
             }
         }
     }
-    
+
     void _load_forward(Tensors& tensors) {
         for (auto out: this->output_names)
         {
@@ -76,16 +77,6 @@ public:
         return nullptr;
     }
 
-    std::vector<Layer*> get_inputs() const {
-        std::vector<Layer*> inputs;
-        for (auto v: this->branches) {
-            if (v->_dest == this) {
-                inputs.push_back(dynamic_cast<Layer*>(v->_src));
-            }
-        }
-        return inputs;
-    }
-
     // Name of the layer
     std::string name;
     OType operator_type;
@@ -101,6 +92,7 @@ public:
     std::vector<std::string> output_names;
 
     std::vector<Tensor*> outputs;
+    std::vector<Tensor*> inputs;
 };
 
 class GEMM : public Layer {
@@ -352,7 +344,7 @@ public:
 
     void add_parameters(std::vector<gravity::param<>*> params) const override {}
 
-    void build_constraints(indices& NoOps, indices& NoOps_in, indices& NoOps_out) {
+    virtual void build_constraints(indices& NoOps, indices& NoOps_in, indices& NoOps_out) {
         for(auto j = 0; j < this->X->numel;j++){
             NoOps.add(this->Y->strkey(j));
             NoOps_in.add_ref(this->X->strkey(j));
@@ -361,4 +353,79 @@ public:
     }
 
     Tensor *X, *Y; // Input and output
+};
+
+class Split : public NoOp {
+public:
+    Split(const onnx::NodeProto& node, Tensors& tensors): NoOp(node, tensors) {
+        if (const auto* axis_attr = find_attribute("axis", node)) {
+            int ax = axis_attr->i();
+            if (ax < 0) {
+                ax += this->X->shape.size();
+            }
+            this->axis = ax;
+        }
+
+        if (const auto* split_attr = find_attribute("split", node)) {
+            this->split = std::vector<size_t>(split_attr->ints().begin(), split_attr->ints().end());
+        } else {
+            throw std::runtime_error("Split: split attribute not found. This is optional but I don't know how to handle it yet.");
+        }
+    }
+
+    void build_constraints(indices& NoOps, indices& NoOps_in, indices& NoOps_out) override {
+        size_t cur_axis_idx = 0;
+        for (auto out: this->outputs) {
+            for (size_t out_idx = 0; out_idx < out->numel; out_idx++) {
+                auto inp_vec_idx = out->unflatten_index(out_idx);
+                inp_vec_idx[this->axis] += cur_axis_idx;
+
+                auto inp_idx = this->X->flatten_index(inp_vec_idx);
+
+                NoOps.add(out->strkey(out_idx));
+                NoOps_in.add_ref(this->X->strkey(inp_idx));
+                NoOps_out.add_ref(out->strkey(out_idx));
+            }
+
+            cur_axis_idx += out->shape[this->axis];
+        }
+    }
+
+    size_t axis;
+    std::vector<size_t> split;
+};
+
+class Concat : public NoOp {
+public:
+    Concat(const onnx::NodeProto& node, Tensors& tensors): NoOp(node, tensors) {
+        if (const auto* axis_attr = find_attribute("axis", node)) {
+            int ax = axis_attr->i();
+            if (ax < 0) {
+                ax += this->X->shape.size();
+            }
+            this->axis = ax;
+        } else {
+            throw std::runtime_error("Concat: axis attribute not found.");
+        }
+    }
+
+    void build_constraints(indices& NoOps, indices& NoOps_in, indices& NoOps_out) override {
+        size_t cur_axis_idx = 0;
+        for (auto inp: this->inputs) {
+            for (size_t in_idx = 0; in_idx < inp->numel; in_idx++) {
+                auto out_vec_idx = inp->unflatten_index(in_idx);
+                out_vec_idx[this->axis] += cur_axis_idx;
+
+                auto out_idx = this->Y->flatten_index(out_vec_idx);
+
+                NoOps.add(this->Y->strkey(out_idx));
+                NoOps_in.add_ref(inp->strkey(in_idx));
+                NoOps_out.add_ref(this->Y->strkey(out_idx));
+            }
+
+            cur_axis_idx += inp->shape[this->axis];
+        }
+    }
+
+    size_t axis;
 };

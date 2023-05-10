@@ -36,6 +36,10 @@ public:
                 node_ptr = new Conv(node, this->tensors);
             } else if (noops.count(node.op_type())) {
                 node_ptr = new NoOp(node, this->tensors);
+            } else if (node.op_type() == "Split") {
+                node_ptr = new Split(node, this->tensors);
+            } else if (node.op_type() == "Concat") {
+                node_ptr = new Concat(node, this->tensors);
             } else {
                 throw std::runtime_error("Unsupported operator " + node.op_type());
             }

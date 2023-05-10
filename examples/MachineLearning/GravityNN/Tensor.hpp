@@ -98,6 +98,46 @@ public:
         return this->name + "," + std::to_string(flat);
     }
 
+    size_t axis_index(size_t axis, size_t index) {
+        size_t flattened_index = 0;
+        int stride = 1;
+
+        // pls no underflow
+        for (int i = ((int)this->ndims) - 1; i >= 0; --i) {
+            if (i == axis) {
+                flattened_index += index * stride;
+            }
+            stride *= this->shape[i];
+        }
+
+        return flattened_index;
+    }
+
+    size_t flatten_index(const std::vector<size_t>& indices) const {
+        size_t index = 0;
+        size_t stride = 1;
+        for (size_t i = 0; i < shape.size(); ++i) {
+            index += indices[i] * stride;
+            stride *= shape[i];
+        }
+        return index;
+    }
+
+    std::vector<size_t> unflatten_index(size_t flattened_index) {
+        std::vector<size_t> indices(this->ndims, 0);
+
+        for (size_t i = 0; i < this->ndims; ++i) {
+            size_t stride = 1;
+            for (size_t j = i + 1; j < this->ndims; ++j) {
+                stride *= this->shape[j];
+            }
+            indices[i] = flattened_index / stride;
+            flattened_index %= stride;
+        }
+
+        return indices;
+    }
+
     void _set_shape(const std::vector<size_t>& shape) {
         this->shape = shape;
         this->numel = vecprod(this->shape);
