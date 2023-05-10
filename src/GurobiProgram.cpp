@@ -490,13 +490,13 @@ bool GurobiProgram::solve(bool relax, double mipgap, double time_limit){
     //    grb_mod->getEnv().set(GRB_IntParam_DualReductions, 0);
     //    grb_mod->getEnv().set(GRB_IntParam_PreCrush, 1);
     //        grb_mod->getEnv().set(GRB_IntParam_Method, 1);
-    //    grb_mod->getEnv().set(GRB_IntParam_NodeMethod, 1);
+//        grb_mod->getEnv().set(GRB_IntParam_Presolve, 0);
 //    grb_mod->getEnv().set(GRB_IntParam_LazyConstraints, 1);
     grb_mod->set(GRB_IntParam_Threads, 8);
 //    grb_mod->set(GRB_DoubleParam_IntFeasTol, 1e-9);
     //       grb_mod->set(GRB_IntParam_NumericFocus,3);
     //     grb_mod->set(GRB_IntParam_PreCrush,0);
-     grb_mod->set(GRB_IntParam_MIPFocus,1);
+//     grb_mod->set(GRB_IntParam_MIPFocus,1);
     //    grb_mod->set(GRB_IntParam_IntegralityFocus,1);
     //grb_mod->set(GRB_IntParam_MIPFocus,1);
     //    grb_mod->set(GRB_IntParam_PumpPasses,50);
@@ -542,7 +542,10 @@ bool GurobiProgram::solve(bool relax, double mipgap, double time_limit){
     // grb_mod->set(GRB_DoubleParam_Heuristics, 0.5);
     //grb_mod->update();
     grb_mod->optimize();
-    
+//    if(grb_mod->get(GRB_IntAttr_Status) == GRB_INFEASIBLE){
+//        grb_mod->feasRelax(1, false, true, false);
+//        grb_mod->optimize();
+//    }
     if(grb_mod->get(GRB_IntAttr_SolCount)>0)
         update_solution();
     bool not_sdp=false;
@@ -771,7 +774,7 @@ void GurobiProgram::prepare_model(){
     fill_in_grb_vmap();
     create_grb_constraints();
     set_grb_objective();
-//    grb_mod->write("gurobiprint.lp");
+    grb_mod->write("gurobiprint.lp");
     //    print_constraints();
 }
 void GurobiProgram::update_model(){
