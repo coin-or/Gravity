@@ -6804,7 +6804,7 @@ void Model<type>::populate_original_interval(shared_ptr<Model<type>>& obbt_model
             key_lb= var_key +"|LB";
             key_ub= var_key +"|UB";
             /* Do not do OBBT on lifted variables */
-            if(v._lift){
+            if(v._lift || key.find("input") != std::string::npos || key.find("Relu0") != std::string::npos){
                 fixed_point[key_lb]=true;
                 fixed_point[key_ub]=true;
                 count_skip+=2;
@@ -6888,14 +6888,14 @@ template<typename T>
 void Model<type>::create_batch_models(shared_ptr<Model<type>>& obbt_model, vector<shared_ptr<Model<type>>>& batch_models, int nb_threads, double upper_bound, double lb_scale_value){
     for(auto i=0;i<nb_threads;i++){
         auto modelk = obbt_model->copy();
-            param<> ub("ub");
-            ub = upper_bound/lb_scale_value;
-            auto obj = *modelk->_obj;
-            if(modelk->_cons_name.count("obj|ub")==0){
-                Constraint<type> obj_ub("obj|ub");
-                obj_ub = obj - ub;
-                modelk->add(obj_ub<=0);
-            }
+//            param<> ub("ub");
+//            ub = upper_bound/lb_scale_value;
+//            auto obj = *modelk->_obj;
+//            if(modelk->_cons_name.count("obj|ub")==0){
+//                Constraint<type> obj_ub("obj|ub");
+//                obj_ub = obj - ub;
+//                modelk->add(obj_ub<=0);
+//            }
         batch_models.push_back(modelk);
         batch_models.at(i)->set_name(to_string(i));
 //        batch_models.at(i)->print();
@@ -7146,11 +7146,12 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int,double
         auto obj_m=*this->_obj*(-1);
         this->min(obj_m);
     }
-    solver<> UB_solver(*this,ub_solver_type);
-    UB_solver.run(output = 5, ub_solver_tol, 600, 2000);
-    this->print_solution();
-    upper_bound=upper_bound_integral(ub_solver_type, ub_solver_tol, ub_sol);
-    this->print_solution();
+//    solver<> UB_solver(*this,ub_solver_type);
+//    UB_solver.run(output = 5, ub_solver_tol, 600, 2000);
+    
+//    this->print_solution();
+//    upper_bound=upper_bound_integral(ub_solver_type, ub_solver_tol, ub_sol);
+//    this->print_solution();
     if(this->_status!=0){
         upper_bound=this->_obj->_range->second;
     }
@@ -7159,7 +7160,7 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int,double
     upper_bound_orig=upper_bound;
     upper_bound_best=upper_bound;
     lb_scale_value=1.0;
-    solver<> LBnonlin_solver(relaxed_model,lb_solver_type);
+//    solver<> LBnonlin_solver(relaxed_model,lb_solver_type);
     if(scale_objective){
         auto obj = *relaxed_model->_obj/upper_bound;
         relaxed_model->min(obj);
@@ -7167,7 +7168,7 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int,double
         lb_scale_value=upper_bound;
     }
     bool relax = true;
-    LBnonlin_solver.run(output = 0 , lb_solver_tol, 2000, relax, 300);
+//    LBnonlin_solver.run(output = 0 , lb_solver_tol, 2000, relax, 300);
     if(relaxed_model->_status==0)
     {
         lower_bound_nonlin_init = relaxed_model->get_obj_val()*lb_scale_value;
@@ -7331,6 +7332,7 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
     else{
         lower_bound_nonlin_init=relaxed_model->_obj->_range->first*lb_scale_value;
     }
+    lower_bound_nonlin_init = -100;
     lower_bound_init = lower_bound_nonlin_init;
     lower_bound = lower_bound_nonlin_init;
     gapnl=(upper_bound-lower_bound_nonlin_init)/(std::abs(upper_bound)+zero_tol)*100;

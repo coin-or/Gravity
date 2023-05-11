@@ -6346,6 +6346,15 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
             add_constraint(c);
         }
         
+        void add_on_off(Constraint<type>& c, const var<>& on, bool on_status){
+            if (c.get_ftype() != lin_) {
+                throw invalid_argument("Calling add_on_off with a nonlinear constraint.\n");
+            }
+            c._on_off_bin = make_shared<var<>>(on);
+            c._on_off = on_status;
+            add_constraint(c);
+        }
+        
         
         //This function adds on-off version of a given linear constraint and the binary variables to activate. The boolean option handles all the facet definining inequalities of the convex hull (if true), else it only adds the Big_M version of the constraint
         //INPUT: linear constraint to be activated, corresponding binary variables to form a disjunctive union, big_M version of the constraint or the whole convex hull
