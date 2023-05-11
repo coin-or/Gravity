@@ -30,13 +30,13 @@
 | Concat       | Yes  |
 | Relu         | Yes  |
 | Add          | Yes  |
-| Cos          |      |
+| Cos          | Yes  |
+| Sin          | Yes  |
+| Sub          | Yes  |
 | Transpose    |      |
 | MatMul       |      |
 | Slice        |      |
-| Sub          |      |
 | Neg          |      |
-| Sin          |      |
 | Pow          |      |
 | Sigmoid      |      |
 | Mul          |      |

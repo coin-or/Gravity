@@ -8,7 +8,7 @@
 
 using namespace gravity;
 
-typedef enum { _gemm, _relu, _conv, _input, _noop, _add } OType; /* Operator Type */
+typedef enum { _gemm, _relu, _conv, _input, _noop, _add, _sub, _cos, _sin } OType; /* Operator Type */
 
 class Layer: public Node {
 public:
@@ -120,6 +120,8 @@ public:
         this->B = &tensors.at(node.input(1));
         this->Y = &tensors.at(node.output(0));
         if(this->transB){
+            // We have to clone B, ignore memory leak for now
+            this->B = new Tensor(*this->B);
             this->B->_transpose();
         }
 
@@ -142,23 +144,23 @@ public:
 
     void build_constraints(indices& Gemms, indices& Gemms_in, indices& Gemms_out, indices& B_Gemm, indices& C_Gemm, param<>& B, param<>& C, size_t& row_id) {
         this->add_parameters({&B, &C});
-        for (size_t arow = 0; arow < this->A->shape[0]; arow++) {
-            for (size_t bcol = 0; bcol < this->B->shape[1]; bcol++) {
-                std::string okey = this->Y->strkey(arow, bcol);
-                Gemms.add(okey);
-                Gemms_out.add_ref(this->Y->strkey(arow, bcol));
-                // Compute inner product
-                for (size_t acol = 0; acol < this->A->shape[1]; acol++) {
-                    B_Gemm.add_in_row(row_id,   this->B->strkey(acol, bcol));
-                    Gemms_in.add_in_row(row_id, this->A->strkey(arow, acol));
+        for (size_t out_row = 0; out_row < this->Y->shape[0]; out_row++) {
+            for (size_t out_col = 0; out_col < this->Y->shape[1]; out_col++) {
+                Gemms.add(this->Y->strkey(out_row, out_col));
+                Gemms_out.add_ref(this->Y->strkey(out_row, out_col));
+
+                for (size_t i = 0; i < this->A->shape[1]; i++) {
+                    Gemms_in.add_in_row(row_id, this->A->strkey(out_row, i));
+                    B_Gemm.add_in_row(row_id,   this->B->strkey(i, out_col));
                 }
+
                 // Add bias
                 if (this->C) {
-                    C_Gemm.add_in_row(row_id, this->C->strkey(bcol));
+                    C_Gemm.add_in_row(row_id, this->C->strkey(out_col));
                 } else {
                     C_Gemm.add_empty_row();
                 }
-                row_id++;
+                row_id++; 
             }
         }
     }
@@ -458,4 +460,72 @@ public:
     }
 
     Tensor *A, *B, *Y; // Input and output
+};
+
+class Sub : public Layer {
+public:
+    Sub(const onnx::NodeProto& node, Tensors& tensors): Layer(node, tensors) {
+        operator_type = _sub;
+        this->A = &tensors[node.input(0)];
+        this->B = &tensors[node.input(1)];
+        this->Y = &tensors[node.output(0)];
+
+        if ((this->A->is_initializer == true) || (this->B->is_initializer == true)) {
+            throw std::runtime_error("Sub: initializer not supported.");
+        }
+    }
+
+    void add_parameters(std::vector<gravity::param<>*> params) const override {}
+
+    void build_constraints(indices& Subs, indices& Sub_A, indices& Sub_B, indices& Sub_out) {
+        for(auto j = 0; j < this->A->numel;j++){
+            Subs.add(this->Y->strkey(j));
+            Sub_out.add_ref(this->Y->strkey(j));
+            Sub_A.add_ref(this->A->strkey(j));
+            Sub_B.add_ref(this->B->strkey(j));
+        }
+    }
+
+    Tensor *A, *B, *Y; // Input and output
+};
+class Cos : public Layer {
+public:
+    Cos(const onnx::NodeProto& node, Tensors& tensors): Layer(node, tensors) {
+        operator_type = _cos;
+        this->X = &tensors[node.input(0)];
+        this->Y = &tensors[node.output(0)];
+    }
+
+    void add_parameters(std::vector<gravity::param<>*> params) const override {}
+
+    void build_constraints(indices& Coss, indices& Cos_in, indices& Cos_out) {
+        for(auto j = 0; j < this->X->numel;j++){
+            Coss.add(this->Y->strkey(j));
+            Cos_out.add_ref(this->Y->strkey(j));
+            Cos_in.add_ref(this->X->strkey(j));
+        }
+    }
+
+    Tensor *X, *Y; // Input and output
+};
+
+class Sin : public Layer {
+public:
+    Sin(const onnx::NodeProto& node, Tensors& tensors): Layer(node, tensors) {
+        operator_type = _sin;
+        this->X = &tensors[node.input(0)];
+        this->Y = &tensors[node.output(0)];
+    }
+
+    void add_parameters(std::vector<gravity::param<>*> params) const override {}
+
+    void build_constraints(indices& Sins, indices& Sin_in, indices& Sin_out) {
+        for(auto j = 0; j < this->X->numel;j++){
+            Sins.add(this->Y->strkey(j));
+            Sin_out.add_ref(this->Y->strkey(j));
+            Sin_in.add_ref(this->X->strkey(j));
+        }
+    }
+
+    Tensor *X, *Y; // Input and output
 };

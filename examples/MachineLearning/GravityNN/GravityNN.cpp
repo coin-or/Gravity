@@ -52,12 +52,27 @@ int main(int argc, char * argv[]){
     NoOps_out = hidden_states;
     NoOps_in  = hidden_states;
 
-
     // Add indices
     indices Adds("Adds"), Adds_A("Adds_A"), Adds_B("Adds_B"), Adds_Out("Adds_Out");
     Adds_A   = hidden_states;
     Adds_B   = hidden_states;
     Adds_Out = hidden_states;
+
+    // Sub indices
+    indices Subs("Subs"), Sub_A("Sub_A"), Sub_B("Sub_B"), Sub_Out("Sub_Out");
+    Sub_A   = hidden_states;
+    Sub_B   = hidden_states;
+    Sub_Out = hidden_states;
+    
+    // Cos indices
+    indices Coss("Coss"), Cos_out("Cos_out"), Cos_in("Cos_in");
+    Cos_out = hidden_states;
+    Cos_in  = hidden_states;
+
+    // Sin indices
+    indices Sins("Sins"), Sin_out("Sin_out"), Sin_in("Sin_in");
+    Sin_out = hidden_states;
+    Sin_in  = hidden_states;
 
     nn.index_hidden_states(hidden_states, y_ids);
 
@@ -89,6 +104,21 @@ int main(int argc, char * argv[]){
                 add->build_constraints(Adds, Adds_A, Adds_B, Adds_Out);
                 break;
             }
+            case _sub:{
+                auto sub = dynamic_cast<Sub*>(l);
+                sub->build_constraints(Subs, Sub_A, Sub_B, Sub_Out);
+                break;
+            }
+            case _cos:{
+                auto cos = dynamic_cast<Cos*>(l);
+                cos->build_constraints(Coss, Cos_in, Cos_out);
+                break;
+            }
+            case _sin:{
+                auto sin = dynamic_cast<Sin*>(l);
+                sin->build_constraints(Sins, Sin_in, Sin_out);
+                break;
+            }
             default:{
                 break;
             }
@@ -118,9 +148,9 @@ int main(int argc, char * argv[]){
     // );
     NN.max(
          x(nn.layers.back()->outputs[0]->strkey(0))
-        +x(nn.layers.back()->outputs[0]->strkey(1))
-        -x(nn.layers.back()->outputs[0]->strkey(2))
-        +x(nn.layers.back()->outputs[0]->strkey(3))
+        // +x(nn.layers.back()->outputs[0]->strkey(1))
+        // -x(nn.layers.back()->outputs[0]->strkey(2))
+        // +x(nn.layers.back()->outputs[0]->strkey(3))
     );
 
     NN.print_solution();
@@ -153,6 +183,18 @@ int main(int argc, char * argv[]){
     Constraint<> Add_("Add");
     Add_ = x.in(Adds_Out) - (x.in(Adds_A) + x.in(Adds_B));
     NN.add(Add_.in(Adds) == 0);
+
+    Constraint<> Sub_("Sub");
+    Sub_ = x.in(Sub_Out) - (x.in(Sub_A) - x.in(Sub_B));
+    NN.add(Sub_.in(Subs) == 0);
+    
+    Constraint<> Cos_("Cos");
+    Cos_ = x.in(Cos_out) - cos(x.in(Cos_in));
+    NN.add(Cos_.in(Coss) == 0);
+
+    Constraint<> Sin_("Sin");
+    Sin_ = x.in(Sin_out) - sin(x.in(Sin_in));
+    NN.add(Sin_.in(Sins) == 0);
 
     NN.print();
     NN.write();

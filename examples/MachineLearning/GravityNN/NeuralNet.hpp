@@ -42,6 +42,12 @@ public:
                 node_ptr = new Concat(node, this->tensors);
             } else if (node.op_type() == "Add") {
                 node_ptr = new Add(node, this->tensors);
+            } else if (node.op_type() == "Sub") {
+                node_ptr = new Sub(node, this->tensors);
+            } else if (node.op_type() == "Cos") {
+                node_ptr = new Cos(node, this->tensors);
+            } else if (node.op_type() == "Sin") {
+                node_ptr = new Sin(node, this->tensors);
             } else {
                 throw std::runtime_error("Unsupported operator " + node.op_type());
             }
