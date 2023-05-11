@@ -74,6 +74,23 @@ int main(int argc, char * argv[]){
     Sin_out = hidden_states;
     Sin_in  = hidden_states;
 
+    // Neg indices
+    indices Negs("Negs"), Neg_out("Neg_out"), Neg_in("Neg_in");
+    Neg_out = hidden_states;
+    Neg_in  = hidden_states;
+
+    // Pow indices
+    indices Pows("Pows"), Pow_out("Pow_out"), Pow_in("Pow_in");
+    Pow_out = hidden_states;
+    Pow_in  = hidden_states;
+
+
+    // Sub indices
+    indices Muls("Muls"), Mul_A("Mul_A"), Mul_B("Mul_B"), Mul_Out("Mul_Out");
+    Mul_A   = hidden_states;
+    Mul_B   = hidden_states;
+    Mul_Out = hidden_states;
+
     nn.index_hidden_states(hidden_states, y_ids);
 
     size_t gemm_row_id = 0, conv_row_id = 0;
@@ -119,6 +136,21 @@ int main(int argc, char * argv[]){
                 sin->build_constraints(Sins, Sin_in, Sin_out);
                 break;
             }
+            case _neg:{
+                auto neg = dynamic_cast<Neg*>(l);
+                neg->build_constraints(Negs, Neg_in, Neg_out);
+                break;
+            }
+            case _pow:{
+                auto neg = dynamic_cast<Pow*>(l);
+                neg->build_constraints(Pows, Pow_in, Pow_out);
+                break;
+            }
+            case _mul:{
+                auto mul = dynamic_cast<Mul*>(l);
+                mul->build_constraints(Muls, Mul_A, Mul_B, Mul_Out);
+                break;
+            }
             default:{
                 break;
             }
@@ -148,12 +180,12 @@ int main(int argc, char * argv[]){
     // );
     NN.max(
          x(nn.layers.back()->outputs[0]->strkey(0))
-        // +x(nn.layers.back()->outputs[0]->strkey(1))
-        // -x(nn.layers.back()->outputs[0]->strkey(2))
-        // +x(nn.layers.back()->outputs[0]->strkey(3))
+        +x(nn.layers.back()->outputs[0]->strkey(1))
+        -x(nn.layers.back()->outputs[0]->strkey(2))
+        -x(nn.layers.back()->outputs[0]->strkey(3))
     );
 
-    NN.print_solution();
+    // NN.print_solution();
 
     /* Constraints */
     Constraint<> ReLU("ReLU");
@@ -195,6 +227,18 @@ int main(int argc, char * argv[]){
     Constraint<> Sin_("Sin");
     Sin_ = x.in(Sin_out) - sin(x.in(Sin_in));
     NN.add(Sin_.in(Sins) == 0);
+
+    Constraint<> Neg_("Neg");
+    Neg_ = x.in(Neg_out) + x.in(Neg_in);
+    NN.add(Neg_.in(Negs) == 0);
+
+    Constraint<> Pow_("Pow");
+    Pow_ = x.in(Pow_out) - pow(x.in(Pow_in), 2.0);
+    NN.add(Pow_.in(Pows) == 0);
+
+    Constraint<> Mul_("Mul");
+    Mul_ = x.in(Mul_Out) - (x.in(Mul_A) * x.in(Mul_B));
+    NN.add(Mul_.in(Muls) == 0);
 
     NN.print();
     NN.write();

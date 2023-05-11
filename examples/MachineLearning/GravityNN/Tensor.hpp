@@ -150,6 +150,11 @@ public:
         }
     }
 
+    void _set_data(const std::vector<float>& data) {
+        this->is_initializer = true;
+        this->data = data;
+    }
+
     std::string name;
     bool is_initializer;
 
@@ -184,6 +189,41 @@ Tensors get_tensors(onnx::GraphProto& graph) {
     // Input tensors
     for (const auto& input : graph.input()) {
         tensors[input.name()] = Tensor(input);
+    }
+
+
+    // Find constants
+    for (const auto& node : graph.node()) {
+        if (node.op_type() != "Constant") {
+            continue;
+        }
+
+        std::string name = node.output(0);
+        if (tensors.find(name) == tensors.end()) {
+            throw std::runtime_error("Constant " + name + " not found in graph");
+        }
+
+        Tensor& tensor = tensors[name];
+
+        // Pull out the data
+        onnx::TensorProto tensor_proto = node.attribute(0).t();
+        std::vector<float> data;
+        if (!tensor_proto.raw_data().empty()) {
+            const void* raw_data = tensor_proto.raw_data().data();
+            data.resize(tensor.numel);
+            std::memcpy(data.data(), raw_data, tensor.numel * sizeof(float));
+        } else if (!tensor_proto.float_data().empty()) {
+            // Otherwise, check if it's in float data
+            data = std::vector<float>(tensor_proto.float_data().begin(), tensor_proto.float_data().end());
+        } else {
+            throw std::runtime_error("Constant " + name + " has no data in raw_data or float_data");
+        }
+
+        tensor._set_data(data);
+        if ((tensor.numel == 1) && tensor.shape.size() == 0) {
+            // Scalar
+            tensor._set_shape({1});
+        }
     }
 
     return tensors;

@@ -27,6 +27,11 @@ public:
         }
 
         for (const auto& node : graph.node()) {
+            if (node.op_type() == "Constant") {
+                // We've stuffed all constants into the tensors map
+                continue;
+            }
+
             Layer* node_ptr;
             if (node.op_type() == "Gemm") {
                 node_ptr = new GEMM(node, this->tensors);
@@ -48,6 +53,12 @@ public:
                 node_ptr = new Cos(node, this->tensors);
             } else if (node.op_type() == "Sin") {
                 node_ptr = new Sin(node, this->tensors);
+            } else if (node.op_type() == "Neg") {
+                node_ptr = new Neg(node, this->tensors);
+            } else if (node.op_type() == "Pow") {
+                node_ptr = new Pow(node, this->tensors);
+            } else if (node.op_type() == "Mul") {
+                node_ptr = new Mul(node, this->tensors);
             } else {
                 throw std::runtime_error("Unsupported operator " + node.op_type());
             }
@@ -73,14 +84,17 @@ public:
     }
 
     void set_bounds(gravity::param<>& x_lb, gravity::param<>& x_ub) {
-        //for (auto l: this->layers) {
-        //    for (size_t o = 0; o < l->outputs.size(); o++) {
-        //        for(auto j = 0; j < l->outputs[o]->numel; j++){
-        //            x_lb.set_val(l->outputs[o]->strkey(j), -1.0);
-        //            x_ub.set_val(l->outputs[o]->strkey(j),  1.0);
-        //        }
-        //    }
-        //}
+        for (auto l: this->layers) {
+            if (l->operator_type != _input) {
+                continue;
+            }
+            for (size_t o = 0; o < l->outputs.size(); o++) {
+                for(auto j = 0; j < l->outputs[o]->numel; j++){
+                    x_lb.set_val(l->outputs[o]->strkey(j), -1.0);
+                    x_ub.set_val(l->outputs[o]->strkey(j),  1.0);
+                }
+            }
+        }
         for (auto l: this->layers) {
             // Enforce lb of 0 for relu
             if (l->operator_type == _relu) {

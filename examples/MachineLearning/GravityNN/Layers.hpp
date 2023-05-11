@@ -8,7 +8,7 @@
 
 using namespace gravity;
 
-typedef enum { _gemm, _relu, _conv, _input, _noop, _add, _sub, _cos, _sin } OType; /* Operator Type */
+typedef enum { _gemm, _relu, _conv, _input, _noop, _add, _sub, _cos, _sin, _neg, _pow, _mul } OType; /* Operator Type */
 
 class Layer: public Node {
 public:
@@ -144,6 +144,15 @@ public:
 
     void build_constraints(indices& Gemms, indices& Gemms_in, indices& Gemms_out, indices& B_Gemm, indices& C_Gemm, param<>& B, param<>& C, size_t& row_id) {
         this->add_parameters({&B, &C});
+        // Ensure dimensions match
+        if (this->A->shape[1] != this->B->shape[0]) {
+            throw std::runtime_error("GEMM: A and B inner dimensions do not match");
+        }
+        if ((this->A->shape[0] != this->Y->shape[0]) || (this->B->shape[1] != this->Y->shape[1])) {
+            throw std::runtime_error("GEMM: A and B outer dimensions do not match Y");
+        }
+
+
         for (size_t out_row = 0; out_row < this->Y->shape[0]; out_row++) {
             for (size_t out_col = 0; out_col < this->Y->shape[1]; out_col++) {
                 Gemms.add(this->Y->strkey(out_row, out_col));
@@ -453,9 +462,9 @@ public:
     void build_constraints(indices& Adds, indices& Adds_A, indices& Adds_B, indices& Adds_out) {
         for(auto j = 0; j < this->A->numel;j++){
             Adds.add(this->Y->strkey(j));
-            Adds_out.add_ref(this->Y->strkey(j));
             Adds_A.add_ref(this->A->strkey(j));
             Adds_B.add_ref(this->B->strkey(j));
+            Adds_out.add_ref(this->Y->strkey(j));
         }
     }
 
@@ -480,14 +489,15 @@ public:
     void build_constraints(indices& Subs, indices& Sub_A, indices& Sub_B, indices& Sub_out) {
         for(auto j = 0; j < this->A->numel;j++){
             Subs.add(this->Y->strkey(j));
-            Sub_out.add_ref(this->Y->strkey(j));
             Sub_A.add_ref(this->A->strkey(j));
             Sub_B.add_ref(this->B->strkey(j));
+            Sub_out.add_ref(this->Y->strkey(j));
         }
     }
 
     Tensor *A, *B, *Y; // Input and output
 };
+
 class Cos : public Layer {
 public:
     Cos(const onnx::NodeProto& node, Tensors& tensors): Layer(node, tensors) {
@@ -501,8 +511,8 @@ public:
     void build_constraints(indices& Coss, indices& Cos_in, indices& Cos_out) {
         for(auto j = 0; j < this->X->numel;j++){
             Coss.add(this->Y->strkey(j));
-            Cos_out.add_ref(this->Y->strkey(j));
             Cos_in.add_ref(this->X->strkey(j));
+            Cos_out.add_ref(this->Y->strkey(j));
         }
     }
 
@@ -522,10 +532,88 @@ public:
     void build_constraints(indices& Sins, indices& Sin_in, indices& Sin_out) {
         for(auto j = 0; j < this->X->numel;j++){
             Sins.add(this->Y->strkey(j));
-            Sin_out.add_ref(this->Y->strkey(j));
             Sin_in.add_ref(this->X->strkey(j));
+            Sin_out.add_ref(this->Y->strkey(j));
         }
     }
 
     Tensor *X, *Y; // Input and output
+};
+
+class Neg : public Layer {
+public:
+    Neg(const onnx::NodeProto& node, Tensors& tensors): Layer(node, tensors) {
+        operator_type = _neg;
+        this->X = &tensors[node.input(0)];
+        this->Y = &tensors[node.output(0)];
+    }
+
+    void add_parameters(std::vector<gravity::param<>*> params) const override {}
+
+    void build_constraints(indices& Negs, indices& Neg_in, indices& Neg_out) {
+        for(auto j = 0; j < this->X->numel;j++){
+            Negs.add(this->Y->strkey(j));
+            Neg_in.add_ref(this->X->strkey(j));
+            Neg_out.add_ref(this->Y->strkey(j));
+        }
+    }
+
+    Tensor *X, *Y; // Input and output
+};
+
+class Pow : public Layer {
+public:
+    Pow(const onnx::NodeProto& node, Tensors& tensors): Layer(node, tensors) {
+        operator_type = _pow;
+        this->X = &tensors[node.input(0)];
+        this->exp = &tensors[node.input(1)];
+        this->Y = &tensors[node.output(0)];
+
+        if (this->exp->numel != 1) {
+            throw std::runtime_error("Pow: exponent must be a scalar.");
+        }
+
+        if (this->exp->operator()(0) != 2.0) {
+            throw std::runtime_error("Pow: exponent must be 2.");
+        }
+    }
+
+    void add_parameters(std::vector<gravity::param<>*> params) const override {}
+
+    void build_constraints(indices& Pows, indices& Pow_in, indices& Pow_out) {
+        for(auto j = 0; j < this->X->numel;j++){
+            Pows.add(this->Y->strkey(j));
+            Pow_in.add_ref(this->X->strkey(j));
+            Pow_out.add_ref(this->Y->strkey(j));
+        }
+    }
+
+    Tensor *X, *exp, *Y; // Input and output
+};
+
+class Mul : public Layer {
+public:
+    Mul(const onnx::NodeProto& node, Tensors& tensors): Layer(node, tensors) {
+        operator_type = _mul;
+        this->A = &tensors[node.input(0)];
+        this->B = &tensors[node.input(1)];
+        this->Y = &tensors[node.output(0)];
+
+        if ((this->A->is_initializer == true) || (this->B->is_initializer == true)) {
+            throw std::runtime_error("Add: initializer not supported.");
+        }
+    }
+
+    void add_parameters(std::vector<gravity::param<>*> params) const override {}
+
+    void build_constraints(indices& Muls, indices& Mul_A, indices& Mul_B, indices& Mul_out) {
+        for(auto j = 0; j < this->A->numel;j++){
+            Muls.add(this->Y->strkey(j));
+            Mul_A.add_ref(this->A->strkey(j));
+            Mul_B.add_ref(this->B->strkey(j));
+            Mul_out.add_ref(this->Y->strkey(j));
+        }
+    }
+
+    Tensor *A, *B, *Y; // Input and output
 };
