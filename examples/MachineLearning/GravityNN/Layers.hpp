@@ -142,21 +142,24 @@ public:
 
     void build_constraints(indices& Gemms, indices& Gemms_in, indices& Gemms_out, indices& B_Gemm, indices& C_Gemm, param<>& B, param<>& C, size_t& row_id) {
         this->add_parameters({&B, &C});
-        // Expression
-        for(auto j = 0; j < this->out_dim; j++){
-            Gemms.add(this->Y->strkey(j));
-            Gemms_out.add_ref(this->Y->strkey(j));
-            for(auto k = 0; k < this->in_dim; k++){
-                B_Gemm.add_in_row(row_id, this->B->strkey(k, j));
-                Gemms_in.add_in_row(row_id, this->A->strkey(k));
+        for (size_t arow = 0; arow < this->A->shape[0]; arow++) {
+            for (size_t bcol = 0; bcol < this->B->shape[1]; bcol++) {
+                std::string okey = this->Y->strkey(arow, bcol);
+                Gemms.add(okey);
+                Gemms_out.add_ref(this->Y->strkey(arow, bcol));
+                // Compute inner product
+                for (size_t acol = 0; acol < this->A->shape[1]; acol++) {
+                    B_Gemm.add_in_row(row_id,   this->B->strkey(acol, bcol));
+                    Gemms_in.add_in_row(row_id, this->A->strkey(arow, acol));
+                }
+                // Add bias
+                if (this->C) {
+                    C_Gemm.add_in_row(row_id, this->C->strkey(bcol));
+                } else {
+                    C_Gemm.add_empty_row();
+                }
+                row_id++;
             }
-            // Add bias
-            if (this->C) {
-                C_Gemm.add_in_row(row_id, this->C->strkey(j));
-            } else {
-                C_Gemm.add_empty_row();
-            }
-            row_id++;
         }
     }
 

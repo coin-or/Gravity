@@ -20,3 +20,24 @@
 | Sigmoid   |      | 4     |
 | Constant  |      | 4     |
 | Sub       |      | 3     |
+
+
+# Georgia Tech model
+| Task         | Impl |
+| ------------ | ---- |
+| Batched GEMM | Yes  |
+| Gemm         | Yes  |
+| Concat       | Yes  |
+| Relu         | Yes  |
+| Add          |      |
+| Cos          |      |
+| Transpose    |      |
+| MatMul       |      |
+| Slice        |      |
+| Sub          |      |
+| Neg          |      |
+| Sin          |      |
+| Pow          |      |
+| Sigmoid      |      |
+| Mul          |      |
+| Gather       |      |
