@@ -128,9 +128,6 @@ public:
         if (node.input_size() == 3) {
             this->C = &tensors.at(node.input(2));
         }
-
-        this->in_dim = this->A->shape[1];
-        this->out_dim = this->B->shape[1];
     }
 
     void add_parameters(std::vector<gravity::param<>*> params) const override {
@@ -176,8 +173,6 @@ public:
 
     Tensor *A, *B, *C = nullptr; // Inputs
     Tensor *Y; // Output
-
-    size_t in_dim, out_dim;
 
     float alpha = 1.0;
     float beta = 1.0;

@@ -12,7 +12,7 @@
 | Squeeze   |       | 80    |
 | Reshape   |       | 76    |
 | Add       | Yes   | 12    |
-| MatMul    |       | 7     |
+| MatMul    | Yes   | 7     |
 | Div       |       | 5     |
 | Slice     |       | 4     |
 | Mul       | Yes   | 4     |
@@ -41,7 +41,7 @@
 | Neg          | Yes  |
 | Pow          | Yes  |
 | Mul          | Yes  |
-| MatMul       |      |
+| MatMul       | Yes  |
 | Transpose    |      |
 | Slice        |      |
 | Sigmoid      |      |
