@@ -52,6 +52,13 @@ int main(int argc, char * argv[]){
     NoOps_out = hidden_states;
     NoOps_in  = hidden_states;
 
+
+    // Add indices
+    indices Adds("Adds"), Adds_A("Adds_A"), Adds_B("Adds_B"), Adds_Out("Adds_Out");
+    Adds_A   = hidden_states;
+    Adds_B   = hidden_states;
+    Adds_Out = hidden_states;
+
     nn.index_hidden_states(hidden_states, y_ids);
 
     size_t gemm_row_id = 0, conv_row_id = 0;
@@ -75,6 +82,11 @@ int main(int argc, char * argv[]){
             case _noop:{
                 auto noop = dynamic_cast<NoOp*>(l);
                 noop->build_constraints(NoOps, NoOps_in, NoOps_out);
+                break;
+            }
+            case _add:{
+                auto add = dynamic_cast<Add*>(l);
+                add->build_constraints(Adds, Adds_A, Adds_B, Adds_Out);
                 break;
             }
             default:{
@@ -104,7 +116,12 @@ int main(int argc, char * argv[]){
         // x(nn.layers.back()->outputs[0]->strkey(4))
     //    -x(nn.layers.back()->outputs[0]->strkey(9))
     // );
-    NN.max(x(nn.layers.back()->outputs[0]->strkey(0)));
+    NN.max(
+         x(nn.layers.back()->outputs[0]->strkey(0))
+        +x(nn.layers.back()->outputs[0]->strkey(1))
+        -x(nn.layers.back()->outputs[0]->strkey(2))
+        +x(nn.layers.back()->outputs[0]->strkey(3))
+    );
 
     NN.print_solution();
 
@@ -132,6 +149,10 @@ int main(int argc, char * argv[]){
     Constraint<> NoOp("NoOp");
     NoOp = x.in(NoOps_out) - x.in(NoOps_in);
     NN.add(NoOp.in(NoOps) == 0);
+    
+    Constraint<> Add_("Add");
+    Add_ = x.in(Adds_Out) - (x.in(Adds_A) + x.in(Adds_B));
+    NN.add(Add_.in(Adds) == 0);
 
     NN.print();
     NN.write();

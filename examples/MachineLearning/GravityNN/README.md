@@ -29,7 +29,7 @@
 | Gemm         | Yes  |
 | Concat       | Yes  |
 | Relu         | Yes  |
-| Add          |      |
+| Add          | Yes  |
 | Cos          |      |
 | Transpose    |      |
 | MatMul       |      |

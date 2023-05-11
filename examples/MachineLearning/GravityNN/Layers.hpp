@@ -8,7 +8,7 @@
 
 using namespace gravity;
 
-typedef enum { _gemm, _relu, _conv, _input, _noop } OType; /* Operator Type */
+typedef enum { _gemm, _relu, _conv, _input, _noop, _add } OType; /* Operator Type */
 
 class Layer: public Node {
 public:
@@ -431,4 +431,31 @@ public:
     }
 
     size_t axis;
+};
+
+class Add : public Layer {
+public:
+    Add(const onnx::NodeProto& node, Tensors& tensors): Layer(node, tensors) {
+        operator_type = _add;
+        this->A = &tensors[node.input(0)];
+        this->B = &tensors[node.input(1)];
+        this->Y = &tensors[node.output(0)];
+
+        if ((this->A->is_initializer == true) || (this->B->is_initializer == true)) {
+            throw std::runtime_error("Add: initializer not supported.");
+        }
+    }
+
+    void add_parameters(std::vector<gravity::param<>*> params) const override {}
+
+    void build_constraints(indices& Adds, indices& Adds_A, indices& Adds_B, indices& Adds_out) {
+        for(auto j = 0; j < this->A->numel;j++){
+            Adds.add(this->Y->strkey(j));
+            Adds_out.add_ref(this->Y->strkey(j));
+            Adds_A.add_ref(this->A->strkey(j));
+            Adds_B.add_ref(this->B->strkey(j));
+        }
+    }
+
+    Tensor *A, *B, *Y; // Input and output
 };

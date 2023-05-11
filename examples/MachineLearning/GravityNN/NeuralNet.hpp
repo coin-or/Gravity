@@ -40,6 +40,8 @@ public:
                 node_ptr = new Split(node, this->tensors);
             } else if (node.op_type() == "Concat") {
                 node_ptr = new Concat(node, this->tensors);
+            } else if (node.op_type() == "Add") {
+                node_ptr = new Add(node, this->tensors);
             } else {
                 throw std::runtime_error("Unsupported operator " + node.op_type());
             }
@@ -65,6 +67,14 @@ public:
     }
 
     void set_bounds(gravity::param<>& x_lb, gravity::param<>& x_ub) {
+        //for (auto l: this->layers) {
+        //    for (size_t o = 0; o < l->outputs.size(); o++) {
+        //        for(auto j = 0; j < l->outputs[o]->numel; j++){
+        //            x_lb.set_val(l->outputs[o]->strkey(j), -1.0);
+        //            x_ub.set_val(l->outputs[o]->strkey(j),  1.0);
+        //        }
+        //    }
+        //}
         for (auto l: this->layers) {
             // Enforce lb of 0 for relu
             if (l->operator_type == _relu) {
