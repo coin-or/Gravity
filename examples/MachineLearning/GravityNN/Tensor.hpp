@@ -37,24 +37,26 @@ public:
         this->_set_shape(shape);
     }
 
-    void _transpose() {
-        if (this->shape.size() != 2) {
-            throw std::runtime_error("Cannot transpose tensor with shape " + std::to_string(this->shape.size()));
-        }
-        if (!this->is_initializer) {
-            throw std::runtime_error("Cannot transpose non-initializer tensor");
+    static Tensor transpose(const Tensor& t) {
+        if (t.shape.size() != 2) {
+            throw std::runtime_error("Cannot transpose tensor with shape " + std::to_string(t.shape.size()));
         }
 
-        // Tranpose data if needed, it is stored row-major
-        std::vector<float> temp_data = this->data;
-        for (size_t i = 0; i < this->shape[0]; i++) {
-            for (size_t j = 0; j < this->shape[1]; j++) {
-                this->data[j * this->shape[0] + i] = temp_data[i * this->shape[1] + j];
+        Tensor newt = t;
+
+        if (t.is_initializer) {
+            // Tranpose data if needed, it is stored row-major
+            for (size_t i = 0; i < t.shape[0]; i++) {
+                for (size_t j = 0; j < t.shape[1]; j++) {
+                    newt.data[j * t.shape[0] + i] = t.data[i * t.shape[1] + j];
+                }
             }
         }
 
         // Swap shape
-        std::swap(this->shape[0], this->shape[1]);
+        std::swap(newt.shape[0], newt.shape[1]);
+
+        return newt;
     }
 
     float operator()(size_t i) const {

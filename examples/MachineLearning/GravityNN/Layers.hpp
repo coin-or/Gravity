@@ -119,11 +119,9 @@ public:
         this->A = &tensors.at(node.input(0));
         this->B = &tensors.at(node.input(1));
         this->Y = &tensors.at(node.output(0));
-        if(this->transB){
-            // We have to clone B, ignore memory leak for now
-            this->B = new Tensor(*this->B);
-            this->B->_transpose();
-        }
+        // if(this->transB){
+            // this->B->_transpose();
+        // }
 
         if (node.input_size() == 3) {
             this->C = &tensors.at(node.input(2));
@@ -133,7 +131,14 @@ public:
     void add_parameters(std::vector<gravity::param<>*> params) const override {
         auto B = params[0];
         auto C = params[1];
-        this->B->add_params(B);
+
+        if (this->transB) {
+            Tensor tb = Tensor::transpose(*this->B);
+            tb.add_params(B);
+        } else {
+            this->B->add_params(B);
+        }
+
         if (this->C) {
             this->C->add_params(C);
         }
@@ -141,14 +146,19 @@ public:
 
     void build_constraints(indices& Gemms, indices& Gemms_in, indices& Gemms_out, indices& B_Gemm, indices& C_Gemm, param<>& B, param<>& C, size_t& row_id) {
         this->add_parameters({&B, &C});
-        // Ensure dimensions match
-        if (this->A->shape[1] != this->B->shape[0]) {
-            throw std::runtime_error("GEMM: A and B inner dimensions do not match");
-        }
-        if ((this->A->shape[0] != this->Y->shape[0]) || (this->B->shape[1] != this->Y->shape[1])) {
-            throw std::runtime_error("GEMM: A and B outer dimensions do not match Y");
+
+        Tensor tb = *this->B;
+        if (this->transB) {
+            tb = Tensor::transpose(*this->B);
         }
 
+        // Ensure dimensions match
+        if (this->A->shape[1] != tb.shape[0]) {
+            throw std::runtime_error("GEMM: A and B inner dimensions do not match");
+        }
+        if ((this->A->shape[0] != this->Y->shape[0]) || (tb.shape[1] != this->Y->shape[1])) {
+            throw std::runtime_error("GEMM: A and B outer dimensions do not match Y");
+        }
 
         for (size_t out_row = 0; out_row < this->Y->shape[0]; out_row++) {
             for (size_t out_col = 0; out_col < this->Y->shape[1]; out_col++) {
@@ -157,7 +167,7 @@ public:
 
                 for (size_t i = 0; i < this->A->shape[1]; i++) {
                     Gemms_in.add_in_row(row_id, this->A->strkey(out_row, i));
-                    B_Gemm.add_in_row(row_id,   this->B->strkey(i, out_col));
+                    B_Gemm.add_in_row(row_id,   tb.strkey(i, out_col));
                 }
 
                 // Add bias
@@ -166,7 +176,7 @@ public:
                 } else {
                     C_Gemm.add_empty_row();
                 }
-                row_id++; 
+                row_id++;
             }
         }
     }
@@ -611,4 +621,35 @@ public:
     }
 
     Tensor *A, *B, *Y; // Input and output
+};
+
+class Transpose : public NoOp {
+public:
+    Transpose(const onnx::NodeProto& node, Tensors& tensors): NoOp(node, tensors) {
+        this->X = &tensors[node.input(0)];
+        this->Y = &tensors[node.output(0)];
+
+        if (const auto* attr = this->find_attribute("perm", node)) {
+            this->perm = std::vector<size_t>(attr->ints().begin(), attr->ints().end());
+        } else {
+            throw std::runtime_error("Transpose: perm attribute not found.");
+        }
+
+        if (this->perm.size() != 2) {
+            throw std::runtime_error("Transpose: perm attribute must be 2.");
+        }
+    }
+
+    void build_constraints(indices& NoOps, indices& NoOps_in, indices& NoOps_out) override {
+        Tensor trx = Tensor::transpose(*this->X);
+
+        for(auto j = 0; j < this->X->numel;j++){
+            NoOps.add(this->Y->strkey(j));
+            NoOps_in.add_ref(this->X->strkey(j));
+            NoOps_out.add_ref(this->Y->strkey(j));
+        }
+    }
+
+    Tensor *X, *Y; // Input and output
+    std::vector<size_t> perm;
 };

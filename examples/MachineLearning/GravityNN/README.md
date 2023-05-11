@@ -42,7 +42,7 @@
 | Pow          | Yes  |
 | Mul          | Yes  |
 | MatMul       | Yes  |
-| Transpose    |      |
+| Transpose    | Yes  |
 | Slice        |      |
 | Sigmoid      |      |
 | Gather       |      |
