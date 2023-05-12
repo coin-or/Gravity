@@ -84,12 +84,21 @@ int main(int argc, char * argv[]){
     Pow_out = hidden_states;
     Pow_in  = hidden_states;
 
-
     // Sub indices
     indices Muls("Muls"), Mul_A("Mul_A"), Mul_B("Mul_B"), Mul_Out("Mul_Out");
     Mul_A   = hidden_states;
     Mul_B   = hidden_states;
     Mul_Out = hidden_states;
+
+    // Exp indices
+    indices Exps("Exps"), Exp_out("Exp_out"), Exp_in("Exp_in");
+    Exp_out = hidden_states;
+    Exp_in  = hidden_states;
+
+    // Sigmoid indices
+    indices Sigs("Sigs"), Sigs_out("Sig_out"), Sigs_in("Sigs_in");
+    Sigs_out = hidden_states;
+    Sigs_in  = hidden_states;
 
     nn.index_hidden_states(hidden_states, y_ids);
 
@@ -185,7 +194,7 @@ int main(int argc, char * argv[]){
         // -x(nn.layers.back()->outputs[0]->strkey(3))
     );
 
-    // NN.print_solution();
+    NN.print();
 
     /* Constraints */
     Constraint<> ReLU("ReLU");
@@ -239,6 +248,14 @@ int main(int argc, char * argv[]){
     Constraint<> Mul_("Mul");
     Mul_ = x.in(Mul_Out) - (x.in(Mul_A) * x.in(Mul_B));
     NN.add(Mul_.in(Muls) == 0);
+
+    Constraint<> Exp("Exp");
+    Exp = x.in(Exp_out) - exp(-1.0*x.in(Exp_in));
+    NN.add(Exp.in(Exps) == 0);
+
+    Constraint<> Sigmoid_("Sigmoid");
+    Sigmoid_ = x.in(Sigs_out) * (1 + x.in(Sigs_in));
+    NN.add(Sigmoid_.in(Sigs) == 1);
 
     NN.print();
     NN.write();

@@ -8,7 +8,7 @@
 
 using namespace gravity;
 
-typedef enum { _gemm, _relu, _conv, _input, _noop, _add, _sub, _cos, _sin, _neg, _pow, _mul } OType; /* Operator Type */
+typedef enum { _gemm, _relu, _conv, _input, _noop, _add, _sub, _cos, _sin, _neg, _pow, _mul, _sigmoid } OType; /* Operator Type */
 
 class Layer: public Node {
 public:
@@ -745,4 +745,29 @@ public:
     std::vector<int64_t> ends;
     std::vector<int64_t> axes;
     std::vector<int64_t> steps;
+};
+
+class Sigmoid : public Layer {
+public:
+    Sigmoid(const onnx::NodeProto& node, Tensors& tensors): Layer(node, tensors) {
+        operator_type = _sigmoid;
+        this->X = &tensors[node.input(0)];
+        this->Y = &tensors[node.output(0)];
+    }
+
+    void add_parameters(std::vector<gravity::param<>*> params) const override {}
+
+    void build_constraints(indices& Sigs, indices& Sigs_in, indices& Sigs_out, indices& Exps, indices& Exps_in, indices& Exps_out) {
+        for(auto j = 0; j < this->X->numel;j++){
+            Exps.add(this->Y->strkey(j) + "_aux_exp");
+            Exps_in.add_ref(this->X->strkey(j));
+            Exps_out.add_ref(this->Y->strkey(j) + "_aux_exp");
+
+            Sigs.add(this->Y->strkey(j));
+            Sigs_in.add_ref(this->Y->strkey(j) + "_aux_exp");
+            Sigs_out.add_ref(this->Y->strkey(j));
+        }
+    }
+
+    Tensor *X, *Y; // Input and output
 };
