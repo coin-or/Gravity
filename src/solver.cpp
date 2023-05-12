@@ -305,8 +305,8 @@ int run_parallel_new(const std::vector<std::string> objective_models, std::vecto
     sol_obj.resize(objective_models.size(),-1.0);
     for(auto &m:models){
         if(count<objective_models.size()){
-            sol_status.at(count)=m->_status;
-            sol_obj.at(count)=m->get_obj_val();
+            sol_status.at(count)=0;
+            sol_obj.at(count)=m->_rel_obj_val;
             count++;
         }
     }

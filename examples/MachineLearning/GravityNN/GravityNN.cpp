@@ -443,19 +443,53 @@ int main (int argc, char * argv[]){
     /* Split nb_layers into horizon_len parts */
     vector<size_t> limits = bounds(horizon_len, nb_relus);
 //    NN->replace_integers();
-    double max_time = 1200;
+    double max_time = 600;
     unsigned max_iter=1e3;
     double rel_tol=1e-2;
     double abs_tol=1e6;
-    unsigned nb_threads = 1;
+    unsigned nb_threads = 2;
+    double ub_solver_tol=1e-4;
+    double lb_solver_tol=1e-4;
+    double range_tol=1e-4;
     SolverType ub_solver_type = gurobi;
     SolverType lb_solver_type = gurobi;
-    NN->run_obbt(NN, max_time, max_iter, rel_tol, abs_tol, nb_threads, ub_solver_type, lb_solver_type);
+    auto x_NN = NN->get_ptr_var<double>("x");
+    for(auto i = 0; i < x_ids.size(); i++){
+        key = x_ids._keys->at(i);
+        if(key.find("Relu1")==string::npos)
+            x_NN->_off[i] = true;
+    }
+    NN->run_obbt(NN, max_time, max_iter, rel_tol, abs_tol, nb_threads, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol);
     
 //    solver<> S(NN,gurobi);
 //    S.run(1e-4, 30);
-    NN->print();
-//    auto NN2 = build_NN_MIP(ReLUs, x_ids, y_ids, B_ids, C_ids, layers, x_lb, x_ub, y_lb, y_ub, B, C, 0, 1, nb_relus);
+//    NN->print();
+    auto x_NN_lb = x_NN->get_lb();
+    auto x_NN_ub = x_NN->get_ub();
+    x_lb.copy_vals(x_NN_lb);
+    x_ub.copy_vals(x_NN_ub);
+//    x_ub.print_vals(6);
+//    x_ub("Relu1,0").print_vals(6);
+    auto NN2 = build_NN_MIP(ReLUs, x_ids, y_ids, B_ids, C_ids, layers, x_lb, x_ub, y_lb, y_ub, B, C, 2, 3, nb_relus);
+    NN2->write();
+    auto x_NN2 = NN2->get_ptr_var<double>("x");
+    for(auto i = 0; i < x_ids.size(); i++){
+        key = x_ids._keys->at(i);
+        if(key.find("Relu3")==string::npos)
+            x_NN2->_off[i] = true;
+    }
+    DebugOn("running OBBT on NN2\n");
+    NN2->run_obbt(NN2, max_time, max_iter, rel_tol, abs_tol, nb_threads, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol);
+    DebugOn("Done running OBBT on NN2\n");
+    auto x_NN2_lb = x_NN2->get_lb();
+    auto x_NN2_ub = x_NN2->get_ub();
+
+    x_lb.copy_vals(x_NN2_lb);
+    x_ub.copy_vals(x_NN2_ub);
+//    x_ub.print_vals(6);
+//    x_ub("Relu1,0").print_vals(6);
+    auto NN_full = build_NN_MIP(ReLUs, x_ids, y_ids, B_ids, C_ids, layers, x_lb, x_ub, y_lb, y_ub, B, C, 0, nb_relus-1, nb_relus);
+    NN_full->write();
 //
 //
 //    auto x_star = NN->get_ptr_var<double>("x");
@@ -466,9 +500,10 @@ int main (int argc, char * argv[]){
 //        x->set_ub(key, x_star->eval(key));
 //    }
 //    NN2->write();
-//    solver<> S2(NN2,gurobi);
-//    S2.run(1e-4, 1800);
-//    NN2->print_solution();
+    solver<> S2(NN_full,gurobi);
+    S2.run(1e-4, 600);
+    
+    NN_full->print_solution();
     bool build_NLP=false;
     if(build_NLP){
         

@@ -673,13 +673,16 @@ namespace gravity {
         /** let this share the values of p */
         template<class T2, typename std::enable_if<is_convertible<T2, type>::value>::type* = nullptr>
         void copy_vals_(param<T2>& pp){
-            _val->resize(pp._val->size());
-            for (size_t i = 0; i < _val->size(); i++) {
-                _val->at(i) = pp._val->at(i);
+    //            _val->resize(pp._val->size());
+            for (size_t i = 0; i < pp._val->size(); i++) {
+                auto  it = _indices->_keys_map->find(pp._indices->_keys->at(i));
+                if(it != _indices->_keys_map->end()){
+                    _val->at(it->second) = pp._val->at(i);
+                }
             }
-            _range->first = pp._range->first;
-            _range->second = pp._range->second;
-        }
+            update_range(pp._range->first);
+            update_range(pp._range->second);
+        }        
         
         /** let this share the values of p */
         void share_vals(shared_ptr<param_> p){
@@ -2348,7 +2351,7 @@ namespace gravity {
                 }
                 if(_indices) {
                     if (is_indexed()) {
-                        for (size_t i = 0; i < _dim[0]; i++) {
+                        for (size_t i = 0; i < _indices->size(); i++) {
                             if((!_is_relaxed && !is_integer())|| std::abs(eval(i)) > 1e-4){
                                 str += "[" + _indices->_keys->at(get_id_inst(i)) + "] = " + to_string_with_precision(eval(i), prec);
                                 str += " \n";

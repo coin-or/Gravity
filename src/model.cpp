@@ -6804,7 +6804,7 @@ void Model<type>::populate_original_interval(shared_ptr<Model<type>>& obbt_model
             key_lb= var_key +"|LB";
             key_ub= var_key +"|UB";
             /* Do not do OBBT on lifted variables */
-            if(v._lift || key.find("input") != std::string::npos || key.find("Relu0") != std::string::npos){
+            if(v._lift || key.find("input") != std::string::npos){
                 fixed_point[key_lb]=true;
                 fixed_point[key_ub]=true;
                 count_skip+=2;
@@ -7422,7 +7422,7 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
                 }
             }
             /*Compute gap at the end of iter, adjusts active tol and root refine if linearize*/
-            relaxed_model->compute_iter_gap(gap, active_tol, terminate, linearize,iter, obbt_model, interior_model, lb_solver_type, nb_root_refine, upper_bound, lower_bound, lb_scale_value, lb_solver_tol, active_root_tol, oacuts, abs_tol, rel_tol, zero_tol, "ma27", 10000, 2000, vrbasis, crbasis, initialize_primal);
+//            relaxed_model->compute_iter_gap(gap, active_tol, terminate, linearize,iter, obbt_model, interior_model, lb_solver_type, nb_root_refine, upper_bound, lower_bound, lb_scale_value, lb_solver_tol, active_root_tol, oacuts, abs_tol, rel_tol, zero_tol, "ma27", 10000, 2000, vrbasis, crbasis, initialize_primal);
             solver_time= get_wall_time()-solver_time_start;
 //            obbt_model->print();
 //            obbt_model->print_solution();
