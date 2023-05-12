@@ -450,7 +450,7 @@ int main (int argc, char * argv[]){
     unsigned nb_threads = 2;
     double ub_solver_tol=1e-4;
     double lb_solver_tol=1e-4;
-    double range_tol=1e-4;
+    double range_tol=0;
     SolverType ub_solver_type = gurobi;
     SolverType lb_solver_type = gurobi;
     auto x_NN = NN->get_ptr_var<double>("x");
