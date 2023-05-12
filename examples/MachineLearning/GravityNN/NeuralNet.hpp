@@ -114,10 +114,10 @@ public:
                     x_lb.set_val(l->outputs[0]->strkey(j), 0.0);
                 }
             } else if (l->operator_type == _sigmoid) {
-                for(auto j = 0; j < l->outputs[0]->numel;j++){
-                    x_lb.set_val(l->outputs[0]->strkey(j) + "_aux_exp", 0.0);
-                    x_ub.set_val(l->outputs[0]->strkey(j) + "_aux_exp", 1.0);
-                }
+                // for(auto j = 0; j < l->outputs[0]->numel;j++){
+                    // x_lb.set_val(l->outputs[0]->strkey(j) + "_aux_exp", 0.0);
+                    // x_ub.set_val(l->outputs[0]->strkey(j) + "_aux_exp", 1.0);
+                // }
             }
 
             // Set provided bounds, skip if not provided
