@@ -180,9 +180,9 @@ int main(int argc, char * argv[]){
     // );
     NN.max(
          x(nn.layers.back()->outputs[0]->strkey(0))
-        +x(nn.layers.back()->outputs[0]->strkey(1))
-        -x(nn.layers.back()->outputs[0]->strkey(2))
-        -x(nn.layers.back()->outputs[0]->strkey(3))
+        // +x(nn.layers.back()->outputs[0]->strkey(1))
+        // -x(nn.layers.back()->outputs[0]->strkey(2))
+        // -x(nn.layers.back()->outputs[0]->strkey(3))
     );
 
     // NN.print_solution();

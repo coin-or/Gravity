@@ -61,6 +61,8 @@ public:
                 node_ptr = new Mul(node, this->tensors);
             } else if (node.op_type() == "Transpose") {
                 node_ptr = new Transpose(node, this->tensors);
+            } else if (node.op_type() == "Slice") {
+                node_ptr = new Slice(node, this->tensors);
             } else {
                 throw std::runtime_error("Unsupported operator " + node.op_type());
             }

@@ -43,6 +43,6 @@
 | Mul          | Yes  |
 | MatMul       | Yes  |
 | Transpose    | Yes  |
-| Slice        |      |
+| Slice        | Yes  |
 | Sigmoid      |      |
 | Gather       |      |

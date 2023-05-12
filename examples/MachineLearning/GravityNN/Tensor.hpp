@@ -6,6 +6,9 @@
 #include "utils.hpp"
 #include <gravity/param.h>
 
+template <typename T>
+std::vector<T> read_data(const onnx::TensorProto& tensor, const ::google::protobuf::RepeatedField<T>& field);
+
 class Tensor {
 public:
     Tensor() {}
@@ -15,14 +18,16 @@ public:
         this->is_initializer = true;
 
         this->_set_shape(std::vector<size_t>(tensor.dims().begin(), tensor.dims().end()));
-        if (!tensor.raw_data().empty()) {
-            const void* raw_data = tensor.raw_data().data();
-            data.resize(this->numel);
-            std::memcpy(data.data(), raw_data, this->numel * sizeof(float));
-        } else if (!tensor.float_data().empty()) {
-            this->data = std::vector<float>(tensor.float_data().begin(), tensor.float_data().end());
-        } else {
-            throw std::runtime_error("Tensor " + tensor.name() + " has data in neither raw_data nor float_data.");
+
+        switch (tensor.data_type()) {
+            case onnx::TensorProto::FLOAT:
+                this->data = read_data<float>(tensor, tensor.float_data());
+                break;
+            case onnx::TensorProto::INT64:
+                this->int_data = read_data<int64_t>(tensor, tensor.int64_data());
+                break;
+            default:
+                throw std::runtime_error("Tensor " + this->name + " has unsupported type " + std::to_string(tensor.data_type()));
         }
     }
 
@@ -66,6 +71,10 @@ public:
         return this->data.at(i);
     }
 
+    std::vector<int64_t> get_int_data() {
+        return this->int_data;
+    }
+
     void add_params(gravity::param<>* p) const {
         if (!this->is_initializer) {
             throw std::runtime_error("Reading from non-initializer tensor. Perhaps you're assuming this tensor is a weight when it's actually an output of a previous layer?");
@@ -100,21 +109,6 @@ public:
         return this->name + "," + std::to_string(flat);
     }
 
-    size_t axis_index(size_t axis, size_t index) {
-        size_t flattened_index = 0;
-        int stride = 1;
-
-        // pls no underflow
-        for (int i = ((int)this->ndims) - 1; i >= 0; --i) {
-            if (i == axis) {
-                flattened_index += index * stride;
-            }
-            stride *= this->shape[i];
-        }
-
-        return flattened_index;
-    }
-
     size_t flatten_index(const std::vector<size_t>& indices) const {
         size_t index = 0;
         size_t stride = 1;
@@ -143,7 +137,7 @@ public:
     void _set_shape(const std::vector<size_t>& shape) {
         this->shape = shape;
         this->numel = vecprod(this->shape);
-        this->ndims = this->shape.size();
+        this->ndims = std::max(this->shape.size(), (size_t)1);
     }
 
     void _boundcheck(size_t flat_idx) const {
@@ -166,6 +160,7 @@ public:
 
 private:
     std::vector<float> data;
+    std::vector<int64_t> int_data;
 };
 
 typedef std::map<std::string, Tensor> Tensors;
@@ -193,7 +188,6 @@ Tensors get_tensors(onnx::GraphProto& graph) {
         tensors[input.name()] = Tensor(input);
     }
 
-
     // Find constants
     for (const auto& node : graph.node()) {
         if (node.op_type() != "Constant") {
@@ -206,27 +200,30 @@ Tensors get_tensors(onnx::GraphProto& graph) {
         }
 
         Tensor& tensor = tensors[name];
-
-        // Pull out the data
-        onnx::TensorProto tensor_proto = node.attribute(0).t();
-        std::vector<float> data;
-        if (!tensor_proto.raw_data().empty()) {
-            const void* raw_data = tensor_proto.raw_data().data();
-            data.resize(tensor.numel);
-            std::memcpy(data.data(), raw_data, tensor.numel * sizeof(float));
-        } else if (!tensor_proto.float_data().empty()) {
-            // Otherwise, check if it's in float data
-            data = std::vector<float>(tensor_proto.float_data().begin(), tensor_proto.float_data().end());
-        } else {
-            throw std::runtime_error("Constant " + name + " has no data in raw_data or float_data");
-        }
-
-        tensor._set_data(data);
-        if ((tensor.numel == 1) && tensor.shape.size() == 0) {
-            // Scalar
-            tensor._set_shape({1});
-        }
+        Tensor datat = Tensor(node.attribute(0).t());
+        datat.name = name;
+        tensors[name] = datat;
     }
 
     return tensors;
+}
+
+template <typename T>
+std::vector<T> read_data(const onnx::TensorProto& tensor, const ::google::protobuf::RepeatedField<T>& field) {
+    if (field.size() > 0) {
+        return {field.begin(), field.end()};
+    } else if (!tensor.raw_data().empty()) {
+        size_t elem_size = sizeof(T);
+        size_t num_elems = tensor.raw_data().size() / elem_size;
+
+        if (tensor.raw_data().size() % elem_size != 0) {
+            throw std::runtime_error("Size of raw data is not a multiple of element size.");
+        }
+
+        std::vector<T> vec(num_elems);
+        std::memcpy(vec.data(), tensor.raw_data().data(), tensor.raw_data().size());
+        return vec;
+    } else {
+        throw std::runtime_error("Empty tensor.");
+    }
 }

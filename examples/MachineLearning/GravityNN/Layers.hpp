@@ -653,3 +653,96 @@ public:
     Tensor *X, *Y; // Input and output
     std::vector<size_t> perm;
 };
+
+class Slice: public NoOp {
+public:
+    Slice(const onnx::NodeProto& node, Tensors& tensors): NoOp(node, tensors) {
+        // Required inputs
+        this->X = &tensors[node.input(0)];
+        this->Y = &tensors[node.output(0)];
+
+        this->starts = tensors[node.input(1)].get_int_data();
+        this->ends = tensors[node.input(2)].get_int_data();
+
+        if (node.input_size() == 5) {
+            this->axes  = tensors[node.input(3)].get_int_data();
+            this->steps = tensors[node.input(4)].get_int_data();
+        } else {
+            throw std::runtime_error("Slice: optional inputs not supported.");
+        }
+
+        /*
+        All negative elements of axes are made non-negatve by adding r to them, where r =rank(input).
+        All negative values in starts[i] and ends[i] have dims[axes[i]] added to them, where dims are the dimensions of input.
+        */
+
+        for (auto& v : this->axes) {
+            if (v < 0) {
+                v += this->X->ndims;
+            }
+        }
+
+        for (size_t i = 0; i < this->starts.size(); i++) {
+            if (this->starts[i] < 0) {
+                this->starts[i] += this->X->shape.at(this->axes.at(i)) + 1;
+            }
+            if (this->ends[i] < 0) {
+                this->ends[i] += this->X->shape.at(this->axes.at(i)) + 1;
+            }
+            this->ends[i] = std::min(this->ends[i], (int64_t)this->X->shape.at(this->axes.at(i)));
+            this->ends[i] = std::max(this->ends[i], (int64_t)0);
+        }
+
+        std::cout << "Slice: " << this->starts.size() << " " << this->ends.size() << " " << this->axes.size() << " " << this->steps.size() << std::endl;
+    }
+
+    virtual void build_constraints(indices& NoOps, indices& NoOps_in, indices& NoOps_out) {
+        /*
+            Slice uses the starts, ends, axes and steps inputs to select a sub-tensor of its input data tensor.
+            An effective start[i], end[i], and step[i] must be computed for each i in [0, ... r-1] where r = rank(input) as follows:
+            If axes are omitted, they are set to [0, ..., r-1]. If steps are omitted, they are set to [1, ..., 1] of length len(starts)
+            The effective values are initialized as start[i] = 0, end[i] = dims[i] where dims are the dimensions of input and step[i] = 1.
+            All negative elements of axes are made non-negatve by adding r to them, where r =rank(input).
+            All negative values in starts[i] and ends[i] have dims[axes[i]] added to them, where dims are the dimensions of input. Then start[axes[i]] is the adjusted starts[i] is clamped into the range [0, dims[axes[i]]] for positive stepping and [0, dims[axes[i]]-1] for negative stepping.
+            The clamping for the adjusted ends[i] depends on the sign of steps[i] and must accommodate copying 0 through dims[axes[i]] elements, so for positive stepping end[axes[i]] is clamped to [0, dims[axes[i]]], while for negative stepping it is clamped to [-1, dims[axes[i]]-1].
+            Finally, step[axes[i]] = steps[i].
+            For slicing to the end of a dimension with unknown size, it is recommended to pass in INT_MAX when slicing forward and ‘INT_MIN’ when slicing backward.
+        */
+
+        std::map<int64_t, int64_t> eff_start;
+        std::map<int64_t, int64_t> eff_end;
+        std::map<int64_t, int64_t> eff_step;
+        for (auto i = 0; i < this->X->ndims; i++) {
+            eff_start[i] = 0;
+            eff_end[i] = this->X->shape[i];
+            eff_step[i] = 1;
+        }
+        for (auto i = 0; i < this->starts.size(); i++) {
+            eff_start[this->axes[i]] = this->starts[i];
+            eff_end[this->axes[i]] = this->ends[i];
+            eff_step[this->axes[i]] = this->steps[i];
+        }
+
+        if (this->X->ndims == 2) {
+            size_t outr = 0;
+            size_t outc = 0;
+            for (auto r = eff_start[0]; r < eff_end[0]; r += eff_step[0]) {
+                for (auto c = eff_start[1]; c < eff_end[1]; c += eff_step[1]) {
+                    NoOps.add(this->Y->strkey(outr, outc));
+                    NoOps_in.add_ref(this->X->strkey(r, c));
+                    NoOps_out.add_ref(this->Y->strkey(outr, outc));
+                    outc += 1;
+                }
+                outr += 1;
+            }
+        } else {
+            throw std::runtime_error("Slice: ndims > 2 not supported.");
+        }
+    }
+
+    Tensor *X, *Y;
+    std::vector<int64_t> starts;
+    std::vector<int64_t> ends;
+    std::vector<int64_t> axes;
+    std::vector<int64_t> steps;
+};
