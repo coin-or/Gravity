@@ -455,7 +455,7 @@ int main (int argc, char * argv[]){
     unsigned max_iter=1e3;
     double rel_tol=1e-2;
     double abs_tol=1e6;
-    unsigned nb_threads = 64;
+    unsigned nb_threads = 2;
     double ub_solver_tol=1e-4;
     double lb_solver_tol=1e-4;
     double range_tol=0;
@@ -482,19 +482,20 @@ int main (int argc, char * argv[]){
     x_ub.copy_vals(x_NN_ub);
 //    x_ub.print_vals(6);
 //    x_ub("Relu1,0").print_vals(6);
-    auto NN2 = build_NN_MIP(ReLUs, x_ids, y_ids, B_ids, C_ids, layers, x_lb, x_ub, y_lb, y_ub, B, C, 2, 3, nb_relus);
+    
+    auto NN2 = build_NN_MIP(ReLUs, x_ids, y_ids, B_ids, C_ids, layers, x_lb, x_ub, y_lb, y_ub, B, C, 1, 2, nb_relus);
     NN2->write();
     auto x_NN2 = NN2->get_ptr_var<double>("x");
     for(auto i = 0; i < x_ids.size(); i++){
         key = x_ids._keys->at(i);
-        if(key.find("Relu3")==string::npos && key.find("Gemm4")==string::npos)
+        if(key.find("Relu2")==string::npos)
             x_NN2->_off[i] = true;
     }
     auto y_NN2 = NN2->get_ptr_var<double>("y");
     for(auto i = 0; i < y_ids.size(); i++){
         y_NN2->_off[i] = true;
     }
-
+    
     DebugOn("running OBBT on NN2\n");
     NN2->run_obbt(NN2, max_time, max_iter, rel_tol, abs_tol, nb_threads, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol);
     DebugOn("Done running OBBT on NN2\n");
@@ -503,6 +504,28 @@ int main (int argc, char * argv[]){
 
     x_lb.copy_vals(x_NN2_lb);
     x_ub.copy_vals(x_NN2_ub);
+    
+    auto NN3 = build_NN_MIP(ReLUs, x_ids, y_ids, B_ids, C_ids, layers, x_lb, x_ub, y_lb, y_ub, B, C, 2, 3, nb_relus);
+    NN3->write();
+    auto x_NN3 = NN3->get_ptr_var<double>("x");
+    for(auto i = 0; i < x_ids.size(); i++){
+        key = x_ids._keys->at(i);
+        if(key.find("Relu3")==string::npos && key.find("Gemm4")==string::npos)
+            x_NN3->_off[i] = true;
+    }
+    auto y_NN3 = NN3->get_ptr_var<double>("y");
+    for(auto i = 0; i < y_ids.size(); i++){
+        y_NN3->_off[i] = true;
+    }
+
+    DebugOn("running OBBT on NN3\n");
+    NN3->run_obbt(NN3, max_time, max_iter, rel_tol, abs_tol, nb_threads, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol);
+    DebugOn("Done running OBBT on NN3\n");
+    auto x_NN3_lb = x_NN3->get_lb();
+    auto x_NN3_ub = x_NN3->get_ub();
+
+    x_lb.copy_vals(x_NN3_lb);
+    x_ub.copy_vals(x_NN3_ub);
 //    x_ub.print_vals(6);
 //    x_ub("Relu1,0").print_vals(6);
     auto NN_full = build_NN_MIP(ReLUs, x_ids, y_ids, B_ids, C_ids, layers, x_lb, x_ub, y_lb, y_ub, B, C, 0, nb_relus-1, nb_relus);
@@ -518,7 +541,7 @@ int main (int argc, char * argv[]){
 //    }
 //    NN2->write();
     solver<> S2(NN_full,gurobi);
-    S2.run(1e-4, 1200);
+    S2.run(1e-4, 1800);
     
     NN_full->print_solution();
     bool build_NLP=false;
