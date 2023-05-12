@@ -518,7 +518,7 @@ int main (int argc, char * argv[]){
 //    }
 //    NN2->write();
     solver<> S2(NN_full,gurobi);
-    S2.run(1e-4, 600);
+    S2.run(1e-4, 1200);
     
     NN_full->print_solution();
     bool build_NLP=false;
