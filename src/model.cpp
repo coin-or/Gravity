@@ -7379,7 +7379,7 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
 #ifdef USE_MPI
                                 nb_workers_= run_MPI_new(objective_models, sol_obj, sol_status, batch_models, relaxed_model, interior_model, cut_type, active_tol, lb_solver_type, obbt_subproblem_tol, nb_threads, "ma27", 10000, 5, linearize, nb_refine, old_map, vbasis, cbasis, initialize_primal);
 #else
-                                auto viol= run_parallel_new(objective_models, sol_obj, sol_status, batch_models, relaxed_model, interior_model, cut_type, active_tol, lb_solver_type, obbt_subproblem_tol, nb_threads, "ma27", 10000, 5, linearize, nb_refine, vbasis, cbasis, initialize_primal);
+                                auto viol= run_parallel_new(objective_models, sol_obj, sol_status, batch_models, relaxed_model, interior_model, cut_type, active_tol, lb_solver_type, obbt_subproblem_tol, nb_threads, "ma27", 10000, 10, linearize, nb_refine, vbasis, cbasis, initialize_primal);
 #endif
                                 auto b=this->obbt_batch_update_bounds( objective_models,  sol_obj, sol_status,  batch_models,obbt_model,  fixed_point,  interval_original,  ub_original,  lb_original, terminate,  fail, range_tol, fixed_tol_abs, fixed_tol_rel,  zero_tol, iter);
                                 if(lag){
