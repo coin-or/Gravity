@@ -212,10 +212,18 @@ shared_ptr<Model<>> build_NN_MIP(const indices& ReLUs, const indices& x_ids, con
 }
 
 std::tuple<std::vector<Layer*>, std::vector<size_t>, Tensors> build_graph(std::string fname) {
-    std::fstream input(fname, std::ios::in | std::ios::binary);
+    
+	std::fstream input(fname, std::ios::in | std::ios::binary);
+    std::stringstream buffer;
+    buffer << input.rdbuf();
+    std::string onnx_str = buffer.str();
+
     onnx::ModelProto model;
-    bool isSuccess = model.ParseFromIstream(&input);
-    onnx::GraphProto graph = model.graph();
+    bool isSuccess = model.ParseFromString(onnx_str);
+    if (!isSuccess) {
+        throw std::runtime_error("Failed to parse onnx file.");
+    }
+	onnx::GraphProto graph = model.graph();
 
     std::vector<Layer*> layers;
     Tensors tensors;
@@ -447,7 +455,7 @@ int main (int argc, char * argv[]){
     unsigned max_iter=1e3;
     double rel_tol=1e-2;
     double abs_tol=1e6;
-    unsigned nb_threads = 2;
+    unsigned nb_threads = 64;
     double ub_solver_tol=1e-4;
     double lb_solver_tol=1e-4;
     double range_tol=0;

@@ -39,7 +39,7 @@ option(HiGHS "Link to HiGHS libraries" OFF)
 # Find IPOPT (optional)
 option(Ipopt "Link to IPOPT libraries" ON)
 
-option(SMTLIB "Link to SMTLIB libraries" ON)
+option(SMTLIB "Link to SMTLIB libraries" OFF)
 
 
 option(MP "Link to AMPL MP libraries" OFF)
@@ -295,6 +295,7 @@ endif (IPOPT_FOUND)
 endif(Ipopt)
 
 #SMTLIB
+if (SMTLIB)
 find_package(SMTLIB)
 include_directories(${PROJECT_SOURCE_DIR}/thirdparty/yices-1.0.40/include)
 if (SMTLIB_FOUND)
@@ -307,7 +308,7 @@ else(SMTLIB_FOUND)
  set(SMTLIB_INCLUDE_DIR ${THIRDPARTY_INSTALL_PATH}/Install/SMTLIB)
  set(SMTLIB_LIBRARIES ${THIRDPARTY_INSTALL_PATH}/Install/SMTLIB/libsmtlib2parser.a)
 endif (SMTLIB_FOUND)
-
+endif(SMTLIB)
 include_directories(${SMTLIB_INCLUDE_DIR})
 # Eigen
 find_package(Eigen)
