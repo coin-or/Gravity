@@ -460,7 +460,7 @@ int main (int argc, char * argv[]){
             x_NN->_off[i] = true;
     }
     NN->run_obbt(NN, max_time, max_iter, rel_tol, abs_tol, nb_threads, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol);
-    
+    DebugOn("Done running OBBT on NN1\n");
 //    solver<> S(NN,gurobi);
 //    S.run(1e-4, 30);
 //    NN->print();
@@ -475,7 +475,7 @@ int main (int argc, char * argv[]){
     auto x_NN2 = NN2->get_ptr_var<double>("x");
     for(auto i = 0; i < x_ids.size(); i++){
         key = x_ids._keys->at(i);
-        if(key.find("Relu3")==string::npos)
+        if(key.find("Relu3")==string::npos && key.find("Gemm4")==string::npos)
             x_NN2->_off[i] = true;
     }
     DebugOn("running OBBT on NN2\n");

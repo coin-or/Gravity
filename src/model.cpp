@@ -6916,8 +6916,8 @@ void Model<type>::update_upper_bound(shared_ptr<Model<type>>& obbt_model, vector
         this->copy_solution(obbt_model);
         this->initialize_uniform();
         auto status_old=this->_status;
-        solver<> UB_solver(*this,ub_solver_type);
-        UB_solver.run(0, ub_solver_tol);
+//        solver<> UB_solver(*this,ub_solver_type);
+//        UB_solver.run(0, ub_solver_tol);
         if(this->_status==0){
             auto new_ub=this->upper_bound_integral(ub_solver_type, ub_solver_tol, ub_sol);
             if(new_ub<=(upper_bound-1e-3)){
@@ -7037,8 +7037,8 @@ double Model<type>::upper_bound_integral(SolverType ub_solver_type, double ub_so
     }
     // modelub->print();
     if(has_int){
-        solver<> UB_solver(modelub,ub_solver_type);
-        UB_solver.run(0, ub_solver_tol);
+//        solver<> UB_solver(modelub,ub_solver_type);
+//        UB_solver.run(0, ub_solver_tol);
         // modelub->print_solution();
         if(modelub->_status==0){
             DebugOn("Found an integer solution!\n");
@@ -7070,8 +7070,8 @@ void Model<type>::compute_iter_gap(double& gap, double& active_tol, bool& termin
     obbt_model->reset_lifted_vars_bounds();
     obbt_model->reset_constrs();
     if(!linearize){
-        solver<> LB_solver(obbt_model,lb_solver_type);
-        LB_solver.run(output = 0, lb_solver_tol, 300, max_iter);
+//        solver<> LB_solver(obbt_model,lb_solver_type);
+//        LB_solver.run(output = 0, lb_solver_tol, 300, max_iter);
         if(obbt_model->_status==0)
         {
             lower_bound=obbt_model->get_obj_val()*lb_scale_value;
