@@ -252,14 +252,13 @@ int main(int argc, char * argv[]){
     Mul_ = x.in(Mul_Out) - (x.in(Mul_A) * x.in(Mul_B));
     NN.add(Mul_.in(Muls) == 0);
 
-    Constraint<> Exp("Exp");
-    Exp = x.in(Exp_out) - exp(-1.0*x.in(Exp_in));
-    NN.add(Exp.in(Exps) == 0);
+    //Constraint<> Exp("Exp");
+    //Exp = x.in(Exp_out) - exp(-1.0*x.in(Exp_in));
+    //NN.add(Exp.in(Exps) == 0);
 
-
-    Constraint<> Sigmoid_("Sigmoid");
-    Sigmoid_ = x.in(Sigs_out) * (1 + x.in(Sigs_in));
-    NN.add(Sigmoid_.in(Sigs) == 1);
+    //Constraint<> Sigmoid_("Sigmoid");
+    //Sigmoid_ = x.in(Sigs_out) * (1 + x.in(Sigs_in));
+    //NN.add(Sigmoid_.in(Sigs) == 1);
     
     NN.print();
     NN.write();

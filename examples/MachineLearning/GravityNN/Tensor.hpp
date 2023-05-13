@@ -112,26 +112,23 @@ public:
     size_t flatten_index(const std::vector<size_t>& indices) const {
         size_t index = 0;
         size_t stride = 1;
-        for (size_t i = 0; i < shape.size(); ++i) {
+        for (int64_t i = this->ndims-1; i>=0; --i) {
             index += indices[i] * stride;
             stride *= shape[i];
         }
         return index;
     }
 
-    std::vector<size_t> unflatten_index(size_t flattened_index) {
-        std::vector<size_t> indices(this->ndims, 0);
-
-        for (size_t i = 0; i < this->ndims; ++i) {
-            size_t stride = 1;
-            for (size_t j = i + 1; j < this->ndims; ++j) {
-                stride *= this->shape[j];
-            }
-            indices[i] = flattened_index / stride;
-            flattened_index %= stride;
+    std::vector<size_t> unflatten_index(size_t index) {
+        std::vector<size_t> result;
+        std::vector<size_t> revshape = this->shape;
+        std::reverse(revshape.begin(), revshape.end());
+        for (const auto& size : revshape) {
+            result.push_back(index % size);
+            index = index / size;
         }
-
-        return indices;
+        std::reverse(result.begin(), result.end());
+        return result;
     }
 
     void _set_shape(const std::vector<size_t>& shape) {
@@ -200,6 +197,9 @@ Tensors get_tensors(onnx::GraphProto& graph) {
         }
 
         Tensor& tensor = tensors[name];
+        if (tensor.is_initializer) {
+            throw std::runtime_error("Constant " + name + " is already initialized");
+        }
         Tensor datat = Tensor(node.attribute(0).t());
         datat.name = name;
         tensors[name] = datat;

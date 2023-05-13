@@ -51,3 +51,13 @@ onnx::GraphProto _open_file(const std::string& onnx_path) {
 
     return graph;
 }
+
+template<typename T>
+std::vector<T> apply_permutation(const std::vector<T>& v, const std::vector<T>& indices) {
+    std::vector<T> v2;
+    v2.reserve(v.size());
+    for (size_t i = 0; i < v.size(); i++) {
+        v2.push_back(v[indices[i]]);
+    }
+    return v2;
+}

@@ -6,7 +6,7 @@
 #include "Layers.hpp"
 #include <gravity/Net.h>
 
-std::set<std::string> noops = {"Flatten"};
+std::set<std::string> noops = {"Flatten", "Reshape"};
 
 class NeuralNet: public Net {
 public:

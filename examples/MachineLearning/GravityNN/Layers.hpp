@@ -641,11 +641,16 @@ public:
     }
 
     void build_constraints(indices& NoOps, indices& NoOps_in, indices& NoOps_out) override {
-        Tensor trx = Tensor::transpose(*this->X);
+        // Copy this->X
+        Tensor trx = *this->X;
+        trx.shape = apply_permutation(this->X->shape, this->perm);
 
         for(auto j = 0; j < this->X->numel;j++){
+            auto xunflat = apply_permutation(trx.unflatten_index(j), this->perm);
+            auto xindex = this->X->flatten_index(xunflat);
+
             NoOps.add(this->Y->strkey(j));
-            NoOps_in.add_ref(this->X->strkey(j));
+            NoOps_in.add_ref(this->X->strkey(xindex));
             NoOps_out.add_ref(this->Y->strkey(j));
         }
     }
@@ -725,8 +730,8 @@ public:
 
         if (this->X->ndims == 2) {
             size_t outr = 0;
-            size_t outc = 0;
             for (auto r = eff_start[0]; r < eff_end[0]; r += eff_step[0]) {
+                size_t outc = 0;
                 for (auto c = eff_start[1]; c < eff_end[1]; c += eff_step[1]) {
                     NoOps.add(this->Y->strkey(outr, outc));
                     NoOps_in.add_ref(this->X->strkey(r, c));
