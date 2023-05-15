@@ -525,7 +525,6 @@ Net CBF_read(const char *file, shared_ptr<Model<double>>& m, bool add_3d) {
                             new_bag.first = key;
                             bags_3d.push_back(new_bag);
                         }
-                        
                     }
                 }
             }
