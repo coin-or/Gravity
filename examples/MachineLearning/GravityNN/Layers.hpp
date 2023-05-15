@@ -8,7 +8,23 @@
 
 using namespace gravity;
 
-typedef enum { _gemm, _relu, _conv, _input, _noop, _add, _sub, _cos, _sin, _neg, _pow, _mul, _sigmoid, _clip, _div } OType; /* Operator Type */
+typedef enum { _gemm, _relu, _conv, _input, _noop, _add, _sub, _cos, _sin, _neg, _pow, _mul, _div } OType; /* Operator Type */
+
+class IndexSet {
+public:
+    IndexSet(std::vector<string> names) {
+        for (const auto& name : names) {
+            this->_indices[name] = indices(name);
+        }
+    }
+
+    indices& operator[](const std::string& name) {
+        return this->_indices.at(name);
+    }
+
+    std::map<std::string, indices> _indices;
+    size_t row_id = 0;
+};
 
 class Layer: public Node {
 public:
@@ -67,6 +83,7 @@ public:
     virtual ~Layer() = default;
 
     virtual void add_parameters(std::vector<gravity::param<>*> params) const = 0;
+    virtual void build_constraint(IndexSet& inds, std::vector<gravity::param<>*> params)= 0;
 
     const onnx::AttributeProto* find_attribute(const std::string& name, const onnx::NodeProto& node) const {
         for (const auto& attr : node.attribute()) {
@@ -141,8 +158,8 @@ public:
         }
     }
 
-    void build_constraints(indices& Gemms, indices& Gemms_in, indices& Gemms_out, indices& B_Gemm, indices& C_Gemm, param<>& B, param<>& C, size_t& row_id) {
-        this->add_parameters({&B, &C});
+    void build_constraint(IndexSet& inds, std::vector<gravity::param<>*> params) override {
+        this->add_parameters(params);
 
         Tensor tb = *this->B;
         if (this->transB) {
@@ -164,21 +181,21 @@ public:
 
         for (size_t out_row = 0; out_row < this->Y->shape[0]; out_row++) {
             for (size_t out_col = 0; out_col < this->Y->shape[1]; out_col++) {
-                Gemms.add(this->Y->strkey(out_row, out_col));
-                Gemms_out.add_ref(this->Y->strkey(out_row, out_col));
+                inds["Constr"].add(this->Y->strkey(out_row, out_col));
+                inds["Out"].add_ref(this->Y->strkey(out_row, out_col));
 
                 for (size_t i = 0; i < ta.shape[1]; i++) {
-                    Gemms_in.add_in_row(row_id, ta.strkey(out_row, i));
-                    B_Gemm.add_in_row(row_id,   tb.strkey(i, out_col));
+                    inds["In"].add_in_row(inds.row_id, ta.strkey(out_row, i));
+                    inds["B"].add_in_row(inds.row_id,   tb.strkey(i, out_col));
                 }
 
                 // Add bias
                 if (this->C) {
-                    C_Gemm.add_in_row(row_id, this->C->strkey(out_col));
+                    inds["C"].add_in_row(inds.row_id, this->C->strkey(out_col));
                 } else {
-                    C_Gemm.add_empty_row();
+                    inds["C"].add_empty_row();
                 }
-                row_id++;
+                inds.row_id++;
             }
         }
     }
@@ -203,11 +220,11 @@ public:
 
     void add_parameters(std::vector<gravity::param<>*> params) const override {}
 
-    void build_constraints(indices& ReLUs, indices& ReLUs_in, indices& ReLUs_out) {
+    void build_constraint(IndexSet& inds, std::vector<gravity::param<>*> params) override {
         for(auto j = 0; j < this->X->numel;j++){
-            ReLUs.add(this->Y->strkey(j));
-            ReLUs_in.add_ref(this->X->strkey(j));
-            ReLUs_out.add_ref(this->Y->strkey(j));
+            inds["Constr"].add(this->Y->strkey(j));
+            inds["In"].add_ref(this->X->strkey(j));
+            inds["Out"].add_ref(this->Y->strkey(j));
         }
     }
 
@@ -285,38 +302,38 @@ public:
         this->kern_w = this->W->shape[3];
     }
 
-    void build_constraints(indices& Convs, indices& Convs_in, indices& Convs_out, indices& W_Conv, indices& B_Conv, param<>& W, param<>& B, size_t& row_id) {
-        this->add_parameters({&W, &B});
+    void build_constraint(IndexSet& inds, std::vector<gravity::param<>*> params) override {
+        this->add_parameters(params);
 
         // Output indexing
         for (auto j = 0; j < this->Y->numel; j++) {
-            Convs.add(this->name + "," + to_string(j));
+            inds["Constr"].add(this->name + "," + to_string(j));
         }
 
         for (int ob = 0; ob < this->Y->shape[0]; ob++) {
             for (int oh = 0; oh < this->out_h; oh++) {
                 for (int ow = 0; ow < this->out_w; ow++) {
                     for (int oc = 0; oc < this->out_c; oc++) {
-                        Convs_out.add_ref(this->Y->strkey(ob, oc, oh, ow));
+                        inds["Out"].add_ref(this->Y->strkey(ob, oc, oh, ow));
                         for (int kh = 0; kh < this->kern_h; kh++) {
                             for (int kw = 0; kw < this->kern_w; kw++) {
                                 for (int kc = 0; kc < this->kern_c; kc++) {
                                     int h_ind = (this->strides[0]*oh + this->dilations[0]*kh - this->pads[0]);
                                     int w_ind = (this->strides[1]*ow + this->dilations[1]*kw - this->pads[3]);
                                     if ((h_ind < this->inp_h) && (h_ind >= 0) && (w_ind < this->inp_w) && (w_ind >= 0)) {
-                                        W_Conv.add_in_row(row_id, this->W->strkey(oc, kc, kh, kw));
-                                        Convs_in.add_in_row(row_id, this->X->strkey(ob, kc, h_ind, w_ind));
+                                        inds["W"].add_in_row(inds.row_id, this->W->strkey(oc, kc, kh, kw));
+                                        inds["In"].add_in_row(inds.row_id, this->X->strkey(ob, kc, h_ind, w_ind));
                                     }
                                 }
                             }
                         }
                         // Add bias
                         if (this->B) {
-                            B_Conv.add_in_row(row_id, this->B->strkey(oc));
+                            inds["B"].add_in_row(inds.row_id, this->B->strkey(oc));
                         } else {
-                            B_Conv.add_empty_row();
+                            inds["B"].add_empty_row();
                         }
-                        row_id++;
+                        inds.row_id++;
                     }
                 }
             }
@@ -356,6 +373,7 @@ public:
     }
 
     void add_parameters(std::vector<gravity::param<>*> params) const override {}
+    void build_constraint(IndexSet& inds, std::vector<gravity::param<>*> params) override {}
 };
 
 class NoOp : public Layer {
@@ -368,11 +386,12 @@ public:
 
     void add_parameters(std::vector<gravity::param<>*> params) const override {}
 
-    virtual void build_constraints(indices& NoOps, indices& NoOps_in, indices& NoOps_out) {
+    void build_constraint(IndexSet& inds, std::vector<gravity::param<>*> params) override {
+        std::cout << "NoOp: " << this->name << std::endl;
         for(auto j = 0; j < this->X->numel;j++){
-            NoOps.add(this->Y->strkey(j));
-            NoOps_in.add_ref(this->X->strkey(j));
-            NoOps_out.add_ref(this->Y->strkey(j));
+            inds["Constr"].add(this->Y->strkey(j));
+            inds["In"].add_ref(this->X->strkey(j));
+            inds["Out"].add_ref(this->Y->strkey(j));
         }
     }
 
@@ -397,18 +416,17 @@ public:
         }
     }
 
-    void build_constraints(indices& NoOps, indices& NoOps_in, indices& NoOps_out) override {
+    void build_constraint(IndexSet& inds, std::vector<gravity::param<>*> params) override {
         size_t cur_axis_idx = 0;
         for (auto out: this->outputs) {
             for (size_t out_idx = 0; out_idx < out->numel; out_idx++) {
                 auto inp_vec_idx = out->unflatten_index(out_idx);
                 inp_vec_idx[this->axis] += cur_axis_idx;
-
                 auto inp_idx = this->X->flatten_index(inp_vec_idx);
 
-                NoOps.add(out->strkey(out_idx));
-                NoOps_in.add_ref(this->X->strkey(inp_idx));
-                NoOps_out.add_ref(out->strkey(out_idx));
+                inds["Constr"].add(out->strkey(out_idx));
+                inds["In"].add_ref(this->X->strkey(inp_idx));
+                inds["Out"].add_ref(out->strkey(out_idx));
             }
 
             cur_axis_idx += out->shape[this->axis];
@@ -433,18 +451,17 @@ public:
         }
     }
 
-    void build_constraints(indices& NoOps, indices& NoOps_in, indices& NoOps_out) override {
+    void build_constraint(IndexSet& inds, std::vector<gravity::param<>*> params) override {
         size_t cur_axis_idx = 0;
         for (auto inp: this->inputs) {
             for (size_t in_idx = 0; in_idx < inp->numel; in_idx++) {
                 auto out_vec_idx = inp->unflatten_index(in_idx);
                 out_vec_idx[this->axis] += cur_axis_idx;
-
                 auto out_idx = this->Y->flatten_index(out_vec_idx);
 
-                NoOps.add(this->Y->strkey(out_idx));
-                NoOps_in.add_ref(inp->strkey(in_idx));
-                NoOps_out.add_ref(this->Y->strkey(out_idx));
+                inds["Constr"].add(this->Y->strkey(out_idx));
+                inds["In"].add_ref(inp->strkey(in_idx));
+                inds["Out"].add_ref(this->Y->strkey(out_idx));
             }
 
             cur_axis_idx += inp->shape[this->axis];
@@ -469,12 +486,12 @@ public:
 
     void add_parameters(std::vector<gravity::param<>*> params) const override {}
 
-    void build_constraints(indices& Adds, indices& Adds_A, indices& Adds_B, indices& Adds_out) {
+    void build_constraint(IndexSet& inds, std::vector<gravity::param<>*> params) override {
         for(auto j = 0; j < this->A->numel;j++){
-            Adds.add(this->Y->strkey(j));
-            Adds_A.add_ref(this->A->strkey(j));
-            Adds_B.add_ref(this->B->strkey(j));
-            Adds_out.add_ref(this->Y->strkey(j));
+            inds["Constr"].add(this->Y->strkey(j));
+            inds["A"].add_ref(this->A->strkey(j));
+            inds["B"].add_ref(this->B->strkey(j));
+            inds["Out"].add_ref(this->Y->strkey(j));
         }
     }
 
@@ -496,12 +513,12 @@ public:
 
     void add_parameters(std::vector<gravity::param<>*> params) const override {}
 
-    void build_constraints(indices& Subs, indices& Sub_A, indices& Sub_B, indices& Sub_out) {
+    void build_constraint(IndexSet& inds, std::vector<gravity::param<>*> params) override {
         for(auto j = 0; j < this->A->numel;j++){
-            Subs.add(this->Y->strkey(j));
-            Sub_A.add_ref(this->A->strkey(j));
-            Sub_B.add_ref(this->B->strkey(j));
-            Sub_out.add_ref(this->Y->strkey(j));
+            inds["Constr"].add(this->Y->strkey(j));
+            inds["A"].add_ref(this->A->strkey(j));
+            inds["B"].add_ref(this->B->strkey(j));
+            inds["Out"].add_ref(this->Y->strkey(j));
         }
     }
 
@@ -518,11 +535,11 @@ public:
 
     void add_parameters(std::vector<gravity::param<>*> params) const override {}
 
-    void build_constraints(indices& Coss, indices& Cos_in, indices& Cos_out) {
+    void build_constraint(IndexSet& inds, std::vector<gravity::param<>*> params) override {
         for(auto j = 0; j < this->X->numel;j++){
-            Coss.add(this->Y->strkey(j));
-            Cos_in.add_ref(this->X->strkey(j));
-            Cos_out.add_ref(this->Y->strkey(j));
+            inds["Constr"].add(this->Y->strkey(j));
+            inds["In"].add_ref(this->X->strkey(j));
+            inds["Out"].add_ref(this->Y->strkey(j));
         }
     }
 
@@ -539,11 +556,11 @@ public:
 
     void add_parameters(std::vector<gravity::param<>*> params) const override {}
 
-    void build_constraints(indices& Sins, indices& Sin_in, indices& Sin_out) {
+    void build_constraint(IndexSet& inds, std::vector<gravity::param<>*> params) override {
         for(auto j = 0; j < this->X->numel;j++){
-            Sins.add(this->Y->strkey(j));
-            Sin_in.add_ref(this->X->strkey(j));
-            Sin_out.add_ref(this->Y->strkey(j));
+            inds["Constr"].add(this->Y->strkey(j));
+            inds["In"].add_ref(this->X->strkey(j));
+            inds["Out"].add_ref(this->Y->strkey(j));
         }
     }
 
@@ -560,11 +577,11 @@ public:
 
     void add_parameters(std::vector<gravity::param<>*> params) const override {}
 
-    void build_constraints(indices& Negs, indices& Neg_in, indices& Neg_out) {
+    void build_constraint(IndexSet& inds, std::vector<gravity::param<>*> params) override {
         for(auto j = 0; j < this->X->numel;j++){
-            Negs.add(this->Y->strkey(j));
-            Neg_in.add_ref(this->X->strkey(j));
-            Neg_out.add_ref(this->Y->strkey(j));
+            inds["Constr"].add(this->Y->strkey(j));
+            inds["In"].add_ref(this->X->strkey(j));
+            inds["Out"].add_ref(this->Y->strkey(j));
         }
     }
 
@@ -590,11 +607,11 @@ public:
 
     void add_parameters(std::vector<gravity::param<>*> params) const override {}
 
-    void build_constraints(indices& Pows, indices& Pow_in, indices& Pow_out) {
+    void build_constraint(IndexSet& inds, std::vector<gravity::param<>*> params) override {
         for(auto j = 0; j < this->X->numel;j++){
-            Pows.add(this->Y->strkey(j));
-            Pow_in.add_ref(this->X->strkey(j));
-            Pow_out.add_ref(this->Y->strkey(j));
+            inds["Constr"].add(this->Y->strkey(j));
+            inds["In"].add_ref(this->X->strkey(j));
+            inds["Out"].add_ref(this->Y->strkey(j));
         }
     }
 
@@ -616,12 +633,12 @@ public:
 
     void add_parameters(std::vector<gravity::param<>*> params) const override {}
 
-    void build_constraints(indices& Muls, indices& Mul_A, indices& Mul_B, indices& Mul_out) {
+    void build_constraint(IndexSet& inds, std::vector<gravity::param<>*> params) override {
         for(auto j = 0; j < this->A->numel;j++){
-            Muls.add(this->Y->strkey(j));
-            Mul_A.add_ref(this->A->strkey(j));
-            Mul_B.add_ref(this->B->strkey(j));
-            Mul_out.add_ref(this->Y->strkey(j));
+            inds["Constr"].add(this->Y->strkey(j));
+            inds["A"].add_ref(this->A->strkey(j));
+            inds["B"].add_ref(this->B->strkey(j));
+            inds["Out"].add_ref(this->Y->strkey(j));
         }
     }
 
@@ -645,7 +662,7 @@ public:
         }
     }
 
-    void build_constraints(indices& NoOps, indices& NoOps_in, indices& NoOps_out) override {
+    void build_constraint(IndexSet& inds, std::vector<gravity::param<>*> params) override {
         // Copy this->X
         Tensor trx = *this->X;
         trx.shape = apply_permutation(this->X->shape, this->perm);
@@ -654,9 +671,9 @@ public:
             auto xunflat = apply_permutation(trx.unflatten_index(j), this->perm);
             auto xindex = this->X->flatten_index(xunflat);
 
-            NoOps.add(this->Y->strkey(j));
-            NoOps_in.add_ref(this->X->strkey(xindex));
-            NoOps_out.add_ref(this->Y->strkey(j));
+            inds["Constr"].add(this->Y->strkey(j));
+            inds["In"].add_ref(this->X->strkey(xindex));
+            inds["Out"].add_ref(this->Y->strkey(j));
         }
     }
 
@@ -706,7 +723,7 @@ public:
         std::cout << "Slice: " << this->starts.size() << " " << this->ends.size() << " " << this->axes.size() << " " << this->steps.size() << std::endl;
     }
 
-    virtual void build_constraints(indices& NoOps, indices& NoOps_in, indices& NoOps_out) {
+    void build_constraint(IndexSet& inds, std::vector<gravity::param<>*> params) override {
         /*
             Slice uses the starts, ends, axes and steps inputs to select a sub-tensor of its input data tensor.
             An effective start[i], end[i], and step[i] must be computed for each i in [0, ... r-1] where r = rank(input) as follows:
@@ -738,9 +755,9 @@ public:
             for (auto r = eff_start[0]; r < eff_end[0]; r += eff_step[0]) {
                 size_t outc = 0;
                 for (auto c = eff_start[1]; c < eff_end[1]; c += eff_step[1]) {
-                    NoOps.add(this->Y->strkey(outr, outc));
-                    NoOps_in.add_ref(this->X->strkey(r, c));
-                    NoOps_out.add_ref(this->Y->strkey(outr, outc));
+                    inds["Constr"].add(this->Y->strkey(outr, outc));
+                    inds["In"].add_ref(this->X->strkey(r, c));
+                    inds["Out"].add_ref(this->Y->strkey(outr, outc));
                     outc += 1;
                 }
                 outr += 1;
@@ -755,77 +772,6 @@ public:
     std::vector<int64_t> ends;
     std::vector<int64_t> axes;
     std::vector<int64_t> steps;
-};
-
-class Sigmoid : public Layer {
-public:
-    Sigmoid(const onnx::NodeProto& node, Tensors& tensors): Layer(node, tensors) {
-        throw std::runtime_error("Clip: not implemented.");
-
-        operator_type = _sigmoid;
-        this->X = &tensors[node.input(0)];
-        this->Y = &tensors[node.output(0)];
-    }
-
-    void add_parameters(std::vector<gravity::param<>*> params) const override {}
-
-    void build_constraints(indices& Sigs, indices& Sigs_in, indices& Sigs_out, indices& Exps, indices& Exps_in, indices& Exps_out) {
-        for(auto j = 0; j < this->X->numel;j++){
-            Exps.add(this->Y->strkey(j) + "_aux_exp");
-            Exps_in.add_ref(this->X->strkey(j));
-            Exps_out.add_ref(this->Y->strkey(j) + "_aux_exp");
-
-            Sigs.add(this->Y->strkey(j));
-            Sigs_in.add_ref(this->Y->strkey(j) + "_aux_exp");
-            Sigs_out.add_ref(this->Y->strkey(j));
-        }
-    }
-
-    Tensor *X, *Y; // Input and output
-};
-
-class Clip : public Layer {
-public:
-    Clip(const onnx::NodeProto& node, Tensors& tensors): Layer(node, tensors) {
-        throw std::runtime_error("Clip: not implemented.");
-
-        operator_type = _clip;
-        this->X = &tensors[node.input(0)];
-        this->Y = &tensors[node.output(0)];
-
-        if (node.input_size() == 2) {
-            this->min = tensors[node.input(1)](0);
-        } else if (node.input_size() == 3) {
-            this->min = tensors[node.input(1)](0);
-            this->max = tensors[node.input(2)](0);
-        }
-    }
-
-    void add_parameters(std::vector<gravity::param<>*> params) const override {
-        auto min = params[0];
-        auto max = params[1];
-        for (auto j = 0; j < this->Y->numel; j++) {
-            min->add_val(this->Y->strkey(j) + "_aux_min", this->max);
-            max->add_val(this->Y->strkey(j), this->min);
-        }
-    }
-
-    void build_constraints(indices& Mins, indices& Mins_in, indices& Mins_out, indices& Maxs, indices& Maxs_in, indices& Maxs_out, param<>& Min, param<>& Max) {
-        this->add_parameters({&Min, &Max});
-        for(auto j = 0; j < this->Y->numel;j++){
-            Mins.add(this->Y->strkey(j) + "_aux_min");
-            Mins_in.add_ref(this->X->strkey(j));
-            Mins_out.add_ref(this->Y->strkey(j) + "_aux_min");
-
-            Maxs.add(this->Y->strkey(j));
-            Maxs_in.add_ref(this->Y->strkey(j) + "_aux_min");
-            Maxs_out.add_ref(this->Y->strkey(j));
-        }
-    }
-
-    Tensor *X, *Y; // Input and output
-    float min = std::numeric_limits<float>::lowest();
-    float max = std::numeric_limits<float>::max();
 };
 
 class Div : public Layer {
@@ -843,12 +789,12 @@ public:
 
     void add_parameters(std::vector<gravity::param<>*> params) const override {}
 
-    void build_constraints(indices& Divs, indices& Div_A, indices& Div_B, indices& Div_out) {
+    void build_constraint(IndexSet& inds, std::vector<gravity::param<>*> params) override {
         for(auto j = 0; j < this->A->numel;j++){
-            Divs.add(this->Y->strkey(j));
-            Div_A.add_ref(this->A->strkey(j));
-            Div_B.add_ref(this->B->strkey(j));
-            Div_out.add_ref(this->Y->strkey(j));
+            inds["Constr"].add(this->Y->strkey(j));
+            inds["A"].add_ref(this->A->strkey(j));
+            inds["B"].add_ref(this->B->strkey(j));
+            inds["Out"].add_ref(this->Y->strkey(j));
         }
     }
 

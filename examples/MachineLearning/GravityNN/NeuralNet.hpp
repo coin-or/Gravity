@@ -63,10 +63,6 @@ public:
                 node_ptr = new Transpose(node, this->tensors);
             } else if (node.op_type() == "Slice") {
                 node_ptr = new Slice(node, this->tensors);
-            } else if (node.op_type() == "Sigmoid") {
-                node_ptr = new Sigmoid(node, this->tensors);
-            } else if (node.op_type() == "Clip") {
-                node_ptr = new Clip(node, this->tensors);
             } else if (node.op_type() == "Div") {
                 node_ptr = new Div(node, this->tensors);
             } else {
@@ -85,15 +81,6 @@ public:
             for (auto output: l->outputs) {
                 for (auto i = 0; i < output->numel; i++) {
                     hidden_states.add(output->strkey(i));
-
-                    // We have to add aux variables for exp
-                    if (l->operator_type == _sigmoid) {
-                        hidden_states.add(output->strkey(i) + "_aux_exp");
-                    }
-                    // We have to add aux variables for Clip
-                    if (l->operator_type == _clip) {
-                        hidden_states.add(output->strkey(i) + "_aux_min");
-                    }
 
                     if (l->operator_type == _relu) {
                         y_ids.add(output->strkey(i));
@@ -121,11 +108,6 @@ public:
                 for(auto j = 0; j < l->outputs[0]->numel;j++){
                     x_lb.set_val(l->outputs[0]->strkey(j), 0.0);
                 }
-            } else if (l->operator_type == _sigmoid) {
-                // for(auto j = 0; j < l->outputs[0]->numel;j++){
-                    // x_lb.set_val(l->outputs[0]->strkey(j) + "_aux_exp", 0.0);
-                    // x_ub.set_val(l->outputs[0]->strkey(j) + "_aux_exp", 1.0);
-                // }
             }
 
             // Set provided bounds, skip if not provided
