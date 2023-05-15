@@ -1,30 +1,38 @@
 # Supported Operators
 
-| Op        | Impl  | Count |
-| --------- | ----- | ----- |
-| Relu      | Yes   | 190   |
-| Gemm      | Yes   | 183   |
-| Flatten   | Yes   | 138   |
-| Conv      | Yes   | 91    |
-| Split     | Yes   | 80    |
-| Concat    | Yes   | 80    |
-| Unsqueeze |       | 80    |
-| Squeeze   |       | 80    |
-| Reshape   |       | 76    |
-| Add       | Yes   | 12    |
-| MatMul    | Yes   | 7     |
-| Div       |       | 5     |
-| Slice     |       | 4     |
-| Mul       | Yes   | 4     |
-| ReduceSum |       | 4     |
-| Sigmoid   |       | 4     |
-| Constant  | Kinda | 4     |
-| Sub       | Yes   | 3     |
-| Cos       | Yes   | ?     |
-| Sin       | Yes   | ?     |
-| Neg       | Yes   | ?     |
-| Pow       | Yes   | ?     |
-| Mul       | Yes   | ?     |
+| Op            | Impl | Count |
+| ------------- | ---- | ----- |
+| Add           | Yes  | 82    |
+| Batched GEMM  | Yes  | ?     |
+| Constant      | Yes  | ?     |
+| Cos           | Yes  | ?     |
+| Conv          | Yes  | 744   |
+| Flatten       | Yes  | 138   |
+| Gemm          | Yes  | 1229  |
+| MatMul        | Yes  | 42    |
+| Mul           | Yes  | 18    |
+| Neg           | Yes  | ?     |
+| Pow           | Yes  | ?     |
+| Relu          | Yes  | 1330  |
+| Reshape       | Yes  | 76    |
+| Sin           | Yes  | ?     |
+| Slice         | Yes  | 24    |
+| Sub           | Yes  | 3     |
+| Transpose     | Yes  | 6     |
+| Split         | Yes  | 18    |
+| Concat        | Yes  | ?     |
+| Div           | Yes  | 19    |
+| AveragePool   |      | 1     |
+| ArgMax        |      | 2     |
+| Cast          |      | 6     |
+| ConvTranspose |      | 1     |
+| Equal         |      | 2     |
+| Gather        |      | 6     |
+| OneHot        |      | 2     |
+| Pad           |      | 1     |
+| ReduceSum     |      | 38    |
+| Sigmoid       |      | 6     |
+| Softmax       |      | 2     |
 
 
 # Georgia Tech model
@@ -46,3 +54,4 @@
 | Slice        | Yes  |
 | Sigmoid      |      |
 | Gather       |      |
+

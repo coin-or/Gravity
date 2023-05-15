@@ -8,7 +8,7 @@
 
 using namespace gravity;
 
-typedef enum { _gemm, _relu, _conv, _input, _noop, _add, _sub, _cos, _sin, _neg, _pow, _mul, _sigmoid } OType; /* Operator Type */
+typedef enum { _gemm, _relu, _conv, _input, _noop, _add, _sub, _cos, _sin, _neg, _pow, _mul, _sigmoid, _clip, _div } OType; /* Operator Type */
 
 class Layer: public Node {
 public:
@@ -119,9 +119,6 @@ public:
         this->A = &tensors.at(node.input(0));
         this->B = &tensors.at(node.input(1));
         this->Y = &tensors.at(node.output(0));
-        // if(this->transB){
-            // this->B->_transpose();
-        // }
 
         if (node.input_size() == 3) {
             this->C = &tensors.at(node.input(2));
@@ -152,11 +149,16 @@ public:
             tb = Tensor::transpose(*this->B);
         }
 
+        Tensor ta = *this->A;
+        if (this->transA) {
+            ta = Tensor::transpose(*this->A);
+        }
+
         // Ensure dimensions match
-        if (this->A->shape[1] != tb.shape[0]) {
+        if (ta.shape[1] != tb.shape[0]) {
             throw std::runtime_error("GEMM: A and B inner dimensions do not match");
         }
-        if ((this->A->shape[0] != this->Y->shape[0]) || (tb.shape[1] != this->Y->shape[1])) {
+        if ((ta.shape[0] != this->Y->shape[0]) || (tb.shape[1] != this->Y->shape[1])) {
             throw std::runtime_error("GEMM: A and B outer dimensions do not match Y");
         }
 
@@ -165,8 +167,8 @@ public:
                 Gemms.add(this->Y->strkey(out_row, out_col));
                 Gemms_out.add_ref(this->Y->strkey(out_row, out_col));
 
-                for (size_t i = 0; i < this->A->shape[1]; i++) {
-                    Gemms_in.add_in_row(row_id, this->A->strkey(out_row, i));
+                for (size_t i = 0; i < ta.shape[1]; i++) {
+                    Gemms_in.add_in_row(row_id, ta.strkey(out_row, i));
                     B_Gemm.add_in_row(row_id,   tb.strkey(i, out_col));
                 }
 
@@ -291,32 +293,35 @@ public:
             Convs.add(this->name + "," + to_string(j));
         }
 
-        for (int oh = 0; oh < this->out_h; oh++) {
-            for (int ow = 0; ow < this->out_w; ow++) {
-                for (int oc = 0; oc < this->out_c; oc++) {
-                    Convs_out.add_ref(this->Y->strkey(0, oc, oh, ow));
-                    for (int kh = 0; kh < this->kern_h; kh++) {
-                        for (int kw = 0; kw < this->kern_w; kw++) {
-                            for (int kc = 0; kc < this->kern_c; kc++) {
-                                int h_ind = (this->strides[0]*oh + this->dilations[0]*kh - this->pads[0]);
-                                int w_ind = (this->strides[1]*ow + this->dilations[1]*kw - this->pads[3]);
-                                if ((h_ind < this->inp_h) && (h_ind >= 0) && (w_ind < this->inp_w) && (w_ind >= 0)) {
-                                    W_Conv.add_in_row(row_id, this->W->strkey(oc, kc, kh, kw));
-                                    Convs_in.add_in_row(row_id, this->X->strkey(0, kc, h_ind, w_ind));
+        for (int ob = 0; ob < this->Y->shape[0]; ob++) {
+            for (int oh = 0; oh < this->out_h; oh++) {
+                for (int ow = 0; ow < this->out_w; ow++) {
+                    for (int oc = 0; oc < this->out_c; oc++) {
+                        Convs_out.add_ref(this->Y->strkey(ob, oc, oh, ow));
+                        for (int kh = 0; kh < this->kern_h; kh++) {
+                            for (int kw = 0; kw < this->kern_w; kw++) {
+                                for (int kc = 0; kc < this->kern_c; kc++) {
+                                    int h_ind = (this->strides[0]*oh + this->dilations[0]*kh - this->pads[0]);
+                                    int w_ind = (this->strides[1]*ow + this->dilations[1]*kw - this->pads[3]);
+                                    if ((h_ind < this->inp_h) && (h_ind >= 0) && (w_ind < this->inp_w) && (w_ind >= 0)) {
+                                        W_Conv.add_in_row(row_id, this->W->strkey(oc, kc, kh, kw));
+                                        Convs_in.add_in_row(row_id, this->X->strkey(ob, kc, h_ind, w_ind));
+                                    }
                                 }
                             }
                         }
+                        // Add bias
+                        if (this->B) {
+                            B_Conv.add_in_row(row_id, this->B->strkey(oc));
+                        } else {
+                            B_Conv.add_empty_row();
+                        }
+                        row_id++;
                     }
-                    // Add bias
-                    if (this->B) {
-                        B_Conv.add_in_row(row_id, this->B->strkey(oc));
-                    } else {
-                        B_Conv.add_empty_row();
-                    }
-                    row_id++;
                 }
             }
         }
+
     }
 
     void add_parameters(std::vector<gravity::param<>*> params) const override {
@@ -755,6 +760,8 @@ public:
 class Sigmoid : public Layer {
 public:
     Sigmoid(const onnx::NodeProto& node, Tensors& tensors): Layer(node, tensors) {
+        throw std::runtime_error("Clip: not implemented.");
+
         operator_type = _sigmoid;
         this->X = &tensors[node.input(0)];
         this->Y = &tensors[node.output(0)];
@@ -775,4 +782,75 @@ public:
     }
 
     Tensor *X, *Y; // Input and output
+};
+
+class Clip : public Layer {
+public:
+    Clip(const onnx::NodeProto& node, Tensors& tensors): Layer(node, tensors) {
+        throw std::runtime_error("Clip: not implemented.");
+
+        operator_type = _clip;
+        this->X = &tensors[node.input(0)];
+        this->Y = &tensors[node.output(0)];
+
+        if (node.input_size() == 2) {
+            this->min = tensors[node.input(1)](0);
+        } else if (node.input_size() == 3) {
+            this->min = tensors[node.input(1)](0);
+            this->max = tensors[node.input(2)](0);
+        }
+    }
+
+    void add_parameters(std::vector<gravity::param<>*> params) const override {
+        auto min = params[0];
+        auto max = params[1];
+        for (auto j = 0; j < this->Y->numel; j++) {
+            min->add_val(this->Y->strkey(j) + "_aux_min", this->max);
+            max->add_val(this->Y->strkey(j), this->min);
+        }
+    }
+
+    void build_constraints(indices& Mins, indices& Mins_in, indices& Mins_out, indices& Maxs, indices& Maxs_in, indices& Maxs_out, param<>& Min, param<>& Max) {
+        this->add_parameters({&Min, &Max});
+        for(auto j = 0; j < this->Y->numel;j++){
+            Mins.add(this->Y->strkey(j) + "_aux_min");
+            Mins_in.add_ref(this->X->strkey(j));
+            Mins_out.add_ref(this->Y->strkey(j) + "_aux_min");
+
+            Maxs.add(this->Y->strkey(j));
+            Maxs_in.add_ref(this->Y->strkey(j) + "_aux_min");
+            Maxs_out.add_ref(this->Y->strkey(j));
+        }
+    }
+
+    Tensor *X, *Y; // Input and output
+    float min = std::numeric_limits<float>::lowest();
+    float max = std::numeric_limits<float>::max();
+};
+
+class Div : public Layer {
+public:
+    Div(const onnx::NodeProto& node, Tensors& tensors): Layer(node, tensors) {
+        operator_type = _div;
+        this->A = &tensors[node.input(0)];
+        this->B = &tensors[node.input(1)];
+        this->Y = &tensors[node.output(0)];
+
+        if ((this->A->is_initializer == true) || (this->B->is_initializer == true)) {
+            throw std::runtime_error("Add: initializer not supported.");
+        }
+    }
+
+    void add_parameters(std::vector<gravity::param<>*> params) const override {}
+
+    void build_constraints(indices& Divs, indices& Div_A, indices& Div_B, indices& Div_out) {
+        for(auto j = 0; j < this->A->numel;j++){
+            Divs.add(this->Y->strkey(j));
+            Div_A.add_ref(this->A->strkey(j));
+            Div_B.add_ref(this->B->strkey(j));
+            Div_out.add_ref(this->Y->strkey(j));
+        }
+    }
+
+    Tensor *A, *B, *Y; // Input and output
 };

@@ -18,13 +18,16 @@ int main(int argc, char * argv[]){
 
     // Global indices
     indices hidden_states("hidden_states"), y_ids("y_ids");/*< x_ids for continuous vars, y_ids for binary vars */
-    
+
     // Params
     param<> B("B"), C("C"), W("W");
-    indices B_ids("B_ids"), C_ids("C_ids"), W_ids("W_ids");
+    param<> Min("Min"), Max("Max");
+    indices B_ids("B_ids"), C_ids("C_ids"), W_ids("W_ids"), Min_ids("Min_ids"), Max_ids("Max_ids");
     B.in(B_ids);
     C.in(C_ids);
     W.in(W_ids);
+    Min.in(Min_ids);
+    Max.in(Max_ids);
 
     // Gemm indices
     indices Gemms("Gemms"), Gemms_out("Gemms_out"), Gemms_in("Gemms_in"), B_Gemm("B_Gemm"), C_Gemm("C_Gemm");
@@ -63,7 +66,7 @@ int main(int argc, char * argv[]){
     Sub_A   = hidden_states;
     Sub_B   = hidden_states;
     Sub_Out = hidden_states;
-    
+
     // Cos indices
     indices Coss("Coss"), Cos_out("Cos_out"), Cos_in("Cos_in");
     Cos_out = hidden_states;
@@ -84,11 +87,17 @@ int main(int argc, char * argv[]){
     Pow_out = hidden_states;
     Pow_in  = hidden_states;
 
-    // Sub indices
+    // Mul indices
     indices Muls("Muls"), Mul_A("Mul_A"), Mul_B("Mul_B"), Mul_Out("Mul_Out");
     Mul_A   = hidden_states;
     Mul_B   = hidden_states;
     Mul_Out = hidden_states;
+
+    // Div indices
+    indices Divs("Divs"), Div_A("Div_A"), Div_B("Div_B"), Div_Out("Div_Out");
+    Div_A   = hidden_states;
+    Div_B   = hidden_states;
+    Div_Out = hidden_states;
 
     // Exp indices
     indices Exps("Exps"), Exp_out("Exp_out"), Exp_in("Exp_in");
@@ -99,6 +108,16 @@ int main(int argc, char * argv[]){
     indices Sigs("Sigs"), Sigs_out("Sig_out"), Sigs_in("Sigs_in");
     Sigs_out = hidden_states;
     Sigs_in  = hidden_states;
+
+    // Min indices
+    indices Mins("Mins"), Min_In("Min_In"), Min_Out("Min_Out");
+    Min_In  = hidden_states;
+    Min_Out = hidden_states;
+
+    // Max indices
+    indices Maxs("Maxs"), Max_In("Max_In"), Max_Out("Max_Out");
+    Max_In  = hidden_states;
+    Max_Out = hidden_states;
 
     nn.index_hidden_states(hidden_states, y_ids);
 
@@ -160,9 +179,19 @@ int main(int argc, char * argv[]){
                 mul->build_constraints(Muls, Mul_A, Mul_B, Mul_Out);
                 break;
             }
+            case _div:{
+                auto div = dynamic_cast<Div*>(l);
+                div->build_constraints(Divs, Div_A, Div_B, Div_Out);
+                break;
+            }
             case _sigmoid:{
                 auto sigmoid = dynamic_cast<Sigmoid*>(l);
                 sigmoid->build_constraints(Sigs, Sigs_in, Sigs_out, Exps, Exp_in, Exp_out);
+                break;
+            }
+            case _clip:{
+                auto clip = dynamic_cast<Clip*>(l);
+                clip->build_constraints(Mins, Min_In, Min_Out, Maxs, Max_In, Max_Out, Min, Max);
                 break;
             }
             default:{
@@ -186,17 +215,14 @@ int main(int argc, char * argv[]){
     NN.add(x.in(hidden_states));
     NN.add(y.in(y_ids));
     nn.initialize_state(x, y);
-    
-    /* Objective function */
-    // NN.min(
-        // x(nn.layers.back()->outputs[0]->strkey(4))
-    //    -x(nn.layers.back()->outputs[0]->strkey(9))
-    // );
+
+    ///* Objective function */
+    //NN.min(
+    //    x(nn.layers.back()->outputs[0]->strkey(4))
+    //   -x(nn.layers.back()->outputs[0]->strkey(9))
+    //);
     NN.max(
-         x(nn.layers.back()->outputs[0]->strkey(0))
-        // +x(nn.layers.back()->outputs[0]->strkey(1))
-        // -x(nn.layers.back()->outputs[0]->strkey(2))
-        // -x(nn.layers.back()->outputs[0]->strkey(3))
+      x(nn.layers.back()->outputs[0]->strkey(0))
     );
 
     /* Constraints */
@@ -223,7 +249,7 @@ int main(int argc, char * argv[]){
     Constraint<> NoOp("NoOp");
     NoOp = x.in(NoOps_out) - x.in(NoOps_in);
     NN.add(NoOp.in(NoOps) == 0);
-    
+
     Constraint<> Add_("Add");
     Add_ = x.in(Adds_Out) - (x.in(Adds_A) + x.in(Adds_B));
     NN.add(Add_.in(Adds) == 0);
@@ -231,7 +257,7 @@ int main(int argc, char * argv[]){
     Constraint<> Sub_("Sub");
     Sub_ = x.in(Sub_Out) - (x.in(Sub_A) - x.in(Sub_B));
     NN.add(Sub_.in(Subs) == 0);
-    
+
     Constraint<> Cos_("Cos");
     Cos_ = x.in(Cos_out) - cos(x.in(Cos_in));
     NN.add(Cos_.in(Coss) == 0);
@@ -252,6 +278,10 @@ int main(int argc, char * argv[]){
     Mul_ = x.in(Mul_Out) - (x.in(Mul_A) * x.in(Mul_B));
     NN.add(Mul_.in(Muls) == 0);
 
+    Constraint<> Div_("Div");
+    Div_ = x.in(Div_Out)*x.in(Div_B) - x.in(Div_A);
+    NN.add(Div_.in(Divs) == 0);
+
     //Constraint<> Exp("Exp");
     //Exp = x.in(Exp_out) - exp(-1.0*x.in(Exp_in));
     //NN.add(Exp.in(Exps) == 0);
@@ -259,14 +289,22 @@ int main(int argc, char * argv[]){
     //Constraint<> Sigmoid_("Sigmoid");
     //Sigmoid_ = x.in(Sigs_out) * (1 + x.in(Sigs_in));
     //NN.add(Sigmoid_.in(Sigs) == 1);
-    
-    NN.print();
+
+    // Constraint<> Min_("Min");
+    // Min_ = x.in(Min_Out) - gravity::min(x.in(Min_In), Min.in(Min_Out));
+    // NN.add(Min_.in(Mins) == 0);
+
+    // Constraint<> Max_("Max");
+    // Max_ = x.in(Max_Out) - gravity::max(x.in(Max_In), Max.in(Max_Out));
+    // NN.add(Max_.in(Maxs) == 0);
+
+    // NN.print();
     NN.write();
 
     solver<> S(NN,gurobi);
     S.run();
 
-    NN.print_solution();
+    // NN.print_solution();
 
     auto sol = std::vector<double>();
     NN.get_solution(sol);

@@ -65,6 +65,10 @@ public:
                 node_ptr = new Slice(node, this->tensors);
             } else if (node.op_type() == "Sigmoid") {
                 node_ptr = new Sigmoid(node, this->tensors);
+            } else if (node.op_type() == "Clip") {
+                node_ptr = new Clip(node, this->tensors);
+            } else if (node.op_type() == "Div") {
+                node_ptr = new Div(node, this->tensors);
             } else {
                 throw std::runtime_error("Unsupported operator " + node.op_type());
             }
@@ -82,9 +86,13 @@ public:
                 for (auto i = 0; i < output->numel; i++) {
                     hidden_states.add(output->strkey(i));
 
-                    // We have to add aux variables for exp 
+                    // We have to add aux variables for exp
                     if (l->operator_type == _sigmoid) {
                         hidden_states.add(output->strkey(i) + "_aux_exp");
+                    }
+                    // We have to add aux variables for Clip
+                    if (l->operator_type == _clip) {
+                        hidden_states.add(output->strkey(i) + "_aux_min");
                     }
 
                     if (l->operator_type == _relu) {

@@ -5,6 +5,7 @@
 #include <vector>
 #include "utils.hpp"
 #include <gravity/param.h>
+#include <cstring>
 
 template <typename T>
 std::vector<T> read_data(const onnx::TensorProto& tensor, const ::google::protobuf::RepeatedField<T>& field);
@@ -96,7 +97,7 @@ public:
         this->_boundcheck(flat);
         return this->name + "," + std::to_string(flat);
     }
-    
+
     std::string strkey(size_t i, size_t j, size_t k) const {
         size_t flat = i * this->shape[1] * this->shape[2] + j * this->shape[2] + k;
         this->_boundcheck(flat);

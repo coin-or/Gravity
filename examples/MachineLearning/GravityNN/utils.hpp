@@ -41,9 +41,11 @@ onnx::GraphProto _open_file(const std::string& onnx_path) {
         throw std::runtime_error("File " + onnx_path + " does not exist.");
     }
 
-    std::fstream input(onnx_path, std::ios::in | std::ios::binary);
+    std::ifstream onnx_file(onnx_path, std::ios::binary);
+    std::string onnx_str((std::istreambuf_iterator<char>(onnx_file)), std::istreambuf_iterator<char>());
+
     onnx::ModelProto model;
-    bool isSuccess = model.ParseFromIstream(&input);
+    bool isSuccess = model.ParseFromString(onnx_str);
     if (!isSuccess) {
         throw std::runtime_error("Failed to parse onnx file.");
     }
