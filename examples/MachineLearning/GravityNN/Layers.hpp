@@ -8,7 +8,7 @@
 
 using namespace gravity;
 
-typedef enum { _gemm, _relu, _conv, _input, _noop, _add, _sub, _cos, _sin, _neg, _pow, _mul, _div } OType; /* Operator Type */
+typedef enum { _gemm, _relu, _conv, _input, _noop, _add, _sub, _cos, _sin, _neg, _pow, _mul, _div} OType; /* Operator Type */
 
 class IndexSet {
 public:
@@ -653,10 +653,6 @@ public:
         } else {
             throw std::runtime_error("Transpose: perm attribute not found.");
         }
-
-        if (this->perm.size() != 2) {
-            throw std::runtime_error("Transpose: perm attribute must be 2.");
-        }
     }
 
     void build_constraint(IndexSet& inds, std::vector<gravity::param<>*> params) override {
@@ -829,8 +825,15 @@ public:
             output[j_{0}, i_{0}, …, i_{q-1}, j_{1}, …, j_{r-2}] = input[j_{0}, k, j_{1}, …, j_{r-2}]
         */
 
-        size_t q = this->indices->ndims;
         size_t r = this->X->ndims;
+        size_t q = this->indices->ndims;
+        // We may have to calculate q manually because we 
+        // do not handle rank-0 tensors correctly
+        if (this->X->ndims != this->Y->ndims) {
+            q = this->Y->ndims - (r - 1);
+            std::cout << "Contraction!" << std::endl;
+        }
+
         for (auto o = 0; o < this->Y->numel; o++) {
             auto unflat = this->Y->unflatten_index(o);
             std::vector<size_t> i(unflat.begin() + this->axis, unflat.begin() + this->axis + q);
@@ -841,7 +844,10 @@ public:
                 }
             }
 
-            auto k = this->indices->get_int_data().at(this->indices->flatten_index(i));
+            if (i.size() == 0) {
+                i.push_back(0);
+            }
+            size_t k = this->indices->get_int_data().at(this->indices->flatten_index(i));
             // insert k at position this->axis in j
             j.insert(j.begin() + this->axis, k);
 
@@ -856,4 +862,34 @@ public:
     Tensor *X, *Y; // Input and output
     Tensor* indices;
     size_t axis = 0;
+};
+
+class Clip : public NoOp {
+public:
+    Clip(const onnx::NodeProto& node, Tensors& tensors): NoOp(node, tensors) {
+        this->X = &tensors.at(node.input(0));
+        this->Y = &tensors.at(node.output(0));
+
+        if (this->inputs.size() > 1) {
+            this->min = tensors.at(node.input(1))(0);
+        }
+        if (this->inputs.size() > 2) {
+            this->max = tensors.at(node.input(2))(0);
+        }
+    }
+
+    void build_constraint(IndexSet& inds, std::vector<gravity::param<>*> params) override {
+        // this->add_parameters(params);
+        for(auto j = 0; j < this->X->numel;j++){
+            inds["Constr"].add(this->Y->strkey(j));
+            inds["In"].add_ref(this->X->strkey(j));
+            inds["Out"].add_ref(this->Y->strkey(j));
+        }
+    }
+
+    Tensor* X; // Input
+    Tensor* Y; // Output
+
+    float min = std::numeric_limits<float>::lowest();
+    float max = std::numeric_limits<float>::max();
 };

@@ -134,6 +134,9 @@ public:
 
     void _set_shape(const std::vector<size_t>& shape) {
         this->shape = shape;
+        if (this->shape.size() == 0) {
+            this->shape.push_back(1);
+        }
         this->numel = vecprod(this->shape);
         this->ndims = std::max(this->shape.size(), (size_t)1);
     }

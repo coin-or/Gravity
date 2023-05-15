@@ -6,7 +6,7 @@
 #include "Layers.hpp"
 #include <gravity/Net.h>
 
-std::set<std::string> noops = {"Flatten", "Reshape"};
+std::set<std::string> noops = {"Flatten", "Reshape", "Squeeze"};
 
 class NeuralNet: public Net {
 public:
@@ -67,6 +67,8 @@ public:
                 node_ptr = new Div(node, this->tensors);
             } else if (node.op_type() == "Gather") {
                 node_ptr = new Gather(node, this->tensors);
+            } else if (node.op_type() == "Clip") {
+                node_ptr = new Clip(node, this->tensors);
             } else {
                 throw std::runtime_error("Unsupported operator " + node.op_type());
             }

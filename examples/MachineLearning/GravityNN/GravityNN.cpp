@@ -97,6 +97,13 @@ int main(int argc, char * argv[]){
     Divs["A"]   = hidden_states;
     Divs["B"]   = hidden_states;
 
+    // Clip indices
+    IndexSet Clips({"Constr", "In", "Out", "Min", "Max"});
+    Clips["Out"] = hidden_states;
+    Clips["In"]  = hidden_states;
+    Clips["Min"] = Min_ids;
+    Clips["Max"] = Max_ids;
+
     nn.index_hidden_states(hidden_states, y_ids);
 
     size_t gemm_row_id = 0, conv_row_id = 0;
