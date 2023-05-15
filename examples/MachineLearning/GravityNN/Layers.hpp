@@ -98,8 +98,6 @@ public:
     std::string name;
     OType operator_type;
 
-    bool is_activation_func = false;
-
     std::vector<Tensor*> lowers;
     std::vector<Tensor*> uppers;
     std::vector<Tensor*> forward_values;
@@ -215,7 +213,6 @@ public:
         operator_type = _relu;
         this->X = &tensors.at(node.input(0));
         this->Y = &tensors.at(node.output(0));
-        this->is_activation_func = true;
     }
 
     void add_parameters(std::vector<gravity::param<>*> params) const override {}
@@ -799,4 +796,64 @@ public:
     }
 
     Tensor *A, *B, *Y; // Input and output
+};
+
+class Gather : public NoOp {
+public:
+    Gather(const onnx::NodeProto& node, Tensors& tensors): NoOp(node, tensors) {
+        this->X = &tensors[node.input(0)];
+        this->Y = &tensors[node.output(0)];
+        this->indices = &tensors[node.input(1)];
+
+        if (const auto* axis = find_attribute("axis", node)) {
+            int64_t i = axis->i();
+            if (i < 0) {
+                i += this->X->ndims;
+            }
+            this->axis = i;
+        }
+
+    }
+
+    void build_constraint(IndexSet& inds, std::vector<gravity::param<>*> params) override {
+        /*
+        Given data tensor of rank r >= 1, and indices tensor of rank q, gather entries of the axis dimension
+        of data (by default outer-most one as axis=0) indexed by indices, and concatenates them in an output
+        tensor of rank q + (r - 1).
+
+        axis = 0:
+            Let k = indices[i_{0}, …, i_{q-1}]  (Rank k = q)
+            output[i_{0}, …, i_{q-1}, j_{0}, …, j_{r-2}] = input[k , j_{0}, …, j_{r-2}]
+        axis = 1:
+            Let k = indices[i_{0}, …, i_{q-1}]
+            output[j_{0}, i_{0}, …, i_{q-1}, j_{1}, …, j_{r-2}] = input[j_{0}, k, j_{1}, …, j_{r-2}]
+        */
+
+        size_t q = this->indices->ndims;
+        size_t r = this->X->ndims;
+        for (auto o = 0; o < this->Y->numel; o++) {
+            auto unflat = this->Y->unflatten_index(o);
+            std::vector<size_t> i(unflat.begin() + this->axis, unflat.begin() + this->axis + q);
+            std::vector<size_t> j;
+            for (auto _i = 0; _i < unflat.size(); _i++) {
+                if ((_i < this->axis) || (_i >= this->axis + q)) {
+                    j.push_back(unflat[_i]);
+                }
+            }
+
+            auto k = this->indices->get_int_data().at(this->indices->flatten_index(i));
+            // insert k at position this->axis in j
+            j.insert(j.begin() + this->axis, k);
+
+            auto in_index = this->X->flatten_index(j);
+            auto out_index = this->Y->flatten_index(unflat);
+            inds["Constr"].add(this->Y->strkey(out_index));
+            inds["In"].add_ref(this->X->strkey(in_index));
+            inds["Out"].add_ref(this->Y->strkey(out_index));
+        }
+    }
+
+    Tensor *X, *Y; // Input and output
+    Tensor* indices;
+    size_t axis = 0;
 };

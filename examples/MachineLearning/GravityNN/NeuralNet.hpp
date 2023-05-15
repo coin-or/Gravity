@@ -65,6 +65,8 @@ public:
                 node_ptr = new Slice(node, this->tensors);
             } else if (node.op_type() == "Div") {
                 node_ptr = new Div(node, this->tensors);
+            } else if (node.op_type() == "Gather") {
+                node_ptr = new Gather(node, this->tensors);
             } else {
                 throw std::runtime_error("Unsupported operator " + node.op_type());
             }
