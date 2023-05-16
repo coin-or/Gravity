@@ -76,8 +76,6 @@ public:
             this->layers.push_back(node_ptr);
             this->add_node(node_ptr);
         }
-
-        this->_build_arcs();
     }
 
     void index_hidden_states(indices& hidden_states, indices& y_ids) {
@@ -144,27 +142,6 @@ public:
                 }
             }
         }
-    }
-
-    void _build_arcs() {
-        // build output name to layer map
-        std::map<std::string, Layer*> name_to_layer;
-        for (auto layer : this->layers) {
-            for (auto output : layer->output_names) {
-                name_to_layer.insert({output, layer});
-            }
-        }
-
-        // build arcs
-        for (auto dest : this->layers) {
-            for (auto input : dest->input_names) {
-                auto src = name_to_layer[input];
-                Arc* arc = new Arc(src, dest);
-                this->add_arc(arc);
-                arc->connect();
-            }
-        }
-        this->print();
     }
 
     Tensors tensors;

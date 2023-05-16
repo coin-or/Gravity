@@ -30,9 +30,6 @@ class Layer: public Node {
 public:
     Layer(const onnx::NodeProto& node, Tensors& tensors): Node(node.name()) {
         for (const auto& input : node.input()) {
-            if (!tensors.at(input).is_initializer) {
-                this->input_names.push_back(input);
-            }
             this->inputs.push_back(&tensors.at(input));
         }
         for (const auto& output : node.output()) {
@@ -102,8 +99,6 @@ public:
     std::vector<Tensor*> uppers;
     std::vector<Tensor*> forward_values;
 
-    // Names for inputs from other layers, NOT including initializers
-    std::vector<std::string> input_names;
     std::vector<std::string> output_names;
 
     std::vector<Tensor*> outputs;
