@@ -4,11 +4,10 @@
 #include <onnx.pb.h>
 #include <vector>
 #include "Layers.hpp"
-#include <gravity/Net.h>
 
 std::set<std::string> noops = {"Flatten", "Reshape", "Squeeze"};
 
-class NeuralNet: public Net {
+class NeuralNet {
 public:
     NeuralNet(const std::string& onnx_path) {
         onnx::GraphProto graph = _open_file(onnx_path);
@@ -22,7 +21,6 @@ public:
         for (const auto& input : graph.input()) {
             Layer* inp_layer = new Input(input, tensors);
             this->layers.push_back(inp_layer);
-            this->add_node(inp_layer);
             this->input_numel += inp_layer->outputs[0]->numel;
         }
 
@@ -74,7 +72,6 @@ public:
             }
 
             this->layers.push_back(node_ptr);
-            this->add_node(node_ptr);
         }
     }
 
