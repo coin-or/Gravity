@@ -79,8 +79,21 @@ public:
 
     virtual ~Layer() = default;
 
-    virtual void add_parameters(std::vector<gravity::param<>*> params) const = 0;
-    virtual void build_constraint(IndexSet& inds, std::vector<gravity::param<>*> params)= 0;
+    virtual void build_constraint(IndexSet& inds, gravity::param<>& w) = 0;
+
+    // Override this if you have to introduce auxiliary variables or node
+    // uses int vars
+    // i.e. node uses exponential or node is a relu
+    virtual void index_hidden_states(indices& hidden_states, indices& y_ids) {
+        for (auto output: this->outputs) {
+            for (auto i = 0; i < output->numel; i++) {
+                hidden_states.add(output->strkey(i));
+            }
+        }
+    }
+
+    // Override this if the layer has parameters
+    virtual void add_parameters(gravity::param<>& w) const {}
 
     const onnx::AttributeProto* find_attribute(const std::string& name, const onnx::NodeProto& node) const {
         for (const auto& attr : node.attribute()) {
@@ -135,25 +148,20 @@ public:
         }
     }
 
-    void add_parameters(std::vector<gravity::param<>*> params) const override {
-        auto B = params[0];
-        auto C = params[1];
-
+    void add_parameters(gravity::param<>& w) const override {
         if (this->transB) {
             Tensor tb = Tensor::transpose(*this->B);
-            tb.add_params(B);
+            tb.add_params(w);
         } else {
-            this->B->add_params(B);
+            this->B->add_params(w);
         }
 
         if (this->C) {
-            this->C->add_params(C);
+            this->C->add_params(w);
         }
     }
 
-    void build_constraint(IndexSet& inds, std::vector<gravity::param<>*> params) override {
-        this->add_parameters(params);
-
+    void build_constraint(IndexSet& inds, gravity::param<>& w) override {
         Tensor tb = *this->B;
         if (this->transB) {
             tb = Tensor::transpose(*this->B);
@@ -210,9 +218,16 @@ public:
         this->Y = &tensors.at(node.output(0));
     }
 
-    void add_parameters(std::vector<gravity::param<>*> params) const override {}
+    void index_hidden_states(indices& hidden_states, indices& y_ids) override {
+        for (auto output: this->outputs) {
+            for (auto i = 0; i < output->numel; i++) {
+                hidden_states.add(output->strkey(i));
+                y_ids.add(output->strkey(i));
+            }
+        }
+    }
 
-    void build_constraint(IndexSet& inds, std::vector<gravity::param<>*> params) override {
+    void build_constraint(IndexSet& inds, gravity::param<>& w) override {
         for(auto j = 0; j < this->X->numel;j++){
             inds["Constr"].add(this->Y->strkey(j));
             inds["In"].add_ref(this->X->strkey(j));
@@ -294,9 +309,7 @@ public:
         this->kern_w = this->W->shape[3];
     }
 
-    void build_constraint(IndexSet& inds, std::vector<gravity::param<>*> params) override {
-        this->add_parameters(params);
-
+    void build_constraint(IndexSet& inds, gravity::param<>& w) override {
         // Output indexing
         for (auto j = 0; j < this->Y->numel; j++) {
             inds["Constr"].add(this->name + "," + to_string(j));
@@ -333,12 +346,10 @@ public:
 
     }
 
-    void add_parameters(std::vector<gravity::param<>*> params) const override {
-        auto W = params[0];
-        auto B = params[1];
-        this->W->add_params(W);
+    void add_parameters(gravity::param<>& w) const override {
+        this->W->add_params(w);
         if (this->B) {
-            this->B->add_params(B);
+            this->B->add_params(w);
         }
     }
 
@@ -364,8 +375,7 @@ public:
         operator_type = _input;
     }
 
-    void add_parameters(std::vector<gravity::param<>*> params) const override {}
-    void build_constraint(IndexSet& inds, std::vector<gravity::param<>*> params) override {}
+    void build_constraint(IndexSet& inds, gravity::param<>& w) override {}
 };
 
 class NoOp : public Layer {
@@ -376,10 +386,7 @@ public:
         this->Y = &tensors[node.output(0)];
     }
 
-    void add_parameters(std::vector<gravity::param<>*> params) const override {}
-
-    void build_constraint(IndexSet& inds, std::vector<gravity::param<>*> params) override {
-        std::cout << "NoOp: " << this->name << std::endl;
+    void build_constraint(IndexSet& inds, gravity::param<>& w) override {
         for(auto j = 0; j < this->X->numel;j++){
             inds["Constr"].add(this->Y->strkey(j));
             inds["In"].add_ref(this->X->strkey(j));
@@ -408,7 +415,7 @@ public:
         }
     }
 
-    void build_constraint(IndexSet& inds, std::vector<gravity::param<>*> params) override {
+    void build_constraint(IndexSet& inds, gravity::param<>& w) override {
         size_t cur_axis_idx = 0;
         for (auto out: this->outputs) {
             for (size_t out_idx = 0; out_idx < out->numel; out_idx++) {
@@ -443,7 +450,7 @@ public:
         }
     }
 
-    void build_constraint(IndexSet& inds, std::vector<gravity::param<>*> params) override {
+    void build_constraint(IndexSet& inds, gravity::param<>& w) override {
         size_t cur_axis_idx = 0;
         for (auto inp: this->inputs) {
             for (size_t in_idx = 0; in_idx < inp->numel; in_idx++) {
@@ -476,9 +483,7 @@ public:
         }
     }
 
-    void add_parameters(std::vector<gravity::param<>*> params) const override {}
-
-    void build_constraint(IndexSet& inds, std::vector<gravity::param<>*> params) override {
+    void build_constraint(IndexSet& inds, gravity::param<>& w) override {
         for(auto j = 0; j < this->A->numel;j++){
             inds["Constr"].add(this->Y->strkey(j));
             inds["A"].add_ref(this->A->strkey(j));
@@ -503,9 +508,7 @@ public:
         }
     }
 
-    void add_parameters(std::vector<gravity::param<>*> params) const override {}
-
-    void build_constraint(IndexSet& inds, std::vector<gravity::param<>*> params) override {
+    void build_constraint(IndexSet& inds, gravity::param<>& w) override {
         for(auto j = 0; j < this->A->numel;j++){
             inds["Constr"].add(this->Y->strkey(j));
             inds["A"].add_ref(this->A->strkey(j));
@@ -525,9 +528,7 @@ public:
         this->Y = &tensors[node.output(0)];
     }
 
-    void add_parameters(std::vector<gravity::param<>*> params) const override {}
-
-    void build_constraint(IndexSet& inds, std::vector<gravity::param<>*> params) override {
+    void build_constraint(IndexSet& inds, gravity::param<>& w) override {
         for(auto j = 0; j < this->X->numel;j++){
             inds["Constr"].add(this->Y->strkey(j));
             inds["In"].add_ref(this->X->strkey(j));
@@ -546,9 +547,7 @@ public:
         this->Y = &tensors[node.output(0)];
     }
 
-    void add_parameters(std::vector<gravity::param<>*> params) const override {}
-
-    void build_constraint(IndexSet& inds, std::vector<gravity::param<>*> params) override {
+    void build_constraint(IndexSet& inds, gravity::param<>& w) override {
         for(auto j = 0; j < this->X->numel;j++){
             inds["Constr"].add(this->Y->strkey(j));
             inds["In"].add_ref(this->X->strkey(j));
@@ -567,9 +566,7 @@ public:
         this->Y = &tensors[node.output(0)];
     }
 
-    void add_parameters(std::vector<gravity::param<>*> params) const override {}
-
-    void build_constraint(IndexSet& inds, std::vector<gravity::param<>*> params) override {
+    void build_constraint(IndexSet& inds, gravity::param<>& w) override {
         for(auto j = 0; j < this->X->numel;j++){
             inds["Constr"].add(this->Y->strkey(j));
             inds["In"].add_ref(this->X->strkey(j));
@@ -597,9 +594,7 @@ public:
         }
     }
 
-    void add_parameters(std::vector<gravity::param<>*> params) const override {}
-
-    void build_constraint(IndexSet& inds, std::vector<gravity::param<>*> params) override {
+    void build_constraint(IndexSet& inds, gravity::param<>& w) override {
         for(auto j = 0; j < this->X->numel;j++){
             inds["Constr"].add(this->Y->strkey(j));
             inds["In"].add_ref(this->X->strkey(j));
@@ -623,9 +618,7 @@ public:
         }
     }
 
-    void add_parameters(std::vector<gravity::param<>*> params) const override {}
-
-    void build_constraint(IndexSet& inds, std::vector<gravity::param<>*> params) override {
+    void build_constraint(IndexSet& inds, gravity::param<>& w) override {
         for(auto j = 0; j < this->A->numel;j++){
             inds["Constr"].add(this->Y->strkey(j));
             inds["A"].add_ref(this->A->strkey(j));
@@ -650,7 +643,7 @@ public:
         }
     }
 
-    void build_constraint(IndexSet& inds, std::vector<gravity::param<>*> params) override {
+    void build_constraint(IndexSet& inds, gravity::param<>& w) override {
         // Copy this->X
         Tensor trx = *this->X;
         trx.shape = apply_permutation(this->X->shape, this->perm);
@@ -711,7 +704,7 @@ public:
         std::cout << "Slice: " << this->starts.size() << " " << this->ends.size() << " " << this->axes.size() << " " << this->steps.size() << std::endl;
     }
 
-    void build_constraint(IndexSet& inds, std::vector<gravity::param<>*> params) override {
+    void build_constraint(IndexSet& inds, gravity::param<>& w) override {
         /*
             Slice uses the starts, ends, axes and steps inputs to select a sub-tensor of its input data tensor.
             An effective start[i], end[i], and step[i] must be computed for each i in [0, ... r-1] where r = rank(input) as follows:
@@ -775,9 +768,7 @@ public:
         }
     }
 
-    void add_parameters(std::vector<gravity::param<>*> params) const override {}
-
-    void build_constraint(IndexSet& inds, std::vector<gravity::param<>*> params) override {
+    void build_constraint(IndexSet& inds, gravity::param<>& w) override {
         for(auto j = 0; j < this->A->numel;j++){
             inds["Constr"].add(this->Y->strkey(j));
             inds["A"].add_ref(this->A->strkey(j));
@@ -806,7 +797,7 @@ public:
 
     }
 
-    void build_constraint(IndexSet& inds, std::vector<gravity::param<>*> params) override {
+    void build_constraint(IndexSet& inds, gravity::param<>& w) override {
         /*
         Given data tensor of rank r >= 1, and indices tensor of rank q, gather entries of the axis dimension
         of data (by default outer-most one as axis=0) indexed by indices, and concatenates them in an output
@@ -822,7 +813,7 @@ public:
 
         size_t r = this->X->ndims;
         size_t q = this->indices->ndims;
-        // We may have to calculate q manually because we 
+        // We may have to calculate q manually because we
         // do not handle rank-0 tensors correctly
         if (this->X->ndims != this->Y->ndims) {
             q = this->Y->ndims - (r - 1);
@@ -873,8 +864,8 @@ public:
         }
     }
 
-    void build_constraint(IndexSet& inds, std::vector<gravity::param<>*> params) override {
-        // this->add_parameters(params);
+    void build_constraint(IndexSet& inds, gravity::param<>& w) override {
+        // this->add_parameters(w);
         for(auto j = 0; j < this->X->numel;j++){
             inds["Constr"].add(this->Y->strkey(j));
             inds["In"].add_ref(this->X->strkey(j));

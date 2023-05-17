@@ -78,17 +78,15 @@ public:
         }
     }
 
+    void add_parameters(gravity::param<>& w) {
+        for (auto l: this->layers) {
+            l->add_parameters(w);
+        }
+    }
+
     void index_hidden_states(indices& hidden_states, indices& y_ids) {
         for (auto l: this->layers) {
-            for (auto output: l->outputs) {
-                for (auto i = 0; i < output->numel; i++) {
-                    hidden_states.add(output->strkey(i));
-
-                    if (l->operator_type == _relu) {
-                        y_ids.add(output->strkey(i));
-                    }
-                }
-            }
+            l->index_hidden_states(hidden_states, y_ids);
         }
     }
 

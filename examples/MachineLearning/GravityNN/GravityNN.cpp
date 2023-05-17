@@ -20,28 +20,23 @@ int main(int argc, char * argv[]){
     indices hidden_states("hidden_states"), y_ids("y_ids");/*< x_ids for continuous vars, y_ids for binary vars */
 
     // Params
-    param<> B("B"), C("C"), W("W");
-    param<> Min("Min"), Max("Max");
-    indices B_ids("B_ids"), C_ids("C_ids"), W_ids("W_ids"), Min_ids("Min_ids"), Max_ids("Max_ids");
-    B.in(B_ids);
-    C.in(C_ids);
-    W.in(W_ids);
-    Min.in(Min_ids);
-    Max.in(Max_ids);
+    param<> w("weights");
+    indices w_ids("w_ids");
+    w.in(w_ids);
 
     // Gemm indices
     IndexSet Gemms({"Constr", "In", "Out", "B", "C"});
     Gemms["Out"] = hidden_states;
     Gemms["In"]  = hidden_states;
-    Gemms["B"]   = B_ids;
-    Gemms["C"]   = C_ids;
+    Gemms["B"]   = w_ids;
+    Gemms["C"]   = w_ids;
 
     // Conv indices
     IndexSet Convs({"Constr", "In", "Out", "W", "B"});
     Convs["Out"] = hidden_states;
     Convs["In"]  = hidden_states;
-    Convs["W"]   = W_ids;
-    Convs["B"]   = B_ids;
+    Convs["W"]   = w_ids;
+    Convs["B"]   = w_ids;
 
     // ReLU indices
     IndexSet ReLUs({"Constr", "In", "Out"});
@@ -97,76 +92,70 @@ int main(int argc, char * argv[]){
     Divs["A"]   = hidden_states;
     Divs["B"]   = hidden_states;
 
-    // Clip indices
-    IndexSet Clips({"Constr", "In", "Out", "Min", "Max"});
-    Clips["Out"] = hidden_states;
-    Clips["In"]  = hidden_states;
-    Clips["Min"] = Min_ids;
-    Clips["Max"] = Max_ids;
-
     nn.index_hidden_states(hidden_states, y_ids);
+    nn.add_parameters(w);
 
     size_t gemm_row_id = 0, conv_row_id = 0;
     for (auto l: nn.layers) {
         switch (l->operator_type) {
             case _relu: {
                 auto relu = dynamic_cast<Relu*>(l);
-                relu->build_constraint(ReLUs, {});
+                relu->build_constraint(ReLUs, w);
                 break;
             }
             case _gemm:{
                 auto gemm = dynamic_cast<GEMM*>(l);
-                gemm->build_constraint(Gemms, {&B, &C});
+                gemm->build_constraint(Gemms, w);
                 break;
             }
             case _conv:{
                 auto conv = dynamic_cast<Conv*>(l);
-                conv->build_constraint(Convs, {&W, &B});
+                conv->build_constraint(Convs, w);
                 break;
             }
             case _noop:{
                 auto noop = dynamic_cast<NoOp*>(l);
-                noop->build_constraint(NoOps, {});
+                noop->build_constraint(NoOps, w);
                 break;
             }
             case _add:{
                 auto add = dynamic_cast<Add*>(l);
-                add->build_constraint(Adds, {});
+                add->build_constraint(Adds, w);
                 break;
             }
             case _sub:{
                 auto sub = dynamic_cast<Sub*>(l);
-                sub->build_constraint(Subs, {});
+                sub->build_constraint(Subs, w);
                 break;
             }
             case _cos:{
                 auto cos = dynamic_cast<Cos*>(l);
-                cos->build_constraint(Coss, {});
+                cos->build_constraint(Coss, w);
                 break;
             }
             case _sin:{
                 auto sin = dynamic_cast<Sin*>(l);
-                sin->build_constraint(Sins, {});
+                sin->build_constraint(Sins, w);
                 break;
             }
             case _neg:{
                 auto neg = dynamic_cast<Neg*>(l);
-                neg->build_constraint(Negs, {});
+                neg->build_constraint(Negs, w);
                 break;
             }
             case _pow:{
                 auto neg = dynamic_cast<Pow*>(l);
-                neg->build_constraint(Pows, {});
+                neg->build_constraint(Pows, w);
                 break;
             }
             case _mul:{
                 auto mul = dynamic_cast<Mul*>(l);
-                mul->build_constraint(Muls, {});
+                mul->build_constraint(Muls, w);
                 break;
             }
             case _div:{
                 auto div = dynamic_cast<Div*>(l);
-                div->build_constraint(Divs, {});
+                div->build_constraint(Divs, w);
                 break;
             }
             default:{
@@ -214,11 +203,11 @@ int main(int argc, char * argv[]){
     NN.add_on_off(ReLU_y_off.in(ReLUs["Constr"]) <= 0, y.in(ReLUs["Constr"]), false);
 
     Constraint<> Gemm("Gemm");
-    Gemm = x.in(Gemms["Out"]) - (x.in(Gemms["In"])*B.in(Gemms["B"]) + C.in(Gemms["C"]));
+    Gemm = x.in(Gemms["Out"]) - (x.in(Gemms["In"])*w.in(Gemms["B"]) + w.in(Gemms["C"]));
     NN.add(Gemm.in(Gemms["Constr"]) == 0);
 
     Constraint<> Conv_("Conv");
-    Conv_ = x.in(Convs["Out"]) - (x.in(Convs["In"])*W.in(Convs["W"]) + B.in(Convs["B"]));
+    Conv_ = x.in(Convs["Out"]) - (x.in(Convs["In"])*w.in(Convs["W"]) + w.in(Convs["B"]));
     NN.add(Conv_.in(Convs["Constr"]) == 0);
 
     Constraint<> NoOp("NoOp");
