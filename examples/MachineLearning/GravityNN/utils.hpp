@@ -3,6 +3,7 @@
 #include <sstream>
 #include <vector>
 #include <numeric>
+#include <queue>
 
 template <typename T>
 std::string print_vector(const std::vector<T>& v) {
@@ -62,4 +63,49 @@ std::vector<T> apply_permutation(const std::vector<T>& v, const std::vector<T>& 
         v2.push_back(v[indices[i]]);
     }
     return v2;
+}
+
+/*
+    * Extract a subgraph from an ONNX graph.
+    * The subgraph is defined by the path from the final_node to the input nodes.
+    * If final_node is empty, return all layers.
+*/
+std::set<std::string> subgraph_extraction(onnx::GraphProto& graph, std::string final_node) {
+    if (final_node.empty()) {
+        std::set<std::string> all_layers;
+        for (auto& node: graph.node()) {
+            all_layers.insert(node.name());
+        }
+        return all_layers;
+    }
+
+    std::map<std::string, std::string> output_to_layer;
+    std::map<std::string, int> layer_to_index;
+
+    for (auto i = 0; i < graph.node_size(); ++i) {
+        auto node = graph.node(i);
+        layer_to_index[node.name()] = i;
+        for (const auto& output : node.output()) {
+            output_to_layer[output] = node.name();
+        }
+    }
+
+    std::queue<std::string> queue;
+    queue.push(final_node);
+
+    std::set<std::string> subgraph;
+    while (!queue.empty()) {
+        std::string node = queue.front();
+        queue.pop();
+        subgraph.insert(node);
+
+        auto layer = graph.node(layer_to_index[node]);
+        for (const auto& input : layer.input()) {
+            if (output_to_layer.find(input) != output_to_layer.end()) {
+                queue.push(output_to_layer[input]);
+            }
+        }
+    }
+
+    return subgraph;
 }

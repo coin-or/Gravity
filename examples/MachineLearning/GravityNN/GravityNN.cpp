@@ -14,7 +14,10 @@ int main(int argc, char * argv[]){
         fname = argv[1];
     }
 
-    NeuralNet nn(fname);
+    // Empty string means we build the entire network, otherwise we build up to the specified node
+    std::string final_node = "";
+    NeuralNet nn(fname, final_node);
+
     nn.build_indexing();
     nn.build_constraints();
 
@@ -41,7 +44,8 @@ int main(int argc, char * argv[]){
     //   -x(nn.layers.back()->outputs[0]->strkey(9))
     //);
     NN.max(
-      x(nn.layers.back()->outputs[0]->strkey(0))
+        x(nn.layers.back()->outputs[0]->strkey(0))
+        // x("Gemm3/0,152")
     );
 
     // NN.print();

@@ -9,8 +9,10 @@ std::set<std::string> noops = {"Flatten", "Reshape", "Squeeze"};
 
 class NeuralNet {
 public:
-    NeuralNet(const std::string& onnx_path) {
+    NeuralNet(const std::string& onnx_path, std::string final_node = "") {
         onnx::GraphProto graph = _open_file(onnx_path);
+        auto subgraph = subgraph_extraction(graph, final_node);
+
         if (graph.input_size() > 1) {
             throw std::runtime_error("Network has more than one input. Not supported.");
         }
@@ -29,6 +31,11 @@ public:
         for (const auto& node : graph.node()) {
             if (node.op_type() == "Constant") {
                 // We've stuffed all constants into the tensors map
+                continue;
+            }
+
+            // If node is not in requested subgraph, skip it
+            if (subgraph.count(node.name()) == 0) {
                 continue;
             }
 
