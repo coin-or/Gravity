@@ -47,13 +47,15 @@ public:
         this->w_ids = indices("w_ids");
         this->w.in(this->w_ids);
     }
-
-    IndexSet& operator()(OType op, std::vector<std::vector<std::string>> names) {
+    
+    void add(OType op, std::vector<std::vector<std::string>> names) {
         if (this->_indices.count(op) > 0) {
-            return this->_indices.at(op);
+            return;
         }
-
         this->_indices[op] = IndexSet(names[0], names[1], this->hidden_states, this->w_ids);
+    }
+
+    IndexSet& operator()(OType op) {
         return this->_indices.at(op);
     }
 

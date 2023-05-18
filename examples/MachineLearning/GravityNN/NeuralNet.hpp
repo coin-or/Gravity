@@ -80,6 +80,12 @@ public:
         This includes hidden states, binaries, weight indices, etc.
     */
     void build_indexing() {
+        // Add index sets for each layer
+        for (auto l: this->layers) {
+            auto optype = l->operator_type;
+            this->indices.add(l->operator_type, l->get_indices());
+        }
+
         // First, index all hidden states
         for (auto l: this->layers) {
             l->index_hidden_states(this->indices.hidden_states, this->indices.y_ids);
@@ -88,6 +94,13 @@ public:
         // Index parameters
         for (auto l: this->layers) {
             l->add_parameters(this->indices.w);
+        }
+    }
+
+    // Builds constraints for each layer
+    void build_constraints() {
+        for (auto l: this->layers) {
+            l->build_constraint(this->indices(l->operator_type));
         }
     }
 
@@ -151,7 +164,7 @@ public:
                 continue;
             }
             visited.insert(l->operator_type);
-            l->add_constraints(NN, indices(l->operator_type, l->get_indices()), indices.w, x, y);
+            l->add_constraints(NN, indices(l->operator_type), indices.w, x, y);
         }
     }
 

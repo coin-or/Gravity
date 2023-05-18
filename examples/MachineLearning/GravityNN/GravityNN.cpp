@@ -16,10 +16,7 @@ int main(int argc, char * argv[]){
 
     NeuralNet nn(fname);
     nn.build_indexing();
-
-    for (auto l: nn.layers) {
-        l->build_constraint(nn.indices(l->operator_type, l->get_indices()));
-    }
+    nn.build_constraints();
 
     Model<> NN("NN_"+fname.substr(fname.find_last_of("/")));
     param<> x_lb("x_lb"), x_ub("x_ub");
