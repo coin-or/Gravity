@@ -24,6 +24,8 @@ public:
             this->input_numel += inp_layer->outputs[0]->numel;
         }
 
+        this->indices = IndexContainer();
+
         for (const auto& node : graph.node()) {
             if (node.op_type() == "Constant") {
                 // We've stuffed all constants into the tensors map
@@ -65,8 +67,6 @@ public:
                 node_ptr = new Div(node, this->tensors);
             } else if (node.op_type() == "Gather") {
                 node_ptr = new Gather(node, this->tensors);
-            } else if (node.op_type() == "Clip") {
-                node_ptr = new Clip(node, this->tensors);
             } else {
                 throw std::runtime_error("Unsupported operator " + node.op_type());
             }
@@ -75,15 +75,19 @@ public:
         }
     }
 
-    void add_parameters(gravity::param<>& w) {
+    /*
+        Adds all required indices to the model.
+        This includes hidden states, binaries, weight indices, etc.
+    */
+    void build_indexing() {
+        // First, index all hidden states
         for (auto l: this->layers) {
-            l->add_parameters(w);
+            l->index_hidden_states(this->indices.hidden_states, this->indices.y_ids);
         }
-    }
 
-    void index_hidden_states(indices& hidden_states, indices& y_ids) {
+        // Index parameters
         for (auto l: this->layers) {
-            l->index_hidden_states(hidden_states, y_ids);
+            l->add_parameters(this->indices.w);
         }
     }
 
@@ -139,7 +143,20 @@ public:
         }
     }
 
+    void add_constraints(gravity::Model<>& NN, gravity::var<>& x, gravity::var<int>& y, IndexContainer& indices) {
+        // Add constraints. Only add constraints for each operator type once.
+        std::set<OType> visited;
+        for (auto l: this->layers) {
+            if (visited.find(l->operator_type) != visited.end()) {
+                continue;
+            }
+            visited.insert(l->operator_type);
+            l->add_constraints(NN, indices(l->operator_type, l->get_indices()), indices.w, x, y);
+        }
+    }
+
     Tensors tensors;
+    IndexContainer indices;
     size_t input_numel;
 
     std::vector<Layer*> layers;
