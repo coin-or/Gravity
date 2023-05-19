@@ -11,7 +11,7 @@ class NeuralNet {
 public:
     NeuralNet(const std::string& onnx_path, std::string final_node = "") {
         onnx::GraphProto graph = _open_file(onnx_path);
-        auto subgraph = subgraph_extraction(graph, final_node);
+        this->layer_names = subgraph_extraction(graph, final_node);
 
         if (graph.input_size() > 1) {
             throw std::runtime_error("Network has more than one input. Not supported.");
@@ -35,7 +35,7 @@ public:
             }
 
             // If node is not in requested subgraph, skip it
-            if (subgraph.count(node.name()) == 0) {
+            if (this->layer_names.count(node.name()) == 0) {
                 continue;
             }
 
@@ -180,4 +180,5 @@ public:
     size_t input_numel;
 
     std::vector<Layer*> layers;
+    std::set<std::string> layer_names;
 };
