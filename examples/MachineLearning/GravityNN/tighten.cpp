@@ -2,32 +2,12 @@
 #include <fstream>
 #include <onnx.pb.h>
 #include <vector>
-#include "Layers.hpp"
 #include <gravity/solver.h>
-#include "NeuralNet.hpp"
-#include <ctime>
+#include <network/NeuralNet.hpp>
 
 using namespace gravity;
 
-typedef enum { LOWER, UPPER} Side;
-
-class Bound {
-public:
-    Bound(std::string layer_name, std::string neuron_name, float value, Side side) {
-        this->layer_name = layer_name;
-        this->neuron_name = neuron_name;
-        this->value = value;
-        this->side = side;
-    }
-
-    std::string layer_name;
-    std::string neuron_name;
-    float value;
-    Side side;
-};
-
 float bound_neuron(std::string fname, Bound neuron, const std::vector<Bound>& global_bounds) {
-    std::cout << "Tightening " << neuron.neuron_name << std::endl;
     NeuralNet nn(fname, neuron.layer_name);
 
     nn.build_indexing();
@@ -71,11 +51,12 @@ float bound_neuron(std::string fname, Bound neuron, const std::vector<Bound>& gl
     auto grb_mod = grb_prog->grb_mod;
     grb_mod->set(GRB_IntParam_Threads, 192);
     // grb_mod->set(GRB_IntParam_NonConvex,2);
+    grb_mod->set(GRB_IntParam_OutputFlag, 0);
     grb_mod->set(GRB_IntParam_MIPFocus,3);
     grb_mod->set(GRB_DoubleParam_BestBdStop, -1e-4);
     grb_mod->set(GRB_DoubleParam_BestObjStop, 1e-4);
 
-    int retval = S.run();
+    int retval = S.run(1e-4, 10.0);
 
     if (retval == 3) {
         throw std::runtime_error("Infeasible");
@@ -88,7 +69,10 @@ float bound_neuron(std::string fname, Bound neuron, const std::vector<Bound>& gl
 }
 
 int main(int argc, char * argv[]) {
-    std::string fname = "/vast/home/haydnj/Gravity/data_sets/VNN/mnistx4.onnx";
+    string fname = string(prj_dir)+"/data_sets/VNN/tll_bound.onnx";
+    if(argc >= 2) {
+        fname = argv[1];
+    }
 
     NeuralNet nn(fname);
     std::vector<Layer*> layers_to_optimize;
@@ -161,10 +145,10 @@ int main(int argc, char * argv[]) {
             fail_count++;
         }
         std::cout << "#################################################" << std::endl;
-        std::cout << "Fixed: " << fixed_count << "/" << global_bounds.size() << std::endl;
-        std::cout << "Failed: " << fail_count << "/" << global_bounds.size() << std::endl;
         std::cout << "Neuron: " << neuron.neuron_name << std::endl;
         std::cout << prev_bound << " -> " << neuron.value << std::endl;
+        std::cout << "Fixed: " << fixed_count << "/" << global_bounds.size() << std::endl;
+        std::cout << "Failed: " << fail_count << "/" << global_bounds.size() << std::endl;
         if (neuron.side == LOWER) {
             std::cout << "Lower bound" << std::endl;
         } else {

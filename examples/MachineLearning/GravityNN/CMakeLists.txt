@@ -11,21 +11,20 @@ message(${PC_Protobuf_INCLUDEDIR})
 include_directories(${PC_Protobuf_INCLUDEDIR})
 
 
-file(GLOB GravityNN_HEADERS MachineLearning/GravityNN/*.hpp)
 add_executable(
   GravityNN
 	MachineLearning/GravityNN/GravityNN.cpp
-	${GravityNN_HEADERS}
 	${ONNX_PROTO_SRCS}
-  ${ONNX_PROTO_HDRS}
+  	${ONNX_PROTO_HDRS}
 )
+target_include_directories(GravityNN PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/MachineLearning/GravityNN)
 target_link_libraries(GravityNN ${PROTOBUF_LIBRARIES} gravity)
 
 add_executable(
   tighten
 	MachineLearning/GravityNN/tighten.cpp
-	${GravityNN_HEADERS}
 	${ONNX_PROTO_SRCS}
   ${ONNX_PROTO_HDRS}
 )
+target_include_directories(tighten PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/MachineLearning/GravityNN)
 target_link_libraries(tighten ${PROTOBUF_LIBRARIES} gravity)

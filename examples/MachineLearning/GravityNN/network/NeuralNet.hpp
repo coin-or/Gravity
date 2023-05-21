@@ -3,7 +3,7 @@
 #include <string>
 #include <onnx.pb.h>
 #include <vector>
-#include "Layers.hpp"
+#include <network/Layers.hpp>
 
 std::set<std::string> noops = {"Flatten", "Reshape", "Squeeze"};
 

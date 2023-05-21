@@ -3,7 +3,7 @@
 #include <fstream>
 #include <onnx.pb.h>
 #include <vector>
-#include "utils.hpp"
+#include <utils/utils.hpp>
 #include <gravity/param.h>
 #include <cstring>
 
@@ -166,7 +166,7 @@ private:
 
 typedef std::map<std::string, Tensor> Tensors;
 
-Tensors get_tensors(onnx::GraphProto& graph) {
+Tensors get_tensors(const onnx::GraphProto& graph) {
     Tensors tensors;
 
     // Tensor with shape/metadata only

@@ -4,9 +4,9 @@
 #include <onnx.pb.h>
 #include <vector>
 #include <gravity/Node.h>
-#include "Tensor.hpp"
-#include "IndexContainer.hpp"
-#include "types.hpp"
+#include <network/Tensor.hpp>
+#include <network/IndexContainer.hpp>
+#include <network/types.hpp>
 #include <gravity/constraint.h>
 #include <gravity/model.h>
 

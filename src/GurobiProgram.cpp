@@ -508,7 +508,7 @@ bool GurobiProgram::solve(bool relax, double mipgap, double time_limit){
     //    grb_mod->set(GRB_IntParam_Cuts,0);
     
     grb_mod->set(GRB_DoubleParam_TimeLimit, time_limit);
-    grb_mod->set(GRB_IntParam_OutputFlag,1);
+    // grb_mod->set(GRB_IntParam_OutputFlag,1);
     //grb_mod->set(GRB_DoubleParam_Cutoff,5.33);
     //  grb_mod->set(GRB_IntParam_MinRelNodes,0);
     //    grb_mod->set(GRB_DoubleParam_Heuristics, 1);

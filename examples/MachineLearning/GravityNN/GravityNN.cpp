@@ -2,9 +2,8 @@
 #include <fstream>
 #include <onnx.pb.h>
 #include <vector>
-#include "Layers.hpp"
+#include <network/NeuralNet.hpp>
 #include <gravity/solver.h>
-#include "NeuralNet.hpp"
 
 using namespace gravity;
 

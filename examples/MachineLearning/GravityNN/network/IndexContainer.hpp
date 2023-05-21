@@ -5,7 +5,7 @@
 #include <gravity/types.h>
 #include <gravity/var.h>
 #include <gravity/param.h>
-#include "types.hpp"
+#include <network/types.hpp>
 
 using namespace gravity;
 
