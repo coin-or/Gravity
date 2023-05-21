@@ -34,7 +34,7 @@ int main(int argc, char * argv[]){
     var<int> y("y", 0, 1);
 
     NN.add(x.in(nn.indices.hidden_states));
-    NN.add(y.in(nn.indices.y_ids));
+    // NN.add(y.in(nn.indices.y_ids));
     nn.initialize_state(x, y);
     nn.add_constraints(NN, x, y, nn.indices);
 
@@ -60,7 +60,7 @@ int main(int argc, char * argv[]){
     // grb_mod->set(GRB_DoubleParam_BestBdStop, -1e-4);
     // grb_mod->set(GRB_DoubleParam_BestObjStop, 1e-4);
 
-    S.run(1e-4, 10);
+    S.run();
 
     // NN.print_solution();
 

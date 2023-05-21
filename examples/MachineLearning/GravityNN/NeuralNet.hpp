@@ -155,9 +155,9 @@ public:
             for (size_t o = 0; o < l->outputs.size(); o++) {
                 for(auto j = 0; j < l->forward_values[o]->numel; j++){
                     x.param<double>::set_val(l->outputs[o]->strkey(j), (*l->forward_values[o])(j));
-                    if (l->operator_type == _relu) {
-                        y.param<int>::set_val(l->outputs[o]->strkey(j), (int)((*l->forward_values[o])(j) > 0));
-                    }
+                    // if (l->operator_type == _relu) {
+                        // y.param<int>::set_val(l->outputs[o]->strkey(j), (int)((*l->forward_values[o])(j) > 0));
+                    // }
                 }
             }
         }

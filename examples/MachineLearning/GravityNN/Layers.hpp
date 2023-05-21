@@ -217,6 +217,12 @@ public:
         this->Y = &tensors.at(node.output(0));
     }
 
+    void add_parameters(gravity::param<>& w) const override {
+        for (size_t i = 0; i < this->Y->numel; i++) {
+            w.add_val(this->Y->strkey(i), 0.0);
+        }
+    }
+
     std::vector<std::vector<std::string>> get_indices() const override {
         return {{"In", "Out"}, {}};
     }
@@ -240,17 +246,24 @@ public:
     
     void add_constraints(gravity::Model<>& NN, IndexSet& inds, gravity::param<>& w, gravity::var<>& x, gravity::var<int>& y) override {
         /* Constraints */
-        Constraint<> ReLU("ReLU");
-        ReLU = x.in(inds["Out"]) - x.in(inds["In"]);
-        NN.add(ReLU.in(inds["Constr"]) >= 0);
+        // Constraint<> ReLU("ReLU");
+        // ReLU = x.in(inds["Out"]) - x.in(inds["In"]);
+        // NN.add(ReLU.in(inds["Constr"]) >= 0);
 
         Constraint<> ReLU_on("ReLU_on");
-        ReLU_on = x.in(inds["Out"]) - x.in(inds["In"]);
-        NN.add_on_off(ReLU_on.in(inds["Constr"]) <= 0, y.in(inds["Constr"]), true);
+        ReLU_on = x.in(inds["Out"]) - gravity::max(x.in(inds["In"]), w.in(inds["Out"]));
+        NN.add(ReLU_on.in(inds["Constr"]) == 0);
 
-        Constraint<> ReLU_y_off("ReLU_y_off");
-        ReLU_y_off = x.in(inds["Out"]);
-        NN.add_on_off(ReLU_y_off.in(inds["Constr"]) <= 0, y.in(inds["Constr"]), false);
+        // for (auto i = 0; i < this->X->numel; i++) {
+            // Constraint<> ReLU_off("ReLU_off_" + this->name + "_" + std::to_string(i));
+            // ReLU_off = x(this->Y->strkey(i)) - gravity::max(x(this->X->strkey(i)), w(this->Y->strkey(i)));
+            // NN.add(ReLU_off == 0);
+        // }
+
+
+        // Constraint<> ReLU_y_off("ReLU_y_off");
+        // ReLU_y_off = x.in(inds["Out"]);
+        // NN.add_on_off(ReLU_y_off.in(inds["Constr"]) <= 0, y.in(inds["Constr"]), false);
     }
 
     Tensor* X; // Input

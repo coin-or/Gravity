@@ -935,9 +935,9 @@ void GurobiProgram::create_grb_constraints(){
         }
         c->_new = false;
         
-        if (c->is_nonlinear() && (!(c->_expr->is_uexpr() && c->get_nb_vars()==2) && !c->_expr->is_mexpr())) {
-            throw invalid_argument("Gurobi cannot handle nonlinear constraints with more than two variables, try decomposing your constraints by introducing auxiliary variables.\n");
-        }
+        //if (c->is_nonlinear() && (!(c->_expr->is_uexpr() && c->get_nb_vars()==2) && !c->_expr->is_mexpr())) {
+        //    throw invalid_argument("Gurobi cannot handle nonlinear constraints with more than two variables, try decomposing your constraints by introducing auxiliary variables.\n");
+        // }
         switch(c->get_ctype()) {
             case geq:
                 sense = GRB_GREATER_EQUAL;
@@ -1153,12 +1153,15 @@ void GurobiProgram::create_grb_constraints(){
                     if (c->_expr->_coef!=-1) {
                         throw invalid_argument("Gurobi does not support this type of nonlinear constraints");
                     }
-                    auto mexp = static_pointer_cast<mexpr<>>(c->_expr);
-                    size_t nb_vars = mexp->_children->size();
-                    GRBVar gvars[nb_vars];
-                    for (int k = 0; k<nb_vars; k++) {
-                        gvars[k] = _grb_vars[mexp->_children->at(k).get_id() + mexp->_children->at(k).get_id_inst(i)];
+                    auto mexp = static_pointer_cast<bexpr<>>(c->_expr);
+                    if(mexp->_lson->is_var()) {
+                        auto p = static_pointer_cast<param_>(mexp->_lson);
+                        gvar2 = _grb_vars[p->get_id() + p->get_id_inst(i)];
                     }
+
+                    size_t nb_vars = 1;
+                    GRBVar gvars[nb_vars];
+                    gvars[0] = gvar2;
                     if(mexp->_otype==min_){
                         if(c->_indices)
                             grb_mod->addGenConstrMin(gvar1, gvars, nb_vars,GRB_INFINITY, c->get_name()+"("+c->_indices->_keys->at(i)+")");
@@ -1167,7 +1170,7 @@ void GurobiProgram::create_grb_constraints(){
                     }
                     else {
                         if(c->_indices)
-                            grb_mod->addGenConstrMax(gvar1, gvars, nb_vars,GRB_INFINITY, c->get_name()+"("+c->_indices->_keys->at(i)+")");
+                            grb_mod->addGenConstrMax(gvar1, gvars, nb_vars,0.0, c->get_name()+"("+c->_indices->_keys->at(i)+")");
                         else
                             grb_mod->addGenConstrMax(gvar1, gvars,nb_vars);
                     }
