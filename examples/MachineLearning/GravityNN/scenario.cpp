@@ -51,7 +51,7 @@ int main(int argc, char * argv[]){
     }
 
     // Empty string means we build the entire network, otherwise we build up to the specified node
-    std::string final_node = "";
+    std::string final_node = "/Gemm_1/Gemm";
     NeuralNet nn(fname, final_node);
 
     nn.build_indexing();
@@ -86,32 +86,39 @@ int main(int argc, char * argv[]){
     grb_prog->_model->compute_funcs();
     grb_prog->fill_in_grb_vmap();
     grb_prog->create_grb_constraints();
+    grb_mod->set(GRB_IntParam_MIPFocus,3);
+    grb_mod->set(GRB_DoubleParam_BestBdStop, -1e-4);
+    // grb_mod->set(GRB_DoubleParam_BestObjStop, 1e-4);
 
-    auto obj = x(nn.layers.back()->outputs[0]->strkey(0)) +
-        x(nn.layers.back()->outputs[0]->strkey(1)) +
-        x(nn.layers.back()->outputs[0]->strkey(2));
+    gravity::func<> obj = 0;
+    for (int i = 0; i < nn.layers[3]->outputs[0]->numel; ++i) {
+        obj += x(nn.layers[3]->outputs[0]->strkey(i));
+    }
+    size_t nvals = nn.layers[3]->outputs[0]->numel;
+    
+
     auto out = build_objective(obj, grb_prog);
     auto grb_obj = out.first;
     auto vars = out.second;
 
-    grb_mod->set(GRB_IntAttr_NumScenarios, 3);
+    grb_mod->set(GRB_IntAttr_NumScenarios, nvals);
     grb_mod->setObjective(grb_obj, GRB_MAXIMIZE);
 
-    for (int i = 0; i < 3; ++i) {
+    for (int i = 0; i < nvals; ++i) {
         // grb_mod->set(GRB_StringAttr_ScenNName, idx);
         grb_mod->set(GRB_IntParam_ScenarioNumber, i);
-        vars[0].set(GRB_DoubleAttr_ScenNObj, 0.0);
-        vars[1].set(GRB_DoubleAttr_ScenNObj, 0.0);
-        vars[2].set(GRB_DoubleAttr_ScenNObj, 0.0);
+        for (auto j = 0; j < nvals; j++) {
+            vars[j].set(GRB_DoubleAttr_ScenNObj, 0.0);
+        }
         vars[i].set(GRB_DoubleAttr_ScenNObj, 1.0);
     }
 
-    grb_mod->set(GRB_DoubleParam_TimeLimit, 1000.0);
+    grb_mod->set(GRB_DoubleParam_TimeLimit, 30.0);
     grb_mod->update();
     grb_mod->optimize();
 
     // Print out obj vals for each scenario
-    for (int i = 0; i < 3; i++) {
+    for (int i = 0; i < nvals; i++) {
         if(grb_mod->get(GRB_IntAttr_SolCount) == 0) {
             continue;
         }
@@ -123,10 +130,10 @@ int main(int argc, char * argv[]){
         std::cout << "######################################################" << std::endl;
         std::cout << "Scen " << i << ": " << scenarioObjVal << " (" << scenarioObjBound << ")" << std::endl;
         std::cout << "Solution: " << std::endl;
-        auto soln = get_solution(grb_mod, grb_prog);
-        for (auto& s: soln) {
-            std::cout << s.first << ": " << s.second << std::endl;
-        }
+        // auto soln = get_solution(grb_mod, grb_prog);
+        // for (auto& s: soln) {
+            // std::cout << s.first << ": " << s.second << std::endl;
+        // }
     }
 
     return 0;
