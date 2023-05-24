@@ -74,6 +74,8 @@ public:
                 node_ptr = new Div(node, this->tensors);
             } else if (node.op_type() == "Gather") {
                 node_ptr = new Gather(node, this->tensors);
+            } else if (node.op_type() == "Clip") {
+                node_ptr = new Clip(node, this->tensors);
             } else {
                 throw std::runtime_error("Unsupported operator " + node.op_type());
             }
@@ -128,6 +130,14 @@ public:
             if (l->operator_type == _relu) {
                 for(auto j = 0; j < l->outputs[0]->numel;j++){
                     x_lb.set_val(l->outputs[0]->strkey(j), 0.0);
+                }
+            }
+
+            if (l->operator_type == _clip) {
+                auto clip = static_cast<Clip*>(l);
+                for(auto j = 0; j < l->outputs[0]->numel;j++){
+                    x_lb.set_val(l->outputs[0]->strkey(j), clip->min);
+                    x_ub.set_val(l->outputs[0]->strkey(j), clip->max);
                 }
             }
 

@@ -6341,7 +6341,7 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
             if (c.get_ftype() != lin_) {
                 throw invalid_argument("Calling add_on_off with a nonlinear constraint.\n");
             }
-            c._on_off_bin = get_ptr_var<int>(on.get_name(false, true));
+            c._on_off_bin = make_shared<var<int>>(on);
             c._on_off = on_status;
             add_constraint(c);
         }

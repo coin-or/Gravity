@@ -549,184 +549,184 @@ bool GurobiProgram::solve(bool relax, double mipgap, double time_limit){
     
     if(grb_mod->get(GRB_IntAttr_SolCount)>0)
         update_solution();
-    bool not_sdp=false;
-    if(grb_mod->get(GRB_IntAttr_Status)==2){
-        if(!_model->_complex){
-            if(_model->sdp_dual){
-                if(_model->check_PSD()<=-1e-9)
-                    not_sdp=true;
-            }
-            else{
-                if(_model->check_PSD_bags()<=-1e-9)
-                    not_sdp=true;
-            }
-        }
-        else{
-            /*Write Check PSD bags complex case*/
-        }
-    }
+    //bool not_sdp=false;
+    //if(grb_mod->get(GRB_IntAttr_Status)==2){
+    //    if(!_model->_complex){
+    //        if(_model->sdp_dual){
+    //            if(_model->check_PSD()<=-1e-9)
+    //                not_sdp=true;
+    //        }
+    //        else{
+    //            if(_model->check_PSD_bags()<=-1e-9)
+    //                not_sdp=true;
+    //        }
+    //    }
+    //    else{
+    //        /*Write Check PSD bags complex case*/
+    //    }
+    //}
     
-    int count=0;
-    auto ts=get_wall_time();
-    while(not_sdp && count<=3000 && !_model->_complex){
-        int soc_viol=0, soc_added=0, soc_found;
-        bool hierarc = false;
-        bool add_full=false;
-        bool add_bag=false;
-        bool add_soc=true;
-        bool add_threed=true;
-        if(_model->sdp_dual){
-            add_full=true;
-        }
-        else{
-            add_bag=true;
-        }
-        if(_model->_bag_names.size()==1)
-            add_bag=false;
-        bool add_bag_iteration;
-        bool add_full_iteration;
-        add_bag_iteration=add_bag;
-        add_full_iteration=add_full;
-        /* Found an integer feasible solution */
-        bool add_cut=false;
-        if(add_soc){
-            
-            auto res= _model->cutting_planes_soc(1e-6, soc_found, soc_added);
-            if(res.size()>=1){
-                for(auto i=0;i<res.size();i++){
-                    GRBLinExpr expr = 0;
-                    size_t j=0;
-                    for(j=0;j<res[i].size()-1;j++){
-                        auto c=res[i][j];
-                        size_t symb_id = c.first.first;
-                        size_t v_id = *_model->_vars.at(symb_id)->_id;
-                        expr += c.second*_grb_vars[v_id+c.first.second];
-                    }
-                    expr += res[i][j].second;
-                    grb_mod->addConstr(expr, GRB_LESS_EQUAL, 0);
-                    _model->num_cuts[0]++;
-                }
-            }
-            if(hierarc && res.size()>=1){
-                add_bag_iteration=false;
-                add_full_iteration=false;
-            }
-        }
-//        if(add_bag_iteration){
-//            auto res1=_model->cuts_eigen_bags(1e-6);
-//            if(res1.size()>=1){
-//                add_cut=true;
-//                for(auto i=0;i<res1.size();i++){
-//                    GRBLinExpr expr = 0;
-//                    int j;
-//                    for(j=0;j<res1[i].size()-1;j+=2){
-//                        int c=res1[i][j];
-//                        expr += res1[i][j+1]*_grb_vars[c];
-//                    }
-//                    expr += res1[i][j];
-//                    grb_mod->addConstr(expr, GRB_LESS_EQUAL, 0);
-//                    _model->num_cuts[1]++;
-//                }
-//            }
-//            if(res1.size()>=1 && hierarc)
-//                add_full_iteration=false;
-//        }
-        if(add_full_iteration){
-            auto res2=_model->cuts_eigen_full(1e-6);
-            if(res2.size()>=1){
-                add_cut=true;
-                for(auto i=0;i<res2.size();i++){
-                    GRBLinExpr expr = 0;
-                    size_t j=0;
-                    for(j=0;j<res2[i].size()-1;j++){
-                        auto c=res2[i][j];
-                        expr += c.second*_grb_vars[c.first.first+c.first.second];
-                    }
-                    expr += res2[i][j].second;
-                    grb_mod->addConstr(expr, GRB_LESS_EQUAL, 0);
-                    _model->num_cuts[2]++;
-                }
-            }
-        }
-        
-        
-        if(!add_cut)
-            not_sdp=false;
-        
-        if(not_sdp){
-            grb_mod->update();
-            grb_mod->optimize();
-            if(grb_mod->get(GRB_IntAttr_Status)!=2){
-                //                    DebugOn("status "<<grb_mod->get(GRB_IntAttr_Status)<<endl);
-                //                    grb_mod->computeIIS();
-                //                    grb_mod->write("b.mps");
-                //                    grb_mod->write("a.ilp");
-                break;
-            }
-            
-            if(grb_mod->get(GRB_IntAttr_SolCount)>0)
-                update_solution();
-            //                sol_old=sol_new;
-            //                sol_new=grb_mod->get(GRB_DoubleAttr_ObjVal);
-        }
-        
-        count++;
-    }
-    while(not_sdp && count<=3000 && _model->_complex){
-        int soc_viol=0, soc_added=0;
-        auto res1=_model->cutting_planes_square(1e-6);
-        if(res1.size()>=1){
-            for(auto i=0;i<res1.size();i++){
-                GRBLinExpr expr = 0;
-                int j=0;
-                for(j=0;j<res1[i].size()-1;j+=2){
-                    int c=res1[i][j];
-                    expr += res1[i][j+1]*_grb_vars[c];
-                }
-                expr+=res1[i][j];
-                grb_mod->addConstr(expr, GRB_LESS_EQUAL, 0);
-            }
-        }
-        if(true){
-            auto res=_model->cuts_eigen_bags_primal_complex(1e-6, "Wii", "R_Wij", "Im_Wij");
-            if(res.size()>=1){
-                for(auto i=0;i<res.size();i++){
-                    GRBLinExpr expr = 0;
-                    int j=0;
-                    for(j=0;j<res[i].size()-1;j+=2){
-                        int c=res[i][j];
-                        expr += res[i][j+1]*_grb_vars[c];
-                    }
-                    expr+=res[i][j];
-                    grb_mod->addConstr(expr, GRB_LESS_EQUAL, 0);
-                }
-            }
-            if(res.size()==0 && res1.size()==0){
-                not_sdp=false;
-            }
-        }
-        if(not_sdp){
-            grb_mod->update();
-            grb_mod->optimize();
-            if(grb_mod->get(GRB_IntAttr_Status)!=2){
-                //                    DebugOn("status "<<grb_mod->get(GRB_IntAttr_Status)<<endl);
-                //                    grb_mod->computeIIS();
-                //                    grb_mod->write("b.mps");
-                //                    grb_mod->write("a.ilp");
-                break;
-            }
-        }
-        
-        if(grb_mod->get(GRB_IntAttr_SolCount)>0)
-            update_solution();
-        if(grb_mod->get(GRB_DoubleAttr_ObjVal)>=0.99)
-            break;
-        
-        
-        count++;
-    }
-    auto tf=get_wall_time();
-    DebugOn("While loop Count "<<count<<" in time "<<tf-ts<<endl);
+    //int count=0;
+    //auto ts=get_wall_time();
+    //while(not_sdp && count<=3000 && !_model->_complex){
+    //    int soc_viol=0, soc_added=0, soc_found;
+    //    bool hierarc = false;
+    //    bool add_full=false;
+    //    bool add_bag=false;
+    //    bool add_soc=true;
+    //    bool add_threed=true;
+    //    if(_model->sdp_dual){
+    //        add_full=true;
+    //    }
+    //    else{
+    //        add_bag=true;
+    //    }
+    //    if(_model->_bag_names.size()==1)
+    //        add_bag=false;
+    //    bool add_bag_iteration;
+    //    bool add_full_iteration;
+    //    add_bag_iteration=add_bag;
+    //    add_full_iteration=add_full;
+    //    /* Found an integer feasible solution */
+    //    bool add_cut=false;
+    //    if(add_soc){
+    //        
+    //        auto res= _model->cutting_planes_soc(1e-6, soc_found, soc_added);
+    //        if(res.size()>=1){
+    //            for(auto i=0;i<res.size();i++){
+    //                GRBLinExpr expr = 0;
+    //                size_t j=0;
+    //                for(j=0;j<res[i].size()-1;j++){
+    //                    auto c=res[i][j];
+    //                    size_t symb_id = c.first.first;
+    //                    size_t v_id = *_model->_vars.at(symb_id)->_id;
+    //                    expr += c.second*_grb_vars[v_id+c.first.second];
+    //                }
+    //                expr += res[i][j].second;
+    //                grb_mod->addConstr(expr, GRB_LESS_EQUAL, 0);
+    //                _model->num_cuts[0]++;
+    //            }
+    //        }
+    //        if(hierarc && res.size()>=1){
+    //            add_bag_iteration=false;
+    //            add_full_iteration=false;
+    //        }
+    //    }
+//  //      if(add_bag_iteration){
+//  //          auto res1=_model->cuts_eigen_bags(1e-6);
+//  //          if(res1.size()>=1){
+//  //              add_cut=true;
+//  //              for(auto i=0;i<res1.size();i++){
+//  //                  GRBLinExpr expr = 0;
+//  //                  int j;
+//  //                  for(j=0;j<res1[i].size()-1;j+=2){
+//  //                      int c=res1[i][j];
+//  //                      expr += res1[i][j+1]*_grb_vars[c];
+//  //                  }
+//  //                  expr += res1[i][j];
+//  //                  grb_mod->addConstr(expr, GRB_LESS_EQUAL, 0);
+//  //                  _model->num_cuts[1]++;
+//  //              }
+//  //          }
+//  //          if(res1.size()>=1 && hierarc)
+//  //              add_full_iteration=false;
+//  //      }
+    //    if(add_full_iteration){
+    //        auto res2=_model->cuts_eigen_full(1e-6);
+    //        if(res2.size()>=1){
+    //            add_cut=true;
+    //            for(auto i=0;i<res2.size();i++){
+    //                GRBLinExpr expr = 0;
+    //                size_t j=0;
+    //                for(j=0;j<res2[i].size()-1;j++){
+    //                    auto c=res2[i][j];
+    //                    expr += c.second*_grb_vars[c.first.first+c.first.second];
+    //                }
+    //                expr += res2[i][j].second;
+    //                grb_mod->addConstr(expr, GRB_LESS_EQUAL, 0);
+    //                _model->num_cuts[2]++;
+    //            }
+    //        }
+    //    }
+    //    
+    //    
+    //    if(!add_cut)
+    //        not_sdp=false;
+    //    
+    //    if(not_sdp){
+    //        grb_mod->update();
+    //        grb_mod->optimize();
+    //        if(grb_mod->get(GRB_IntAttr_Status)!=2){
+    //            //                    DebugOn("status "<<grb_mod->get(GRB_IntAttr_Status)<<endl);
+    //            //                    grb_mod->computeIIS();
+    //            //                    grb_mod->write("b.mps");
+    //            //                    grb_mod->write("a.ilp");
+    //            break;
+    //        }
+    //        
+    //        if(grb_mod->get(GRB_IntAttr_SolCount)>0)
+    //            update_solution();
+    //        //                sol_old=sol_new;
+    //        //                sol_new=grb_mod->get(GRB_DoubleAttr_ObjVal);
+    //    }
+    //    
+    //    count++;
+    //}
+    //while(not_sdp && count<=3000 && _model->_complex){
+    //    int soc_viol=0, soc_added=0;
+    //    auto res1=_model->cutting_planes_square(1e-6);
+    //    if(res1.size()>=1){
+    //        for(auto i=0;i<res1.size();i++){
+    //            GRBLinExpr expr = 0;
+    //            int j=0;
+    //            for(j=0;j<res1[i].size()-1;j+=2){
+    //                int c=res1[i][j];
+    //                expr += res1[i][j+1]*_grb_vars[c];
+    //            }
+    //            expr+=res1[i][j];
+    //            grb_mod->addConstr(expr, GRB_LESS_EQUAL, 0);
+    //        }
+    //    }
+    //    if(true){
+    //        auto res=_model->cuts_eigen_bags_primal_complex(1e-6, "Wii", "R_Wij", "Im_Wij");
+    //        if(res.size()>=1){
+    //            for(auto i=0;i<res.size();i++){
+    //                GRBLinExpr expr = 0;
+    //                int j=0;
+    //                for(j=0;j<res[i].size()-1;j+=2){
+    //                    int c=res[i][j];
+    //                    expr += res[i][j+1]*_grb_vars[c];
+    //                }
+    //                expr+=res[i][j];
+    //                grb_mod->addConstr(expr, GRB_LESS_EQUAL, 0);
+    //            }
+    //        }
+    //        if(res.size()==0 && res1.size()==0){
+    //            not_sdp=false;
+    //        }
+    //    }
+    //    if(not_sdp){
+    //        grb_mod->update();
+    //        grb_mod->optimize();
+    //        if(grb_mod->get(GRB_IntAttr_Status)!=2){
+    //            //                    DebugOn("status "<<grb_mod->get(GRB_IntAttr_Status)<<endl);
+    //            //                    grb_mod->computeIIS();
+    //            //                    grb_mod->write("b.mps");
+    //            //                    grb_mod->write("a.ilp");
+    //            break;
+    //        }
+    //    }
+    //    
+    //    if(grb_mod->get(GRB_IntAttr_SolCount)>0)
+    //        update_solution();
+    //    if(grb_mod->get(GRB_DoubleAttr_ObjVal)>=0.99)
+    //        break;
+    //    
+    //    
+    //    count++;
+    //}
+    //auto tf=get_wall_time();
+    //DebugOn("While loop Count "<<count<<" in time "<<tf-ts<<endl);
     
     // grb_mod->update();
     // grb_mod->optimize();

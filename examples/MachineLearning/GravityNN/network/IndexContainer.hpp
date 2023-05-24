@@ -13,7 +13,26 @@ class IndexSet {
 public:
     IndexSet() {}
 
-    IndexSet(std::vector<string> state_names, std::vector<std::string> w_names, indices& hidden_states, indices& w_ids) {
+    IndexSet(std::vector<string> state_names, std::vector<std::string> w_names, std::vector<std::string> y_names, indices& hidden_states, indices& w_ids, indices& y_ids) {
+        this->_indices["Constr"] = indices("Constr");
+
+        for (const auto& name : state_names) {
+            this->_indices[name] = indices(name);
+            this->_indices[name] = hidden_states;
+        }
+
+        for (const auto& name : w_names) {
+            this->_indices[name] = indices(name);
+            this->_indices[name] = w_ids;
+        }
+
+        for (const auto& name : y_names) {
+            this->_indices[name] = indices(name);
+            this->_indices[name] = y_ids;
+        }
+    }
+
+    IndexSet(std::vector<string> state_names, std::vector<std::string> w_names, indices& hidden_states, indices& w_ids, indices& y_ids) {
         this->_indices["Constr"] = indices("Constr");
 
         for (const auto& name : state_names) {
@@ -52,7 +71,13 @@ public:
         if (this->_indices.count(op) > 0) {
             return;
         }
-        this->_indices[op] = IndexSet(names[0], names[1], this->hidden_states, this->w_ids);
+
+        if (names.size() == 2) {
+            this->_indices[op] = IndexSet(names[0], names[1], this->hidden_states, this->w_ids, this->y_ids);
+        } else {
+            this->_indices[op] = IndexSet(names[0], names[1], names[2], this->hidden_states, this->w_ids, this->y_ids);
+
+        }
     }
 
     IndexSet& operator()(OType op) {

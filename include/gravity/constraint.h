@@ -180,6 +180,8 @@ public:
         _all_active = c._all_active;
         _active = c._active;
         _callback=c._callback;
+        _on_off_bin = c._on_off_bin;
+        _on_off = c._on_off;
         this->_all_lazy = make_shared<bool>(*c._all_lazy);
         _lazy = c._lazy;
         _all_satisfied = c._all_satisfied;
