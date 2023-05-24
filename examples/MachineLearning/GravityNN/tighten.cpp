@@ -12,31 +12,19 @@
 using namespace gravity;
 
 void final_run(std::string fname, const std::vector<Bound>& global_bounds) {
-    std::cout << "A" << std::endl;
     NeuralNet nn(fname);
-    std::cout << "B" << std::endl;
 
-    std::cout << "C" << std::endl;
     nn.build_indexing();
-    std::cout << "D" << std::endl;
     nn.build_constraints();
-    std::cout << "E" << std::endl;
 
     Model<> NN("NN_"+fname.substr(fname.find_last_of("/")));
-    std::cout << "F" << std::endl;
     param<> x_lb("x_lb"), x_ub("x_ub");
-    std::cout << "G" << std::endl;
     x_lb.in(nn.indices.hidden_states);
-    std::cout << "H" << std::endl;
     x_ub.in(nn.indices.hidden_states);
-    std::cout << "I" << std::endl;
     x_lb = std::numeric_limits<double>::lowest();
-    std::cout << "J" << std::endl;
     x_ub = std::numeric_limits<double>::max();
-    std::cout << "K" << std::endl;
 
     nn.set_bounds(x_lb, x_ub);
-    std::cout << "L" << std::endl;
     // use newbounds
     for (auto& v: global_bounds) {
         if (nn.layer_names.count(v.layer_name) == 0) {
@@ -49,38 +37,24 @@ void final_run(std::string fname, const std::vector<Bound>& global_bounds) {
             x_ub.set_val(v.neuron_name, v.value);
         }
     }
-    std::cout << "M" << std::endl;
 
     var<> x("x", x_lb, x_ub);
-    std::cout << "N" << std::endl;
     var<int> y("y", 0, 1);
-    std::cout << "O" << std::endl;
-    nn.initialize_state(x, y);
-    std::cout << "P" << std::endl;
 
     NN.add(x.in(nn.indices.hidden_states));
-    std::cout << "Q" << std::endl;
     NN.add(y.in(nn.indices.y_ids));
-    std::cout << "R" << std::endl;
+    nn.initialize_state(x, y);
     nn.add_constraints(NN, x, y, nn.indices);
-    std::cout << "S" << std::endl;
 
     NN.max(x(nn.layers.back()->outputs[0]->strkey(0)));
-    std::cout << "T" << std::endl;
 
     solver<> S(NN,gurobi);
     auto grb_prog = (GurobiProgram*)(S._prog.get());
     auto grb_mod = grb_prog->grb_mod;
-    grb_mod->set(GRB_IntParam_Threads, 64);
+    grb_mod->set(GRB_IntParam_Threads, 8);
     grb_mod->set(GRB_IntParam_OutputFlag, 1);
-    std::cout << "U" << std::endl;
 
     int retval = S.run();
-    std::cout << "V" << std::endl;
-
-    if (retval == 3) {
-        throw std::runtime_error("Infeasible");
-    }
 }
 
 float bound_neuron(std::string fname, Bound neuron, const std::vector<Bound>& global_bounds) {
@@ -131,7 +105,7 @@ float bound_neuron(std::string fname, Bound neuron, const std::vector<Bound>& gl
     // grb_mod->set(GRB_DoubleParam_BestBdStop, -1e-4);
     // grb_mod->set(GRB_DoubleParam_BestObjStop, 1e-4);
 
-    int retval = S.run(1e-4, 5.0);
+    int retval = S.run(1e-4, 2.0);
 
     if (retval == 3) {
         throw std::runtime_error("Infeasible");
@@ -195,6 +169,10 @@ int main(int argc, char * argv[]) {
 
             local_bounds.push_back(Bound(l->name, name, lb, LOWER));
             local_bounds.push_back(Bound(l->name, name, ub, UPPER));
+
+            if (local_bounds.size() > 8) {
+                break;
+            }
         }
 
         std::cout << "Number of neurons to optimize: " << local_bounds.size() << std::endl;
@@ -205,7 +183,7 @@ int main(int argc, char * argv[]) {
         dup2(new_, 1);
         close(new_);
 
-        #pragma omp parallel for num_threads(64)
+        #pragma omp parallel for num_threads(8)
         for (auto& neuron: local_bounds) {
             auto new_bound = bound_neuron(fname, neuron, global_bounds);
             auto prev_bound = neuron.value;
