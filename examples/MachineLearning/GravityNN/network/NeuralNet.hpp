@@ -168,6 +168,22 @@ public:
                     if (l->operator_type == _relu) {
                         y.param<int>::set_val(l->outputs[o]->strkey(j), (int)((*l->forward_values[o])(j) > 0));
                     }
+
+                    if (l->operator_type == _clip) {
+                        auto fv = (*l->forward_values[o])(j);
+                        auto clip = static_cast<Clip*>(l);
+                        y.param<int>::set_val(l->outputs[o]->strkey(j) + "_min", 0);
+                        y.param<int>::set_val(l->outputs[o]->strkey(j) + "_max", 0);
+                        y.param<int>::set_val(l->outputs[o]->strkey(j) + "_eq",  0);
+                        // 3 cases: x < min, min <= x <= max, x > max
+                        if (fv < clip->min) {
+                            y.param<int>::set_val(l->outputs[o]->strkey(j) + "_min", 1);
+                        } else if (fv > clip->max) {
+                            y.param<int>::set_val(l->outputs[o]->strkey(j) + "_max", 1);
+                        } else {
+                            y.param<int>::set_val(l->outputs[o]->strkey(j) + "_eq",  1);
+                        }
+                    }
                 }
             }
         }
