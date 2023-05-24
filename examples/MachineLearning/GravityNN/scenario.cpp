@@ -51,7 +51,7 @@ int main(int argc, char * argv[]){
     }
 
     // Empty string means we build the entire network, otherwise we build up to the specified node
-    std::string final_node = "/Gemm_1/Gemm";
+    std::string final_node = "/Gemm_2/Gemm";
     NeuralNet nn(fname, final_node);
 
     nn.build_indexing();
@@ -80,22 +80,19 @@ int main(int argc, char * argv[]){
     solver<> S(NN,gurobi);
     auto grb_prog = (GurobiProgram*)(S._prog.get());
     auto grb_mod = grb_prog->grb_mod;
-    grb_mod->set(GRB_IntParam_Threads, 8);
+    grb_mod->set(GRB_IntParam_Threads, 1);
 
     grb_prog->_model->fill_in_maps();
     grb_prog->_model->compute_funcs();
     grb_prog->fill_in_grb_vmap();
     grb_prog->create_grb_constraints();
+    grb_mod->set(GRB_IntParam_OutputFlag, 1);
     grb_mod->set(GRB_IntParam_MIPFocus,3);
-    grb_mod->set(GRB_DoubleParam_BestBdStop, -1e-4);
+    // grb_mod->set(GRB_DoubleParam_BestBdStop, -1e-4);
     // grb_mod->set(GRB_DoubleParam_BestObjStop, 1e-4);
 
-    gravity::func<> obj = 0;
-    for (int i = 0; i < nn.layers[3]->outputs[0]->numel; ++i) {
-        obj += x(nn.layers[3]->outputs[0]->strkey(i));
-    }
-    size_t nvals = nn.layers[3]->outputs[0]->numel;
-    
+    gravity::func<> obj = x("/Gemm_2/Gemm_output_0,73");
+    size_t nvals = 2;
 
     auto out = build_objective(obj, grb_prog);
     auto grb_obj = out.first;
@@ -104,17 +101,16 @@ int main(int argc, char * argv[]){
     grb_mod->set(GRB_IntAttr_NumScenarios, nvals);
     grb_mod->setObjective(grb_obj, GRB_MAXIMIZE);
 
-    for (int i = 0; i < nvals; ++i) {
-        // grb_mod->set(GRB_StringAttr_ScenNName, idx);
-        grb_mod->set(GRB_IntParam_ScenarioNumber, i);
-        for (auto j = 0; j < nvals; j++) {
-            vars[j].set(GRB_DoubleAttr_ScenNObj, 0.0);
-        }
-        vars[i].set(GRB_DoubleAttr_ScenNObj, 1.0);
-    }
+    // Scen 0 (ub)
+    grb_mod->set(GRB_IntParam_ScenarioNumber, 0);
+    vars[0].set(GRB_DoubleAttr_ScenNObj, 1.0);
+    // Scen 1 (lb)
+    grb_mod->set(GRB_IntParam_ScenarioNumber, 1);
+    vars[0].set(GRB_DoubleAttr_ScenNObj, -1.0);
 
-    grb_mod->set(GRB_DoubleParam_TimeLimit, 30.0);
+    grb_mod->set(GRB_DoubleParam_TimeLimit, 10.0);
     grb_mod->update();
+    grb_mod->write("multi.lp");
     grb_mod->optimize();
 
     // Print out obj vals for each scenario

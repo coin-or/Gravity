@@ -20,6 +20,7 @@ add_executable(
 target_include_directories(GravityNN PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/MachineLearning/GravityNN)
 target_link_libraries(GravityNN ${PROTOBUF_LIBRARIES} gravity)
 
+find_package(OpenMP)
 add_executable(
   tighten
 	MachineLearning/GravityNN/tighten.cpp
@@ -27,7 +28,7 @@ add_executable(
   ${ONNX_PROTO_HDRS}
 )
 target_include_directories(tighten PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/MachineLearning/GravityNN)
-target_link_libraries(tighten ${PROTOBUF_LIBRARIES} gravity)
+target_link_libraries(tighten ${PROTOBUF_LIBRARIES} gravity OpenMP::OpenMP_CXX)
 
 add_executable(
   scenario

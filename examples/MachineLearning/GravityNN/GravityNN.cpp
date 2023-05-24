@@ -53,8 +53,8 @@ int main(int argc, char * argv[]){
     solver<> S(NN,gurobi);
     auto grb_prog = (GurobiProgram*)(S._prog.get());
     auto grb_mod = grb_prog->grb_mod;
-    grb_mod->set(GRB_IntParam_Threads, 8);
-    grb_mod->set(GRB_IntParam_NonConvex,2);
+    grb_mod->set(GRB_IntParam_Threads, 64);
+    // grb_mod->set(GRB_IntParam_NonConvex,2);
     // grb_mod->set(GRB_IntParam_MIPFocus,3);
     // grb_mod->set(GRB_DoubleParam_BestBdStop, -1e-4);
     // grb_mod->set(GRB_DoubleParam_BestObjStop, 1e-4);

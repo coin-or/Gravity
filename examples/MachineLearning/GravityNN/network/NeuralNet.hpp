@@ -120,8 +120,8 @@ public:
             }
             for (size_t o = 0; o < l->outputs.size(); o++) {
                 for(auto j = 0; j < l->outputs[o]->numel; j++){
-                    x_lb.set_val(l->outputs[o]->strkey(j), -1.0);
-                    x_ub.set_val(l->outputs[o]->strkey(j),  1.0);
+                    x_lb.set_val(l->outputs[o]->strkey(j), -10.0);
+                    x_ub.set_val(l->outputs[o]->strkey(j),  10.0);
                 }
             }
         }
