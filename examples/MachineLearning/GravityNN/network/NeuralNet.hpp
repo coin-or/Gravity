@@ -115,41 +115,25 @@ public:
 
     void set_bounds(gravity::param<>& x_lb, gravity::param<>& x_ub) {
         for (auto l: this->layers) {
-            if (l->operator_type != _input) {
-                continue;
-            }
-            for (size_t o = 0; o < l->outputs.size(); o++) {
-                for(auto j = 0; j < l->outputs[o]->numel; j++){
-                    x_lb.set_val(l->outputs[o]->strkey(j), -10.0);
-                    x_ub.set_val(l->outputs[o]->strkey(j),  10.0);
-                }
-            }
-        }
-        for (auto l: this->layers) {
-            // Enforce lb of 0 for relu
-            if (l->operator_type == _relu) {
-                for(auto j = 0; j < l->outputs[0]->numel;j++){
-                    x_lb.set_val(l->outputs[0]->strkey(j), 0.0);
-                }
-            }
+            for (auto o: l->outputs) {
+                for(auto j = 0; j < o->numel; j++){
+                    x_lb.set_val(o->strkey(j), o->lb.at(j));
+                    x_ub.set_val(o->strkey(j), o->ub.at(j));
 
-            if (l->operator_type == _clip) {
-                auto clip = static_cast<Clip*>(l);
-                for(auto j = 0; j < l->outputs[0]->numel;j++){
-                    x_lb.set_val(l->outputs[0]->strkey(j), clip->min);
-                    x_ub.set_val(l->outputs[0]->strkey(j), clip->max);
-                }
-            }
+                    if (l->operator_type == _clip) {
+                        auto clip = static_cast<Clip*>(l);
+                        x_lb.set_val(o->strkey(j), clip->min);
+                        x_ub.set_val(o->strkey(j), clip->max);
+                    }
 
-            // Set provided bounds, skip if not provided
-            if (l->lowers.size() == 0) {
-                continue;
-            }
+                    if (l->operator_type == _relu) {
+                        x_lb.set_val(o->strkey(j), 0.0);
+                    }
 
-            for (size_t o = 0; o < l->outputs.size(); o++) {
-                for(auto j = 0; j < l->lowers[o]->numel; j++){
-                    x_lb.set_val(l->outputs[o]->strkey(j), (*l->lowers[o])(j));
-                    x_ub.set_val(l->outputs[o]->strkey(j), (*l->uppers[o])(j));
+                    if (l->operator_type == _input) {
+                        x_lb.set_val(o->strkey(j), std::max(-10.0f, o->lb.at(j)));
+                        x_ub.set_val(o->strkey(j), std::min( 10.0f, o->ub.at(j)));
+                    }
                 }
             }
         }
@@ -157,35 +141,32 @@ public:
 
     void initialize_state(gravity::var<>& x, gravity::var<int>& y) {
         for (auto l: this->layers) {
-            // Set provided forward values, skip if not provided
-            if (l->forward_values.size() == 0) {
-                continue;
-            }
+            for (auto o: l->outputs) {
+                for(auto j = 0; j < o->numel; j++){
+                    auto fv = o->forward.at(j);
+                    auto key = o->strkey(j);
 
-            for (size_t o = 0; o < l->outputs.size(); o++) {
-                for(auto j = 0; j < l->forward_values[o]->numel; j++){
-                    auto fv = (*l->forward_values[o])(j);
-
-                    x.param<double>::set_val(l->outputs[o]->strkey(j), fv);
+                    x.param<double>::set_val(key, fv);
                     if (l->operator_type == _relu) {
-                        y.param<int>::set_val(l->outputs[o]->strkey(j), (int)(fv > 0));
+                        y.param<int>::set_val(key, (int)(fv > 0));
                     }
 
                     if (l->operator_type == _clip) {
                         auto clip = static_cast<Clip*>(l);
-                        y.param<int>::set_val(l->outputs[o]->strkey(j) + "_min", 0);
-                        y.param<int>::set_val(l->outputs[o]->strkey(j) + "_max", 0);
-                        y.param<int>::set_val(l->outputs[o]->strkey(j) + "_eq",  0);
+                        y.param<int>::set_val(key + "_min", 0);
+                        y.param<int>::set_val(key + "_max", 0);
+                        y.param<int>::set_val(key + "_eq",  0);
                         // 3 cases: x < min, min <= x <= max, x > max
                         if (fv < clip->min) {
-                            y.param<int>::set_val(l->outputs[o]->strkey(j) + "_min", 1);
+                            y.param<int>::set_val(key + "_min", 1);
                         } else if (fv > clip->max) {
-                            y.param<int>::set_val(l->outputs[o]->strkey(j) + "_max", 1);
+                            y.param<int>::set_val(key + "_max", 1);
                         } else {
-                            y.param<int>::set_val(l->outputs[o]->strkey(j) + "_eq",  1);
+                            y.param<int>::set_val(key + "_eq",  1);
                         }
                     }
                 }
+
             }
         }
     }

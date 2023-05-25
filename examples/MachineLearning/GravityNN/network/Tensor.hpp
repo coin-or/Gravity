@@ -139,6 +139,10 @@ public:
         }
         this->numel = vecprod(this->shape);
         this->ndims = std::max(this->shape.size(), (size_t)1);
+
+        this->lb = std::vector<float>(this->numel, std::numeric_limits<float>::lowest());
+        this->ub = std::vector<float>(this->numel, std::numeric_limits<float>::max());
+        this->forward = std::vector<float>(this->numel, 0);
     }
 
     void _boundcheck(size_t flat_idx) const {
@@ -152,12 +156,21 @@ public:
         this->data = data;
     }
 
+    std::vector<float> get_data() {
+        return this->data;
+    }
+
     std::string name;
     bool is_initializer;
 
     std::vector<size_t> shape;
     size_t numel;
     size_t ndims;
+
+    // LB/UB/Forward
+    std::vector<float> lb;
+    std::vector<float> ub;
+    std::vector<float> forward;
 
 private:
     std::vector<float> data;
@@ -207,6 +220,39 @@ Tensors get_tensors(const onnx::GraphProto& graph) {
         Tensor datat = Tensor(node.attribute(0).t());
         datat.name = name;
         tensors[name] = datat;
+    }
+
+    // Search for tensors that end in _lower, _upper, or _forward
+    std::set<std::string> todel;
+    for (auto& tup: tensors) {
+        auto name = tup.first;
+        auto& tensor = tup.second;
+        
+        if (ends_with(name, "_lower")) {
+            auto base_name = name.substr(0, name.size() - 6);
+            if (tensors.find(base_name) == tensors.end()) {
+                throw std::runtime_error("Tensor " + base_name + " not found in graph");
+            }
+            Tensor& base_tensor = tensors.at(base_name);
+            base_tensor.lb = tensor.get_data();
+            todel.insert(name);
+        } else if (ends_with(name, "_upper")) {
+            auto base_name = name.substr(0, name.size() - 6);
+            if (tensors.find(base_name) == tensors.end()) {
+                throw std::runtime_error("Tensor " + base_name + " not found in graph");
+            }
+            Tensor& base_tensor = tensors.at(base_name);
+            base_tensor.ub = tensor.get_data();
+            todel.insert(name);
+        } else if (ends_with(name, "_forward")) {
+            auto base_name = name.substr(0, name.size() - 8);
+            if (tensors.find(base_name) == tensors.end()) {
+                throw std::runtime_error("Tensor " + base_name + " not found in graph");
+            }
+            Tensor& base_tensor = tensors.at(base_name);
+            base_tensor.forward = tensor.get_data();
+            todel.insert(name);
+        }
     }
 
     return tensors;

@@ -153,13 +153,8 @@ int main(int argc, char * argv[]) {
         std::cout << "Optimizing layer: " << l->name << std::endl;
         std::vector<Bound> local_bounds;
         for (auto i = 0; i < l->outputs[0]->numel; i++) {
-            float lb = std::numeric_limits<float>::lowest();
-            float ub = std::numeric_limits<float>::max();
-            if (l->lowers.size() > 0) {
-                lb = (*l->lowers[0])(i);
-                ub = (*l->uppers[0])(i);
-            }
-
+            float lb = l->outputs[0]->lb.at(i);
+            float ub = l->outputs[0]->ub.at(i);
             auto name = l->outputs[0]->strkey(i);
 
             // If both LB and UB are on the same side of 0, we can skip this neuron
@@ -183,6 +178,7 @@ int main(int argc, char * argv[]) {
         dup2(new_, 1);
         close(new_);
 
+        auto start_time = std::chrono::high_resolution_clock::now();
         #pragma omp parallel for num_threads(8)
         for (auto& neuron: local_bounds) {
             auto new_bound = bound_neuron(fname, neuron, global_bounds);
@@ -193,18 +189,24 @@ int main(int argc, char * argv[]) {
                 neuron.value = std::min(neuron.value, new_bound);
             }
         }
+        auto end_time = std::chrono::high_resolution_clock::now();
         fflush(stdout);
         dup2(bak, 1);
         close(bak);
 
         // print out the final bounds
+        float bound_mag = 0.0;
         for (auto& neuron: local_bounds) {
             if (neuron.side == LOWER) {
                 std::cout << neuron.neuron_name << ", " << neuron.value << ", LOWER" << std::endl;
             } else {
                 std::cout << neuron.neuron_name << ", " << neuron.value << ", UPPER" << std::endl;
             }
+            bound_mag += std::abs(neuron.value);
         }
+        auto time_taken = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
+        std::cout << "Time: " << time_taken << "ms" << std::endl;
+        std::cout << "Bound magnitude: " << bound_mag << std::endl;
         global_bounds.insert(global_bounds.end(), local_bounds.begin(), local_bounds.end());
     }
 
