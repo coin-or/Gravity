@@ -12,10 +12,12 @@ public:
         this->neuron_name = neuron_name;
         this->value = value;
         this->side = side;
+        this->old_value = value;
     }
 
     std::string layer_name;
     std::string neuron_name;
     float value;
+    float old_value;
     Side side;
 };

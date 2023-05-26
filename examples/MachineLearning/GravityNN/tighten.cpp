@@ -124,18 +124,15 @@ int main(int argc, char * argv[]) {
         close(bak);
 
         // print out the final bounds
-        float bound_mag = 0.0;
-        for (auto& neuron: local_bounds) {
-            if (neuron.side == LOWER) {
-                std::cout << neuron.neuron_name << ", " << neuron.value << ", LOWER" << std::endl;
-            } else {
-                std::cout << neuron.neuron_name << ", " << neuron.value << ", UPPER" << std::endl;
-            }
-            bound_mag += std::abs(neuron.value);
+        for (int i = 0; i < local_bounds.size()-1; i+=2) {
+            auto lb = local_bounds[i];
+            auto ub = local_bounds[i+1];
+            std::cout << lb.neuron_name << ": ";
+            std::cout << "[" << lb.old_value << ", " << ub.old_value << "] -> ";
+            std::cout << "[" << lb.value << ", " << ub.value << "]" << std::endl;
         }
         auto time_taken = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
         std::cout << "Time: " << time_taken << "ms" << std::endl;
-        std::cout << "Bound magnitude: " << bound_mag << std::endl;
         global_bounds.insert(global_bounds.end(), local_bounds.begin(), local_bounds.end());
     }
 
