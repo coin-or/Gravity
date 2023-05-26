@@ -117,3 +117,7 @@ bool ends_with(std::string const& value, std::string const & ending)
     }
     return std::equal(ending.rbegin(), ending.rend(), value.rbegin());
 }
+
+size_t get_num_threads() {
+    return std::thread::hardware_concurrency();
+}

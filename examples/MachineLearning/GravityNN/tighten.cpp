@@ -13,34 +13,15 @@ using namespace gravity;
 
 void final_run(std::string fname, const std::vector<Bound>& global_bounds) {
     NeuralNet nn(fname);
-
-    nn.build_indexing();
-    nn.build_constraints();
-
-    Model<> NN("NN_"+fname.substr(fname.find_last_of("/")));
-    param<> x_lb("x_lb"), x_ub("x_ub");
-    x_lb.in(nn.indices.hidden_states);
-    x_ub.in(nn.indices.hidden_states);
-    x_lb = std::numeric_limits<double>::lowest();
-    x_ub = std::numeric_limits<double>::max();
-
     nn.set_aux_bounds(global_bounds);
-    nn.set_bounds(x_lb, x_ub);
+    Model<>& NN = nn.build_model();
 
-    var<> x("x", x_lb, x_ub);
-    var<int> y("y", 0, 1);
-
-    NN.add(x.in(nn.indices.hidden_states));
-    NN.add(y.in(nn.indices.y_ids));
-    nn.initialize_state(x, y);
-    nn.add_constraints(NN, x, y, nn.indices);
-
-    NN.max(x(nn.layers.back()->outputs[0]->strkey(0)));
+    NN.max(nn.x(nn.layers.back()->outputs[0]->strkey(0)));
 
     solver<> S(NN,gurobi);
     auto grb_prog = (GurobiProgram*)(S._prog.get());
     auto grb_mod = grb_prog->grb_mod;
-    grb_mod->set(GRB_IntParam_Threads, 96);
+    grb_mod->set(GRB_IntParam_Threads, get_num_threads() / 2);
     grb_mod->set(GRB_IntParam_OutputFlag, 1);
 
     int retval = S.run();
@@ -48,30 +29,12 @@ void final_run(std::string fname, const std::vector<Bound>& global_bounds) {
 
 float bound_neuron(std::string fname, Bound neuron, const std::vector<Bound>& global_bounds) {
     NeuralNet nn(fname, neuron.layer_name);
-
-    nn.build_indexing();
-    nn.build_constraints();
-
-    Model<> NN("NN_"+fname.substr(fname.find_last_of("/")));
-    param<> x_lb("x_lb"), x_ub("x_ub");
-    x_lb.in(nn.indices.hidden_states);
-    x_ub.in(nn.indices.hidden_states);
-    x_lb = std::numeric_limits<double>::lowest();
-    x_ub = std::numeric_limits<double>::max();
-
     nn.set_aux_bounds(global_bounds);
-    nn.set_bounds(x_lb, x_ub);
 
-    var<> x("x", x_lb, x_ub);
-    var<int> y("y", 0, 1);
-
-    NN.add(x.in(nn.indices.hidden_states));
-    NN.add(y.in(nn.indices.y_ids));
-    nn.initialize_state(x, y);
-    nn.add_constraints(NN, x, y, nn.indices);
+    Model<>& NN = nn.build_model();
 
     float mult = (neuron.side == LOWER) ? -1.0 : 1.0;
-    NN.max(x(neuron.neuron_name) * mult);
+    NN.max(nn.x(neuron.neuron_name) * mult);
 
     solver<> S(NN,gurobi);
     auto grb_prog = (GurobiProgram*)(S._prog.get());

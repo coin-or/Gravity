@@ -82,6 +82,38 @@ public:
 
             this->layers.push_back(node_ptr);
         }
+
+        // Initialize MIP variables
+        this->NN = Model<>("NN");
+
+        this->x_lb = param<>("x_lb");
+        this->x_ub = param<>("x_ub");
+
+        this->x = var<>("x");
+        this->y = var<int>("y", 0, 1);
+    }
+
+    Model<>& build_model() {
+        this->build_indexing();
+        this->build_constraints();
+
+        this->x_lb.in(this->indices.hidden_states);
+        this->x_ub.in(this->indices.hidden_states);
+        this->x_lb = std::numeric_limits<double>::lowest();
+        this->x_ub = std::numeric_limits<double>::max();
+
+        this->set_bounds(x_lb, x_ub);
+
+        this->x.add_bounds(this->x_lb, this->x_ub);
+        this->x.in(this->indices.hidden_states);
+        this->y.in(this->indices.y_ids);
+        this->initialize_state(x, y);
+
+        this->NN.add(this->x);
+        this->NN.add(this->y);
+        this->add_constraints();
+
+        return this->NN;
     }
 
     /*
@@ -194,7 +226,7 @@ public:
         }
     }
 
-    void add_constraints(gravity::Model<>& NN, gravity::var<>& x, gravity::var<int>& y, IndexContainer& indices) {
+    void add_constraints() {
         // Add constraints. Only add constraints for each operator type once.
         std::set<OType> visited;
         for (auto l: this->layers) {
@@ -202,7 +234,7 @@ public:
                 continue;
             }
             visited.insert(l->operator_type);
-            l->add_constraints(NN, indices(l->operator_type), indices.w, x, y);
+            l->add_constraints(this->NN, this->indices(l->operator_type), this->indices.w, this->x, this->y);
         }
     }
 
