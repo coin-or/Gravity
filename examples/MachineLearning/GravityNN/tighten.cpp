@@ -24,19 +24,8 @@ void final_run(std::string fname, const std::vector<Bound>& global_bounds) {
     x_lb = std::numeric_limits<double>::lowest();
     x_ub = std::numeric_limits<double>::max();
 
+    nn.set_aux_bounds(global_bounds);
     nn.set_bounds(x_lb, x_ub);
-    // use newbounds
-    for (auto& v: global_bounds) {
-        if (nn.layer_names.count(v.layer_name) == 0) {
-            continue;
-        }
-
-        if (v.side == LOWER) {
-            x_lb.set_val(v.neuron_name, v.value);
-        } else {
-            x_ub.set_val(v.neuron_name, v.value);
-        }
-    }
 
     var<> x("x", x_lb, x_ub);
     var<int> y("y", 0, 1);
@@ -51,7 +40,7 @@ void final_run(std::string fname, const std::vector<Bound>& global_bounds) {
     solver<> S(NN,gurobi);
     auto grb_prog = (GurobiProgram*)(S._prog.get());
     auto grb_mod = grb_prog->grb_mod;
-    grb_mod->set(GRB_IntParam_Threads, 8);
+    grb_mod->set(GRB_IntParam_Threads, 96);
     grb_mod->set(GRB_IntParam_OutputFlag, 1);
 
     int retval = S.run();
@@ -70,19 +59,8 @@ float bound_neuron(std::string fname, Bound neuron, const std::vector<Bound>& gl
     x_lb = std::numeric_limits<double>::lowest();
     x_ub = std::numeric_limits<double>::max();
 
+    nn.set_aux_bounds(global_bounds);
     nn.set_bounds(x_lb, x_ub);
-    // use newbounds
-    for (auto& v: global_bounds) {
-        if (nn.layer_names.count(v.layer_name) == 0) {
-            continue;
-        }
-
-        if (v.side == LOWER) {
-            x_lb.set_val(v.neuron_name, v.value);
-        } else {
-            x_ub.set_val(v.neuron_name, v.value);
-        }
-    }
 
     var<> x("x", x_lb, x_ub);
     var<int> y("y", 0, 1);
@@ -100,12 +78,12 @@ float bound_neuron(std::string fname, Bound neuron, const std::vector<Bound>& gl
     auto grb_mod = grb_prog->grb_mod;
     grb_mod->set(GRB_IntParam_Threads, 1);
     // grb_mod->set(GRB_IntParam_NonConvex,2);
-    grb_mod->set(GRB_IntParam_OutputFlag, 0);
+    grb_mod->set(GRB_IntParam_OutputFlag, 1);
     grb_mod->set(GRB_IntParam_MIPFocus, 3);
     // grb_mod->set(GRB_DoubleParam_BestBdStop, -1e-4);
     // grb_mod->set(GRB_DoubleParam_BestObjStop, 1e-4);
 
-    int retval = S.run(1e-4, 2.0);
+    int retval = S.run(1e-4, 60.0);
 
     if (retval == 3) {
         throw std::runtime_error("Infeasible");
@@ -126,17 +104,7 @@ int main(int argc, char * argv[]) {
     NeuralNet nn(fname);
     std::vector<Layer*> layers_to_optimize;
 
-    bool found_relu = false;
-    // Only optimize a layer once we have found a ReLU
     for (auto i = 0; i < nn.layers.size()-1; i++) {
-        if (nn.layers[i]->operator_type == _relu) {
-            found_relu = true;
-        }
-
-        // if (!found_relu) {
-            // continue;
-        // }
-
         if (
             (nn.layers[i+1]->operator_type != _relu) &&
             (nn.layers[i+1]->operator_type != _clip)
@@ -152,21 +120,19 @@ int main(int argc, char * argv[]) {
         std::cout << "################################################" << std::endl;
         std::cout << "Optimizing layer: " << l->name << std::endl;
         std::vector<Bound> local_bounds;
-        for (auto i = 0; i < l->outputs[0]->numel; i++) {
-            float lb = l->outputs[0]->lb.at(i);
-            float ub = l->outputs[0]->ub.at(i);
-            auto name = l->outputs[0]->strkey(i);
+        for (auto o: l->outputs) {
+            for (auto i = 0; i < o->numel; i++) {
+                float lb  = o->lb.at(i);
+                float ub  = o->ub.at(i);
+                auto name = o->strkey(i);
 
-            // If both LB and UB are on the same side of 0, we can skip this neuron
-            if ((lb < 0 && ub < 0) || (lb > 0 && ub > 0)) {
-                continue;
-            }
+                // If both LB and UB are on the same side of 0, we can skip this neuron
+                if ((lb < 0 && ub < 0) || (lb > 0 && ub > 0)) {
+                    continue;
+                }
 
-            local_bounds.push_back(Bound(l->name, name, lb, LOWER));
-            local_bounds.push_back(Bound(l->name, name, ub, UPPER));
-
-            if (local_bounds.size() > 8) {
-                break;
+                local_bounds.push_back(Bound(l->name, name, lb, LOWER));
+                local_bounds.push_back(Bound(l->name, name, ub, UPPER));
             }
         }
 
@@ -179,7 +145,7 @@ int main(int argc, char * argv[]) {
         close(new_);
 
         auto start_time = std::chrono::high_resolution_clock::now();
-        #pragma omp parallel for num_threads(8)
+        #pragma omp parallel for
         for (auto& neuron: local_bounds) {
             auto new_bound = bound_neuron(fname, neuron, global_bounds);
             auto prev_bound = neuron.value;

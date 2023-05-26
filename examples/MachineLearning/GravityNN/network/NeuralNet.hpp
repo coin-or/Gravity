@@ -117,24 +117,47 @@ public:
         for (auto l: this->layers) {
             for (auto o: l->outputs) {
                 for(auto j = 0; j < o->numel; j++){
-                    x_lb.set_val(o->strkey(j), o->lb.at(j));
-                    x_ub.set_val(o->strkey(j), o->ub.at(j));
+                    auto key = o->strkey(j);
+                    auto o_lb = o->lb.at(j);
+                    auto o_ub = o->ub.at(j);
+
+                    x_lb.set_val(key, o_lb);
+                    x_ub.set_val(key, o_ub);
 
                     if (l->operator_type == _clip) {
                         auto clip = static_cast<Clip*>(l);
-                        x_lb.set_val(o->strkey(j), clip->min);
-                        x_ub.set_val(o->strkey(j), clip->max);
-                    }
+                        x_lb.set_val(key, std::max(o_lb, clip->min));
+                        x_ub.set_val(key, std::min(o_ub, clip->max));
+                    } else if (l->operator_type == _relu) {
+                        auto relu = static_cast<Relu*>(l);
+                        auto join_lb = std::max(o_lb, relu->X->lb.at(j));
+                        auto join_ub = std::min(o_ub, relu->X->ub.at(j));
 
-                    if (l->operator_type == _relu) {
-                        x_lb.set_val(o->strkey(j), 0.0);
-                    }
-
-                    if (l->operator_type == _input) {
-                        x_lb.set_val(o->strkey(j), std::max(-10.0f, o->lb.at(j)));
-                        x_ub.set_val(o->strkey(j), std::min( 10.0f, o->ub.at(j)));
+                        x_lb.set_val(key, std::max(join_lb, 0.0f));
+                        x_ub.set_val(key, std::max(join_ub, 0.0f));
+                    } else if (l->operator_type == _input) {
+                        x_lb.set_val(key, std::max(-10.0f, o->lb.at(j)));
+                        x_ub.set_val(key, std::min( 10.0f, o->ub.at(j)));
                     }
                 }
+            }
+        }
+    }
+
+    void set_aux_bounds(const std::vector<Bound>& aux_bounds) {
+        // use newbounds
+        for (auto& v: aux_bounds) {
+            if (this->layer_names.count(v.layer_name) == 0) {
+                continue;
+            }
+
+            auto tensor_name = v.neuron_name.substr(0, v.neuron_name.find_last_of(","));
+            size_t neuron_idx = std::stoi(v.neuron_name.substr(v.neuron_name.find_last_of(",") + 1));
+            auto& ten = this->tensors.at(tensor_name);
+            if (v.side == Side::LOWER) {
+                ten.lb.at(neuron_idx) = std::max(v.value, ten.lb.at(neuron_idx));
+            } else {
+                ten.ub.at(neuron_idx) = std::min(v.value, ten.ub.at(neuron_idx));
             }
         }
     }
@@ -189,4 +212,9 @@ public:
 
     std::vector<Layer*> layers;
     std::set<std::string> layer_names;
+
+    Model<> NN;
+    param<> x_lb, x_ub;
+    var<> x;
+    var<int> y;
 };
