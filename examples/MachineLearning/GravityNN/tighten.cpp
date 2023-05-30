@@ -46,7 +46,7 @@ float bound_neuron(std::string fname, Bound neuron, const std::vector<Bound>& gl
     // grb_mod->set(GRB_DoubleParam_BestBdStop, -1e-4);
     // grb_mod->set(GRB_DoubleParam_BestObjStop, 1e-4);
 
-    int retval = S.run(1e-4, 60.0);
+    int retval = S.run(1e-4, 2.0);
 
     if (retval == 3) {
         throw std::runtime_error("Infeasible");

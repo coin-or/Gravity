@@ -1045,8 +1045,6 @@ public:
             this->ends[i] = std::min(this->ends[i], (int64_t)this->X->shape.at(this->axes.at(i)));
             this->ends[i] = std::max(this->ends[i], (int64_t)0);
         }
-
-        std::cout << "Slice: " << this->starts.size() << " " << this->ends.size() << " " << this->axes.size() << " " << this->steps.size() << std::endl;
     }
 
     void build_constraint(IndexSet& inds) override {
