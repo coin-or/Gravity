@@ -617,8 +617,6 @@ public:
 
         // Make sure that B is the initializer
         if (this->A->is_initializer == true) {
-            this->A->is_initializer = false;
-            this->B->is_initializer = true;
             std::swap(this->A, this->B);
         }
 
@@ -669,7 +667,7 @@ public:
     Tensor *A, *B, *Y; // Input and output
 };
 
-class Sub : public Layer {
+class Sub: public Layer {
 public:
     Sub(const onnx::NodeProto& node, Tensors& tensors): Layer(node, tensors) {
         operator_type = _sub;
@@ -677,30 +675,58 @@ public:
         this->B = &tensors[node.input(1)];
         this->Y = &tensors[node.output(0)];
 
-        if ((this->A->is_initializer == true) || (this->B->is_initializer == true)) {
-            throw std::runtime_error("Sub: initializer not supported.");
+        if ((this->A->is_initializer == true) && (this->B->is_initializer == true)) {
+            throw std::runtime_error("Sub: both args being initializer not supported.");
+        }
+
+        // Make sure that B is the initializer
+        if (this->A->is_initializer == true) {
+            std::swap(this->A, this->B);
+        }
+
+        if (this->B->numel != this->A->numel) {
+            throw std::runtime_error("Sub: initializer must have same size as input.");
+        }
+    }
+
+    void add_parameters(gravity::param<>& w) const override {
+        if (this->B->is_initializer) {
+            this->B->add_params(w);
         }
     }
 
     std::vector<std::vector<std::string>> get_indices() const override {
-        return {{"Out", "A", "B"}, {}};
+        return {{"hOut", "pOut", "A", "B", "pA"}, {"SubVar"}};
     }
 
     void build_constraint(IndexSet& inds) override {
         for(auto j = 0; j < this->A->numel;j++){
-            inds["Constr"].add(this->Y->strkey(j));
-            inds["A"].add_ref(this->A->strkey(j));
-            inds["B"].add_ref(this->B->strkey(j));
-            inds["Out"].add_ref(this->Y->strkey(j));
+
+            if (this->B->is_initializer) {
+                inds["ConstrB"].add(this->Y->strkey(j));
+                inds["pA"].add_ref(this->A->strkey(j));
+                inds["SubVar"].add_ref(this->B->strkey(j));
+                inds["pOut"].add_ref(this->Y->strkey(j));
+            } else {
+                inds["Constr"].add(this->Y->strkey(j));
+                inds["A"].add_ref(this->A->strkey(j));
+                inds["B"].add_ref(this->B->strkey(j));
+                inds["hOut"].add_ref(this->Y->strkey(j));
+            }
         }
     }
 
     void add_constraints(gravity::Model<>& NN, IndexSet& inds, gravity::param<>& w, gravity::var<>& x, gravity::var<int>& y) override {
+        // Constraint for sub of hidden states
         Constraint<> Sub_("Sub");
-        Sub_ = x.in(inds["Out"]) - (x.in(inds["A"]) - x.in(inds["B"]));
+        Sub_ = x.in(inds["hOut"]) - (x.in(inds["A"]) - x.in(inds["B"]));
         NN.add(Sub_.in(inds["Constr"]) == 0);
-    }
 
+        // Constraint where B is a parameter
+        Constraint<> Sub_Param_("Sub_Param");
+        Sub_Param_ = x.in(inds["pOut"]) - (x.in(inds["pA"]) - w.in(inds["SubVar"]));
+        NN.add(Sub_Param_.in(inds["ConstrB"]) == 0);
+    }
 
     Tensor *A, *B, *Y; // Input and output
 };
@@ -845,8 +871,6 @@ public:
 
         // Make sure that B is the initializer
         if (this->A->is_initializer == true) {
-            this->A->is_initializer = false;
-            this->B->is_initializer = true;
             std::swap(this->A, this->B);
         }
 
