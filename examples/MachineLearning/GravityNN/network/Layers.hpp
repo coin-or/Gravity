@@ -186,6 +186,60 @@ public:
     bool transB = false;
 };
 
+class MatMul : public Layer {
+public:
+    /*
+        Y = A * B
+    */
+    MatMul(const onnx::NodeProto& node, Tensors& tensors): Layer(node, tensors) {
+        operator_type = _matmul;
+
+        this->A = &tensors.at(node.input(0));
+        this->B = &tensors.at(node.input(1));
+        this->Y = &tensors.at(node.output(0));
+
+        if (!this->A->is_initializer) {
+            throw std::runtime_error("MatMul: A must be an initializer");
+        }
+
+        if (this->B->is_initializer) {
+            throw std::runtime_error("GEMM: B cannot be an initializer");
+        }
+    }
+
+    std::vector<std::vector<std::string>> get_indices() const override {
+        return {{"In", "Out"}, {"A"}};
+    }
+
+    void add_parameters(gravity::param<>& w) const override {
+        this->A->add_params(w);
+    }
+
+    void build_constraint(IndexSet& inds) override {
+        for (size_t out_row = 0; out_row < this->Y->shape[0]; out_row++) {
+            for (size_t out_col = 0; out_col < this->Y->shape[1]; out_col++) {
+                inds["Constr"].add(this->Y->strkey(out_row, out_col));
+                inds["Out"].add_ref(this->Y->strkey(out_row, out_col));
+
+                for (size_t i = 0; i < this->A->shape[1]; i++) {
+                    inds["A"].add_in_row(inds.row_id,  this->A->strkey(out_row, i));
+                    inds["In"].add_in_row(inds.row_id, this->B->strkey(i, out_col));
+                }
+                inds.row_id++;
+            }
+        }
+    }
+
+    void add_constraints(gravity::Model<>& NN, IndexSet& inds, gravity::param<>& w, gravity::var<>& x, gravity::var<int>& y) override {
+        Constraint<> MatMul_("MatMul");
+        MatMul_ = x.in(inds["Out"]) - (w.in(inds["A"])*x.in(inds["In"]));
+        NN.add(MatMul_.in(inds["Constr"]) == 0);
+    }
+
+    Tensor *A, *B; // Inputs
+    Tensor *Y; // Output
+};
+
 class Clip : public Layer {
 public:
     Clip(const onnx::NodeProto& node, Tensors& tensors): Layer(node, tensors) {

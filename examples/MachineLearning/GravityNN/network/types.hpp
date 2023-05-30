@@ -19,6 +19,7 @@ typedef enum {
     _clip,
     _exp,
     _sigmoid,
+    _matmul,
 } OType; /* Operator Type */
 typedef enum { LOWER, UPPER} Side;
 

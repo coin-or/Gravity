@@ -40,8 +40,10 @@ public:
             }
 
             Layer* node_ptr;
-            if ((node.op_type() == "Gemm") || (node.op_type() == "MatMul")) {
+            if (node.op_type() == "Gemm") {
                 node_ptr = new GEMM(node, this->tensors);
+            } else if (node.op_type() == "MatMul") {
+                node_ptr = new MatMul(node, this->tensors);
             } else if (node.op_type() == "Relu") {
                 node_ptr = new Relu(node, this->tensors);
             } else if (node.op_type() == "Conv") {
