@@ -238,7 +238,7 @@ public:
             inds["Eq"].add_ref(this->Y->strkey(j)  + "_eq");
         }
     }
-    
+
     void add_constraints(gravity::Model<>& NN, IndexSet& inds, gravity::param<>& w, gravity::var<>& x, gravity::var<int>& y) override {
         Constraint<> ClipU("Upper");
         ClipU = x.in(inds["Out"]) - w.in(inds["MaxP"]);
@@ -308,7 +308,7 @@ public:
             inds["Out"].add_ref(this->Y->strkey(j));
         }
     }
-    
+
     void add_constraints(gravity::Model<>& NN, IndexSet& inds, gravity::param<>& w, gravity::var<>& x, gravity::var<int>& y) override {
         /* Constraints */
         Constraint<> ReLU("ReLU");
@@ -457,7 +457,7 @@ public:
             this->B->add_params(w);
         }
     }
-    
+
     void add_constraints(gravity::Model<>& NN, IndexSet& inds, gravity::param<>& w, gravity::var<>& x, gravity::var<int>& y) override {
         Constraint<> Conv_("Conv");
         Conv_ = x.in(inds["Out"]) - (x.in(inds["In"])*w.in(inds["W"]) + w.in(inds["B"]));
@@ -513,7 +513,7 @@ public:
             inds["Out"].add_ref(this->Y->strkey(j));
         }
     }
-    
+
     void add_constraints(gravity::Model<>& NN, IndexSet& inds, gravity::param<>& w, gravity::var<>& x, gravity::var<int>& y) override {
         Constraint<> NoOp("NoOp");
         NoOp = x.in(inds["Out"]) - x.in(inds["In"]);
@@ -538,8 +538,8 @@ public:
             this->split = std::vector<size_t>(split_attr->ints().begin(), split_attr->ints().end());
         } else {
             /*
-                Split a tensor into a list of tensors, along the specified ‘axis’. Lengths of the parts can be specified using argument ‘split’. 
-                Otherwise, the tensor is split to equal sized parts. 
+                Split a tensor into a list of tensors, along the specified ‘axis’. Lengths of the parts can be specified using argument ‘split’.
+                Otherwise, the tensor is split to equal sized parts.
             */
             size_t split_size = this->X->shape[this->axis] / this->outputs.size();
             for (size_t i = 0; i < this->outputs.size(); i++) {
@@ -628,7 +628,7 @@ public:
             inds["Out"].add_ref(this->Y->strkey(j));
         }
     }
-    
+
     void add_constraints(gravity::Model<>& NN, IndexSet& inds, gravity::param<>& w, gravity::var<>& x, gravity::var<int>& y) override {
         Constraint<> Add_("Add");
         Add_ = x.in(inds["Out"]) - (x.in(inds["A"]) + x.in(inds["B"]));
@@ -663,7 +663,7 @@ public:
             inds["Out"].add_ref(this->Y->strkey(j));
         }
     }
-    
+
     void add_constraints(gravity::Model<>& NN, IndexSet& inds, gravity::param<>& w, gravity::var<>& x, gravity::var<int>& y) override {
         Constraint<> Sub_("Sub");
         Sub_ = x.in(inds["Out"]) - (x.in(inds["A"]) - x.in(inds["B"]));
@@ -693,7 +693,7 @@ public:
             inds["Out"].add_ref(this->Y->strkey(j));
         }
     }
-    
+
     void add_constraints(gravity::Model<>& NN, IndexSet& inds, gravity::param<>& w, gravity::var<>& x, gravity::var<int>& y) override {
         Constraint<> Cos_("Cos");
         Cos_ = x.in(inds["Out"]) - cos(x.in(inds["In"]));
@@ -722,7 +722,7 @@ public:
             inds["Out"].add_ref(this->Y->strkey(j));
         }
     }
-    
+
     void add_constraints(gravity::Model<>& NN, IndexSet& inds, gravity::param<>& w, gravity::var<>& x, gravity::var<int>& y) override {
         Constraint<> Sin_("Sin");
         Sin_ = x.in(inds["Out"]) - sin(x.in(inds["In"]));
@@ -751,7 +751,7 @@ public:
             inds["Out"].add_ref(this->Y->strkey(j));
         }
     }
-    
+
     void add_constraints(gravity::Model<>& NN, IndexSet& inds, gravity::param<>& w, gravity::var<>& x, gravity::var<int>& y) override {
         Constraint<> Neg_("Neg");
         Neg_ = x.in(inds["Out"]) + x.in(inds["In"]);
@@ -789,7 +789,7 @@ public:
             inds["Out"].add_ref(this->Y->strkey(j));
         }
     }
-    
+
     void add_constraints(gravity::Model<>& NN, IndexSet& inds, gravity::param<>& w, gravity::var<>& x, gravity::var<int>& y) override {
         Constraint<> Pow_("Pow");
         Pow_ = x.in(inds["Out"]) - pow(x.in(inds["In"]), 2.0);
@@ -825,7 +825,7 @@ public:
             inds["Out"].add_ref(this->Y->strkey(j));
         }
     }
-    
+
     void add_constraints(gravity::Model<>& NN, IndexSet& inds, gravity::param<>& w, gravity::var<>& x, gravity::var<int>& y) override {
         Constraint<> Mul_("Mul");
         Mul_ = x.in(inds["Out"]) - (x.in(inds["A"]) * x.in(inds["B"]));
@@ -985,7 +985,7 @@ public:
             inds["Out"].add_ref(this->Y->strkey(j));
         }
     }
-    
+
     void add_constraints(gravity::Model<>& NN, IndexSet& inds, gravity::param<>& w, gravity::var<>& x, gravity::var<int>& y) override {
         Constraint<> Div_("Div");
         Div_ = x.in(inds["Out"])*x.in(inds["B"]) - x.in(inds["A"]);
@@ -1063,4 +1063,78 @@ public:
     Tensor *X, *Y; // Input and output
     Tensor* indices;
     size_t axis = 0;
+};
+
+class Exp: public Layer {
+public:
+    Exp(const onnx::NodeProto& node, Tensors& tensors): Layer(node, tensors) {
+        operator_type = _exp;
+        this->X = &tensors[node.input(0)];
+        this->Y = &tensors[node.output(0)];
+    }
+
+    std::vector<std::vector<std::string>> get_indices() const override {
+        return {{"Out", "In"}, {}};
+    }
+
+    void build_constraint(IndexSet& inds) override {
+        for(auto j = 0; j < this->X->numel;j++){
+            inds["Constr"].add(this->Y->strkey(j));
+            inds["In"].add_ref(this->X->strkey(j));
+            inds["Out"].add_ref(this->Y->strkey(j));
+        }
+    }
+
+    void add_constraints(gravity::Model<>& NN, IndexSet& inds, gravity::param<>& w, gravity::var<>& x, gravity::var<int>& y) override {
+        Constraint<> Exp_("Exp");
+        Exp_ = x.in(inds["Out"]) - gravity::exp(x.in(inds["In"]));
+        NN.add(Exp_.in(inds["Constr"]) == 0);
+    }
+
+    Tensor *X, *Y; // Input and output
+};
+
+class Sigmoid: public Layer {
+public:
+    Sigmoid(const onnx::NodeProto& node, Tensors& tensors): Layer(node, tensors) {
+        operator_type = _sigmoid;
+        this->X = &tensors[node.input(0)];
+        this->Y = &tensors[node.output(0)];
+    }
+
+    std::vector<std::vector<std::string>> get_indices() const override {
+        return {{"Out", "In", "ExpAux"}, {}};
+    }
+
+    void index_hidden_states(indices& hidden_states, indices& y_ids) override {
+        for (auto output: this->outputs) {
+            for (auto i = 0; i < output->numel; i++) {
+                hidden_states.add(output->strkey(i));
+                hidden_states.add(output->strkey(i) + "_exp_aux");
+            }
+        }
+    }
+
+    void build_constraint(IndexSet& inds) override {
+        for(auto j = 0; j < this->X->numel;j++){
+            inds["Constr"].add(this->Y->strkey(j));
+            inds["In"].add_ref(this->X->strkey(j));
+            inds["ExpAux"].add_ref(this->Y->strkey(j) + "_exp_aux");
+            inds["Out"].add_ref(this->Y->strkey(j));
+        }
+    }
+
+    void add_constraints(gravity::Model<>& NN, IndexSet& inds, gravity::param<>& w, gravity::var<>& x, gravity::var<int>& y) override {
+        // Exp constraint
+        Constraint<> Exp_("Sigmoid_Aux");
+        Exp_ = x.in(inds["ExpAux"]) - gravity::exp(x.in(inds["In"]));
+        NN.add(Exp_.in(inds["Constr"]) == 0);
+
+        // Rest of sigmoid
+        Constraint<> Sigmoid_("Sigmoid");
+        Sigmoid_ = x.in(inds["Out"])*(x.in(inds["ExpAux"]) + 1.0);
+        NN.add(Sigmoid_.in(inds["Constr"]) == x.in(inds["ExpAux"]));
+    }
+
+    Tensor *X, *Y; // Input and output
 };

@@ -1144,6 +1144,14 @@ void GurobiProgram::create_grb_constraints(){
                                 grb_mod->addGenConstrLog(gvar2, gvar1);
                             break;
                         }
+                        case gravity::exp_:{
+                            std::string options = "FuncPieces=-2 FuncPieceError=0.0001";
+                            if(c->_indices)
+                                grb_mod->addGenConstrExp(gvar2, gvar1,c->get_name()+"("+c->_indices->_keys->at(i)+")", options);
+                            else
+                                grb_mod->addGenConstrExp(gvar2, gvar1, options);
+                            break;
+                        }
                         default:
                             break;
                     }

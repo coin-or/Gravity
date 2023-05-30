@@ -76,6 +76,10 @@ public:
                 node_ptr = new Gather(node, this->tensors);
             } else if (node.op_type() == "Clip") {
                 node_ptr = new Clip(node, this->tensors);
+            } else if (node.op_type() == "Exp") {
+                node_ptr = new Exp(node, this->tensors);
+            } else if (node.op_type() == "Sigmoid") {
+                node_ptr = new Sigmoid(node, this->tensors);
             } else {
                 throw std::runtime_error("Unsupported operator " + node.op_type());
             }
@@ -168,8 +172,14 @@ public:
                         x_lb.set_val(key, std::max(join_lb, 0.0f));
                         x_ub.set_val(key, std::max(join_ub, 0.0f));
                     } else if (l->operator_type == _input) {
-                        x_lb.set_val(key, std::max(-10.0f, o->lb.at(j)));
-                        x_ub.set_val(key, std::min( 10.0f, o->ub.at(j)));
+                        x_lb.set_val(key, std::max(-1.0f, o->lb.at(j)));
+                        x_ub.set_val(key, std::min( 1.0f, o->ub.at(j)));
+                    } else if (l->operator_type == _exp) {
+                        x_lb.set_val(key, 0.0f);
+                    } else if (l->operator_type == _sigmoid) {
+                        x_lb.set_val(key + "_exp_aux", 0.0f);
+                        x_lb.set_val(key, 0.0f);
+                        x_ub.set_val(key, 1.0f);
                     }
                 }
             }
