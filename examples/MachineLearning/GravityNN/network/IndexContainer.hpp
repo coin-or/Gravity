@@ -35,7 +35,7 @@ public:
 
     indices& operator[](const std::string& name) {
         if (this->_indices.count(name) == 0) {
-            throw std::runtime_error("Unknown index set");
+            throw std::runtime_error("Unknown index set: " + name);
         }
         return this->_indices.at(name);
     }
