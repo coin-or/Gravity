@@ -279,7 +279,7 @@ int main(int argc, char * argv[]){
 
     Laplacian.print();
 //    return 0;
-    solver<> sv(Laplacian,cplex);
+    solver<> sv(Laplacian,gurobi);
     sv.run();
     Laplacian.print_solution();
     return 0;

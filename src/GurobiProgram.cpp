@@ -474,7 +474,7 @@ bool GurobiProgram::solve(bool relax, double mipgap, double time_limit){
     
     grb_mod->set(GRB_DoubleParam_MIPGap, 1e-6);
     grb_mod->set(GRB_DoubleParam_FeasibilityTol, 1e-9);
-    grb_mod->set(GRB_DoubleParam_OptimalityTol, 1e-6);
+    grb_mod->set(GRB_DoubleParam_OptimalityTol, 1e-9);
     // grb_mod->set(GRB_IntParam_StartNodeLimit, -3);
     //    grb_mod->getEnv().set(GRB_IntParam_DualReductions, 0);
     //    grb_mod->getEnv().set(GRB_IntParam_PreCrush, 1);
@@ -486,7 +486,7 @@ bool GurobiProgram::solve(bool relax, double mipgap, double time_limit){
     //       grb_mod->set(GRB_IntParam_NumericFocus,3);
     //     grb_mod->set(GRB_IntParam_PreCrush,0);
     //     grb_mod->set(GRB_IntParam_MIPFocus,3);
-    //    grb_mod->set(GRB_IntParam_IntegralityFocus,1);
+       // grb_mod->set(GRB_IntParam_IntegralityFocus,1);
     //grb_mod->set(GRB_IntParam_MIPFocus,1);
     //    grb_mod->set(GRB_IntParam_PumpPasses,50);
     //    grb_mod->set(GRB_IntParam_RINS,1000);
@@ -583,6 +583,7 @@ bool GurobiProgram::solve(bool relax, double mipgap, double time_limit){
             
             auto res= _model->cutting_planes_soc(1e-6, soc_found, soc_added);
             if(res.size()>=1){
+                add_cut=true;
                 for(auto i=0;i<res.size();i++){
                     GRBLinExpr expr = 0;
                     size_t j=0;
@@ -606,6 +607,7 @@ bool GurobiProgram::solve(bool relax, double mipgap, double time_limit){
             
             auto res= _model->cutting_planes_threed(1e-6, soc_found, soc_added);
             if(res.size()>=1){
+                add_cut=true;
                 for(auto i=0;i<res.size();i++){
                     GRBLinExpr expr = 0;
                     size_t j=0;
@@ -626,6 +628,7 @@ bool GurobiProgram::solve(bool relax, double mipgap, double time_limit){
             
             auto res=_model->cuts_eigen_bags(1e-6);
             if(res.size()>=1){
+                add_cut=true;
                 for(auto i=0;i<res.size();i++){
                     GRBLinExpr expr = 0;
                     size_t j=0;

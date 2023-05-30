@@ -82,7 +82,7 @@ Net model_rip(string fname, shared_ptr<Model<double>>& m) {
     DebugOn("k Isometry "<<k<<endl);
     DebugOn("Objective sense "<<objsense<<endl);
     DebugOn("Number of nodes "<<Num_nodes<<endl);
-    DebugOn("Number of edges in dense formulation "<<Num_edges<<endl);
+    DebugOn("Number of edges in dense formulation "<<Num_nodes*(Num_nodes+1)*0.5<<endl);
  
     for (int i = 0; i < Num_nodes; i++) {
         name = to_string(i);

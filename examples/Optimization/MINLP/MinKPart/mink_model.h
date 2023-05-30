@@ -56,11 +56,8 @@ double check_PSD_full_mink(shared_ptr<Model<double>>& m, int num_part){
     return neg_eig_value;
 }
 /*Mink in primal form*/
-Net model_mink(string fname, shared_ptr<Model<double>>& m) {
+Net model_mink(string fname, shared_ptr<Model<double>>& m, int& Num_nodes, int& Num_edges, int& num_part, int& width) {
     Net g;
-    int num_part=3;
-    int Num_nodes = 0;
-    int Num_edges = 0;
     ifstream infile(fname);
     string sLine;
     
@@ -69,6 +66,7 @@ Net model_mink(string fname, shared_ptr<Model<double>>& m) {
         istringstream iss(sLine);
         iss >> Num_nodes;
         iss >> Num_edges;
+        iss>>num_part;
     } else {
         fprintf(stderr, "can’t open input file %s\n", fname.c_str());
         exit(1);
@@ -77,9 +75,10 @@ Net model_mink(string fname, shared_ptr<Model<double>>& m) {
     
     Node* node = nullptr;
     indices nodes;
-    DebugOn("nodes "<<Num_nodes<<endl);
-    DebugOn("edges "<<Num_edges<<endl);
-    
+    DebugOn("Nodes "<<Num_nodes<<endl);
+    DebugOn("Edges in sparse version "<<Num_edges<<endl);
+    DebugOn("Edges in dense version "<<Num_nodes*(Num_nodes-1)*0.5<<endl);
+    DebugOn("Partitions "<<num_part<<endl);
   
     for (int i = 0; i < Num_nodes; i++) {
         name = to_string(i);
@@ -181,10 +180,13 @@ Net model_mink(string fname, shared_ptr<Model<double>>& m) {
     
     int count=0;
     std::vector<pair<int,std::vector<string>>> _bag_names;
-    
+    width=0;
     for(auto b:g._bags){
         pair<int,vector<string>> bn;
         if((m->add_soc && m->add_threed && b.second.size()>3)||(m->add_soc && !m->add_threed && b.second.size()>=3)||(!m->add_soc && b.second.size()>=2)){
+            if(width<=b.second.size()){
+                width=b.second.size();
+            }
             bn.first=count++;
             DebugOn("bag "<<count<<endl);
             for(auto n:b.second){
@@ -219,6 +221,109 @@ Net model_mink(string fname, shared_ptr<Model<double>>& m) {
     return g;
     
 }
+void write_mink_cbf(string fname_in)
+{
+   
+    int num_part=0;
+    int Num_nodes = 0;
+    int Num_edges = 0;
+    auto pos=fname_in.find_first_of(".");
+    string fname=fname_in.substr(0,pos)+".cbf";
+    ifstream infile(fname_in);
+    string sLine;
+    
+    if (infile.good()) {
+        getline(infile, sLine);
+        istringstream iss(sLine);
+        iss >> Num_nodes;
+        iss >> Num_edges;
+        iss >> num_part;
+    } else {
+        fprintf(stderr, "can’t open input file %s\n", fname.c_str());
+        exit(1);
+    }
+    string name;
+    
+    Node* node = nullptr;
+    indices nodes;
+    DebugOn("Nodes "<<Num_nodes<<endl);
+    DebugOn("Edges "<<Num_edges<<endl);
+    DebugOn("Partitions "<<num_part<<endl);
+    
+    
+    
+    
+    
+    int src, dest;
+    int src_a, dest_a;
+    double weight;
+    map<pair<int,int>, double> key_weight_map;
+    while (getline(infile, sLine, '\n')) {
+        istringstream iss(sLine);
+        iss >> src_a >> dest_a >> weight;
+        // cout << src  << ", " << dest << ", " << weight << endl;
+        
+        if(src_a>=dest_a){
+            src=src_a-1;
+            dest=dest_a-1;
+        }
+        else{
+            src=dest_a-1;
+            dest=src_a-1;
+        }
+        
+        
+        key_weight_map[{src,dest}]=weight;
+    }
+    infile.close();
+    
+    map<pair<int,int>, int> key_int_map;
+    int count=0;/*count is the Number of binary variables in the formualation*/
+    for(auto i=1;i<Num_nodes;i++){
+        for(auto j=0;j<i;j++){
+            key_int_map[{i,j}]=count++;
+        }
+    }
+    
+
+    ofstream fout(fname.c_str());
+    fout<<"VER"<<"\n"<<"1"<<"\n\n"<<"OBJSENSE"<<"\n"<<"MIN\n\nVAR\n"<<count<<" "<<"1\nL+ "<<count<<"\n\nINT\n"<<count<<endl;
+    for(auto i=0;i<count;i++){
+        fout<<i<<"\n";
+    }
+    fout<<endl;
+    fout<<"CON\n"<<count<<" "<<"1\nL+ "<<count<<"\n\nPSDCON\n1\n"<<Num_nodes<<endl<<endl<<"OBJACOORD\n"<<key_weight_map.size()<<endl;
+    
+    for(auto it=key_weight_map.begin();it!=key_weight_map.end();it++){
+        fout<<key_int_map[it->first]<<" "<<it->second<<endl;
+    }
+    fout<<"\nACOORD\n"<<count<<endl;
+    for(auto i=0;i<count;i++){
+        fout<<i<<" "<<i<<" "<<"-1.0"<<endl;
+    }
+    fout<<"\nBCOORD\n"<<count<<endl;
+    for(auto i=0;i<count;i++){
+        fout<<i<<" "<<"1.0"<<endl;
+    }
+    
+    fout<<"\nHCOORD\n"<<count<<endl;
+    double val=num_part*1.0/(num_part-1.0);
+    double c_val=-1.0/(num_part-1.0);
+    for(auto it=key_int_map.begin();it!=key_int_map.end();it++){
+        fout<<"0 "<<it->second<<" "<<it->first.first<<" "<<it->first.second<<" "<<val<<endl;
+    }
+    fout<<"\nDCOORD\n"<<(count+Num_nodes)<<endl;
+    
+    for(auto i=0;i<Num_nodes;i++){
+        fout<<"0 "<<i<<" "<<i<<" "<<"1.0\n";
+    }
+    
+    for(auto it=key_int_map.begin();it!=key_int_map.end();it++){
+        fout<<"0 "<<it->first.first<<" "<<it->first.second<<" "<<c_val<<endl;
+    }
+    fout.close();
+}
+
 Net model_mink_dense(string fname, shared_ptr<Model<double>>& m)
 {
     Net g;
