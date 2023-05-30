@@ -172,8 +172,8 @@ public:
                         x_lb.set_val(key, std::max(join_lb, 0.0f));
                         x_ub.set_val(key, std::max(join_ub, 0.0f));
                     } else if (l->operator_type == _input) {
-                        x_lb.set_val(key, std::max(-1.0f, o->lb.at(j)));
-                        x_ub.set_val(key, std::min( 1.0f, o->ub.at(j)));
+                        x_lb.set_val(key, std::max(-2.0f, o->lb.at(j)));
+                        x_ub.set_val(key, std::min( 2.0f, o->ub.at(j)));
                     } else if (l->operator_type == _exp) {
                         x_lb.set_val(key, 0.0f);
                     } else if (l->operator_type == _sigmoid) {
