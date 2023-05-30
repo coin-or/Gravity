@@ -100,6 +100,17 @@ public:
 
         if (node.input_size() == 3) {
             this->C = &tensors.at(node.input(2));
+            if (!this->C->is_initializer) {
+                throw std::runtime_error("GEMM: C must be an initializer");
+            }
+        }
+
+        if (this->A->is_initializer) {
+            throw std::runtime_error("GEMM: A cannot be an initializer");
+        }
+
+        if (!this->B->is_initializer) {
+            throw std::runtime_error("GEMM: B must be an initializer");
         }
     }
 
@@ -385,6 +396,18 @@ public:
         this->kern_c = this->W->shape[1];
         this->kern_h = this->W->shape[2];
         this->kern_w = this->W->shape[3];
+
+        if (this->X->is_initializer) {
+            throw std::runtime_error("Conv: X cannot be an initializer");
+        }
+
+        if (!this->W->is_initializer) {
+            throw std::runtime_error("Conv: W must be an initializer");
+        }
+
+        if ((this->B != nullptr) && (!this->B->is_initializer)) {
+            throw std::runtime_error("Conv: B must be an initializer");
+        }
     }
 
     std::vector<std::vector<std::string>> get_indices() const override {
@@ -786,7 +809,7 @@ public:
         this->Y = &tensors[node.output(0)];
 
         if ((this->A->is_initializer == true) || (this->B->is_initializer == true)) {
-            throw std::runtime_error("Add: initializer not supported.");
+            throw std::runtime_error("Mul: initializer not supported.");
         }
     }
 
@@ -946,7 +969,7 @@ public:
         this->Y = &tensors[node.output(0)];
 
         if ((this->A->is_initializer == true) || (this->B->is_initializer == true)) {
-            throw std::runtime_error("Add: initializer not supported.");
+            throw std::runtime_error("Div: initializer not supported.");
         }
     }
 
