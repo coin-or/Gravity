@@ -82,6 +82,8 @@ public:
                 node_ptr = new Exp(node, this->tensors);
             } else if (node.op_type() == "Sigmoid") {
                 node_ptr = new Sigmoid(node, this->tensors);
+            } else if (node.op_type() == "BatchNormalization") {
+                node_ptr = new BatchNorm(node, this->tensors);
             } else {
                 throw std::runtime_error("Unsupported operator " + node.op_type());
             }
@@ -174,8 +176,12 @@ public:
                         x_lb.set_val(key, std::max(join_lb, 0.0f));
                         x_ub.set_val(key, std::max(join_ub, 0.0f));
                     } else if (l->operator_type == _input) {
-                        x_lb.set_val(key, std::max(-2.0f, o->lb.at(j)));
-                        x_ub.set_val(key, std::min( 2.0f, o->ub.at(j)));
+                        if (o_lb == std::numeric_limits<float>::lowest()) {
+                            x_lb.set_val(key, -2.0f);
+                        }
+                        if (o_ub == std::numeric_limits<float>::max()) {
+                            x_ub.set_val(key, 2.0f);
+                        }
                     } else if (l->operator_type == _exp) {
                         x_lb.set_val(key, 0.0f);
                     } else if (l->operator_type == _sigmoid) {

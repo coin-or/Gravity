@@ -1115,37 +1115,37 @@ void GurobiProgram::create_grb_constraints(){
                     else{
                         throw invalid_argument("Error in expression construction");
                     }
+                    std::string options = "FuncPieces=-2 FuncPieceError=0.0001";
                     switch (uexp->_otype) {
                         case gravity::sin_:{
                             if(c->_indices)
-                                grb_mod->addGenConstrSin(gvar2, gvar1,c->get_name()+"("+c->_indices->_keys->at(i)+")");
+                                grb_mod->addGenConstrSin(gvar2, gvar1,c->get_name()+"("+c->_indices->_keys->at(i)+")", options);
                             else
-                                grb_mod->addGenConstrSin(gvar2, gvar1);
+                                grb_mod->addGenConstrSin(gvar2, gvar1, options);
                             break;
                         }
                         case gravity::cos_:{
                             if(c->_indices)
-                                grb_mod->addGenConstrCos(gvar2, gvar1,c->get_name()+"("+c->_indices->_keys->at(i)+")");
+                                grb_mod->addGenConstrCos(gvar2, gvar1,c->get_name()+"("+c->_indices->_keys->at(i)+")", options);
                             else
-                                grb_mod->addGenConstrCos(gvar2, gvar1);
+                                grb_mod->addGenConstrCos(gvar2, gvar1, options);
                             break;
                         }
                         case gravity::tan_:{
                             if(c->_indices)
-                                grb_mod->addGenConstrTan(gvar2, gvar1,c->get_name()+"("+c->_indices->_keys->at(i)+")");
+                                grb_mod->addGenConstrTan(gvar2, gvar1,c->get_name()+"("+c->_indices->_keys->at(i)+")", options);
                             else
-                                grb_mod->addGenConstrTan(gvar2, gvar1);
+                                grb_mod->addGenConstrTan(gvar2, gvar1, options);
                             break;
                         }
                         case gravity::log_:{
                             if(c->_indices)
-                                grb_mod->addGenConstrLog(gvar2, gvar1,c->get_name()+"("+c->_indices->_keys->at(i)+")");
+                                grb_mod->addGenConstrLog(gvar2, gvar1,c->get_name()+"("+c->_indices->_keys->at(i)+")", options);
                             else
-                                grb_mod->addGenConstrLog(gvar2, gvar1);
+                                grb_mod->addGenConstrLog(gvar2, gvar1, options);
                             break;
                         }
                         case gravity::exp_:{
-                            std::string options = "FuncPieces=-2 FuncPieceError=0.0001";
                             if(c->_indices)
                                 grb_mod->addGenConstrExp(gvar2, gvar1,c->get_name()+"("+c->_indices->_keys->at(i)+")", options);
                             else

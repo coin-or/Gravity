@@ -20,6 +20,7 @@ typedef enum {
     _exp,
     _sigmoid,
     _matmul,
+    _batchnorm,
 } OType; /* Operator Type */
 typedef enum { LOWER, UPPER} Side;
 
