@@ -1372,3 +1372,59 @@ public:
     Tensor *X, *Y; // Input and output
     Tensor *scale, *B, *mean, *var;
 };
+
+class Softmax: public Layer {
+public:
+    Softmax(const onnx::NodeProto& node, Tensors& tensors): Layer(node, tensors) {
+        operator_type = _softmax;
+        this->X = &tensors[node.input(0)];
+        this->Y = &tensors[node.output(0)];
+    }
+
+    std::vector<std::vector<std::string>> get_indices() const override {
+        return {{"Out", "In", "ExpAux", "ExpSum", "SumAux"}, {}};
+    }
+
+    void index_hidden_states(indices& hidden_states, indices& y_ids) override {
+        for (auto output: this->outputs) {
+            for (auto i = 0; i < output->numel; i++) {
+                hidden_states.add(output->strkey(i));
+                hidden_states.add(output->strkey(i) + "_exp_aux");
+                hidden_states.add(output->strkey(i) + "_sum_aux");
+            }
+        }
+    }
+
+    void build_constraint(IndexSet& inds) override {
+        for(auto j = 0; j < this->X->numel;j++){
+            inds["Constr"].add(this->Y->strkey(j));
+            inds["In"].add_ref(this->X->strkey(j));
+            inds["Out"].add_ref(this->Y->strkey(j));
+
+            inds["ExpAux"].add_ref(this->Y->strkey(j) + "_exp_aux");
+            inds["ExpSum"].add_in_row(inds.row_id, this->Y->strkey(j) + "_exp_aux");
+            inds["SumAux"].add_ref(this->Y->strkey(j) + "_sum_aux");
+        }
+        inds.row_id++;
+    }
+
+    void add_constraints(gravity::Model<>& NN, IndexSet& inds, gravity::param<>& w, gravity::var<>& x, gravity::var<int>& y) override {
+        // Exp constraint
+        Constraint<> Exp_("Softmax_Exp");
+        Exp_ = x.in(inds["ExpAux"]) - gravity::exp(x.in(inds["In"]));
+        NN.add(Exp_.in(inds["Constr"]) == 0);
+
+        // Sum constraint
+        Constraint<> Sum_("Softmax_Sum");
+        Sum_ = x.in(inds["SumAux"]) - x.in(inds["ExpSum"]);
+        Sum_.print();
+        NN.add(Sum_.in(inds["Constr"]) == 0);
+
+        // Out constraint
+        Constraint<> Out_("Softmax_Out");
+        Out_ = x.in(inds["Out"])*x.in(inds["SumAux"]) - x.in(inds["ExpAux"]);
+        NN.add(Out_.in(inds["Constr"]) == 0);
+    }
+
+    Tensor *X, *Y; // Input and output
+};

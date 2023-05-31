@@ -84,6 +84,8 @@ public:
                 node_ptr = new Sigmoid(node, this->tensors);
             } else if (node.op_type() == "BatchNormalization") {
                 node_ptr = new BatchNorm(node, this->tensors);
+            } else if (node.op_type() == "Softmax") {
+                node_ptr = new Softmax(node, this->tensors);
             } else {
                 throw std::runtime_error("Unsupported operator " + node.op_type());
             }
