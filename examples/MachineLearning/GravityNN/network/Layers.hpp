@@ -1147,7 +1147,6 @@ public:
             }
             this->axis = i;
         }
-
     }
 
     void build_constraint(IndexSet& inds) override {
@@ -1379,10 +1378,28 @@ public:
         operator_type = _softmax;
         this->X = &tensors[node.input(0)];
         this->Y = &tensors[node.output(0)];
+
+        if (const auto* axis = find_attribute("axis", node)) {
+            int64_t i = axis->i();
+            if (i < 0) {
+                i += this->X->ndims;
+            }
+            this->axis = i;
+        } else {
+            throw std::runtime_error("Softmax: axis attribute not found");
+        }
+
+        if ((this->axis != 1) || (this->X->ndims != 2)) {
+            throw std::runtime_error("Softmax: axis != 1 or ndims != 2 not supported yet");
+        }
+
+        if (this->X->shape[0] != 1) {
+            throw std::runtime_error("Softmax: batch size > 1 not supported yet");
+        }
     }
 
     std::vector<std::vector<std::string>> get_indices() const override {
-        return {{"Out", "In", "ExpAux", "ExpSum", "SumAux"}, {}};
+        return {{"Out", "In", "ExpAux", "ExpSum", "SumAux", "SumProd"}, {}};
     }
 
     void index_hidden_states(indices& hidden_states, indices& y_ids) override {
@@ -1390,21 +1407,23 @@ public:
             for (auto i = 0; i < output->numel; i++) {
                 hidden_states.add(output->strkey(i));
                 hidden_states.add(output->strkey(i) + "_exp_aux");
-                hidden_states.add(output->strkey(i) + "_sum_aux");
             }
         }
+        hidden_states.add(this->Y->name + "_sum_aux");
     }
 
     void build_constraint(IndexSet& inds) override {
         for(auto j = 0; j < this->X->numel;j++){
             inds["Constr"].add(this->Y->strkey(j));
             inds["In"].add_ref(this->X->strkey(j));
+            inds["ExpAux"].add_ref(this->Y->strkey(j) + "_exp_aux");
             inds["Out"].add_ref(this->Y->strkey(j));
 
-            inds["ExpAux"].add_ref(this->Y->strkey(j) + "_exp_aux");
             inds["ExpSum"].add_in_row(inds.row_id, this->Y->strkey(j) + "_exp_aux");
-            inds["SumAux"].add_ref(this->Y->strkey(j) + "_sum_aux");
+            inds["SumProd"].add_ref(this->Y->name + "_sum_aux");
         }
+        inds["ConstrB"].add(this->Y->name + "_sum");
+        inds["SumAux"].add_ref(this->Y->name + "_sum_aux");
         inds.row_id++;
     }
 
@@ -1418,13 +1437,14 @@ public:
         Constraint<> Sum_("Softmax_Sum");
         Sum_ = x.in(inds["SumAux"]) - x.in(inds["ExpSum"]);
         Sum_.print();
-        NN.add(Sum_.in(inds["Constr"]) == 0);
+        NN.add(Sum_.in(inds["ConstrB"]) == 0);
 
         // Out constraint
         Constraint<> Out_("Softmax_Out");
-        Out_ = x.in(inds["Out"])*x.in(inds["SumAux"]) - x.in(inds["ExpAux"]);
+        Out_ = x.in(inds["Out"])*x.in(inds["SumProd"]) - x.in(inds["ExpAux"]);
         NN.add(Out_.in(inds["Constr"]) == 0);
     }
 
     Tensor *X, *Y; // Input and output
+    size_t axis;
 };

@@ -42,6 +42,7 @@ public:
 
     std::map<std::string, indices> _indices;
     size_t row_id = 0;
+    size_t row_id2 = 0;
 };
 
 class IndexContainer {
