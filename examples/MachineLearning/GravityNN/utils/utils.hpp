@@ -72,12 +72,13 @@ std::vector<T> apply_permutation(const std::vector<T>& v, const std::vector<T>& 
     * If final_node is empty, return all layers.
 */
 std::set<std::string> subgraph_extraction(onnx::GraphProto& graph, std::string final_node) {
+    std::vector<std::string> all_layers;
+    for (auto& node: graph.node()) {
+        all_layers.push_back(node.name());
+    }
+
     if (final_node.empty()) {
-        std::set<std::string> all_layers;
-        for (auto& node: graph.node()) {
-            all_layers.insert(node.name());
-        }
-        return all_layers;
+        return std::set<std::string>(all_layers.begin(), all_layers.end());
     }
 
     std::map<std::string, std::string> output_to_layer;
@@ -95,10 +96,12 @@ std::set<std::string> subgraph_extraction(onnx::GraphProto& graph, std::string f
     queue.push(final_node);
 
     std::set<std::string> subgraph;
+    std::vector<std::string> order;
     while (!queue.empty()) {
         std::string node = queue.front();
         queue.pop();
         subgraph.insert(node);
+        order.push_back(node);
 
         auto layer = graph.node(layer_to_index[node]);
         for (const auto& input : layer.input()) {
@@ -107,6 +110,23 @@ std::set<std::string> subgraph_extraction(onnx::GraphProto& graph, std::string f
             }
         }
     }
+
+    // Reverse order
+    std::reverse(order.begin(), order.end());
+
+    // Print all layers
+    std::cout << "All layers: ";
+    std::cout << print_vector(all_layers) << std::endl;
+    std::cout << "Subgraph: ";
+    std::cout << print_vector(order) << std::endl;
+
+    // get unused layers
+    std::vector<std::string> unused_layers;
+    std::set_difference(all_layers.begin(), all_layers.end(), subgraph.begin(), subgraph.end(),
+                        std::inserter(unused_layers, unused_layers.begin()));
+
+    std::cout << "Unused layers: ";
+    std::cout << print_vector(unused_layers) << std::endl;
 
     return subgraph;
 }
@@ -121,4 +141,14 @@ bool ends_with(std::string const& value, std::string const & ending)
 
 size_t get_num_threads() {
     return std::thread::hardware_concurrency();
+}
+
+std::string ftostr(float v) {
+    if (v == std::numeric_limits<float>::lowest()) {
+        return "-∞";
+    }
+    if (v == std::numeric_limits<float>::max()) {
+        return "∞";
+    }
+    return std::to_string(v);
 }

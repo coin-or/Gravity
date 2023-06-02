@@ -184,6 +184,8 @@ public:
                         if (o_ub == std::numeric_limits<float>::max()) {
                             x_ub.set_val(key, 2.0f);
                         }
+                        x_lb.set_val(key, o_lb - 0.01);
+                        x_ub.set_val(key, o_ub + 0.01);
                     } else if (l->operator_type == _exp) {
                         x_lb.set_val(key, 0.0f);
                     } else if (l->operator_type == _sigmoid) {

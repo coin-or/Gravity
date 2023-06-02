@@ -40,16 +40,16 @@ float bound_neuron(std::string fname, Bound neuron, const std::vector<Bound>& gl
     auto grb_prog = (GurobiProgram*)(S._prog.get());
     auto grb_mod = grb_prog->grb_mod;
     grb_mod->set(GRB_IntParam_Threads, 1);
-    // grb_mod->set(GRB_IntParam_NonConvex,2);
+    grb_mod->set(GRB_IntParam_NonConvex,2);
     grb_mod->set(GRB_IntParam_OutputFlag, 1);
     grb_mod->set(GRB_IntParam_MIPFocus, 3);
     // grb_mod->set(GRB_DoubleParam_BestBdStop, -1e-4);
     // grb_mod->set(GRB_DoubleParam_BestObjStop, 1e-4);
 
     int retval = S.run(1e-4, 2.0);
-
-    if (retval == 3) {
-        throw std::runtime_error("Infeasible");
+    if (retval == -1) {
+        // throw std::runtime_error("Infeasible");
+        return mult * std::numeric_limits<float>::max();
     }
 
     // Return relative objective value because we're dumping once we hit negative
@@ -67,11 +67,15 @@ int main(int argc, char * argv[]) {
     NeuralNet nn(fname);
     std::vector<Layer*> layers_to_optimize;
 
-    for (auto i = 0; i < nn.layers.size()-1; i++) {
-        if (
-            (nn.layers[i+1]->operator_type != _relu) &&
-            (nn.layers[i+1]->operator_type != _clip)
-        ) {
+    for (auto i = 1; i < nn.layers.size(); i++) {
+        // if (
+            // (nn.layers[i+1]->operator_type != _relu) &&
+            // (nn.layers[i+1]->operator_type != _clip)
+        // ) {
+            // continue;
+        // }
+
+        if (nn.layers[i]->operator_type == _relu) {
             continue;
         }
 
@@ -79,9 +83,11 @@ int main(int argc, char * argv[]) {
     }
 
     std::vector<Bound> global_bounds;
-    for (auto l: layers_to_optimize) {
+    for (auto lidx = 0; lidx < layers_to_optimize.size(); lidx++) {
+        auto l = layers_to_optimize[lidx];
         std::cout << "################################################" << std::endl;
         std::cout << "Optimizing layer: " << l->name << std::endl;
+        std::cout << "Layer " << lidx+1 << "/" << layers_to_optimize.size() << std::endl;
         std::vector<Bound> local_bounds;
         for (auto o: l->outputs) {
             for (auto i = 0; i < o->numel; i++) {
@@ -128,8 +134,12 @@ int main(int argc, char * argv[]) {
             auto lb = local_bounds[i];
             auto ub = local_bounds[i+1];
             std::cout << lb.neuron_name << ": ";
-            std::cout << "[" << lb.old_value << ", " << ub.old_value << "] -> ";
-            std::cout << "[" << lb.value << ", " << ub.value << "]" << std::endl;
+            std::cout << "[" << ftostr(lb.old_value) << ", " << ftostr(ub.old_value) << "] -> ";
+            std::cout << "[" << ftostr(lb.value) << ", " << ftostr(ub.value) << "]";
+            if (lb.value > ub.value) {
+                std::cout << " !!!!!!";
+            }
+            std::cout << std::endl;
         }
         auto time_taken = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
         std::cout << "Time: " << time_taken << "ms" << std::endl;

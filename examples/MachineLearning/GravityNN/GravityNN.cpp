@@ -14,12 +14,12 @@ int main(int argc, char * argv[]){
     }
 
     // Empty string means we build the entire network, otherwise we build up to the specified node
-    std::string final_node = "";
+    std::string final_node = "/Mul_2";
     NeuralNet nn(fname, final_node);
     Model<>& NN = nn.build_model();
 
     NN.max(
-        nn.x(nn.layers.back()->outputs[0]->strkey(0))
+        nn.x(nn.layers.back()->outputs[0]->strkey(19))
     );
 
     // NN.print();
@@ -34,7 +34,7 @@ int main(int argc, char * argv[]){
     // grb_mod->set(GRB_DoubleParam_BestBdStop, -1e-4);
     // grb_mod->set(GRB_DoubleParam_BestObjStop, 1e-4);
 
-    S.run();
+    S.run(1e-4, 100.0);
 
     NN.print_solution();
 
