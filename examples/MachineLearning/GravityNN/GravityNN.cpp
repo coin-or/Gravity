@@ -14,12 +14,12 @@ int main(int argc, char * argv[]){
     }
 
     // Empty string means we build the entire network, otherwise we build up to the specified node
-    std::string final_node = "/Mul_2";
+    std::string final_node = "";
     NeuralNet nn(fname, final_node);
     Model<>& NN = nn.build_model();
 
     NN.max(
-        nn.x(nn.layers.back()->outputs[0]->strkey(19))
+        nn.x(nn.layers.back()->outputs[0]->strkey(0))
     );
 
     // NN.print();

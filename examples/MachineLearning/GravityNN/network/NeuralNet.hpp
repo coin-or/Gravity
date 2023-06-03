@@ -3,7 +3,11 @@
 #include <string>
 #include <onnx.pb.h>
 #include <vector>
-#include <network/Layers.hpp>
+#include <network/Layers/LayerBase.hpp>
+#include <network/Layers/Linear.hpp>
+#include <network/Layers/Layers.hpp>
+#include <network/Layers/NonLinear.hpp>
+#include <network/Layers/Shape.hpp>
 
 std::set<std::string> noops = {"Flatten", "Reshape", "Squeeze"};
 
@@ -184,8 +188,8 @@ public:
                         if (o_ub == std::numeric_limits<float>::max()) {
                             x_ub.set_val(key, 2.0f);
                         }
-                        x_lb.set_val(key, o_lb - 0.01);
-                        x_ub.set_val(key, o_ub + 0.01);
+                        // x_lb.set_val(key, o_lb - 0.01);
+                        // x_ub.set_val(key, o_ub + 0.01);
                     } else if (l->operator_type == _exp) {
                         x_lb.set_val(key, 0.0f);
                     } else if (l->operator_type == _sigmoid) {
