@@ -5,7 +5,8 @@
 #include <vector>
 #include <network/Layers/LayerBase.hpp>
 #include <network/Layers/Linear.hpp>
-#include <network/Layers/Layers.hpp>
+#include <network/Layers/Binary.hpp>
+#include <network/Layers/Unary.hpp>
 #include <network/Layers/NonLinear.hpp>
 #include <network/Layers/Shape.hpp>
 

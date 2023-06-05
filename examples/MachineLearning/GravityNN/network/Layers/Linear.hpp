@@ -322,3 +322,90 @@ public:
     size_t inp_c, inp_h, inp_w;
     size_t kern_c, kern_h, kern_w;
 };
+
+class BatchNorm: public Layer {
+public:
+    BatchNorm(const onnx::NodeProto& node, Tensors& tensors): Layer(node, tensors) {
+        operator_type = _batchnorm;
+        this->X = &tensors[node.input(0)];
+        this->scale = &tensors[node.input(1)];
+        this->B = &tensors[node.input(2)];
+        this->mean = &tensors[node.input(3)];
+        this->var = &tensors[node.input(4)];
+        this->Y = &tensors[node.output(0)];
+
+        // sqrt the variance
+        auto data = this->var->get_data();
+        for (auto& v: data) {
+            v = sqrt(v);
+        }
+        this->var->_set_data(data);
+
+        if (this->X->ndims > 2) {
+            throw std::runtime_error("BatchNorm: ndims > 2 not supported yet");
+        }
+
+        if (this->X->shape[0] != 1) {
+            throw std::runtime_error("BatchNorm: batch size > 1 not supported yet");
+        }
+    }
+
+    std::vector<std::vector<std::string>> get_indices() const override {
+        return {{"Out", "In", "AuxA", "AuxB", "AuxC"}, {"scale", "B", "mean", "var"}};
+    }
+
+    void index_hidden_states(indices& hidden_states, indices& y_ids) override {
+        for (auto output: this->outputs) {
+            for (auto i = 0; i < output->numel; i++) {
+                hidden_states.add(output->strkey(i));
+                hidden_states.add(output->strkey(i) + "_aux_a");
+                hidden_states.add(output->strkey(i) + "_aux_b");
+                hidden_states.add(output->strkey(i) + "_aux_c");
+            }
+        }
+    }
+
+    void build_constraint(IndexSet& inds) override {
+        for(auto j = 0; j < this->X->numel;j++){
+            inds["Constr"].add(this->Y->strkey(j));
+            inds["In"].add_ref(this->X->strkey(j));
+            inds["AuxA"].add_ref(this->Y->strkey(j) + "_aux_a");
+            inds["AuxB"].add_ref(this->Y->strkey(j) + "_aux_b");
+            inds["AuxC"].add_ref(this->Y->strkey(j) + "_aux_c");
+            inds["Out"].add_ref(this->Y->strkey(j));
+
+            inds["scale"].add_ref(this->scale->strkey(j));
+            inds["B"].add_ref(this->B->strkey(j));
+            inds["mean"].add_ref(this->mean->strkey(j));
+            inds["var"].add_ref(this->var->strkey(j));
+        }
+    }
+
+    void add_parameters(gravity::param<>& w) const override {
+        this->scale->add_params(w);
+        this->B->add_params(w);
+        this->mean->add_params(w);
+        this->var->add_params(w);
+    }
+
+    void add_constraints(gravity::Model<>& NN, IndexSet& inds, gravity::param<>& w, gravity::var<>& x, gravity::var<int>& y) override {
+        Constraint<> Aux_A("BN_AuxA");
+        Aux_A = x.in(inds["AuxA"]) - (x.in(inds["In"]) - w.in(inds["mean"]));
+        NN.add(Aux_A.in(inds["Constr"]) == 0);
+
+        Constraint<> Aux_B("BN_AuxB");
+        Aux_B = x.in(inds["AuxB"])*w.in(inds["var"]) - x.in(inds["AuxA"]);
+        NN.add(Aux_B.in(inds["Constr"]) == 0);
+
+        Constraint<> Aux_C("BN_AuxC");
+        Aux_C = x.in(inds["AuxC"]) - x.in(inds["AuxB"])*w.in(inds["scale"]);
+        NN.add(Aux_C.in(inds["Constr"]) == 0);
+
+        Constraint<> Aux_D("BN_Out");
+        Aux_D = x.in(inds["Out"]) - (x.in(inds["AuxC"]) + w.in(inds["B"]));
+        NN.add(Aux_D.in(inds["Constr"]) == 0);
+    }
+
+    Tensor *X, *Y; // Input and output
+    Tensor *scale, *B, *mean, *var;
+};
