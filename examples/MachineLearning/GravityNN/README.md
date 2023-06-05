@@ -22,6 +22,9 @@
 | Split         | Yes  | 18    |
 | Concat        | Yes  | ?     |
 | Div           | Yes  | 19    |
+| ReduceSum     | Yes  | 38    |
+| Sigmoid       | Yes  | 6     |
+| Softmax       | Yes  | 2     |
 | AveragePool   |      | 1     |
 | ArgMax        |      | 2     |
 | Cast          |      | 6     |
@@ -30,9 +33,6 @@
 | Gather        |      | 6     |
 | OneHot        |      | 2     |
 | Pad           |      | 1     |
-| ReduceSum     |      | 38    |
-| Sigmoid       |      | 6     |
-| Softmax       |      | 2     |
 
 
 # Georgia Tech model

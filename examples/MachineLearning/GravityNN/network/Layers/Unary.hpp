@@ -173,7 +173,7 @@ public:
     }
 
     void build_constraint(IndexSet& inds) override {
-        for(auto j = 0; j < this->X->numel;j++){
+        for(auto j = 0; j < this->X->numel; j++){
             inds["Constr"].add(this->Y->strkey(j));
             inds["In"].add_ref(this->X->strkey(j));
             inds["Out"].add_ref(this->Y->strkey(j));
@@ -187,4 +187,51 @@ public:
     }
 
     Tensor *X, *Y; // Input and output
+};
+
+class ReduceSum : public Layer {
+public:
+    ReduceSum(const onnx::NodeProto& node, Tensors& tensors): Layer(node, tensors) {
+        operator_type = _reduce_sum;
+        this->X = &tensors[node.input(0)];
+        this->Y = &tensors[node.output(0)];
+        if (const auto* axis_attr = find_attribute("axes", node)) {
+            this->axes = std::vector<int>(axis_attr->ints().begin(), axis_attr->ints().end());
+        }
+
+        for (auto& ax: this->axes) {
+            if (ax < 0) {
+                ax += this->X->ndims;
+            }
+        }
+
+        if (this->axes.size() == 0) {
+            throw std::runtime_error("ReduceSum: Reduction over the full tensor is not supported");
+        }
+        if ((this->axes.size() != 1) || (this->axes.at(0) != 1)) {
+            throw std::runtime_error("ReduceSum: Reduction over axis != 1 is not supported");
+        }
+    }
+
+    std::vector<std::vector<std::string>> get_indices() const override {
+        return {{"Out", "In"}, {}};
+    }
+
+    void build_constraint(IndexSet& inds) override {
+        inds["Constr"].add(this->Y->strkey(0));
+        inds["Out"].add_ref(this->Y->strkey(0));
+        for(auto j = 0; j < this->X->numel; j++){
+            inds["In"].add_in_row(inds.row_id, this->X->strkey(j));
+        }
+        inds.row_id++;
+    }
+
+    void add_constraints(gravity::Model<>& NN, IndexSet& inds, gravity::param<>& w, gravity::var<>& x, gravity::var<int>& y) override {
+        Constraint<> RDSum("ReduceSum");
+        RDSum = x.in(inds["Out"]) - x.in(inds["In"]);
+        NN.add(RDSum.in(inds["Constr"]) == 0);
+    }
+
+    Tensor *X, *Y; // Input and output
+    std::vector<int> axes;
 };
