@@ -118,8 +118,10 @@ public:
         this->x_ub.in(this->indices.hidden_states);
         this->x_lb = std::numeric_limits<double>::lowest();
         this->x_ub = std::numeric_limits<double>::max();
+        this->NN.print();
 
         this->set_bounds(x_lb, x_ub);
+        this->NN.print();
 
         this->x.add_bounds(this->x_lb, this->x_ub);
         this->x.in(this->indices.hidden_states);
@@ -163,6 +165,7 @@ public:
     }
 
     void set_bounds(gravity::param<>& x_lb, gravity::param<>& x_ub) {
+        double bound_mag = 0.0;
         for (auto l: this->layers) {
             for (auto o: l->outputs) {
                 for(auto j = 0; j < o->numel; j++){
@@ -172,6 +175,7 @@ public:
 
                     x_lb.set_val(key, o_lb);
                     x_ub.set_val(key, o_ub);
+                    bound_mag += (o_lb + o_ub) / 2.0;
 
                     if (l->operator_type == _clip) {
                         auto clip = static_cast<Clip*>(l);
@@ -203,6 +207,8 @@ public:
                 }
             }
         }
+
+        std::cout << "Bound mag: " << bound_mag << std::endl;
     }
 
     void set_aux_bounds(const std::vector<Bound>& aux_bounds) {

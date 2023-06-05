@@ -11,18 +11,22 @@
 
 using namespace gravity;
 
-void final_run(std::string fname, const std::vector<Bound>& global_bounds) {
+void final_run(std::string fname, const std::vector<Bound>& global_bounds, size_t idx) {
     NeuralNet nn(fname);
     nn.set_aux_bounds(global_bounds);
     Model<>& NN = nn.build_model();
 
-    NN.max(nn.x(nn.layers.back()->outputs[0]->strkey(0)));
+    NN.min(
+          nn.x(nn.layers.back()->outputs[0]->strkey(7))
+        - nn.x(nn.layers.back()->outputs[0]->strkey(idx))
+    );
 
     solver<> S(NN,gurobi);
     auto grb_prog = (GurobiProgram*)(S._prog.get());
     auto grb_mod = grb_prog->grb_mod;
     grb_mod->set(GRB_IntParam_Threads, get_num_threads() / 2);
     grb_mod->set(GRB_IntParam_OutputFlag, 1);
+    grb_mod->set(GRB_DoubleParam_BestBdStop, 1e-4);
 
     int retval = S.run();
 }
@@ -40,13 +44,14 @@ float bound_neuron(std::string fname, Bound neuron, const std::vector<Bound>& gl
     auto grb_prog = (GurobiProgram*)(S._prog.get());
     auto grb_mod = grb_prog->grb_mod;
     grb_mod->set(GRB_IntParam_Threads, 1);
-    grb_mod->set(GRB_IntParam_NonConvex,2);
+    // grb_mod->set(GRB_IntParam_NonConvex,2);
     grb_mod->set(GRB_IntParam_OutputFlag, 1);
     grb_mod->set(GRB_IntParam_MIPFocus, 3);
     // grb_mod->set(GRB_DoubleParam_BestBdStop, -1e-4);
     // grb_mod->set(GRB_DoubleParam_BestObjStop, 1e-4);
 
-    int retval = S.run(1e-4, 2.0);
+    // int retval = S.run(1e-4, 5.0);
+    int retval = S.run(1e-6, 60.0);
     if (retval == -1) {
         // throw std::runtime_error("Infeasible");
         return mult * std::numeric_limits<float>::max();
@@ -68,12 +73,12 @@ int main(int argc, char * argv[]) {
     std::vector<Layer*> layers_to_optimize;
 
     for (auto i = 1; i < nn.layers.size(); i++) {
-        // if (
-            // (nn.layers[i+1]->operator_type != _relu) &&
-            // (nn.layers[i+1]->operator_type != _clip)
-        // ) {
-            // continue;
-        // }
+        if (
+            (nn.layers[i+1]->operator_type != _relu) &&
+            (nn.layers[i+1]->operator_type != _clip)
+        ) {
+            continue;
+        }
 
         if (nn.layers[i]->operator_type == _relu) {
             continue;
@@ -147,7 +152,13 @@ int main(int argc, char * argv[]) {
     }
 
     std::cout << "Starting final run" << std::endl;
-    final_run(fname, global_bounds);
+
+    for (size_t i = 0; i < 10; i++) {
+        std::cout << "########################################" << std::endl;
+        std::cout << "Optimizing adv. class " << i << std::endl;
+        std::cout << "---" << std::endl;
+        final_run(fname, global_bounds, i);
+    }
 
     return 0;
 }

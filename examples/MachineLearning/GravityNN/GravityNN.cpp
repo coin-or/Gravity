@@ -12,14 +12,19 @@ int main(int argc, char * argv[]){
     if(argc >= 2) {
         fname = argv[1];
     }
+    size_t idx = 0;
+    if (argc >= 3) {
+        idx = atoi(argv[2]);
+    }
 
     // Empty string means we build the entire network, otherwise we build up to the specified node
     std::string final_node = "";
     NeuralNet nn(fname, final_node);
     Model<>& NN = nn.build_model();
 
-    NN.max(
-        nn.x(nn.layers.back()->outputs[0]->strkey(0))
+    NN.min(
+          nn.x(nn.layers.back()->outputs[0]->strkey(7))
+        - nn.x(nn.layers.back()->outputs[0]->strkey(idx))
     );
 
     // NN.print();
@@ -34,7 +39,7 @@ int main(int argc, char * argv[]){
     // grb_mod->set(GRB_DoubleParam_BestBdStop, -1e-4);
     // grb_mod->set(GRB_DoubleParam_BestObjStop, 1e-4);
 
-    S.run(1e-4, 100.0);
+    S.run();
 
     NN.print_solution();
 
