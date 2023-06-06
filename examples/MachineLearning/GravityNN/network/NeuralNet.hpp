@@ -110,7 +110,8 @@ public:
         this->y = var<int>("y", 0, 1);
     }
 
-    Model<>& build_model() {
+    // Set obj_index to -1 if you want to use a custom objective, otherwise the index of the objective
+    Model<>& build_model(int obj_index) {
         this->build_indexing();
         this->build_constraints();
 
@@ -118,10 +119,8 @@ public:
         this->x_ub.in(this->indices.hidden_states);
         this->x_lb = std::numeric_limits<double>::lowest();
         this->x_ub = std::numeric_limits<double>::max();
-        this->NN.print();
 
         this->set_bounds(x_lb, x_ub);
-        this->NN.print();
 
         this->x.add_bounds(this->x_lb, this->x_ub);
         this->x.in(this->indices.hidden_states);
@@ -132,7 +131,32 @@ public:
         this->NN.add(this->y);
         this->add_constraints();
 
+        this->set_objective(obj_index);
+
         return this->NN;
+    }
+
+    void set_objective(int obj_index) {
+        if (obj_index == -1) {
+            return;
+        }
+        gravity::func<> obj = 0;
+
+        auto& spec_matrix = this->tensors.at("obj_spec_matrix");
+        auto& spec_values = this->tensors.at("obj_spec_values");
+
+        for (size_t i = 0; i < spec_matrix.shape[1]; i++) {
+            auto coeff = spec_matrix(spec_matrix.flatten_index({(size_t)obj_index, i}));
+            std::string key = this->layers.back()->outputs[0]->strkey(i);
+            obj += coeff * this->x(key);
+        }
+        // subtract the constant
+        obj -= spec_values(obj_index);
+        std::cout << "############################" << std::endl;
+        std::cout << "Objective: " << std::endl;
+        obj.print();
+        std::cout << "############################" << std::endl;
+        NN.min(obj);
     }
 
     /*
@@ -165,7 +189,6 @@ public:
     }
 
     void set_bounds(gravity::param<>& x_lb, gravity::param<>& x_ub) {
-        double bound_mag = 0.0;
         for (auto l: this->layers) {
             for (auto o: l->outputs) {
                 for(auto j = 0; j < o->numel; j++){
@@ -175,19 +198,14 @@ public:
 
                     x_lb.set_val(key, o_lb);
                     x_ub.set_val(key, o_ub);
-                    bound_mag += (o_lb + o_ub) / 2.0;
 
                     if (l->operator_type == _clip) {
                         auto clip = static_cast<Clip*>(l);
                         x_lb.set_val(key, std::max(o_lb, clip->min));
                         x_ub.set_val(key, std::min(o_ub, clip->max));
                     } else if (l->operator_type == _relu) {
-                        auto relu = static_cast<Relu*>(l);
-                        auto join_lb = std::max(o_lb, relu->X->lb.at(j));
-                        auto join_ub = std::min(o_ub, relu->X->ub.at(j));
-
-                        x_lb.set_val(key, std::max(join_lb, 0.0f));
-                        x_ub.set_val(key, std::max(join_ub, 0.0f));
+                        x_lb.set_val(key, std::max(o_lb, 0.0f));
+                        x_ub.set_val(key, std::max(o_ub, 0.0f));
                     } else if (l->operator_type == _input) {
                         if (o_lb == std::numeric_limits<float>::lowest()) {
                             x_lb.set_val(key, -2.0f);
@@ -195,8 +213,6 @@ public:
                         if (o_ub == std::numeric_limits<float>::max()) {
                             x_ub.set_val(key, 2.0f);
                         }
-                        // x_lb.set_val(key, o_lb - 0.01);
-                        // x_ub.set_val(key, o_ub + 0.01);
                     } else if (l->operator_type == _exp) {
                         x_lb.set_val(key, 0.0f);
                     } else if (l->operator_type == _sigmoid) {
@@ -207,8 +223,6 @@ public:
                 }
             }
         }
-
-        std::cout << "Bound mag: " << bound_mag << std::endl;
     }
 
     void set_aux_bounds(const std::vector<Bound>& aux_bounds) {
@@ -239,9 +253,7 @@ public:
                     x.param<double>::set_val(key, fv);
                     if (l->operator_type == _relu) {
                         y.param<int>::set_val(key, (int)(fv > 0));
-                    }
-
-                    if (l->operator_type == _clip) {
+                    } else if (l->operator_type == _clip) {
                         auto clip = static_cast<Clip*>(l);
                         y.param<int>::set_val(key + "_min", 0);
                         y.param<int>::set_val(key + "_max", 0);

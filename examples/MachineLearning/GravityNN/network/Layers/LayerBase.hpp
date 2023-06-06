@@ -19,7 +19,6 @@ public:
             this->inputs.push_back(&tensors.at(input));
         }
         for (const auto& output : node.output()) {
-            this->output_names.push_back(output);
             this->outputs.push_back(&tensors.at(output));
         }
 
@@ -30,7 +29,6 @@ public:
     Layer(const onnx::ValueInfoProto& input_node, Tensors& tensors) {
         this->name = input_node.name();
         this->operator_type = _input;
-        this->output_names.push_back(input_node.name());
         this->outputs.push_back(&tensors.at(input_node.name()));
     }
 
@@ -67,7 +65,6 @@ public:
     std::string name;
     OType operator_type;
 
-    std::vector<std::string> output_names;
     std::vector<Tensor*> outputs;
     std::vector<Tensor*> inputs;
 };

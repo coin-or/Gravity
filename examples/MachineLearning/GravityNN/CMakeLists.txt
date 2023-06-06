@@ -29,12 +29,3 @@ add_executable(
 )
 target_include_directories(tighten PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/MachineLearning/GravityNN)
 target_link_libraries(tighten ${PROTOBUF_LIBRARIES} gravity OpenMP::OpenMP_CXX)
-
-add_executable(
-  scenario
-	MachineLearning/GravityNN/scenario.cpp
-	${ONNX_PROTO_SRCS}
-  ${ONNX_PROTO_HDRS}
-)
-target_include_directories(scenario PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/MachineLearning/GravityNN)
-target_link_libraries(scenario ${PROTOBUF_LIBRARIES} gravity)
