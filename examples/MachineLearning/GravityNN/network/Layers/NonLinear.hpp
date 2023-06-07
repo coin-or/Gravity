@@ -10,6 +10,9 @@ public:
         operator_type = _cos;
         this->X = &tensors[node.input(0)];
         this->Y = &tensors[node.output(0)];
+
+        this->range_lower = -1.0;
+        this->range_upper =  1.0;
     }
 
     std::vector<std::vector<std::string>> get_indices() const override {
@@ -39,6 +42,9 @@ public:
         operator_type = _sin;
         this->X = &tensors[node.input(0)];
         this->Y = &tensors[node.output(0)];
+
+        this->range_lower = -1.0;
+        this->range_upper =  1.0;
     }
 
     std::vector<std::vector<std::string>> get_indices() const override {
@@ -77,6 +83,8 @@ public:
         if (this->exp->operator()(0) != 2.0) {
             throw std::runtime_error("Pow: exponent must be 2.");
         }
+
+        this->range_lower = 0.0;
     }
 
     std::vector<std::vector<std::string>> get_indices() const override {
@@ -107,6 +115,8 @@ public:
         operator_type = _exp;
         this->X = &tensors[node.input(0)];
         this->Y = &tensors[node.output(0)];
+
+        this->range_lower = 0.0;
     }
 
     std::vector<std::vector<std::string>> get_indices() const override {
@@ -136,6 +146,9 @@ public:
         operator_type = _sigmoid;
         this->X = &tensors[node.input(0)];
         this->Y = &tensors[node.output(0)];
+
+        this->range_lower = 0.0;
+        this->range_upper = 1.0;
     }
 
     std::vector<std::vector<std::string>> get_indices() const override {
@@ -208,6 +221,9 @@ public:
         if (this->X->shape[0] != 1) {
             throw std::runtime_error("Softmax: batch size > 1 not supported yet");
         }
+
+        this->range_lower = 0.0;
+        this->range_upper = 1.0;
     }
 
     std::vector<std::vector<std::string>> get_indices() const override {

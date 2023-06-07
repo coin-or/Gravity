@@ -206,38 +206,7 @@ public:
 
     void set_bounds(gravity::param<>& x_lb, gravity::param<>& x_ub) {
         for (auto l: this->layers) {
-            for (auto o: l->outputs) {
-                for(auto j = 0; j < o->numel; j++){
-                    auto key = o->strkey(j);
-                    auto o_lb = o->lb.at(j);
-                    auto o_ub = o->ub.at(j);
-
-                    x_lb.set_val(key, o_lb);
-                    x_ub.set_val(key, o_ub);
-
-                    if (l->operator_type == _clip) {
-                        auto clip = static_cast<Clip*>(l);
-                        x_lb.set_val(key, std::max(o_lb, clip->min));
-                        x_ub.set_val(key, std::min(o_ub, clip->max));
-                    } else if (l->operator_type == _relu) {
-                        x_lb.set_val(key, std::max(o_lb, 0.0f));
-                        x_ub.set_val(key, std::max(o_ub, 0.0f));
-                    } else if (l->operator_type == _input) {
-                        if (o_lb == std::numeric_limits<float>::lowest()) {
-                            x_lb.set_val(key, -2.0f);
-                        }
-                        if (o_ub == std::numeric_limits<float>::max()) {
-                            x_ub.set_val(key, 2.0f);
-                        }
-                    } else if (l->operator_type == _exp) {
-                        x_lb.set_val(key, 0.0f);
-                    } else if (l->operator_type == _sigmoid) {
-                        x_lb.set_val(key + "_exp_aux", 0.0f);
-                        x_lb.set_val(key, 0.0f);
-                        x_ub.set_val(key, 1.0f);
-                    }
-                }
-            }
+            l->set_bounds(x_lb, x_ub);
         }
     }
 

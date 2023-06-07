@@ -52,6 +52,27 @@ public:
     // Override this if the layer has parameters
     virtual void add_parameters(gravity::param<>& w) const {}
 
+    // Override this if the layer has aux vars that can be bounded
+    // i.e. sigmoid produces an aux exp which has a lower bound of 0.0
+    virtual void set_bounds(gravity::param<>& x_lb, gravity::param<>& x_ub) {
+        for (auto o: this->outputs) {
+            for(auto j = 0; j < o->numel; j++){
+                auto key  = o->strkey(j);
+                auto lb = std::max(
+                    o->lb.at(j),
+                    this->range_lower
+                );
+                auto ub = std::min(
+                    o->ub.at(j),
+                    this->range_upper
+                );
+
+                x_lb.set_val(key, lb);
+                x_ub.set_val(key, ub);
+            }
+        }
+    }
+
     const onnx::AttributeProto* find_attribute(const std::string& name, const onnx::NodeProto& node) const {
         for (const auto& attr : node.attribute()) {
             if (attr.name() == name) {
@@ -67,4 +88,7 @@ public:
 
     std::vector<Tensor*> outputs;
     std::vector<Tensor*> inputs;
+
+    float range_lower = std::numeric_limits<float>::lowest();
+    float range_upper = std::numeric_limits<float>::max();
 };

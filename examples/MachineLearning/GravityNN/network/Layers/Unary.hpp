@@ -17,6 +17,9 @@ public:
         if (node.input_size() > 2) {
             this->max = tensors.at(node.input(2))(0);
         }
+
+        this->range_lower = this->min;
+        this->range_upper = this->max;
     }
 
     std::vector<std::vector<std::string>> get_indices() const override {
@@ -104,6 +107,8 @@ public:
         operator_type = _relu;
         this->X = &tensors.at(node.input(0));
         this->Y = &tensors.at(node.output(0));
+
+        this->range_lower = 0.0;
     }
 
     std::vector<std::vector<std::string>> get_indices() const override {
