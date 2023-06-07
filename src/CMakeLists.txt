@@ -77,6 +77,7 @@ endif()
 
 if(OPT_PARSER)
 add_dependencies(gravity opt_parser)
+add_dependencies(gravity Protobuf)
 target_link_libraries(gravity ${CPLEX_LIBRARIES} ${GUROBI_LIBRARIES} ${LASlib_LIBRARIES} ${IPOPT_LIBRARIES} ${BONMIN_LIBRARIES} ${SDPA_LIBRARIES} ${MOSEK_LIBRARIES} ${XLNT_LIBRARIES} ${OpenMPI_LIBRARIES} ${QHULL_LIBRARIES} ${SDPLIB_LIBRARIES} liboption_parser.a nlohmann_json::nlohmann_json)
 endif()
 
