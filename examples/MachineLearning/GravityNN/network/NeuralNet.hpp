@@ -149,8 +149,12 @@ public:
     }
 
     void set_objective(int obj_index) {
-        if (obj_index == -1) {
+        if (obj_index < 0) {
             return;
+        }
+
+        if (this->obj_spec == nullptr || this->obj_val == nullptr) {
+            throw std::runtime_error("Objective specification and value must be described in the ONNX model for this function.");
         }
 
         auto& spec = *this->obj_spec;
@@ -165,10 +169,8 @@ public:
         // subtract the constant
         obj -= val(obj_index);
 
-        std::cout << "############################" << std::endl;
-        std::cout << "Objective: " << std::endl;
+        std::cout << "Objective: " << obj_index << std::endl;
         obj.print();
-        std::cout << "############################" << std::endl;
 
         NN.min(obj);
     }
