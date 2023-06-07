@@ -166,8 +166,8 @@ public:
             std::string key = this->layers.back()->outputs[0]->strkey(i);
             obj += coeff * this->x(key);
         }
-        // subtract the constant
-        obj -= val(obj_index);
+        // add the constant
+        obj += val(obj_index);
 
         std::cout << "Objective: " << obj_index << std::endl;
         obj.print();
