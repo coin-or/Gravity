@@ -62,7 +62,7 @@ float bound_neuron(std::string fname, Bound neuron, const std::vector<Bound>& gl
 }
 
 int main(int argc, char * argv[]) {
-    string fname = string(prj_dir)+"/data_sets/VNN/tll_bound.onnx";
+    string fname = string(prj_dir)+"/data_sets/VNN/tll_new_old.onnx";
     if(argc >= 2) {
         fname = argv[1];
     }
@@ -104,7 +104,7 @@ int main(int argc, char * argv[]) {
             }
         }
 
-        std::cout << "Number of neurons to optimize: " << local_bounds.size() << std::endl;
+        std::cout << "Number of neurons to optimize: " << local_bounds.size()/2 << std::endl;
         int bak, new_;
         fflush(stdout);
         bak = dup(1);

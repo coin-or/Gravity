@@ -8,7 +8,7 @@
 using namespace gravity;
 
 int main(int argc, char * argv[]){
-    string fname = string(prj_dir)+"/data_sets/VNN/tll_bound.onnx";
+    string fname = string(prj_dir)+"/data_sets/VNN/tll_new_old.onnx";
     if(argc >= 2) {
         fname = argv[1];
     }
