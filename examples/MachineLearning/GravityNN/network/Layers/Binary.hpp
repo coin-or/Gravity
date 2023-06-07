@@ -36,7 +36,7 @@ public:
         return {{"hOut", "pOut", "A", "B", "pA"}, {"AddVar"}};
     }
 
-    void build_constraint(IndexSet& inds) override {
+    void index_constraint(IndexSet& inds) override {
         for(auto j = 0; j < this->A->numel;j++){
 
             if (this->B->is_initializer) {
@@ -100,7 +100,7 @@ public:
         return {{"hOut", "pOut", "A", "B", "pA"}, {"SubVar"}};
     }
 
-    void build_constraint(IndexSet& inds) override {
+    void index_constraint(IndexSet& inds) override {
         for(auto j = 0; j < this->A->numel;j++){
 
             if (this->B->is_initializer) {
@@ -164,7 +164,7 @@ public:
         return {{"hOut", "pOut", "A", "B", "pA"}, {"MulVar"}};
     }
 
-    void build_constraint(IndexSet& inds) override {
+    void index_constraint(IndexSet& inds) override {
         for(auto j = 0; j < this->A->numel;j++){
 
             if (this->B->is_initializer) {
@@ -213,7 +213,7 @@ public:
         return {{"Out", "A", "B"}, {}};
     }
 
-    void build_constraint(IndexSet& inds) override {
+    void index_constraint(IndexSet& inds) override {
         for(auto j = 0; j < this->A->numel;j++){
             inds["Constr"].add(this->Y->strkey(j));
             inds["A"].add_ref(this->A->strkey(j));

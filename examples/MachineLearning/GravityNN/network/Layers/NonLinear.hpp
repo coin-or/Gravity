@@ -16,7 +16,7 @@ public:
         return {{"Out", "In"}, {}};
     }
 
-    void build_constraint(IndexSet& inds) override {
+    void index_constraint(IndexSet& inds) override {
         for(auto j = 0; j < this->X->numel;j++){
             inds["Constr"].add(this->Y->strkey(j));
             inds["In"].add_ref(this->X->strkey(j));
@@ -45,7 +45,7 @@ public:
         return {{"Out", "In"}, {}};
     }
 
-    void build_constraint(IndexSet& inds) override {
+    void index_constraint(IndexSet& inds) override {
         for(auto j = 0; j < this->X->numel;j++){
             inds["Constr"].add(this->Y->strkey(j));
             inds["In"].add_ref(this->X->strkey(j));
@@ -83,7 +83,7 @@ public:
         return {{"Out", "In"}, {}};
     }
 
-    void build_constraint(IndexSet& inds) override {
+    void index_constraint(IndexSet& inds) override {
         for(auto j = 0; j < this->X->numel;j++){
             inds["Constr"].add(this->Y->strkey(j));
             inds["In"].add_ref(this->X->strkey(j));
@@ -113,7 +113,7 @@ public:
         return {{"Out", "In"}, {}};
     }
 
-    void build_constraint(IndexSet& inds) override {
+    void index_constraint(IndexSet& inds) override {
         for(auto j = 0; j < this->X->numel;j++){
             inds["Constr"].add(this->Y->strkey(j));
             inds["In"].add_ref(this->X->strkey(j));
@@ -151,7 +151,7 @@ public:
         }
     }
 
-    void build_constraint(IndexSet& inds) override {
+    void index_constraint(IndexSet& inds) override {
         for(auto j = 0; j < this->X->numel;j++){
             inds["Constr"].add(this->Y->strkey(j));
             inds["In"].add_ref(this->X->strkey(j));
@@ -224,7 +224,7 @@ public:
         hidden_states.add(this->Y->name + "_sum_aux");
     }
 
-    void build_constraint(IndexSet& inds) override {
+    void index_constraint(IndexSet& inds) override {
         for(auto j = 0; j < this->X->numel;j++){
             inds["Constr"].add(this->Y->strkey(j));
             inds["In"].add_ref(this->X->strkey(j));

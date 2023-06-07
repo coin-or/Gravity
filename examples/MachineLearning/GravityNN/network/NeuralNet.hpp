@@ -23,15 +23,36 @@ public:
         }
 
         this->tensors = get_tensors(graph);
+        this->build_layers(graph);
 
+        this->indices = IndexContainer();
+
+        // Initialize MIP variables
+        this->NN = Model<>(graph.name());
+
+        this->x_lb = param<>("x_lb");
+        this->x_ub = param<>("x_ub");
+
+        this->x = var<>("x");
+        this->y = var<int>("y", 0, 1);
+
+        if (this->tensors.count("obj_spec_matrix") != 0) {
+            this->obj_spec = &this->tensors.at("obj_spec_matrix");
+        }
+
+        if (this->tensors.count("obj_spec_values") != 0) {
+            this->obj_val = &this->tensors.at("obj_spec_values");
+        }
+
+    }
+
+    void build_layers(const onnx::GraphProto& graph) {
         this->input_numel = 0;
         for (const auto& input : graph.input()) {
             Layer* inp_layer = new Input(input, tensors);
             this->layers.push_back(inp_layer);
             this->input_numel += inp_layer->outputs[0]->numel;
         }
-
-        this->indices = IndexContainer();
 
         for (const auto& node : graph.node()) {
             if (node.op_type() == "Constant") {
@@ -99,21 +120,12 @@ public:
 
             this->layers.push_back(node_ptr);
         }
-
-        // Initialize MIP variables
-        this->NN = Model<>("NN");
-
-        this->x_lb = param<>("x_lb");
-        this->x_ub = param<>("x_ub");
-
-        this->x = var<>("x");
-        this->y = var<int>("y", 0, 1);
     }
 
     // Set obj_index to -1 if you want to use a custom objective, otherwise the index of the objective
     Model<>& build_model(int obj_index) {
         this->build_indexing();
-        this->build_constraints();
+        this->index_constraints();
 
         this->x_lb.in(this->indices.hidden_states);
         this->x_ub.in(this->indices.hidden_states);
@@ -140,22 +152,24 @@ public:
         if (obj_index == -1) {
             return;
         }
+
+        auto& spec = *this->obj_spec;
+        auto& val = *this->obj_val;
+
         gravity::func<> obj = 0;
-
-        auto& spec_matrix = this->tensors.at("obj_spec_matrix");
-        auto& spec_values = this->tensors.at("obj_spec_values");
-
-        for (size_t i = 0; i < spec_matrix.shape[1]; i++) {
-            auto coeff = spec_matrix(spec_matrix.flatten_index({(size_t)obj_index, i}));
+        for (size_t i = 0; i < spec.shape[1]; i++) {
+            auto coeff = spec(spec.flatten_index({(size_t)obj_index, i}));
             std::string key = this->layers.back()->outputs[0]->strkey(i);
             obj += coeff * this->x(key);
         }
         // subtract the constant
-        obj -= spec_values(obj_index);
+        obj -= val(obj_index);
+
         std::cout << "############################" << std::endl;
         std::cout << "Objective: " << std::endl;
         obj.print();
         std::cout << "############################" << std::endl;
+
         NN.min(obj);
     }
 
@@ -182,9 +196,9 @@ public:
     }
 
     // Builds constraints for each layer
-    void build_constraints() {
+    void index_constraints() {
         for (auto l: this->layers) {
-            l->build_constraint(this->indices(l->operator_type));
+            l->index_constraint(this->indices(l->operator_type));
         }
     }
 
@@ -288,6 +302,9 @@ public:
     Tensors tensors;
     IndexContainer indices;
     size_t input_numel;
+
+    Tensor* obj_spec = nullptr;
+    Tensor* obj_val = nullptr;
 
     std::vector<Layer*> layers;
     std::set<std::string> layer_names;

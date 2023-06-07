@@ -41,7 +41,7 @@ public:
         }
     }
 
-    void build_constraint(IndexSet& inds) override {
+    void index_constraint(IndexSet& inds) override {
         for(auto j = 0; j < this->X->numel; j++){
             inds["Constr"].add(this->Y->strkey(j));
 
@@ -119,7 +119,7 @@ public:
         }
     }
 
-    void build_constraint(IndexSet& inds) override {
+    void index_constraint(IndexSet& inds) override {
         for(auto j = 0; j < this->X->numel;j++){
             inds["Constr"].add(this->Y->strkey(j));
             inds["In"].add_ref(this->X->strkey(j));
@@ -152,7 +152,7 @@ public:
         operator_type = _input;
     }
 
-    void build_constraint(IndexSet& inds) override {}
+    void index_constraint(IndexSet& inds) override {}
     std::vector<std::vector<std::string>> get_indices() const override {
         return {{}, {}};
     }
@@ -172,7 +172,7 @@ public:
         return {{"Out", "In"}, {}};
     }
 
-    void build_constraint(IndexSet& inds) override {
+    void index_constraint(IndexSet& inds) override {
         for(auto j = 0; j < this->X->numel; j++){
             inds["Constr"].add(this->Y->strkey(j));
             inds["In"].add_ref(this->X->strkey(j));
@@ -217,7 +217,7 @@ public:
         return {{"Out", "In"}, {}};
     }
 
-    void build_constraint(IndexSet& inds) override {
+    void index_constraint(IndexSet& inds) override {
         inds["Constr"].add(this->Y->strkey(0));
         inds["Out"].add_ref(this->Y->strkey(0));
         for(auto j = 0; j < this->X->numel; j++){

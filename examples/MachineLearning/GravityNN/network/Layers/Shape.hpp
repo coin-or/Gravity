@@ -16,7 +16,7 @@ public:
         return {{"In", "Out"}, {}};
     }
 
-    void build_constraint(IndexSet& inds) override {
+    void index_constraint(IndexSet& inds) override {
         for(auto j = 0; j < this->X->numel;j++){
             inds["Constr"].add(this->Y->strkey(j));
             inds["In"].add_ref(this->X->strkey(j));
@@ -58,7 +58,7 @@ public:
         }
     }
 
-    void build_constraint(IndexSet& inds) override {
+    void index_constraint(IndexSet& inds) override {
         size_t cur_axis_idx = 0;
         for (auto out: this->outputs) {
             for (size_t out_idx = 0; out_idx < out->numel; out_idx++) {
@@ -93,7 +93,7 @@ public:
         }
     }
 
-    void build_constraint(IndexSet& inds) override {
+    void index_constraint(IndexSet& inds) override {
         size_t cur_axis_idx = 0;
         for (auto inp: this->inputs) {
             for (size_t in_idx = 0; in_idx < inp->numel; in_idx++) {
@@ -126,7 +126,7 @@ public:
         }
     }
 
-    void build_constraint(IndexSet& inds) override {
+    void index_constraint(IndexSet& inds) override {
         // Copy this->X
         Tensor trx = *this->X;
         trx.shape = apply_permutation(this->X->shape, this->perm);
@@ -185,7 +185,7 @@ public:
         }
     }
 
-    void build_constraint(IndexSet& inds) override {
+    void index_constraint(IndexSet& inds) override {
         /*
             Slice uses the starts, ends, axes and steps inputs to select a sub-tensor of its input data tensor.
             An effective start[i], end[i], and step[i] must be computed for each i in [0, ... r-1] where r = rank(input) as follows:
@@ -252,7 +252,7 @@ public:
         }
     }
 
-    void build_constraint(IndexSet& inds) override {
+    void index_constraint(IndexSet& inds) override {
         /*
         Given data tensor of rank r >= 1, and indices tensor of rank q, gather entries of the axis dimension
         of data (by default outer-most one as axis=0) indexed by indices, and concatenates them in an output

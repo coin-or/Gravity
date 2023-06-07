@@ -62,7 +62,7 @@ public:
         }
     }
 
-    void build_constraint(IndexSet& inds) override {
+    void index_constraint(IndexSet& inds) override {
         Tensor tb = *this->B;
         if (this->transB) {
             tb = Tensor::transpose(*this->B);
@@ -146,7 +146,7 @@ public:
         this->A->add_params(w);
     }
 
-    void build_constraint(IndexSet& inds) override {
+    void index_constraint(IndexSet& inds) override {
         for (size_t out_row = 0; out_row < this->Y->shape[0]; out_row++) {
             for (size_t out_col = 0; out_col < this->Y->shape[1]; out_col++) {
                 inds["Constr"].add(this->Y->strkey(out_row, out_col));
@@ -257,7 +257,7 @@ public:
         return {{"In", "Out"}, {"W", "B"}};
     }
 
-    void build_constraint(IndexSet& inds) override {
+    void index_constraint(IndexSet& inds) override {
         // Output indexing
         for (auto j = 0; j < this->Y->numel; j++) {
             inds["Constr"].add(this->name + "," + to_string(j));
@@ -365,7 +365,7 @@ public:
         }
     }
 
-    void build_constraint(IndexSet& inds) override {
+    void index_constraint(IndexSet& inds) override {
         for(auto j = 0; j < this->X->numel;j++){
             inds["Constr"].add(this->Y->strkey(j));
             inds["In"].add_ref(this->X->strkey(j));

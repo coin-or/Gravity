@@ -34,7 +34,7 @@ public:
 
     virtual ~Layer() = default;
 
-    virtual void build_constraint(IndexSet& inds) = 0;
+    virtual void index_constraint(IndexSet& inds) = 0;
     virtual std::vector<std::vector<std::string>> get_indices() const = 0;
     virtual void add_constraints(gravity::Model<>& NN, IndexSet& inds, gravity::param<>& w, gravity::var<>& x, gravity::var<int>& y) = 0;
 
