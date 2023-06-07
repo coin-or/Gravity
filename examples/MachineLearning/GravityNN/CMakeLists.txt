@@ -15,6 +15,8 @@ include_directories(${PC_Protobuf_INCLUDEDIR} ${ONNX_PROTO_HDRS} ${ONNX_PROTO_SR
 add_executable(
   GravityNN
 	MachineLearning/GravityNN/GravityNN.cpp
+	${ONNX_PROTO_SRCS}	
+	${ONNX_PROTO_HDRS}
 )
 add_dependencies(GravityNN proto_dep)
 target_include_directories(GravityNN PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/MachineLearning/GravityNN ${ONNX_PROTO_HDRS})
@@ -24,6 +26,8 @@ find_package(OpenMP)
 add_executable(
   tighten
 	MachineLearning/GravityNN/tighten.cpp
+        ${ONNX_PROTO_SRCS}
+        ${ONNX_PROTO_HDRS}
 )
 add_dependencies(tighten proto_dep)
 target_include_directories(tighten PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/MachineLearning/GravityNN ${ONNX_PROTO_HDRS})
