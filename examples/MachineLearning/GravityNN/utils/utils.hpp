@@ -68,20 +68,29 @@ std::vector<T> apply_permutation(const std::vector<T>& v, const std::vector<T>& 
 
 /*
     * Extract a subgraph from an ONNX graph.
-    * The subgraph is defined by the path from the final_node to the input nodes.
-    * If final_node is empty, return all layers.
+    * The subgraph is defined by the path from the start_node to the final_node.
+    * If start_node and final_node is empty, return all layers.
 */
-std::set<std::string> subgraph_extraction(onnx::GraphProto& graph, std::string final_node) {
+std::set<std::string> subgraph_extraction(onnx::GraphProto& graph, std::string start_node, std::string final_node) {
     std::set<std::string> all_layers;
     for (auto& node: graph.node()) {
         all_layers.insert(node.name());
     }
 
-    if (final_node.empty()) {
-        return all_layers;
+    // If start_node is empty, set it to the first node in the graph
+    if (start_node.empty()) {
+        start_node = graph.node(0).name();
     }
 
-    // Ensure final_node is in the graph
+    // If final_node is empty, set it to the last node in the graph
+    if (final_node.empty()) {
+        final_node = graph.node(graph.node_size() - 1).name();
+    }
+    
+    // Ensure start_node and final_node are in the graph
+    if (all_layers.find(start_node) == all_layers.end()) {
+        throw std::runtime_error("Start node " + start_node + " not found in graph.");
+    }
     if (all_layers.find(final_node) == all_layers.end()) {
         throw std::runtime_error("Final node " + final_node + " not found in graph.");
     }
@@ -100,6 +109,8 @@ std::set<std::string> subgraph_extraction(onnx::GraphProto& graph, std::string f
     std::queue<std::string> queue;
     queue.push(final_node);
     std::set<std::string> subgraph;
+    bool startNodeReached = false;
+
     while (!queue.empty()) {
         std::string node = queue.front();
         queue.pop();
@@ -111,6 +122,17 @@ std::set<std::string> subgraph_extraction(onnx::GraphProto& graph, std::string f
                 queue.push(output_to_layer[input]);
             }
         }
+        
+        // Stop extraction at the start node
+        if(node == start_node) {
+            startNodeReached = true;
+            break;
+        }
+    }
+    
+    // Check if start_node was reached during the traversal
+    if (!startNodeReached) {
+        throw std::runtime_error("No path from start node " + start_node + " to final node " + final_node);
     }
 
     return subgraph;
