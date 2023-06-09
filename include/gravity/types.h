@@ -1371,6 +1371,15 @@ public:
     }
     
     /** Add a key in the specified row (for sparse matrix indexing)*/
+    void add_in_row(size_t row_nb, size_t idx) {
+        _type = matrix_;
+        if (!_ids) {
+            _ids = make_shared<vector<vector<size_t>>>();
+        }
+        _ids->resize(row_nb+1);
+        _ids->at(row_nb).push_back(idx);        
+    }
+    
     void add_in_row(size_t row_nb, const string& key) {
         _type = matrix_;
         if (!_ids) {

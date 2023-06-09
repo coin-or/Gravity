@@ -6,7 +6,7 @@
 //#include "smtlib2yices.h"
 using namespace gravity;
 
-shared_ptr<Model<>> build_NN_MIP(const indices& ReLUs, const indices& x_ids, const indices& y_ids, const indices& B_ids,const indices& C_ids, const vector<Layer*>& layers, const param<>& x_lb, const param<>& x_ub, const param<int>& y_lb, const param<int>& y_ub, param<>& B, param<>& C, int relu_id_min, int relu_id_max, int nb_relus){
+shared_ptr<Model<>> build_NN_MIP(const indices& ReLUs, const indices& x_ids, const indices& z_ids, const indices& B_ids,const indices& C_ids, const vector<Layer*>& layers, const param<>& x_lb, const param<>& x_ub, const param<int>& z_lb, const param<int>& z_ub, param<>& B, param<>& C, int relu_id_min, int relu_id_max, int nb_relus){
     auto nb_layers = layers.size();
     int min_i = 0, max_i = nb_layers, relu_id = 0;
     for(auto i = 0; i<nb_layers; i++){
@@ -163,10 +163,10 @@ shared_ptr<Model<>> build_NN_MIP(const indices& ReLUs, const indices& x_ids, con
     
 
     var<> x("x", x_lb, x_ub);
-    var<> y("y", y_lb, y_ub);
-    y._is_relaxed = true;
+    var<> z("z", z_lb, z_ub);
+    z._is_relaxed = true;
     NN->add(x.in(x_ids));
-    NN->add(y.in(y_ids));
+    NN->add(z.in(z_ids));
 
     /* Objective function */
     NN->min(x(layers.back()->name+",4") - x(layers.back()->name+",1"));
@@ -188,8 +188,7 @@ shared_ptr<Model<>> build_NN_MIP(const indices& ReLUs, const indices& x_ids, con
     
     Constraint<> ReLU_on("ReLU_on");
     ReLU_on = x.in(Gemm_ReLUs) - (x.in(x_Gemm_ReLUs)*B.in(B_Gemm_ReLUs) + C.in(C_Gemm_ReLUs));
-    NN->add_on_off(ReLU_on.in(Gemm_ReLUs) <= 0, y.in(Gemm_ReLUs), true);
-//
+    NN->add_on_off(ReLU_on.in(Gemm_ReLUs) <= 0, z.in(Gemm_ReLUs), true);
     
 //    Constraint<> ReLU_off("ReLU_off");
 //    ReLU_off = (B.in(B_ReLUs)*x.in(x_ReLUs) + C.in(C_ReLUs)) - 1000*y.in(ReLUs);
@@ -198,7 +197,7 @@ shared_ptr<Model<>> build_NN_MIP(const indices& ReLUs, const indices& x_ids, con
 
     Constraint<> ReLU_y_off("ReLU_y_off");
     ReLU_y_off = x.in(Gemm_ReLUs);
-    NN->add_on_off(ReLU_y_off.in(Gemm_ReLUs) <= 0, y.in(Gemm_ReLUs), false);
+    NN->add_on_off(ReLU_y_off.in(Gemm_ReLUs) <= 0, z.in(Gemm_ReLUs), false);
     
 //    Constraint<> ReLU_off("ReLU_off");
 //    ReLU_off = x.in(Gemm_ReLUs) - 1e-4;
@@ -299,7 +298,7 @@ int main (int argc, char * argv[]){
 
     /* INDEX SETS */
     /* Indexing variables */
-    indices x_ids("x_ids"), y_ids("y_ids");/*< x_ids for continuous vars, y_ids for binary vars */
+    indices x_ids("x_ids"), z_ids("z_ids");/*< x_ids for continuous vars, z_ids for binary vars */
 
     /* Indexing params */
     indices B_ids("B_ids"), C_ids("C_ids"), W_ids("W_ids");/*< x_ids for continuous vars, y_ids for binary vars */
@@ -326,23 +325,23 @@ int main (int argc, char * argv[]){
         for(auto j = 0; j < l->outputs[0].numel;j++){
             x_ids.add(l->name+","+to_string(j));
             if(l->operator_type==_relu){
-                y_ids.add(l->name+","+to_string(j));
+                z_ids.add(l->name+","+to_string(j));
             }
         }
     }
     
     param<> x_lb("x_lb"), x_ub("x_ub");
     param<> s_lb("s_lb"), s_ub("s_ub");
-    param<int> y_lb("y_lb"), y_ub("y_ub");
+    param<int> z_lb("z_lb"), z_ub("z_ub");
     x_lb.in(x_ids);x_ub.in(x_ids);
-    y_lb.in(y_ids);y_ub.in(y_ids);
-    s_lb.in(y_ids);s_ub.in(y_ids);
+    z_lb.in(z_ids);z_ub.in(z_ids);
+    s_lb.in(z_ids);s_ub.in(z_ids);
     x_lb = numeric_limits<double>::lowest();
     x_ub = numeric_limits<double>::max();
     s_lb = 0;
     s_ub = numeric_limits<double>::max();
-    y_lb = 0;
-    y_ub = 1;
+    z_lb = 0;
+    z_ub = 1;
     indices ReLUs("ReLUs"), Adds("Adds");
     string key;
     for(auto i = 0; i<nb_layers; i++){
@@ -415,12 +414,12 @@ int main (int argc, char * argv[]){
                 x_ub.set_val(layer_name+","+to_string(j), l->uppers[0](j));
                 if(l->operator_type==_relu){
                     if(l->uppers[0](j)==0){
-                        y_ub.set_val(layer_name+","+to_string(j), 0);
+                        z_ub.set_val(layer_name+","+to_string(j), 0);
                         x_ub.set_val(layer_name+","+to_string(j), 0);
                         nb_Relus_fixed++;
                     }
                     if(l->lowers[0](j)>0){
-                        y_lb.set_val(layer_name+","+to_string(j), 1);
+                        z_lb.set_val(layer_name+","+to_string(j), 1);
                         s_ub.set_val(layer_name+","+to_string(j), 0);
                         nb_Relus_fixed++;
                     }
@@ -439,96 +438,96 @@ int main (int argc, char * argv[]){
     }
     
     
-    int relu_id_min = 0, relu_id_max = 1;
-    auto NN = build_NN_MIP(ReLUs, x_ids, y_ids, B_ids, C_ids, layers, x_lb, x_ub, y_lb, y_ub, B, C, relu_id_min, relu_id_max, nb_relus);
-
-//    NN->print();
-    NN->write();
-    
-    DebugOn("Total number of relu layers = " << nb_relus << endl);
-    int horizon_len = 3;
-    DebugOn("Creating rolling horizon of size " << horizon_len << endl);
-    /* Split nb_layers into horizon_len parts */
-    vector<size_t> limits = bounds(horizon_len, nb_relus);
-//    NN->replace_integers();
-    double max_time = 600;
-    unsigned max_iter=1e3;
-    double rel_tol=1e-2;
-    double abs_tol=1e6;
-    unsigned nb_threads = 2;
-    double ub_solver_tol=1e-4;
-    double lb_solver_tol=1e-4;
-    double range_tol=0;
-    SolverType ub_solver_type = gurobi;
-    SolverType lb_solver_type = gurobi;
-    auto x_NN = NN->get_ptr_var<double>("x");
-    for(auto i = 0; i < x_ids.size(); i++){
-        key = x_ids._keys->at(i);
-        if(key.find("Relu1")==string::npos)
-            x_NN->_off[i] = true;
-    }
-    auto y_NN = NN->get_ptr_var<double>("y");
-    for(auto i = 0; i < y_ids.size(); i++){
-        y_NN->_off[i] = true;
-    }
-    NN->run_obbt(NN, max_time, max_iter, rel_tol, abs_tol, nb_threads, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol);
-    DebugOn("Done running OBBT on NN1\n");
-//    solver<> S(NN,gurobi);
-//    S.run(1e-4, 30);
-//    NN->print();
-    auto x_NN_lb = x_NN->get_lb();
-    auto x_NN_ub = x_NN->get_ub();
-    x_lb.copy_vals(x_NN_lb);
-    x_ub.copy_vals(x_NN_ub);
+//    int relu_id_min = 0, relu_id_max = 1;
+//    auto NN = build_NN_MIP(ReLUs, x_ids, y_ids, B_ids, C_ids, layers, x_lb, x_ub, y_lb, y_ub, B, C, relu_id_min, relu_id_max, nb_relus);
+//
+////    NN->print();
+//    NN->write();
+//
+//    DebugOn("Total number of relu layers = " << nb_relus << endl);
+//    int horizon_len = 3;
+//    DebugOn("Creating rolling horizon of size " << horizon_len << endl);
+//    /* Split nb_layers into horizon_len parts */
+//    vector<size_t> limits = bounds(horizon_len, nb_relus);
+////    NN->replace_integers();
+//    double max_time = 600;
+//    unsigned max_iter=1e3;
+//    double rel_tol=1e-2;
+//    double abs_tol=1e6;
+//    unsigned nb_threads = 2;
+//    double ub_solver_tol=1e-4;
+//    double lb_solver_tol=1e-4;
+//    double range_tol=0;
+//    SolverType ub_solver_type = gurobi;
+//    SolverType lb_solver_type = gurobi;
+//    auto x_NN = NN->get_ptr_var<double>("x");
+//    for(auto i = 0; i < x_ids.size(); i++){
+//        key = x_ids._keys->at(i);
+//        if(key.find("Relu1")==string::npos)
+//            x_NN->_off[i] = true;
+//    }
+//    auto y_NN = NN->get_ptr_var<double>("y");
+//    for(auto i = 0; i < y_ids.size(); i++){
+//        y_NN->_off[i] = true;
+//    }
+//    NN->run_obbt(NN, max_time, max_iter, rel_tol, abs_tol, nb_threads, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol);
+//    DebugOn("Done running OBBT on NN1\n");
+////    solver<> S(NN,gurobi);
+////    S.run(1e-4, 30);
+////    NN->print();
+//    auto x_NN_lb = x_NN->get_lb();
+//    auto x_NN_ub = x_NN->get_ub();
+//    x_lb.copy_vals(x_NN_lb);
+//    x_ub.copy_vals(x_NN_ub);
+////    x_ub.print_vals(6);
+////    x_ub("Relu1,0").print_vals(6);
+//
+//    auto NN2 = build_NN_MIP(ReLUs, x_ids, y_ids, B_ids, C_ids, layers, x_lb, x_ub, y_lb, y_ub, B, C, 1, 2, nb_relus);
+//    NN2->write();
+//    auto x_NN2 = NN2->get_ptr_var<double>("x");
+//    for(auto i = 0; i < x_ids.size(); i++){
+//        key = x_ids._keys->at(i);
+//        if(key.find("Relu2")==string::npos)
+//            x_NN2->_off[i] = true;
+//    }
+//    auto y_NN2 = NN2->get_ptr_var<double>("y");
+//    for(auto i = 0; i < y_ids.size(); i++){
+//        y_NN2->_off[i] = true;
+//    }
+//
+//    DebugOn("running OBBT on NN2\n");
+//    NN2->run_obbt(NN2, max_time, max_iter, rel_tol, abs_tol, nb_threads, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol);
+//    DebugOn("Done running OBBT on NN2\n");
+//    auto x_NN2_lb = x_NN2->get_lb();
+//    auto x_NN2_ub = x_NN2->get_ub();
+//
+//    x_lb.copy_vals(x_NN2_lb);
+//    x_ub.copy_vals(x_NN2_ub);
+//
+//    auto NN3 = build_NN_MIP(ReLUs, x_ids, y_ids, B_ids, C_ids, layers, x_lb, x_ub, y_lb, y_ub, B, C, 2, 3, nb_relus);
+//    NN3->write();
+//    auto x_NN3 = NN3->get_ptr_var<double>("x");
+//    for(auto i = 0; i < x_ids.size(); i++){
+//        key = x_ids._keys->at(i);
+//        if(key.find("Relu3")==string::npos && key.find("Gemm4")==string::npos)
+//            x_NN3->_off[i] = true;
+//    }
+//    auto y_NN3 = NN3->get_ptr_var<double>("y");
+//    for(auto i = 0; i < y_ids.size(); i++){
+//        y_NN3->_off[i] = true;
+//    }
+//
+//    DebugOn("running OBBT on NN3\n");
+//    NN3->run_obbt(NN3, max_time, max_iter, rel_tol, abs_tol, nb_threads, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol);
+//    DebugOn("Done running OBBT on NN3\n");
+//    auto x_NN3_lb = x_NN3->get_lb();
+//    auto x_NN3_ub = x_NN3->get_ub();
+//
+//    x_lb.copy_vals(x_NN3_lb);
+//    x_ub.copy_vals(x_NN3_ub);
 //    x_ub.print_vals(6);
 //    x_ub("Relu1,0").print_vals(6);
-    
-    auto NN2 = build_NN_MIP(ReLUs, x_ids, y_ids, B_ids, C_ids, layers, x_lb, x_ub, y_lb, y_ub, B, C, 1, 2, nb_relus);
-    NN2->write();
-    auto x_NN2 = NN2->get_ptr_var<double>("x");
-    for(auto i = 0; i < x_ids.size(); i++){
-        key = x_ids._keys->at(i);
-        if(key.find("Relu2")==string::npos)
-            x_NN2->_off[i] = true;
-    }
-    auto y_NN2 = NN2->get_ptr_var<double>("y");
-    for(auto i = 0; i < y_ids.size(); i++){
-        y_NN2->_off[i] = true;
-    }
-    
-    DebugOn("running OBBT on NN2\n");
-    NN2->run_obbt(NN2, max_time, max_iter, rel_tol, abs_tol, nb_threads, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol);
-    DebugOn("Done running OBBT on NN2\n");
-    auto x_NN2_lb = x_NN2->get_lb();
-    auto x_NN2_ub = x_NN2->get_ub();
-
-    x_lb.copy_vals(x_NN2_lb);
-    x_ub.copy_vals(x_NN2_ub);
-    
-    auto NN3 = build_NN_MIP(ReLUs, x_ids, y_ids, B_ids, C_ids, layers, x_lb, x_ub, y_lb, y_ub, B, C, 2, 3, nb_relus);
-    NN3->write();
-    auto x_NN3 = NN3->get_ptr_var<double>("x");
-    for(auto i = 0; i < x_ids.size(); i++){
-        key = x_ids._keys->at(i);
-        if(key.find("Relu3")==string::npos && key.find("Gemm4")==string::npos)
-            x_NN3->_off[i] = true;
-    }
-    auto y_NN3 = NN3->get_ptr_var<double>("y");
-    for(auto i = 0; i < y_ids.size(); i++){
-        y_NN3->_off[i] = true;
-    }
-
-    DebugOn("running OBBT on NN3\n");
-    NN3->run_obbt(NN3, max_time, max_iter, rel_tol, abs_tol, nb_threads, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol);
-    DebugOn("Done running OBBT on NN3\n");
-    auto x_NN3_lb = x_NN3->get_lb();
-    auto x_NN3_ub = x_NN3->get_ub();
-
-    x_lb.copy_vals(x_NN3_lb);
-    x_ub.copy_vals(x_NN3_ub);
-//    x_ub.print_vals(6);
-//    x_ub("Relu1,0").print_vals(6);
-    auto NN_full = build_NN_MIP(ReLUs, x_ids, y_ids, B_ids, C_ids, layers, x_lb, x_ub, y_lb, y_ub, B, C, 0, nb_relus-1, nb_relus);
+    auto NN_full = build_NN_MIP(ReLUs, x_ids, z_ids, B_ids, C_ids, layers, x_lb, x_ub, z_lb, z_ub, B, C, 0, nb_relus-1, nb_relus);
     NN_full->write();
 //
 //
@@ -686,7 +685,7 @@ int main (int argc, char * argv[]){
         
         NLP.add(x.in(x_ids));
 //        NLP.add(y.in(y_ids));
-        NLP.add(s.in(y_ids));
+        NLP.add(s.in(z_ids));
 
         /* Objective function */
         NLP.min(x(layers.back()->name+",4") - x(layers.back()->name+",0"));
@@ -717,7 +716,7 @@ int main (int argc, char * argv[]){
             x_star.in(x_ids);
             x_star.copy_vals(x);
             param<> s_star("s_star");
-            s_star.in(y_ids);
+            s_star.in(z_ids);
             s_star.copy_vals(s);
             
             indices I_s("I_s"), I_y("I_y"), I_free("I_free");
@@ -730,8 +729,8 @@ int main (int argc, char * argv[]){
             B_Gemm_ReLUs_y = B_ids;
             B_Gemm_ReLUs_free = B_ids;
             size_t nb_z_comp = 0;
-            for (auto i = 0; i<y_ids.size(); i++) {
-                auto key = y_ids._keys->at(i);
+            for (auto i = 0; i<z_ids.size(); i++) {
+                auto key = z_ids._keys->at(i);
                 if(s.eval(i)<=1e-3 && std::abs(x.eval(key)) <= 1e-3){
                     nb_z_comp++;
                     DebugOn("zero complementarities at " << key << endl);
@@ -761,7 +760,7 @@ int main (int argc, char * argv[]){
             DebugOn("I_s size = " << I_s.size() << endl);
             DebugOn("I_y size = " << I_y.size() << endl);
             DebugOn("I_free size = " << I_free.size() << endl);
-            DebugOn("y_ids size = " << y_ids.size() << endl);
+            DebugOn("z_ids size = " << z_ids.size() << endl);
             
             DebugOn("Number of zero complementarities = " << nb_z_comp << endl);
             bool solve_mip = true;
@@ -769,7 +768,7 @@ int main (int argc, char * argv[]){
                 Model<> MIP("MIP_"+fname_onnx.substr(fname_onnx.find_last_of("/")+1));
                 var<> d_x("d_x", x_lb - x_star, x_ub - x_star), d_s("d_s", s_lb - s_star, s_ub - s_star);
                 var<int> z("z", 0, 1);
-                MIP.add(d_x.in(x_ids), d_s.in(y_ids));
+                MIP.add(d_x.in(x_ids), d_s.in(z_ids));
                 MIP.add(z.in(I_free));
 //                for(auto const &key: *I_free._keys){
 //                    d_x.set_lb(key, 0);

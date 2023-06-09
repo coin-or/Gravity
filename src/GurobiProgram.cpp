@@ -33,13 +33,13 @@ public:
 protected:
     void callback() {
         try {
-            bool incumbent=true;
+            bool incumbent=false;
             bool mipnode=true;
             bool hierarc = false;
             bool add_full=false;
             bool add_bag=false;
-            bool add_soc=true;
-            bool add_threed=true;
+            bool add_soc=false;
+            bool add_threed=false;
             if(m->sdp_dual){
                 add_full=true;
             }
@@ -165,6 +165,41 @@ protected:
                                 vec_x.push_back(x[i]);
                             }
                             m->set_solution(vec_x);
+                            // Get the most violated cuts
+                            auto violated_cstr = m->sort_violated_constraints(1e-6);
+                            int cstr_id = 0;
+                            size_t max_nb_cuts = 1000;
+                            for(cstr_id = 0; cstr_id<std::min(violated_cstr.size(),max_nb_cuts); cstr_id++){
+                                auto most_viol = violated_cstr[cstr_id];
+                                size_t idx = 0, idx_inst = 0, idx1 = 0, idx2 = 0, idx_inst1 = 0, idx_inst2 = 0, nb_inst = 0;
+                                double cval = 0;
+                                auto c = get<2>(most_viol);// Most violated symbolic constraint
+                                auto i = get<3>(most_viol);// Instance of most violated constraint
+                                GRBLinExpr lterm = 0;
+                                for (auto& it_lterm: c->get_lterms()) {
+                                    idx = it_lterm.second._p->get_vec_id();
+                                    if (it_lterm.second._p->_is_vector || it_lterm.second._p->is_matrix_indexed() || it_lterm.second._coef->is_matrix()) {
+                                        auto dim = it_lterm.second._p->get_dim(i);
+                                        for (int j = 0; j<dim; j++) {
+                                            lterm += c->eval(it_lterm.second._coef,i,j)*vars.at(idx+it_lterm.second._p->get_id_inst(i,j));
+                                        }
+                                    }
+                                    else {
+                                        idx_inst = it_lterm.second._p->get_id_inst(i);
+                                        lterm += c->eval(it_lterm.second._coef, i)*vars.at(idx+idx_inst);
+                                    }
+                                    if (!it_lterm.second._sign) {
+                                        lterm *= -1;
+                                    }
+                                }
+                                lterm += c->eval(c->get_cst(), i);
+                                
+                                if(c->get_ctype()==geq) {
+                                    lterm *= -1;
+                                }
+                                addCut(lterm, GRB_LESS_EQUAL, 0);
+                                DebugOff("Added " << cstr_id << " user cuts\n");
+                            }
                             if(add_soc){
                                 m->set_solution(vec_x);
                                 auto res= m->cutting_planes_soc(1e-9, soc_found, soc_added);
@@ -523,7 +558,7 @@ bool GurobiProgram::solve(bool relax, double mipgap, double time_limit){
     
     //interior=lin->add_outer_app_solution(*_model);
     //interior.print_solution();
-//    cuts cb = cuts(_grb_vars, n, _model, interior);
+    cuts cb = cuts(_grb_vars, n, _model, interior);
 //    cuts_primal_complex cbp=cuts_primal_complex(_grb_vars, n, _model, interior);
     //vector<GRBLinExpr> vec_expr;
 //    if(_model->_complex){
@@ -535,8 +570,8 @@ bool GurobiProgram::solve(bool relax, double mipgap, double time_limit){
 //    else{
 //        //cuts cb(_grb_vars, n, _model, interior);
 //        if(!relax){
-//            grb_mod->setCallback(&cb);
-//            grb_mod->update();
+            grb_mod->setCallback(&cb);
+            grb_mod->update();
 //        }
 //    }
     
@@ -776,7 +811,7 @@ void GurobiProgram::prepare_model(){
     fill_in_grb_vmap();
     create_grb_constraints();
     set_grb_objective();
-//    grb_mod->write("gurobiprint.lp");
+    grb_mod->write("gurobiprint.lp");
     //    print_constraints();
 }
 void GurobiProgram::update_model(){

@@ -3093,6 +3093,9 @@ namespace gravity {
         }
         
         size_t get_dim() const{
+            if(_indices && !_is_transposed){
+                return _indices->size();
+            }  
             return constant_::get_dim();
         }
         

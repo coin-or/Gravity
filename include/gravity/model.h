@@ -2371,15 +2371,15 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
          @return tuple<double, int, int, int> the first element in the tuple represents the violation magnitude, the second is the sparsity degree of the contraint,  the third is a pointer to the constraint, and the last is the instance id
          */
         template<typename T=type,typename std::enable_if<is_arithmetic<T>::value>::type* = nullptr>
-        vector<tuple<double, int, shared_ptr<Constraint<type>>,size_t>> sort_violated_constraints(double tol, bool only_relaxed = false, bool print_name = false) const{
+        vector<tuple<double, int, shared_ptr<Constraint<type>>,size_t>> sort_violated_constraints(double tol, bool only_relaxed = false, bool print_name = false){
             vector<tuple<double, int, shared_ptr<Constraint<type>>,size_t>> v;
             size_t nb_inst = 0;
             shared_ptr<Constraint<type>> c = nullptr;
             for(auto& c_p: _cons_name)
             {
                 c = c_p.second;
-                if (!*c->_all_lazy && !c->_callback) {
-                    continue;//Constraint is not lazy or in callback
+                if (!*c->_all_lazy && !c->_callback && !c->_on_off_bin) {
+                    continue;//Constraint is not lazy or in callback or on/off
                 }
                 if(only_relaxed && !c->_relaxed){
                     continue;
@@ -2396,11 +2396,132 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
                         }
                         break;
                     case leq:
-                        for (size_t inst=0; inst<nb_inst; inst++) {
-                            auto diff = c->eval(inst);
-                            if(diff > tol) {
-                                v.push_back(make_tuple(diff, c->get_row_sparsity(inst), c, inst));
-                                if(print_name) DebugOn(" Non-zero <= inequality: " << c->_name << " instance: " << to_string(inst) << ", value = "<< std::abs(diff) << endl);
+                        if(c->_on_off_bin){
+                            if (c->_name.find("ReLU_on") != std::string::npos) {/* this is a ReLU on/off */
+                                shared_ptr<var<double>> x = get_ptr_var<double>("x");
+                                shared_ptr<var<double>> z = get_ptr_var<double>("z");
+                                shared_ptr<var<double>> x_input = nullptr;
+                                shared_ptr<var<double>> x_output = nullptr;
+                                shared_ptr<var<double>> z_bin = static_pointer_cast<var<double>>(c->_on_off_bin);
+                                /** Using the same notation as in this paper: https://optimization-online.org/wp-content/uploads/2018/11/6911.pdf  (Proposition 14)**/
+                                shared_ptr<param<double>> w = static_pointer_cast<param<double>>(c->_params->at("B.in(B_Gemm_ReLUs)").first);
+                                shared_ptr<param<double>> b = static_pointer_cast<param<double>>(c->_params->at("C.in(C_Gemm_ReLUs)").first);
+                                double w_i = 0, x_i = 0, y_i = 0, l_i = 0, u_i = 0, z_i = 0, lb_i = 0, ub_i = 0, b_i = 0;
+                                size_t x_in_idx = 0, y_idx = 0, z_idx = 0, w_idx = 0;
+                                assert(c->_vars.size()==2);/* ReLU constraints only have 2 symbolic variables (x_in and x_out) */
+                                for (auto &v_p: c->get_vars()){
+                                    if(v_p.second.first->_indices->get_name() == c->_indices->get_name())/* Output variables have the same indexing set as the ReLU constraint */
+                                        x_output = static_pointer_cast<var<double>>(v_p.second.first);
+                                    else
+                                        x_input = static_pointer_cast<var<double>>(v_p.second.first);
+                                }
+                                for (size_t inst=0; inst<nb_inst; inst++) {
+                                    indices I_hat("I_hat"), I_hat_W("I_hat_W"), coef_x_ids("coef_x_ids");
+                                    coef_x_ids = *w->_indices;
+                                    coef_x_ids._ids = nullptr;
+                                    I_hat_W = *w->_indices;
+                                    I_hat_W._ids = nullptr;
+                                    I_hat = *x->_indices;
+                                    double sum_l = 0, sum_u = 0;
+                                    double sum_w_l = 0, sum_w_u = 0;
+                                    z_i = z_bin->eval(inst);
+                                    z_idx = z_bin->get_id_inst(inst);
+                                    y_idx = x_output->get_id_inst(inst);
+                                    for(int i = 0; i<x_input->_indices->_ids->at(inst).size(); i++){
+                                        w_i = w->eval(inst,i);
+                                        x_i = x_input->eval(inst,i);
+                                        x_in_idx = x_input->get_id_inst(inst,i);
+                                        w_idx = w->get_id_inst(inst,i);
+                                        lb_i = x_input->get_lb(x_in_idx);
+                                        ub_i = x_input->get_ub(x_in_idx);
+                                        if(w_i >= 0){
+                                            l_i = lb_i;
+                                            u_i = ub_i;
+                                        }
+                                        else{
+                                            l_i = ub_i;
+                                            u_i = lb_i;
+                                        }
+                                        if(w_i*x_i < w_i*(l_i*(1.-z_i) + u_i*z_i)){
+                                            I_hat.add_ref(x_in_idx);
+                                            I_hat_W.add_ref(w_idx);
+                                            sum_l += w_i*(x_i - l_i*(1-z_i));
+                                            sum_w_l += w_i*l_i;
+                                        }
+                                        else{
+                                            sum_u += w_i*u_i*z_i;
+                                            sum_w_u += w_i*u_i;
+                                        }
+                                    }
+                                    y_i = x_output->eval(inst);
+                                    b_i = b->eval(inst);
+                                    if(y_i > b_i*z_i + sum_l + sum_u){
+                                        DebugOn("Found violated on/off cut!\n");
+                                        auto it = _cons_name.find("On_Off_Facet");
+                                        if(it == _cons_name.end()){
+                                            Constraint<> On_Off_Facet("On_Off_Facet");
+                                            param<> coef_z("coef_z"), on_off_cst("on_off_cst");
+                                            indices on_off_ids("on_off_ids"), z_bin_ids("z_bin_ids"), x_in_ids("x_in_ids"),x_out_ids("x_out_ids"), coef_z_ids("coef_z_ids");
+                                            z_bin_ids = *z->_indices;
+                                            x_in_ids = *x->_indices;
+                                            for(size_t idx: I_hat._ids->at(0)){
+                                                x_in_ids.add_in_row(0,idx);
+                                            }
+                                            for(size_t idx: I_hat_W._ids->at(0)){
+                                                coef_x_ids.add_in_row(0,idx);
+                                            }
+                                            x_out_ids = *x->_indices;
+                                            x_out_ids.add_ref(y_idx);
+                                            coef_z_ids.add(c->_indices->_keys->at(inst));
+                                            coef_z.in(coef_z_ids);
+                                            on_off_ids.add(c->_indices->_keys->at(inst));
+                                            on_off_cst.in(on_off_ids);
+                                            on_off_cst = sum_w_l;
+                                            coef_z = b_i + sum_w_l + sum_w_u;
+                                            On_Off_Facet = x->in(x_out_ids) - (coef_z*z->in(z_bin_ids) + w->in(coef_x_ids)*x->in(x_in_ids)) + on_off_cst;
+                                            this->add(On_Off_Facet.in(on_off_ids) <= 0);
+                                        }
+                                        else{
+                                            auto On_Off_Facet = it->second;
+                                            auto c_idx = c->_indices->_keys->at(inst);
+                                            size_t row_id = On_Off_Facet->_indices->size();
+                                            auto coef_z = static_pointer_cast<param<double>>(On_Off_Facet->_params->at("coef_z").first);
+                                            auto on_off_cst  = static_pointer_cast<param<double>>(On_Off_Facet->_params->at("on_off_cst").first);
+                                            on_off_cst->add_val(c_idx, sum_w_l);
+                                            coef_z->add_val(c_idx, b_i + sum_w_l + sum_w_u);
+                                            auto coef_x_ids  = static_pointer_cast<param<double>>(On_Off_Facet->_params->at("B.in(B_Gemm_ReLUs).in(coef_x_ids)").first)->_indices;
+                                            auto x_in_ids  = static_pointer_cast<var<double>>(On_Off_Facet->_vars->at("x.in(x_in_ids)").first)->_indices;
+                                            auto x_out_ids  = static_pointer_cast<var<double>>(On_Off_Facet->_vars->at("x.in(x_out_ids)").first)->_indices;
+                                            x_out_ids->add_ref(y_idx);
+                                            auto z_bin_ids = static_pointer_cast<var<double>>(On_Off_Facet->_vars->at("z.in(z_bin_ids)").first)->_indices;
+                                            z_bin_ids->add_ref(z_idx);
+                                            for(size_t idx: I_hat._ids->at(0)){
+                                                x_in_ids->add_in_row(row_id,idx);
+                                            }
+                                            for(size_t idx: I_hat_W._ids->at(0)){
+                                                coef_x_ids->add_in_row(row_id,idx);
+                                            }
+                                            On_Off_Facet->_indices->add(c_idx+"_"+to_string(row_id));
+                                            On_Off_Facet->print();
+                                            DebugOn("More on/off facet cuts added!\n");
+                                        }
+                                        //                for(int i=0;i<res.size();i++){
+//                                        auto row_id = On_Off_Facet.get_nb_rows();
+//                                        On_Off_Facet.add_in_row(row_id, );
+                                        //                    for(int j=0;j<res[i].size()-1;j+=2){
+                                        //                        auto v_id = res[i][j];
+                                        ////                        SDP_CUT.add_in_row(row_id, )
+                                    }
+                                }
+                            }
+                        }
+                        else{
+                            for (size_t inst=0; inst<nb_inst; inst++) {
+                                auto diff = c->eval(inst);
+                                if(diff > tol) {
+                                    v.push_back(make_tuple(diff, c->get_row_sparsity(inst), c, inst));
+                                    if(print_name) DebugOn(" Non-zero <= inequality: " << c->_name << " instance: " << to_string(inst) << ", value = "<< std::abs(diff) << endl);
+                                }
                             }
                         }
                         break;
