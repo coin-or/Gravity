@@ -2488,6 +2488,7 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
                                             auto coef_z = static_pointer_cast<param<double>>(On_Off_Facet->_params->at("coef_z").first);
                                             auto on_off_cst  = static_pointer_cast<param<double>>(On_Off_Facet->_params->at("on_off_cst").first);
                                             on_off_cst->add_val(c_idx, sum_w_l);
+                                            (static_pointer_cast<func<double>>(On_Off_Facet->_cst))->update_double_index();
                                             coef_z->add_val(c_idx, b_i + sum_w_l + sum_w_u);
                                             auto coef_x_ids  = static_pointer_cast<param<double>>(On_Off_Facet->_params->at("B.in(B_Gemm_ReLUs).in(coef_x_ids)").first)->_indices;
                                             auto x_in_ids  = static_pointer_cast<var<double>>(On_Off_Facet->_vars->at("x.in(x_in_ids)").first)->_indices;
