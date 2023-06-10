@@ -27,8 +27,8 @@ void final_run(std::string fname, const std::vector<Bound>& global_bounds, size_
     int retval = S.run();
 }
 
-float bound_neuron(std::string fname, Bound neuron, const std::vector<Bound>& global_bounds) {
-    NeuralNet nn(fname, neuron.layer_name);
+float bound_neuron(std::string fname, std::string start_node, Bound neuron, const std::vector<Bound>& global_bounds) {
+    NeuralNet nn(fname, start_node, neuron.layer_name);
     nn.set_aux_bounds(global_bounds);
 
     // Passing -1 means we will write a custom objective rather
@@ -82,6 +82,10 @@ int main(int argc, char * argv[]) {
     }
 
     std::vector<Bound> global_bounds;
+    int rolling_horizon = 2;
+    if (rolling_horizon > layers_to_optimize.size()){
+        rolling_horizon = layers_to_optimize.size();
+    }
     for (auto lidx = 0; lidx < layers_to_optimize.size(); lidx++) {
         auto l = layers_to_optimize[lidx];
         std::cout << "################################################" << std::endl;
@@ -113,9 +117,13 @@ int main(int argc, char * argv[]) {
         close(new_);
 
         auto start_time = std::chrono::high_resolution_clock::now();
+        std::string start_node = "";
+        if (lidx > rolling_horizon - 1) {
+            start_node = layers_to_optimize[lidx - (rolling_horizon - 1)]->name;
+        }
         #pragma omp parallel for
         for (auto& neuron: local_bounds) {
-            auto new_bound = bound_neuron(fname, neuron, global_bounds);
+            auto new_bound = bound_neuron(fname, start_node, neuron, global_bounds);
             auto prev_bound = neuron.value;
             if (neuron.side == LOWER) {
                 neuron.value = std::max(neuron.value, new_bound);
