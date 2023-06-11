@@ -163,6 +163,25 @@ public:
     }
 
     void add_constraints(gravity::Model<>& NN, IndexSet& inds, gravity::param<>& w, gravity::var<>& x, gravity::var<int>& y) override {}
+
+    void set_bounds(gravity::param<>& x_lb, gravity::param<>& x_ub) override {
+        for (auto o: this->outputs) {
+            for(auto j = 0; j < o->numel; j++){
+                auto key  = o->strkey(j);
+                auto lb = std::max(
+                    o->lb.at(j),
+                    this->range_lower
+                );
+                auto ub = std::min(
+                    o->ub.at(j),
+                    this->range_upper
+                );
+
+                x_lb.set_val(key, std::max(lb, -100.0f));
+                x_ub.set_val(key, std::min(ub,  100.0f));
+            }
+        }
+    }
 };
 
 class Neg : public Layer {

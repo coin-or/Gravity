@@ -212,20 +212,31 @@ public:
             eff_step[this->axes[i]] = this->steps[i];
         }
 
-        if (this->X->ndims == 2) {
-            size_t outr = 0;
-            for (auto r = eff_start[0]; r < eff_end[0]; r += eff_step[0]) {
-                size_t outc = 0;
-                for (auto c = eff_start[1]; c < eff_end[1]; c += eff_step[1]) {
-                    inds["Constr"].add(this->Y->strkey(outr, outc));
-                    inds["In"].add_ref(this->X->strkey(r, c));
-                    inds["Out"].add_ref(this->Y->strkey(outr, outc));
-                    outc += 1;
+        // Loop over every point, unflatten index, and make sure it is in the slice
+        size_t out_idx = 0;
+        for (auto i = 0; i < this->X->numel; i++) {
+            auto xunflat = this->X->unflatten_index(i);
+            // Begin checking if this point is in the slice
+            std::vector<bool> in_slice(this->X->ndims, false);
+            for (auto dim = 0; dim < eff_start.size(); dim++) {
+                // Check if xuflat[dim] is in range(start, end, step)
+                for (auto tmp = eff_start[dim]; tmp < eff_end[dim]; tmp += eff_step[dim]) {
+                    if (tmp == xunflat[dim]) {
+                        in_slice[dim] = true;
+                        break;
+                    }
                 }
-                outr += 1;
+                if (!in_slice[dim]) {
+                    break;
+                }
             }
-        } else {
-            throw std::runtime_error("Slice: ndims > 2 not supported.");
+            // If all dimensions are in the slice, add this point to the constraint
+            if (std::all_of(in_slice.begin(), in_slice.end(), [](bool v) { return v; })) {
+                inds["Constr"].add(this->Y->strkey(out_idx));
+                inds["In"].add_ref(this->X->strkey(i));
+                inds["Out"].add_ref(this->Y->strkey(out_idx));
+                out_idx += 1;
+            }
         }
     }
 
