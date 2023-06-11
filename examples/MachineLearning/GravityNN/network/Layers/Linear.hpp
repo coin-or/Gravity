@@ -184,14 +184,14 @@ public:
         this->Y = &tensors.at(node.output(0));
 
         // -2 because we don't count the batch and channel dimensions
-        size_t num_spatial_dims = this->X->shape.size() - 2;
-        if (num_spatial_dims != 2) {
-            throw std::runtime_error("Conv: Only 2D convolutions are supported");
+        this->conv_dim = this->X->shape.size() - 2;
+        if (this->conv_dim != 2 && this->conv_dim != 1) {
+            throw std::runtime_error("Conv: Only 1D/2D convolutions are supported");
         }
 
-        this->dilations = std::vector<size_t>(num_spatial_dims, 1);
-        this->pads = std::vector<size_t>(num_spatial_dims*2, 0);
-        this->strides = std::vector<size_t>(num_spatial_dims, 1);
+        this->dilations = std::vector<size_t>(this->conv_dim, 1);
+        this->pads = std::vector<size_t>(this->conv_dim*2, 0);
+        this->strides = std::vector<size_t>(this->conv_dim, 1);
 
         if (const auto* auto_pad_attr = find_attribute("auto_pad", node)) {
             this->auto_pad = auto_pad_attr->s();
@@ -213,9 +213,6 @@ public:
 
         if (const auto* kernel_shape_attr = find_attribute("kernel_shape", node)) {
             this->kernel_shape = std::vector<size_t>(kernel_shape_attr->ints().begin(), kernel_shape_attr->ints().end());
-            if (this->kernel_shape.size() != 2) {
-                throw std::runtime_error("Conv: Only 2D kernel_shape is supported");
-            }
         } else {
             throw std::runtime_error("Conv: kernel_shape attribute is required for us. If you see this error, go annoy Haydn.");
         }
@@ -229,16 +226,22 @@ public:
         }
 
         this->out_c = this->Y->shape[1];
-        this->out_h = this->Y->shape[2];
-        this->out_w = this->Y->shape[3];
-
         this->inp_c = this->X->shape[1];
-        this->inp_h = this->X->shape[2];
-        this->inp_w = this->X->shape[3];
-
         this->kern_c = this->W->shape[1];
-        this->kern_h = this->W->shape[2];
-        this->kern_w = this->W->shape[3];
+        if (this->conv_dim == 2) {
+            this->out_h = this->Y->shape[2];
+            this->out_w = this->Y->shape[3];
+
+            this->inp_h = this->X->shape[2];
+            this->inp_w = this->X->shape[3];
+
+            this->kern_h = this->W->shape[2];
+            this->kern_w = this->W->shape[3];
+        } else {
+            this->out_w = this->Y->shape[2];
+            this->inp_w = this->X->shape[2];
+            this->kern_w = this->W->shape[2];
+        }
 
         if (this->X->is_initializer) {
             throw std::runtime_error("Conv: X cannot be an initializer");
@@ -258,6 +261,45 @@ public:
     }
 
     void index_constraint(IndexSet& inds) override {
+        if (this->conv_dim == 2) {
+            this->index_constraint_2d(inds);
+        } else {
+            this->index_constraint_1d(inds);
+        }
+    }
+
+    void index_constraint_1d(IndexSet& inds) {
+        // Output indexing
+        for (auto j = 0; j < this->Y->numel; j++) {
+            inds["Constr"].add(this->name + "," + to_string(j));
+        }
+
+        for (int ob = 0; ob < this->Y->shape[0]; ob++) {
+            for (int ow = 0; ow < this->out_w; ow++) {
+                for (int oc = 0; oc < this->out_c; oc++) {
+                    inds["Out"].add_ref(this->Y->strkey(ob, oc, ow));
+                    for (int kw = 0; kw < this->kern_w; kw++) {
+                        for (int kc = 0; kc < this->kern_c; kc++) {
+                            int w_ind = (this->strides[0]*ow + this->dilations[0]*kw - this->pads[0]);
+                            if ((w_ind < this->inp_w) && (w_ind >= 0)) {
+                                inds["W"].add_in_row(inds.row_id, this->W->strkey(oc, kc, kw));
+                                inds["In"].add_in_row(inds.row_id, this->X->strkey(ob, kc, w_ind));
+                            }
+                        }
+                    }
+                    // Add bias
+                    if (this->B) {
+                        inds["B"].add_in_row(inds.row_id, this->B->strkey(oc));
+                    } else {
+                        inds["B"].add_empty_row();
+                    }
+                    inds.row_id++;
+                }
+            }
+        }
+    }
+
+    void index_constraint_2d(IndexSet& inds) {
         // Output indexing
         for (auto j = 0; j < this->Y->numel; j++) {
             inds["Constr"].add(this->name + "," + to_string(j));
@@ -291,7 +333,6 @@ public:
                 }
             }
         }
-
     }
 
     void add_parameters(gravity::param<>& w) const override {
@@ -321,6 +362,9 @@ public:
     size_t out_c, out_h, out_w;
     size_t inp_c, inp_h, inp_w;
     size_t kern_c, kern_h, kern_w;
+
+    // 1D/2D
+    size_t conv_dim;
 };
 
 class BatchNorm: public Layer {
