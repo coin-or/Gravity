@@ -157,6 +157,10 @@ public:
             throw std::runtime_error("Objective specification and value must be described in the ONNX model for this function.");
         }
 
+        if (obj_index >= this->obj_spec->shape[0]) {
+            throw std::runtime_error("Objective index out of bounds. This model has " + std::to_string(this->obj_spec->shape[0]) + " objectives.");
+        }
+
         auto& spec = *this->obj_spec;
         auto& val = *this->obj_val;
 

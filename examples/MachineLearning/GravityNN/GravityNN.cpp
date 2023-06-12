@@ -35,8 +35,6 @@ int main(int argc, char * argv[]){
 
     S.run();
 
-    // NN.print_solution();
-
     auto sol = std::vector<double>();
     NN.get_solution(sol);
     sol.resize(nn.input_numel);

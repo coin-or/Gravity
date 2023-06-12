@@ -252,7 +252,6 @@ public:
     Gather(const onnx::NodeProto& node, Tensors& tensors): NoOp(node, tensors) {
         this->X = &tensors[node.input(0)];
         this->Y = &tensors[node.output(0)];
-        this->indices = &tensors[node.input(1)];
 
         if (const auto* axis = find_attribute("axis", node)) {
             int64_t i = axis->i();
@@ -260,6 +259,15 @@ public:
                 i += this->X->ndims;
             }
             this->axis = i;
+        }
+
+        // Pull out the indices
+        auto& ind_ten = tensors[node.input(1)];
+        for (auto v : ind_ten.get_int_data()) {
+            if (v < 0) {
+                v += this->X->shape[this->axis];
+            }
+            this->indices.push_back(v);
         }
     }
 
@@ -276,42 +284,24 @@ public:
             Let k = indices[i_{0}, …, i_{q-1}]
             output[j_{0}, i_{0}, …, i_{q-1}, j_{1}, …, j_{r-2}] = input[j_{0}, k, j_{1}, …, j_{r-2}]
         */
-
-        size_t r = this->X->ndims;
-        size_t q = this->indices->ndims;
-        // We may have to calculate q manually because we
-        // do not handle rank-0 tensors correctly
-        if (this->X->ndims != this->Y->ndims) {
-            q = this->Y->ndims - (r - 1);
-            std::cout << "Contraction!" << std::endl;
-        }
-
-        for (auto o = 0; o < this->Y->numel; o++) {
-            auto unflat = this->Y->unflatten_index(o);
-            std::vector<size_t> i(unflat.begin() + this->axis, unflat.begin() + this->axis + q);
-            std::vector<size_t> j;
-            for (auto _i = 0; _i < unflat.size(); _i++) {
-                if ((_i < this->axis) || (_i >= this->axis + q)) {
-                    j.push_back(unflat[_i]);
+        size_t ind_ptr = 0;
+        size_t out_numel = 0;
+        while (ind_ptr < this->indices.size()) {
+            for (auto i = 0; i < this->X->numel; i++) {
+                auto xunflat = this->X->unflatten_index(i);
+                if (xunflat.at(this->axis) == this->indices.at(ind_ptr)) {
+                    inds["Constr"].add(this->Y->strkey(out_numel));
+                    inds["In"].add_ref(this->X->strkey(i));
+                    inds["Out"].add_ref(this->Y->strkey(out_numel));
+                    out_numel += 1;
                 }
             }
-
-            if (i.size() == 0) {
-                i.push_back(0);
-            }
-            size_t k = this->indices->get_int_data().at(this->indices->flatten_index(i));
-            // insert k at position this->axis in j
-            j.insert(j.begin() + this->axis, k);
-
-            auto in_index = this->X->flatten_index(j);
-            auto out_index = this->Y->flatten_index(unflat);
-            inds["Constr"].add(this->Y->strkey(out_index));
-            inds["In"].add_ref(this->X->strkey(in_index));
-            inds["Out"].add_ref(this->Y->strkey(out_index));
+            ind_ptr += 1;
         }
     }
 
     Tensor *X, *Y; // Input and output
-    Tensor* indices;
     size_t axis = 0;
+
+    std::vector<size_t> indices;
 };
