@@ -207,7 +207,7 @@ protected:
 //                                }
 //                                catch(...) {
 //                                    std::cerr << "Error in cut generation " << std::endl;
-//                                    
+//
 //                                }
                             }
                             if(add_soc){
@@ -543,7 +543,7 @@ bool GurobiProgram::solve(bool relax, double mipgap, double time_limit){
 //    grb_mod->set(GRB_DoubleParam_IntFeasTol, 1e-8);
 //           grb_mod->set(GRB_IntParam_NumericFocus,3);
          grb_mod->set(GRB_IntParam_PreCrush,1);
-    grb_mod->set(GRB_IntParam_Presolve,0);
+//    grb_mod->set(GRB_IntParam_Presolve,0);
 //     grb_mod->set(GRB_IntParam_MIPFocus,1);
     //    grb_mod->set(GRB_IntParam_IntegralityFocus,1);
     //grb_mod->set(GRB_IntParam_MIPFocus,1);
