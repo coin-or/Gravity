@@ -177,10 +177,12 @@ protected:
                                 auto i = get<3>(most_viol);// Instance of most violated constraint
                                 GRBLinExpr lterm = 0;
                                 for (auto& it_lterm: c->get_lterms()) {
-                                    idx = it_lterm.second._p->get_vec_id();
+                                    idx = *it_lterm.second._p->_id;
                                     if (it_lterm.second._p->_is_vector || it_lterm.second._p->is_matrix_indexed() || it_lterm.second._coef->is_matrix()) {
                                         auto dim = it_lterm.second._p->get_dim(i);
                                         for (int j = 0; j<dim; j++) {
+                                            if(idx+it_lterm.second._p->get_id_inst(i,j)>=vars.size())
+                                                DebugOn("Indexing issue\n");
                                             lterm += c->eval(it_lterm.second._coef,i,j)*vars.at(idx+it_lterm.second._p->get_id_inst(i,j));
                                         }
                                     }
