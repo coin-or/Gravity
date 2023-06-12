@@ -22,6 +22,10 @@ int main(int argc, char * argv[]){
     NeuralNet nn(fname, final_node);
     Model<>& NN = nn.build_model(idx);
 
+    if (idx < 0) {
+        NN.max(nn.x(nn.layers.back()->outputs.at(0)->strkey(0)));
+    }
+
     NN.write();
 
     solver<> S(NN,gurobi);
@@ -29,6 +33,9 @@ int main(int argc, char * argv[]){
     auto grb_mod = grb_prog->grb_mod;
     grb_mod->set(GRB_IntParam_Threads, get_num_threads() / 2);
     grb_mod->set(GRB_IntParam_NonConvex,2);
+    grb_mod->set(GRB_IntParam_CutPasses, 5);
+    grb_mod->set(GRB_DoubleParam_Heuristics, 0);
+    grb_mod->set(GRB_IntParam_VarBranch, 0);
     // grb_mod->set(GRB_IntParam_MIPFocus,3);
     // grb_mod->set(GRB_DoubleParam_BestBdStop, -1e-4);
     // grb_mod->set(GRB_DoubleParam_BestObjStop, 1e-4);
