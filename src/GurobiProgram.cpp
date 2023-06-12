@@ -175,32 +175,40 @@ protected:
                                 double cval = 0;
                                 auto c = get<2>(most_viol);// Most violated symbolic constraint
                                 auto i = get<3>(most_viol);// Instance of most violated constraint
-                                GRBLinExpr lterm = 0;
-                                for (auto& it_lterm: c->get_lterms()) {
-                                    idx = *it_lterm.second._p->_id;
-                                    if (it_lterm.second._p->_is_vector || it_lterm.second._p->is_matrix_indexed() || it_lterm.second._coef->is_matrix()) {
-                                        auto dim = it_lterm.second._p->get_dim(i);
-                                        for (int j = 0; j<dim; j++) {
-                                            if(idx+it_lterm.second._p->get_id_inst(i,j)>=vars.size())
-                                                DebugOn("Indexing issue\n");
-                                            lterm += c->eval(it_lterm.second._coef,i,j)*vars.at(idx+it_lterm.second._p->get_id_inst(i,j));
+//                                if(i==4719)
+//                                    DebugOn("stop");
+//                                try{
+                                    GRBLinExpr lterm = 0;
+                                    for (auto& it_lterm: c->get_lterms()) {
+                                        idx = *it_lterm.second._p->_id;
+                                        if (it_lterm.second._p->_is_vector || it_lterm.second._p->is_matrix_indexed() || it_lterm.second._coef->is_matrix()) {
+                                            auto dim = it_lterm.second._p->get_dim(i);
+                                            for (int j = 0; j<dim; j++) {
+                                                if(idx+it_lterm.second._p->get_id_inst(i,j)>=vars.size())
+                                                    DebugOn("Indexing issue\n");
+                                                lterm += c->eval(it_lterm.second._coef,i,j)*vars.at(idx+it_lterm.second._p->get_id_inst(i,j));
+                                            }
+                                        }
+                                        else {
+                                            idx_inst = it_lterm.second._p->get_id_inst(i);
+                                            lterm += c->eval(it_lterm.second._coef, i)*vars.at(idx+idx_inst);
+                                        }
+                                        if (!it_lterm.second._sign) {
+                                            lterm *= -1;
                                         }
                                     }
-                                    else {
-                                        idx_inst = it_lterm.second._p->get_id_inst(i);
-                                        lterm += c->eval(it_lterm.second._coef, i)*vars.at(idx+idx_inst);
-                                    }
-                                    if (!it_lterm.second._sign) {
+                                    lterm += c->eval(c->get_cst(), i);
+                                    
+                                    if(c->get_ctype()==geq) {
                                         lterm *= -1;
                                     }
-                                }
-                                lterm += c->eval(c->get_cst(), i);
-                                
-                                if(c->get_ctype()==geq) {
-                                    lterm *= -1;
-                                }
-                                addCut(lterm, GRB_LESS_EQUAL, 0);
-                                DebugOff("Added " << cstr_id << " user cuts\n");
+                                    addCut(lterm, GRB_LESS_EQUAL, 0);
+                                    DebugOff("Added " << cstr_id << " user cuts\n");
+//                                }
+//                                catch(...) {
+//                                    std::cerr << "Error in cut generation " << std::endl;
+//                                    
+//                                }
                             }
                             if(add_soc){
                                 m->set_solution(vec_x);
@@ -534,7 +542,8 @@ bool GurobiProgram::solve(bool relax, double mipgap, double time_limit){
 //    grb_mod->set(GRB_IntParam_Threads, 8);
 //    grb_mod->set(GRB_DoubleParam_IntFeasTol, 1e-8);
 //           grb_mod->set(GRB_IntParam_NumericFocus,3);
-    //     grb_mod->set(GRB_IntParam_PreCrush,0);
+         grb_mod->set(GRB_IntParam_PreCrush,1);
+    grb_mod->set(GRB_IntParam_Presolve,0);
 //     grb_mod->set(GRB_IntParam_MIPFocus,1);
     //    grb_mod->set(GRB_IntParam_IntegralityFocus,1);
     //grb_mod->set(GRB_IntParam_MIPFocus,1);

@@ -2465,6 +2465,8 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
                                             x_in_ids = *x->_indices;
                                             coef_x_ids = *w->_indices;
                                             coef_x_ids._ids = nullptr;
+                                            x_in_ids.add_empty_row();
+                                            coef_x_ids.add_empty_row();
                                             for(int idx: I_hat){
                                                 x_in_ids.add_in_row(0,idx);
                                             }
@@ -2486,33 +2488,42 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
                                             v.push_back(make_tuple(y_i -(b_i*z_i + sum_l + sum_u), On_Off_Facet.get_row_sparsity(0), this->get_constraint("On_Off_Facet"), 0));
                                         }
                                         else{
-                                            auto On_Off_Facet = it->second;
-                                            size_t row_id = On_Off_Facet->_indices->size();
-                                            auto c_idx = c->_indices->_keys->at(inst)+"_"+to_string(row_id);
-                                            auto coef_z = static_pointer_cast<param<double>>(On_Off_Facet->_params->at("coef_z").first);
-                                            auto on_off_cst  = static_pointer_cast<param<double>>(On_Off_Facet->_params->at("on_off_cst").first);
-                                            on_off_cst->add_val(c_idx, sum_w_l);
-                                            coef_z->add_val(c_idx, -1.*b_i - sum_w_l - sum_w_u);
-                                            auto coef_x_ids  = static_pointer_cast<param<double>>(On_Off_Facet->_params->at("B.in(B_Gemm_ReLUs).in(coef_x_ids)").first)->_indices;
-                                            auto x_in_ids  = static_pointer_cast<var<double>>(On_Off_Facet->_vars->at("x.in(x_in_ids)").first)->_indices;
-                                            auto x_out_ids  = static_pointer_cast<var<double>>(On_Off_Facet->_vars->at("x.in(x_out_ids)").first)->_indices;
-                                            x_out_ids->add_ref(y_idx);
-                                            auto z_bin_ids = static_pointer_cast<var<double>>(On_Off_Facet->_vars->at("z.in(z_bin_ids)").first)->_indices;
-                                            z_bin_ids->add_ref(z_idx);
-                                            for(int idx: I_hat){
-                                                x_in_ids->add_in_row(row_id,idx);
-                                            }
-                                            for(int idx: I_hat_W){
-                                                coef_x_ids->add_in_row(row_id,idx);
-                                            }
-                                            On_Off_Facet->_indices->add(c_idx);
-                                            (static_pointer_cast<func<double>>(On_Off_Facet->_cst))->_indices->add(c_idx);
-                                            (static_pointer_cast<func<double>>(On_Off_Facet->_cst))->update_double_index();
-                                            On_Off_Facet->update_double_index();
-                                            
-                                            v.push_back(make_tuple(y_i -(b_i*z_i + sum_l + sum_u), On_Off_Facet->get_row_sparsity(row_id), On_Off_Facet, row_id));
-//                                            On_Off_Facet->print();
-                                            DebugOff("More on/off facet cuts added!\n");
+//                                            try{
+                                                auto On_Off_Facet = it->second;
+                                                size_t row_id = On_Off_Facet->_indices->size();
+                                                auto c_idx = c->_indices->_keys->at(inst)+"_"+to_string(row_id);
+                                                auto coef_z = static_pointer_cast<param<double>>(On_Off_Facet->_params->at("coef_z").first);
+                                                auto on_off_cst  = static_pointer_cast<param<double>>(On_Off_Facet->_params->at("on_off_cst").first);
+                                                on_off_cst->add_val(c_idx, sum_w_l);
+                                                coef_z->add_val(c_idx, -1.*b_i - sum_w_l - sum_w_u);
+                                                auto coef_x_ids  = static_pointer_cast<param<double>>(On_Off_Facet->_params->at("B.in(B_Gemm_ReLUs).in(coef_x_ids)").first)->_indices;
+                                                auto x_in_ids  = static_pointer_cast<var<double>>(On_Off_Facet->_vars->at("x.in(x_in_ids)").first)->_indices;
+                                                auto x_out_ids  = static_pointer_cast<var<double>>(On_Off_Facet->_vars->at("x.in(x_out_ids)").first)->_indices;
+                                                x_out_ids->add_ref(y_idx);
+                                                auto z_bin_ids = static_pointer_cast<var<double>>(On_Off_Facet->_vars->at("z.in(z_bin_ids)").first)->_indices;
+                                                z_bin_ids->add_ref(z_idx);
+                                                x_in_ids->add_empty_row();
+                                                coef_x_ids->add_empty_row();
+                                                for(int idx: I_hat){
+                                                    x_in_ids->add_in_row(row_id,idx);
+                                                }
+                                                for(int idx: I_hat_W){
+                                                    coef_x_ids->add_in_row(row_id,idx);
+                                                }
+                                                On_Off_Facet->_indices->add(c_idx);
+                                                (static_pointer_cast<func<double>>(On_Off_Facet->_cst))->_indices->add(c_idx);
+                                                (static_pointer_cast<func<double>>(On_Off_Facet->_cst))->_val->push_back(sum_w_l);
+    //                                            (static_pointer_cast<func<double>>(On_Off_Facet->_cst))->update_double_index();
+    //                                            On_Off_Facet->update_double_index();
+                                                
+                                                v.push_back(make_tuple(y_i -(b_i*z_i + sum_l + sum_u), 1, On_Off_Facet, row_id));
+    //                                            On_Off_Facet->print();
+                                                DebugOff("More on/off facet cuts added!\n");
+//                                            }
+//                                            catch(...) {
+//                                                std::cerr << "Error in cut generation " << std::endl;
+//
+//                                            }
                                         }
                                         //                for(int i=0;i<res.size();i++){
 //                                        auto row_id = On_Off_Facet.get_nb_rows();
