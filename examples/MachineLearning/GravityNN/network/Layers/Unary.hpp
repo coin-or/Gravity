@@ -233,13 +233,6 @@ public:
         if (const auto* keepdims_attr = find_attribute("keepdims", node)) {
             this->keepdims = keepdims_attr->i();
         }
-
-        if (this->axes.size() == 0) {
-            throw std::runtime_error("ReduceSum: Reduction over the full tensor is not supported");
-        }
-        if ((this->axes.size() != 1) || (this->axes.at(0) != 1)) {
-            throw std::runtime_error("ReduceSum: Reduction over axis != 1 is not supported");
-        }
     }
 
     std::vector<std::vector<std::string>> get_indices() const override {
@@ -252,8 +245,6 @@ public:
             reduce_shape.push_back(this->X->shape.at(ax));
         }
 
-        std::cout << "#######################" << std::endl;
-        std::cout << this->name << std::endl;
         for (auto index: ShapeIter(this->Y->shape)) {
             inds["Constr"].add(this->Y->strkey(index));
             inds["Out"].add_ref(this->Y->strkey(index));
