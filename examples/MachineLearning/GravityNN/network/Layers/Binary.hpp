@@ -4,7 +4,7 @@
 
 using namespace gravity;
 
-std::vector<bool> get_matching_dims(const Tensor* A, const Tensor* B) {
+std::tuple<std::vector<bool>, std::vector<size_t>, std::vector<size_t>> get_matching_dims(const Tensor* A, const Tensor* B) {
     auto a_dims = A->shape;
     auto b_dims = B->shape;
     // If one is smaller than the other, prepend with 1s
@@ -20,10 +20,10 @@ std::vector<bool> get_matching_dims(const Tensor* A, const Tensor* B) {
 
     std::vector<bool> matching_dims;
     for (auto i = 0; i < a_dims.size(); i++) {
-        matching_dims.push_back(a_dims[i] == b_dims[i]);
+        matching_dims.push_back(a_dims.at(i) == b_dims.at(i));
     }
 
-    return matching_dims;
+    return {matching_dims, a_dims, b_dims};
 }
 
 class UnaryBase: public Layer {
@@ -36,7 +36,7 @@ public:
         this->Y = &tensors[node.output(0)];
 
         if ((this->A->is_initializer == true) && (this->B->is_initializer == true)) {
-            throw std::runtime_error("Mul: both args being initializer not supported.");
+            throw std::runtime_error("UnaryOp: both args being initializer not supported.");
         }
 
         // Make sure that B is the initializer
@@ -44,7 +44,10 @@ public:
             std::swap(this->A, this->B);
         }
 
-        this->broadcast_dims = get_matching_dims(this->A, this->B);
+        auto shapes = get_matching_dims(this->A, this->B);
+        this->broadcast_dims = std::get<0>(shapes);
+        this->a_dims = std::get<1>(shapes);
+        this->b_dims = std::get<2>(shapes);
     }
 
     void add_parameters(gravity::param<>& w) const override {
@@ -62,27 +65,27 @@ public:
         // If A has fewer elements than B, then we need to broadcast A
         size_t A_ind = j;
         size_t B_ind = j;
+        std::vector<size_t> A_ind_unflat, B_ind_unflat;
         if (this->A->numel < this->B->numel) {
-            auto B_ind_unflat = this->B->unflatten_index(j);
-            auto A_ind_unflat = this->B->unflatten_index(j);
+            B_ind_unflat = Tensor::unflatten_index(j, this->b_dims);
+            A_ind_unflat = Tensor::unflatten_index(j, this->b_dims);
             for (auto i = 0; i < this->broadcast_dims.size(); i++) {
-                if (this->broadcast_dims[i] == false) {
-                    A_ind_unflat[i] = 0;
+                if (this->broadcast_dims.at(i) == false) {
+                    A_ind_unflat.at(i) = 0;
                 }
             }
-            A_ind = this->A->flatten_index(A_ind_unflat);
-            B_ind = this->B->flatten_index(B_ind_unflat);
         } else {
-            auto B_ind_unflat = this->A->unflatten_index(j);
-            auto A_ind_unflat = this->A->unflatten_index(j);
+            B_ind_unflat = Tensor::unflatten_index(j, this->a_dims);
+            A_ind_unflat = Tensor::unflatten_index(j, this->a_dims);
             for (auto i = 0; i < this->broadcast_dims.size(); i++) {
-                if (this->broadcast_dims[i] == false) {
-                    B_ind_unflat[i] = 0;
+                if (this->broadcast_dims.at(i) == false) {
+                    B_ind_unflat.at(i) = 0;
                 }
             }
-            A_ind = this->A->flatten_index(A_ind_unflat);
-            B_ind = this->B->flatten_index(B_ind_unflat);
         }
+
+        A_ind = Tensor::flatten_index(A_ind_unflat, this->a_dims);
+        B_ind = Tensor::flatten_index(B_ind_unflat, this->b_dims);
 
         return {A_ind, B_ind};
     }
@@ -107,6 +110,8 @@ public:
     }
 
     Tensor *A, *B, *Y; // Input and output
+    std::vector<size_t> a_dims;
+    std::vector<size_t> b_dims;
     std::vector<bool> broadcast_dims;
 };
 
@@ -166,8 +171,14 @@ public:
     Div(const onnx::NodeProto& node, Tensors& tensors): UnaryBase(node, tensors, _div) {}
 
     void add_constraints(gravity::Model<>& NN, IndexSet& inds, gravity::param<>& w, gravity::var<>& x, gravity::var<int>& y) override {
+        // Constraint for division of hidden states
         Constraint<> Div_("Div");
-        Div_ = x.in(inds["Out"])*x.in(inds["B"]) - x.in(inds["A"]);
+        Div_ = x.in(inds["hOut"])*x.in(inds["B"]) - x.in(inds["A"]);
         NN.add(Div_.in(inds["Constr"]) == 0);
+
+        // Constraint where B is a parameter
+        Constraint<> Div_Param_("Div_Param");
+        Div_Param_ = x.in(inds["pOut"])*w.in(inds["UnaryVar"]) - x.in(inds["pA"]);
+        NN.add(Div_Param_.in(inds["ConstrB"]) == 0);
     }
 };

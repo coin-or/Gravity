@@ -31,6 +31,15 @@ std::string vec_to_index(const std::vector<T>& v) {
 }
 
 template <typename T>
+std::vector<T> concat(std::vector<T> a, std::vector<T> b) {
+    std::vector<T> out;
+    out.reserve(a.size() + b.size());
+    out.insert(out.end(), a.begin(), a.end());
+    out.insert(out.end(), b.begin(), b.end());
+    return out;
+}
+
+template <typename T>
 T vecprod (const std::vector<T>& v) {
     return std::accumulate(v.begin(), v.end(), 1, std::multiplies<T>());
 }

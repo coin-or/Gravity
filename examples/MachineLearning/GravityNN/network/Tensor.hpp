@@ -65,6 +65,12 @@ public:
         return newt;
     }
 
+    static Tensor reshape(const Tensor& t, std::vector<size_t> new_shape) {
+        Tensor newt = t;
+        newt._set_shape(new_shape);
+        return newt;
+    }
+
     float operator()(size_t i) const {
         if (!this->is_initializer) {
             throw std::runtime_error("Reading from non-initializer tensor. Perhaps you're assuming this tensor is a weight when it's actually an output of a previous layer?");
@@ -91,6 +97,12 @@ public:
         }
     }
 
+    std::string strkey(std::vector<size_t> indices) const {
+        size_t flat = this->flatten_index(indices);
+        this->_boundcheck(flat);
+        return this->name + "," + std::to_string(flat);
+    }
+
     std::string strkey(size_t idx) const {
         size_t flat = idx;
         this->_boundcheck(flat);
@@ -98,27 +110,44 @@ public:
     }
 
     std::string strkey(size_t i, size_t j) const {
+        if (this->ndims != 2) {
+            throw std::runtime_error("Cannot use 2D indexing on tensor with " + std::to_string(this->ndims) + " dimensions");
+        }
         size_t flat = i * this->shape[1] + j;
         this->_boundcheck(flat);
         return this->name + "," + std::to_string(flat);
     }
 
     std::string strkey(size_t i, size_t j, size_t k) const {
+        if (this->ndims != 3) {
+            throw std::runtime_error("Cannot use 3D indexing on tensor with " + std::to_string(this->ndims) + " dimensions");
+        }
         size_t flat = i * this->shape[1] * this->shape[2] + j * this->shape[2] + k;
         this->_boundcheck(flat);
         return this->name + "," + std::to_string(flat);
     }
 
     std::string strkey(size_t i, size_t j, size_t k, size_t l) const {
+        if (this->ndims != 4) {
+            throw std::runtime_error("Cannot use 4D indexing on tensor with " + std::to_string(this->ndims) + " dimensions");
+        }
         size_t flat = i * this->shape[1] * this->shape[2] * this->shape[3] + j * this->shape[2] * this->shape[3] + k * this->shape[3] + l;
         this->_boundcheck(flat);
         return this->name + "," + std::to_string(flat);
     }
 
     size_t flatten_index(const std::vector<size_t>& indices) const {
+        return Tensor::flatten_index(indices, this->shape);
+    }
+
+    static size_t flatten_index(const std::vector<size_t>& indices, const std::vector<size_t>& shape) {
+        if (indices.size() != shape.size()) {
+            throw std::runtime_error("Cannot flatten index with " + std::to_string(indices.size()) + " indices and " + std::to_string(shape.size()) + " dimensions");
+        }
+
         size_t index = 0;
         size_t stride = 1;
-        for (int64_t i = this->ndims-1; i>=0; --i) {
+        for (int64_t i = shape.size()-1; i>=0; --i) {
             index += indices[i] * stride;
             stride *= shape[i];
         }
@@ -126,8 +155,16 @@ public:
     }
 
     std::vector<size_t> unflatten_index(size_t index) {
+        return Tensor::unflatten_index(index, this->shape);
+    }
+
+    static std::vector<size_t> unflatten_index(size_t index, const std::vector<size_t>& shape) {
+        if (shape.empty()) {
+            return {};
+        }
+
         std::vector<size_t> result;
-        std::vector<size_t> revshape = this->shape;
+        std::vector<size_t> revshape = shape;
         std::reverse(revshape.begin(), revshape.end());
         for (const auto& size : revshape) {
             result.push_back(index % size);

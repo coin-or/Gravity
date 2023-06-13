@@ -1,6 +1,7 @@
 #pragma once
 
 #include <network/Layers/LayerBase.hpp>
+#include <utils/shape_iterator.hpp>
 
 using namespace gravity;
 
@@ -220,13 +221,17 @@ public:
         this->X = &tensors[node.input(0)];
         this->Y = &tensors[node.output(0)];
         if (const auto* axis_attr = find_attribute("axes", node)) {
-            this->axes = std::vector<int>(axis_attr->ints().begin(), axis_attr->ints().end());
+            auto tmp_axes = std::vector<int>(axis_attr->ints().begin(), axis_attr->ints().end());
+            for (auto ax: tmp_axes) {
+                if (ax < 0) {
+                    ax += this->X->ndims;
+                }
+                this->axes.push_back(ax);
+            }
         }
 
-        for (auto& ax: this->axes) {
-            if (ax < 0) {
-                ax += this->X->ndims;
-            }
+        if (const auto* keepdims_attr = find_attribute("keepdims", node)) {
+            this->keepdims = keepdims_attr->i();
         }
 
         if (this->axes.size() == 0) {
@@ -242,12 +247,29 @@ public:
     }
 
     void index_constraint(IndexSet& inds) override {
-        inds["Constr"].add(this->Y->strkey(0));
-        inds["Out"].add_ref(this->Y->strkey(0));
-        for(auto j = 0; j < this->X->numel; j++){
-            inds["In"].add_in_row(inds.row_id, this->X->strkey(j));
+        std::vector<size_t> reduce_shape;
+        for (auto& ax: this->axes) {
+            reduce_shape.push_back(this->X->shape.at(ax));
         }
-        inds.row_id++;
+
+        std::cout << "#######################" << std::endl;
+        std::cout << this->name << std::endl;
+        for (auto index: ShapeIter(this->Y->shape)) {
+            inds["Constr"].add(this->Y->strkey(index));
+            inds["Out"].add_ref(this->Y->strkey(index));
+            for (auto subind: ShapeIter(reduce_shape)) {
+                auto xind = index;
+                for (int ax_id = 0; ax_id < this->axes.size(); ax_id++) {
+                    if (keepdims == 0) {
+                        xind.insert(xind.begin() + this->axes.at(ax_id), subind.at(ax_id));
+                    } else {
+                        xind.at(this->axes.at(ax_id)) = subind.at(ax_id);
+                    }
+                }
+                inds["In"].add_in_row(inds.row_id, this->X->strkey(xind));
+            }
+            inds.row_id++;
+        }
     }
 
     void add_constraints(gravity::Model<>& NN, IndexSet& inds, gravity::param<>& w, gravity::var<>& x, gravity::var<int>& y) override {
@@ -257,5 +279,6 @@ public:
     }
 
     Tensor *X, *Y; // Input and output
-    std::vector<int> axes;
+    std::vector<size_t> axes;
+    int keepdims = 1;
 };

@@ -43,6 +43,7 @@ int main(int argc, char * argv[]){
     S.run();
 
     auto sol = std::vector<double>();
+    NN.print_solution();
     NN.get_solution(sol);
     sol.resize(nn.input_numel);
 

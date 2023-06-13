@@ -152,7 +152,7 @@ public:
     }
 
     std::vector<std::vector<std::string>> get_indices() const override {
-        return {{"Out", "In", "ExpAux"}, {}};
+        return {{"Out", "In", "ExpAux", "NegAux"}, {}};
     }
 
     void index_hidden_states(indices& hidden_states, indices& y_ids) override {
@@ -160,6 +160,7 @@ public:
             for (auto i = 0; i < output->numel; i++) {
                 hidden_states.add(output->strkey(i));
                 hidden_states.add(output->strkey(i) + "_exp_aux");
+                hidden_states.add(output->strkey(i) + "_neg_aux");
             }
         }
     }
@@ -169,28 +170,25 @@ public:
             inds["Constr"].add(this->Y->strkey(j));
             inds["In"].add_ref(this->X->strkey(j));
             inds["ExpAux"].add_ref(this->Y->strkey(j) + "_exp_aux");
+            inds["NegAux"].add_ref(this->Y->strkey(j) + "_neg_aux");
             inds["Out"].add_ref(this->Y->strkey(j));
         }
     }
 
     void add_constraints(gravity::Model<>& NN, IndexSet& inds, gravity::param<>& w, gravity::var<>& x, gravity::var<int>& y) override {
+        // Negate x
+        Constraint<> Neg_("Sigmoid_Neg_Aux");
+        Neg_ = x.in(inds["NegAux"]) + x.in(inds["In"]);
+        NN.add(Neg_.in(inds["Constr"]) == 0);
+
         // Exp constraint
-        // Constraint<> Exp_("Sigmoid_Aux");
-        // Exp_ = x.in(inds["ExpAux"]) - gravity::exp(x.in(inds["In"]));
-        // NN.add(Exp_.in(inds["Constr"]) == 0);
-
-        // y >= x+1, y>= exp(-1)*x + 2*exp(-1)
-        Constraint<> ExpLin1_("ExpLin1");
-        ExpLin1_ = x.in(inds["ExpAux"]) - (x.in(inds["In"]) + 1.0);
-        NN.add(ExpLin1_.in(inds["Constr"]) >= 0);
-
-        Constraint<> ExpLin2_("ExpLin2");
-        ExpLin2_ = x.in(inds["ExpAux"]) - (exp(-1.0)*x.in(inds["In"]) + 2.0*exp(-1.0));
-        NN.add(ExpLin2_.in(inds["Constr"]) >= 0);
+        Constraint<> Exp_("Sigmoid_Aux");
+        Exp_ = x.in(inds["ExpAux"]) - gravity::exp(x.in(inds["NegAux"]));
+        NN.add(Exp_.in(inds["Constr"]) == 0);
 
         // Rest of sigmoid
         Constraint<> Sigmoid_("Sigmoid");
-        Sigmoid_ = x.in(inds["Out"])*(x.in(inds["ExpAux"]) + 1.0) - x.in(inds["ExpAux"]);
+        Sigmoid_ = x.in(inds["Out"])*(1.0 + x.in(inds["ExpAux"])) - 1.0;
         NN.add(Sigmoid_.in(inds["Constr"]) == 0);
     }
 

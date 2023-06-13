@@ -4,6 +4,21 @@
 
 using namespace gravity;
 
+std::vector<size_t> unflatten_index(size_t index, std::vector<size_t> shape) {
+    if (shape.empty()) {
+        return {};
+    }
+
+    std::vector<size_t> result;
+    std::reverse(shape.begin(), shape.end());
+    for (const auto& stride : shape) {
+        result.push_back(index % stride);
+        index = index / stride;
+    }
+    std::reverse(result.begin(), result.end());
+    return result;
+}
+
 class GEMM : public Layer {
 public:
     /*
@@ -129,46 +144,70 @@ public:
         this->B = &tensors.at(node.input(1));
         this->Y = &tensors.at(node.output(0));
 
-        if (!this->A->is_initializer) {
-            throw std::runtime_error("MatMul: A must be an initializer");
-        }
+        this->rdim = this->Y->shape.size() - 2;
+        this->cdim = this->Y->shape.size() - 1;
 
-        if (this->B->is_initializer) {
-            throw std::runtime_error("GEMM: B cannot be an initializer");
+        if (this->A->is_initializer && this->B->is_initializer) {
+            throw std::runtime_error("MatMul: A and B are both initializers. Why wasn't this optimized out?");
         }
     }
 
     std::vector<std::vector<std::string>> get_indices() const override {
-        return {{"In", "Out"}, {"A"}};
+        return {{"In", "Out"}, {"Param"}};
     }
 
     void add_parameters(gravity::param<>& w) const override {
-        this->A->add_params(w);
+        if (this->A->is_initializer) {
+            this->A->add_params(w);
+        } else {
+            this->B->add_params(w);
+        }
+    }
+
+    void _index_constraint(std::vector<size_t> lmat_broad_ind, indices& lmat, indices& rmat, indices& constr, indices& out, size_t& row_id) {
+        for (size_t out_row = 0; out_row < this->Y->shape[this->rdim]; out_row++) {
+            for (size_t out_col = 0; out_col < this->Y->shape[this->cdim]; out_col++) {
+                auto y_ind = concat<size_t>(lmat_broad_ind, {out_row, out_col});
+
+                constr.add(this->Y->strkey(this->Y->flatten_index(y_ind)));
+                out.add_ref(this->Y->strkey(this->Y->flatten_index(y_ind)));
+
+                for (size_t i = 0; i < this->A->shape[this->cdim]; i++) {
+                    auto a_ind = concat<size_t>(lmat_broad_ind, {out_row, i});
+                    lmat.add_in_row(row_id, this->A->strkey(this->A->flatten_index(a_ind)));
+                    rmat.add_in_row(row_id, this->B->strkey(i, out_col));
+                }
+                row_id++;
+            }
+        }
     }
 
     void index_constraint(IndexSet& inds) override {
-        for (size_t out_row = 0; out_row < this->Y->shape[0]; out_row++) {
-            for (size_t out_col = 0; out_col < this->Y->shape[1]; out_col++) {
-                inds["Constr"].add(this->Y->strkey(out_row, out_col));
-                inds["Out"].add_ref(this->Y->strkey(out_row, out_col));
-
-                for (size_t i = 0; i < this->A->shape[1]; i++) {
-                    inds["A"].add_in_row(inds.row_id,  this->A->strkey(out_row, i));
-                    inds["In"].add_in_row(inds.row_id, this->B->strkey(i, out_col));
-                }
-                inds.row_id++;
+        std::vector<size_t> lmat_broad_ind;
+        for (size_t i = 0; i < this->A->shape.size() - 2; i++) {
+            lmat_broad_ind.push_back(this->A->shape[i]);
+        }
+        size_t niters = vecprod(lmat_broad_ind);
+        for (size_t i = 0; i < niters; i++) {
+            auto unflat = unflatten_index(i, lmat_broad_ind);
+            if (this->A->is_initializer) {
+                this->_index_constraint(unflat, inds["Param"], inds["In"], inds["Constr"], inds["Out"], inds.row_id);
+            } else {
+                this->_index_constraint(unflat, inds["In"], inds["Param"], inds["Constr"], inds["Out"], inds.row_id);
             }
         }
     }
 
     void add_constraints(gravity::Model<>& NN, IndexSet& inds, gravity::param<>& w, gravity::var<>& x, gravity::var<int>& y) override {
         Constraint<> MatMul_("MatMul");
-        MatMul_ = x.in(inds["Out"]) - (w.in(inds["A"])*x.in(inds["In"]));
+        MatMul_ = x.in(inds["Out"]) - (w.in(inds["Param"])*x.in(inds["In"]));
         NN.add(MatMul_.in(inds["Constr"]) == 0);
     }
 
     Tensor *A, *B; // Inputs
     Tensor *Y; // Output
+
+    size_t rdim, cdim;
 };
 
 class Conv : public Layer {
