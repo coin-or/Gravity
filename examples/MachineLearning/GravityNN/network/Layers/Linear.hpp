@@ -412,55 +412,44 @@ public:
     BatchNorm(const onnx::NodeProto& node, Tensors& tensors): Layer(node, tensors) {
         operator_type = _batchnorm;
         this->X = &tensors[node.input(0)];
+
         this->scale = &tensors[node.input(1)];
         this->B = &tensors[node.input(2)];
         this->mean = &tensors[node.input(3)];
         this->var = &tensors[node.input(4)];
+
         this->Y = &tensors[node.output(0)];
 
-        // sqrt the variance
-        auto data = this->var->get_data();
-        for (auto& v: data) {
-            v = sqrt(v);
+        // find epsilon
+        if (const auto* attr = this->find_attribute("epsilon", node)) {
+            this->epsilon = attr->f();
         }
-        this->var->_set_data(data);
     }
 
     std::vector<std::vector<std::string>> get_indices() const override {
-        return {{"Out", "In", "AuxA", "AuxB", "AuxC"}, {"scale", "B", "mean", "var"}};
+        return {{"Out", "In"}, {"scale", "B", "mean", "var"}};
     }
 
     void index_hidden_states(indices& hidden_states, indices& y_ids) override {
         for (auto output: this->outputs) {
             for (auto i = 0; i < output->numel; i++) {
                 hidden_states.add(output->strkey(i));
-                hidden_states.add(output->strkey(i) + "_aux_a");
-                hidden_states.add(output->strkey(i) + "_aux_b");
-                hidden_states.add(output->strkey(i) + "_aux_c");
             }
         }
     }
 
     void index_constraint(IndexSet& inds) override {
-        auto outer_shape = this->X->shape;
-        outer_shape.at(1) = 1;
+        for (auto outer_ind: ShapeIter(this->Y->shape)) {
+            size_t inner_ind = outer_ind.at(1);
 
-        for (auto outer_ind: ShapeIter(outer_shape)) {
-            for (auto inner_ind = 0; inner_ind < this->X->shape.at(1); inner_ind++) {
-                outer_ind.at(1) = inner_ind;
+            inds["Constr"].add(this->Y->strkey(outer_ind));
+            inds["In"].add_ref(this->X->strkey(outer_ind));
+            inds["Out"].add_ref(this->Y->strkey(outer_ind));
 
-                inds["Constr"].add(this->Y->strkey(outer_ind));
-                inds["In"].add_ref(this->X->strkey(outer_ind));
-                inds["AuxA"].add_ref(this->Y->strkey(outer_ind) + "_aux_a");
-                inds["AuxB"].add_ref(this->Y->strkey(outer_ind) + "_aux_b");
-                inds["AuxC"].add_ref(this->Y->strkey(outer_ind) + "_aux_c");
-                inds["Out"].add_ref(this->Y->strkey(outer_ind));
-
-                inds["scale"].add_ref(this->scale->strkey(outer_ind));
-                inds["B"].add_ref(this->B->strkey(outer_ind));
-                inds["mean"].add_ref(this->mean->strkey(outer_ind));
-                inds["var"].add_ref(this->var->strkey(outer_ind));
-            }
+            inds["scale"].add_ref(this->scale->strkey(inner_ind));
+            inds["B"].add_ref(this->B->strkey(inner_ind));
+            inds["mean"].add_ref(this->mean->strkey(inner_ind));
+            inds["var"].add_ref(this->var->strkey(inner_ind));
         }
     }
 
@@ -472,23 +461,19 @@ public:
     }
 
     void add_constraints(gravity::Model<>& NN, IndexSet& inds, gravity::param<>& w, gravity::var<>& x, gravity::var<int>& y) override {
-        Constraint<> Aux_A("BN_AuxA");
-        Aux_A = x.in(inds["AuxA"]) - (x.in(inds["In"]) - w.in(inds["mean"]));
-        NN.add(Aux_A.in(inds["Constr"]) == 0);
+        auto Y = x.in(inds["Out"]);
+        auto X = x.in(inds["In"]);
+        auto var = w.in(inds["var"]);
+        auto mean = w.in(inds["mean"]);
+        auto B = w.in(inds["B"]);
+        auto scale = w.in(inds["scale"]);
 
-        Constraint<> Aux_B("BN_AuxB");
-        Aux_B = x.in(inds["AuxB"])*w.in(inds["var"]) - x.in(inds["AuxA"]);
-        NN.add(Aux_B.in(inds["Constr"]) == 0);
-
-        Constraint<> Aux_C("BN_AuxC");
-        Aux_C = x.in(inds["AuxC"]) - x.in(inds["AuxB"])*w.in(inds["scale"]);
-        NN.add(Aux_C.in(inds["Constr"]) == 0);
-
-        Constraint<> Aux_D("BN_Out");
-        Aux_D = x.in(inds["Out"]) - (x.in(inds["AuxC"]) + w.in(inds["B"]));
-        NN.add(Aux_D.in(inds["Constr"]) == 0);
+        Constraint<> BatchNorm("BatchNorm");
+        BatchNorm = (Y-B)*(1.0/scale)*sqrt(var + this->epsilon) + mean - X;
+        NN.add(BatchNorm.in(inds["Constr"]) == 0);
     }
 
     Tensor *X, *Y; // Input and output
     Tensor *scale, *B, *mean, *var;
+    double epsilon = 1e-05;
 };
