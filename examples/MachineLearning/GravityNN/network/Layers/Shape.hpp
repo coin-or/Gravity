@@ -157,17 +157,12 @@ public:
     }
 
     void index_constraint(IndexSet& inds) override {
-        // Copy this->X
-        Tensor trx = *this->X;
-        trx.shape = apply_permutation(this->X->shape, this->perm);
+        for (auto yindex: ShapeIter(this->Y->shape)) {
+            auto xindex = apply_permutation(yindex, this->perm);
 
-        for(auto j = 0; j < this->X->numel;j++){
-            auto xunflat = apply_permutation(trx.unflatten_index(j), this->perm);
-            auto xindex = this->X->flatten_index(xunflat);
-
-            inds["Constr"].add(this->Y->strkey(j));
+            inds["Constr"].add(this->Y->strkey(yindex));
             inds["In"].add_ref(this->X->strkey(xindex));
-            inds["Out"].add_ref(this->Y->strkey(j));
+            inds["Out"].add_ref(this->Y->strkey(yindex));
         }
     }
 
