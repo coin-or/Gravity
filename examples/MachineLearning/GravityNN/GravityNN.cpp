@@ -18,12 +18,17 @@ int main(int argc, char * argv[]){
     }
 
     // Empty string means we build the entire network, otherwise we build up to the specified node
-    std::string final_node = "";
+    std::string final_node = "BatchNormalization_1";
     NeuralNet nn(fname, final_node);
     Model<>& NN = nn.build_model(idx);
 
     if (idx < 0) {
-        NN.max(nn.x(nn.layers.back()->outputs.at(0)->strkey(0)));
+        auto tensor = nn.layers.back()->outputs.at(0);
+        gravity::func<> expr = 0.0;
+        for (auto index: ShapeIter(tensor->shape)) {
+            expr += nn.x(tensor->strkey(index));
+        }
+        NN.max(expr);
     }
 
     NN.write();

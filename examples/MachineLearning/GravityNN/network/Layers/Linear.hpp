@@ -1,6 +1,7 @@
 #pragma once
 
 #include <network/Layers/LayerBase.hpp>
+#include <utils/shape_iterator.hpp>
 
 using namespace gravity;
 
@@ -423,14 +424,6 @@ public:
             v = sqrt(v);
         }
         this->var->_set_data(data);
-
-        if (this->X->ndims > 2) {
-            throw std::runtime_error("BatchNorm: ndims > 2 not supported yet");
-        }
-
-        if (this->X->shape[0] != 1) {
-            throw std::runtime_error("BatchNorm: batch size > 1 not supported yet");
-        }
     }
 
     std::vector<std::vector<std::string>> get_indices() const override {
@@ -449,18 +442,25 @@ public:
     }
 
     void index_constraint(IndexSet& inds) override {
-        for(auto j = 0; j < this->X->numel;j++){
-            inds["Constr"].add(this->Y->strkey(j));
-            inds["In"].add_ref(this->X->strkey(j));
-            inds["AuxA"].add_ref(this->Y->strkey(j) + "_aux_a");
-            inds["AuxB"].add_ref(this->Y->strkey(j) + "_aux_b");
-            inds["AuxC"].add_ref(this->Y->strkey(j) + "_aux_c");
-            inds["Out"].add_ref(this->Y->strkey(j));
+        auto outer_shape = this->X->shape;
+        outer_shape.at(1) = 1;
 
-            inds["scale"].add_ref(this->scale->strkey(j));
-            inds["B"].add_ref(this->B->strkey(j));
-            inds["mean"].add_ref(this->mean->strkey(j));
-            inds["var"].add_ref(this->var->strkey(j));
+        for (auto outer_ind: ShapeIter(outer_shape)) {
+            for (auto inner_ind = 0; inner_ind < this->X->shape.at(1); inner_ind++) {
+                outer_ind.at(1) = inner_ind;
+
+                inds["Constr"].add(this->Y->strkey(outer_ind));
+                inds["In"].add_ref(this->X->strkey(outer_ind));
+                inds["AuxA"].add_ref(this->Y->strkey(outer_ind) + "_aux_a");
+                inds["AuxB"].add_ref(this->Y->strkey(outer_ind) + "_aux_b");
+                inds["AuxC"].add_ref(this->Y->strkey(outer_ind) + "_aux_c");
+                inds["Out"].add_ref(this->Y->strkey(outer_ind));
+
+                inds["scale"].add_ref(this->scale->strkey(outer_ind));
+                inds["B"].add_ref(this->B->strkey(outer_ind));
+                inds["mean"].add_ref(this->mean->strkey(outer_ind));
+                inds["var"].add_ref(this->var->strkey(outer_ind));
+            }
         }
     }
 

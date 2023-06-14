@@ -79,13 +79,16 @@ public:
     std::vector<size_t> split;
 };
 
-class Concat : public NoOp {
+class Concat : public Layer {
 public:
-    Concat(const onnx::NodeProto& node, Tensors& tensors): NoOp(node, tensors) {
+    Concat(const onnx::NodeProto& node, Tensors& tensors): Layer(node, tensors) {
+        this->operator_type = _concat;
+        this->Y = &tensors[node.output(0)];
+
         if (const auto* axis_attr = find_attribute("axis", node)) {
             int ax = axis_attr->i();
             if (ax < 0) {
-                ax += this->X->shape.size();
+                ax += this->inputs.at(0)->shape.size();
             }
             this->axis = ax;
         } else {
@@ -93,24 +96,51 @@ public:
         }
     }
 
+    std::vector<std::vector<std::string>> get_indices() const override {
+        return {{"hIn", "hOut", "pOut"}, {"pIn"}};
+    }
+
     void index_constraint(IndexSet& inds) override {
         size_t cur_axis_idx = 0;
         for (auto inp: this->inputs) {
-            for (size_t in_idx = 0; in_idx < inp->numel; in_idx++) {
-                auto out_vec_idx = inp->unflatten_index(in_idx);
-                out_vec_idx[this->axis] += cur_axis_idx;
-                auto out_idx = this->Y->flatten_index(out_vec_idx);
+            for (auto index: ShapeIter(inp->shape)) {
+                auto yindex = index;
+                yindex.at(this->axis) += cur_axis_idx;
 
-                inds["Constr"].add(this->Y->strkey(out_idx));
-                inds["In"].add_ref(inp->strkey(in_idx));
-                inds["Out"].add_ref(this->Y->strkey(out_idx));
+                if (inp->is_initializer) {
+                    inds["ConstrB"].add(this->Y->strkey(yindex));
+                    inds["pIn"].add_ref(inp->strkey(index));
+                    inds["pOut"].add_ref(this->Y->strkey(yindex));
+                } else {
+                    inds["Constr"].add(this->Y->strkey(yindex));
+                    inds["hIn"].add_ref(inp->strkey(index));
+                    inds["hOut"].add_ref(this->Y->strkey(yindex));
+                }
             }
-
             cur_axis_idx += inp->shape[this->axis];
         }
     }
 
+    void add_parameters(gravity::param<>& w) const override {
+        for (auto inp: this->inputs) {
+            if (inp->is_initializer) {
+                inp->add_params(w);
+            }
+        }
+    }
+
+    void add_constraints(gravity::Model<>& NN, IndexSet& inds, gravity::param<>& w, gravity::var<>& x, gravity::var<int>& y) override {
+        Constraint<> Concat_H("Concat_Hidden");
+        Concat_H = x.in(inds["hOut"]) - x.in(inds["hIn"]);
+        NN.add(Concat_H.in(inds["Constr"]) == 0);
+
+        Constraint<> Concat_P("Concat_Param");
+        Concat_P = x.in(inds["pOut"]) - w.in(inds["pIn"]);
+        NN.add(Concat_P.in(inds["ConstrB"]) == 0);
+    }
+
     size_t axis;
+    Tensor* Y;
 };
 
 class Transpose : public NoOp {
