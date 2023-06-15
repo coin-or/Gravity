@@ -212,14 +212,6 @@ public:
             throw std::runtime_error("Softmax: axis attribute not found");
         }
 
-        if ((this->axis != 1) || (this->X->ndims != 2)) {
-            throw std::runtime_error("Softmax: axis != 1 or ndims != 2 not supported yet");
-        }
-
-        if (this->X->shape[0] != 1) {
-            throw std::runtime_error("Softmax: batch size > 1 not supported yet");
-        }
-
         this->range_lower = 0.0;
         this->range_upper = 1.0;
     }
@@ -229,28 +221,42 @@ public:
     }
 
     void index_hidden_states(indices& hidden_states, indices& y_ids) override {
-        for (auto output: this->outputs) {
-            for (auto i = 0; i < output->numel; i++) {
-                hidden_states.add(output->strkey(i));
-                hidden_states.add(output->strkey(i) + "_exp_aux");
+        auto outer_shape = this->X->shape;
+        outer_shape.at(this->axis) = 1;
+        for (auto outer_ind: ShapeIter(outer_shape)) {
+            hidden_states.add(this->Y->strkey(outer_ind) + "_sum_aux");
+
+            for (size_t axis_ind = 0; axis_ind < this->X->shape.at(this->axis); axis_ind++) {
+                auto inner_ind = outer_ind;
+                inner_ind.at(this->axis) = axis_ind;
+
+                hidden_states.add(this->Y->strkey(inner_ind));
+                hidden_states.add(this->Y->strkey(inner_ind) + "_exp_aux");
             }
         }
-        hidden_states.add(this->Y->name + "_sum_aux");
     }
 
     void index_constraint(IndexSet& inds) override {
-        for(auto j = 0; j < this->X->numel;j++){
-            inds["Constr"].add(this->Y->strkey(j));
-            inds["In"].add_ref(this->X->strkey(j));
-            inds["ExpAux"].add_ref(this->Y->strkey(j) + "_exp_aux");
-            inds["Out"].add_ref(this->Y->strkey(j));
+        auto outer_shape = this->X->shape;
+        outer_shape.at(this->axis) = 1;
+        for (auto outer_ind: ShapeIter(outer_shape)) {
+            inds["ConstrB"].add(this->Y->strkey(outer_ind) + "_sum");
+            inds["SumAux"].add_ref(this->Y->strkey(outer_ind) + "_sum_aux");
 
-            inds["ExpSum"].add_in_row(inds.row_id, this->Y->strkey(j) + "_exp_aux");
-            inds["SumProd"].add_ref(this->Y->name + "_sum_aux");
+            for (size_t axis_ind = 0; axis_ind < this->X->shape.at(this->axis); axis_ind++) {
+                auto inner_ind = outer_ind;
+                inner_ind.at(this->axis) = axis_ind;
+
+                inds["Constr"].add(this->Y->strkey(inner_ind));
+                inds["In"].add_ref(this->X->strkey(inner_ind));
+                inds["ExpAux"].add_ref(this->Y->strkey(inner_ind) + "_exp_aux");
+                inds["Out"].add_ref(this->Y->strkey(inner_ind));
+
+                inds["ExpSum"].add_in_row(inds.row_id, this->Y->strkey(inner_ind) + "_exp_aux");
+                inds["SumProd"].add_ref(this->Y->strkey(outer_ind) + "_sum_aux");
+            }
+            inds.row_id++;
         }
-        inds["ConstrB"].add(this->Y->name + "_sum");
-        inds["SumAux"].add_ref(this->Y->name + "_sum_aux");
-        inds.row_id++;
     }
 
     void add_constraints(gravity::Model<>& NN, IndexSet& inds, gravity::param<>& w, gravity::var<>& x, gravity::var<int>& y) override {

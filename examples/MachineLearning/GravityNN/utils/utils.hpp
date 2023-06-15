@@ -80,7 +80,7 @@ std::vector<T> apply_permutation(const std::vector<T>& v, const std::vector<T>& 
     * The subgraph is defined by the path from the start_node to the final_node.
     * If start_node and final_node is empty, return all layers.
 */
-std::set<std::string> subgraph_extraction(onnx::GraphProto& graph, std::string start_node, std::string final_node) {
+std::set<std::string> subgraph_extraction(const onnx::GraphProto& graph, std::string start_node, std::string final_node) {
     std::set<std::string> all_layers;
     for (auto& node: graph.node()) {
         all_layers.insert(node.name());

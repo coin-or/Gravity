@@ -273,3 +273,68 @@ public:
     std::vector<size_t> axes;
     int keepdims = 1;
 };
+
+class ReduceMean : public Layer {
+public:
+    ReduceMean(const onnx::NodeProto& node, Tensors& tensors): Layer(node, tensors) {
+        operator_type = _reduce_mean;
+        this->X = &tensors[node.input(0)];
+        this->Y = &tensors[node.output(0)];
+        if (const auto* axis_attr = find_attribute("axes", node)) {
+            auto tmp_axes = std::vector<int>(axis_attr->ints().begin(), axis_attr->ints().end());
+            for (auto ax: tmp_axes) {
+                if (ax < 0) {
+                    ax += this->X->ndims;
+                }
+                this->axes.push_back(ax);
+            }
+        }
+
+        if (const auto* keepdims_attr = find_attribute("keepdims", node)) {
+            this->keepdims = keepdims_attr->i();
+        }
+    }
+
+    std::vector<std::vector<std::string>> get_indices() const override {
+        return {{"Out", "In"}, {}};
+    }
+
+    void index_constraint(IndexSet& inds) override {
+        std::vector<size_t> reduce_shape;
+        for (auto& ax: this->axes) {
+            reduce_shape.push_back(this->X->shape.at(ax));
+        }
+
+        for (auto index: ShapeIter(this->Y->shape)) {
+            inds["Constr"].add(this->Y->strkey(index));
+            inds["Out"].add_ref(this->Y->strkey(index));
+            for (auto subind: ShapeIter(reduce_shape)) {
+                auto xind = index;
+                for (int ax_id = 0; ax_id < this->axes.size(); ax_id++) {
+                    if (keepdims == 0) {
+                        xind.insert(xind.begin() + this->axes.at(ax_id), subind.at(ax_id));
+                    } else {
+                        xind.at(this->axes.at(ax_id)) = subind.at(ax_id);
+                    }
+                }
+                inds["In"].add_in_row(inds.row_id, this->X->strkey(xind));
+            }
+            inds.row_id++;
+        }
+    }
+
+    void add_constraints(gravity::Model<>& NN, IndexSet& inds, gravity::param<>& w, gravity::var<>& x, gravity::var<int>& y) override {
+        size_t reduce_size = 1;
+        for (auto& ax: this->axes) {
+            reduce_size *= this->X->shape.at(ax);
+        }
+
+        Constraint<> RDSum("ReduceSum");
+        RDSum = x.in(inds["Out"]) - (x.in(inds["In"]) * (1.0 / reduce_size));
+        NN.add(RDSum.in(inds["Constr"]) == 0);
+    }
+
+    Tensor *X, *Y; // Input and output
+    std::vector<size_t> axes;
+    int keepdims = 1;
+};
