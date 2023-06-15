@@ -87,11 +87,6 @@ public:
             throw std::runtime_error("Reading from non-initializer tensor. Perhaps you're assuming this tensor is a weight when it's actually an output of a previous layer?");
         }
 
-        if (this->added_to_vals) {
-            return;
-        }
-        this->added_to_vals = true;
-
         for (size_t i = 0; i < this->numel; i++) {
             p.add_val(this->strkey(i), this->data[i]);
         }
@@ -217,7 +212,6 @@ public:
 private:
     std::vector<float> data;
     std::vector<int64_t> int_data;
-    bool added_to_vals = false;
 };
 
 typedef std::map<std::string, Tensor> Tensors;

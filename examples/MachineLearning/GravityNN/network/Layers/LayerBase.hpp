@@ -34,14 +34,14 @@ public:
 
     virtual ~Layer() = default;
 
-    virtual void index_constraint(IndexSet& inds) = 0;
+    virtual void index_constraint(IndexSet& inds) const = 0;
     virtual std::vector<std::vector<std::string>> get_indices() const = 0;
-    virtual void add_constraints(gravity::Model<>& NN, IndexSet& inds, gravity::param<>& w, gravity::var<>& x, gravity::var<int>& y) = 0;
+    virtual void add_constraints(gravity::Model<>& NN, IndexSet& inds, gravity::param<>& w, gravity::var<>& x, gravity::var<int>& y) const = 0;
 
     // Override this if you have to introduce auxiliary variables or node
     // uses int vars
     // i.e. node uses exponential or node is a relu
-    virtual void index_hidden_states(indices& hidden_states, indices& y_ids) {
+    virtual void index_hidden_states(indices& hidden_states, indices& y_ids) const {
         for (auto output: this->outputs) {
             for (auto i = 0; i < output->numel; i++) {
                 hidden_states.add(output->strkey(i));
@@ -54,7 +54,7 @@ public:
 
     // Override this if the layer has aux vars that can be bounded
     // i.e. sigmoid produces an aux exp which has a lower bound of 0.0
-    virtual void set_bounds(gravity::param<>& x_lb, gravity::param<>& x_ub) {
+    virtual void set_bounds(gravity::param<>& x_lb, gravity::param<>& x_ub) const {
         for (auto o: this->outputs) {
             for(auto j = 0; j < o->numel; j++){
                 auto key  = o->strkey(j);

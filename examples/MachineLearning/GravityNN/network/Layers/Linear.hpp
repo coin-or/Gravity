@@ -63,7 +63,7 @@ public:
         }
     }
 
-    void index_constraint(IndexSet& inds) override {
+    void index_constraint(IndexSet& inds) const override {
         Tensor tb = *this->B;
         if (this->transB) {
             tb = Tensor::transpose(*this->B);
@@ -103,7 +103,7 @@ public:
         }
     }
 
-    void add_constraints(gravity::Model<>& NN, IndexSet& inds, gravity::param<>& w, gravity::var<>& x, gravity::var<int>& y) override {
+    void add_constraints(gravity::Model<>& NN, IndexSet& inds, gravity::param<>& w, gravity::var<>& x, gravity::var<int>& y) const override {
         Constraint<> Gemm("Gemm");
         Gemm = x.in(inds["Out"]) - (x.in(inds["In"])*w.in(inds["B"]) + w.in(inds["C"]));
         NN.add(Gemm.in(inds["Constr"]) == 0);
@@ -164,7 +164,7 @@ public:
         }
     }
 
-    void _index_constraint(std::vector<size_t> lmat_broad_ind, indices& lmat, indices& rmat, indices& out, indices& constr, size_t& row_id) {
+    void _index_constraint(std::vector<size_t> lmat_broad_ind, indices& lmat, indices& rmat, indices& out, indices& constr, size_t& row_id) const {
         for (size_t out_row = 0; out_row < this->Y->shape.at(this->rdim); out_row++) {
             for (size_t out_col = 0; out_col < this->Y->shape.at(this->cdim); out_col++) {
                 auto y_ind = concat(lmat_broad_ind, {out_row, out_col});
@@ -187,7 +187,7 @@ public:
         }
     }
 
-    void index_constraint(IndexSet& inds) override {
+    void index_constraint(IndexSet& inds) const override {
         std::vector<size_t> lmat_broad_ind;
         for (size_t i = 0; i < this->A->shape.size() - 2; i++) {
             lmat_broad_ind.push_back(this->A->shape.at(i));
@@ -204,7 +204,7 @@ public:
         }
     }
 
-    void add_constraints(gravity::Model<>& NN, IndexSet& inds, gravity::param<>& w, gravity::var<>& x, gravity::var<int>& y) override {
+    void add_constraints(gravity::Model<>& NN, IndexSet& inds, gravity::param<>& w, gravity::var<>& x, gravity::var<int>& y) const override {
         Constraint<> MatMul_P("MatMul_Param");
         MatMul_P = x.in(inds["pOut"]) - (w.in(inds["Param"])*x.in(inds["pIn"]));
         NN.add(MatMul_P.in(inds["Constr"]) == 0);
@@ -309,7 +309,7 @@ public:
         return {{"In", "Out"}, {"W", "B"}};
     }
 
-    void index_constraint(IndexSet& inds) override {
+    void index_constraint(IndexSet& inds) const override {
         if (this->conv_dim == 2) {
             this->index_constraint_2d(inds);
         } else {
@@ -317,7 +317,7 @@ public:
         }
     }
 
-    void index_constraint_1d(IndexSet& inds) {
+    void index_constraint_1d(IndexSet& inds) const {
         // Output indexing
         for (auto j = 0; j < this->Y->numel; j++) {
             inds["Constr"].add(this->name + "," + to_string(j));
@@ -348,7 +348,7 @@ public:
         }
     }
 
-    void index_constraint_2d(IndexSet& inds) {
+    void index_constraint_2d(IndexSet& inds) const {
         // Output indexing
         for (auto j = 0; j < this->Y->numel; j++) {
             inds["Constr"].add(this->name + "," + to_string(j));
@@ -391,7 +391,7 @@ public:
         }
     }
 
-    void add_constraints(gravity::Model<>& NN, IndexSet& inds, gravity::param<>& w, gravity::var<>& x, gravity::var<int>& y) override {
+    void add_constraints(gravity::Model<>& NN, IndexSet& inds, gravity::param<>& w, gravity::var<>& x, gravity::var<int>& y) const override {
         Constraint<> Conv_("Conv");
         Conv_ = x.in(inds["Out"]) - (x.in(inds["In"])*w.in(inds["W"]) + w.in(inds["B"]));
         NN.add(Conv_.in(inds["Constr"]) == 0);
@@ -439,7 +439,7 @@ public:
         return {{"Out", "In"}, {"scale", "B", "mean", "var"}};
     }
 
-    void index_hidden_states(indices& hidden_states, indices& y_ids) override {
+    void index_hidden_states(indices& hidden_states, indices& y_ids) const override {
         for (auto output: this->outputs) {
             for (auto i = 0; i < output->numel; i++) {
                 hidden_states.add(output->strkey(i));
@@ -447,7 +447,7 @@ public:
         }
     }
 
-    void index_constraint(IndexSet& inds) override {
+    void index_constraint(IndexSet& inds) const override {
         for (auto outer_ind: ShapeIter(this->Y->shape)) {
             size_t inner_ind = outer_ind.at(1);
 
@@ -469,7 +469,7 @@ public:
         this->var->add_params(w);
     }
 
-    void add_constraints(gravity::Model<>& NN, IndexSet& inds, gravity::param<>& w, gravity::var<>& x, gravity::var<int>& y) override {
+    void add_constraints(gravity::Model<>& NN, IndexSet& inds, gravity::param<>& w, gravity::var<>& x, gravity::var<int>& y) const override {
         auto Y = x.in(inds["Out"]);
         auto X = x.in(inds["In"]);
         auto var = w.in(inds["var"]);

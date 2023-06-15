@@ -19,7 +19,7 @@ public:
         return {{"Out", "In"}, {}};
     }
 
-    void index_constraint(IndexSet& inds) override {
+    void index_constraint(IndexSet& inds) const override {
         for(auto j = 0; j < this->X->numel;j++){
             inds["Constr"].add(this->Y->strkey(j));
             inds["In"].add_ref(this->X->strkey(j));
@@ -27,7 +27,7 @@ public:
         }
     }
 
-    void add_constraints(gravity::Model<>& NN, IndexSet& inds, gravity::param<>& w, gravity::var<>& x, gravity::var<int>& y) override {
+    void add_constraints(gravity::Model<>& NN, IndexSet& inds, gravity::param<>& w, gravity::var<>& x, gravity::var<int>& y) const override {
         Constraint<> Cos_("Cos");
         Cos_ = x.in(inds["Out"]) - cos(x.in(inds["In"]));
         NN.add(Cos_.in(inds["Constr"]) == 0);
@@ -51,7 +51,7 @@ public:
         return {{"Out", "In"}, {}};
     }
 
-    void index_constraint(IndexSet& inds) override {
+    void index_constraint(IndexSet& inds) const override {
         for(auto j = 0; j < this->X->numel;j++){
             inds["Constr"].add(this->Y->strkey(j));
             inds["In"].add_ref(this->X->strkey(j));
@@ -59,7 +59,7 @@ public:
         }
     }
 
-    void add_constraints(gravity::Model<>& NN, IndexSet& inds, gravity::param<>& w, gravity::var<>& x, gravity::var<int>& y) override {
+    void add_constraints(gravity::Model<>& NN, IndexSet& inds, gravity::param<>& w, gravity::var<>& x, gravity::var<int>& y) const override {
         Constraint<> Sin_("Sin");
         Sin_ = x.in(inds["Out"]) - sin(x.in(inds["In"]));
         NN.add(Sin_.in(inds["Constr"]) == 0);
@@ -91,7 +91,7 @@ public:
         return {{"Out", "In"}, {}};
     }
 
-    void index_constraint(IndexSet& inds) override {
+    void index_constraint(IndexSet& inds) const override {
         for(auto j = 0; j < this->X->numel;j++){
             inds["Constr"].add(this->Y->strkey(j));
             inds["In"].add_ref(this->X->strkey(j));
@@ -99,7 +99,7 @@ public:
         }
     }
 
-    void add_constraints(gravity::Model<>& NN, IndexSet& inds, gravity::param<>& w, gravity::var<>& x, gravity::var<int>& y) override {
+    void add_constraints(gravity::Model<>& NN, IndexSet& inds, gravity::param<>& w, gravity::var<>& x, gravity::var<int>& y) const override {
         Constraint<> Pow_("Pow");
         Pow_ = x.in(inds["Out"]) - pow(x.in(inds["In"]), 2.0);
         NN.add(Pow_.in(inds["Constr"]) == 0);
@@ -123,7 +123,7 @@ public:
         return {{"Out", "In"}, {}};
     }
 
-    void index_constraint(IndexSet& inds) override {
+    void index_constraint(IndexSet& inds) const override {
         for(auto j = 0; j < this->X->numel;j++){
             inds["Constr"].add(this->Y->strkey(j));
             inds["In"].add_ref(this->X->strkey(j));
@@ -131,7 +131,7 @@ public:
         }
     }
 
-    void add_constraints(gravity::Model<>& NN, IndexSet& inds, gravity::param<>& w, gravity::var<>& x, gravity::var<int>& y) override {
+    void add_constraints(gravity::Model<>& NN, IndexSet& inds, gravity::param<>& w, gravity::var<>& x, gravity::var<int>& y) const override {
         Constraint<> Exp_("Exp");
         Exp_ = x.in(inds["Out"]) - gravity::exp(x.in(inds["In"]));
         NN.add(Exp_.in(inds["Constr"]) == 0);
@@ -155,7 +155,7 @@ public:
         return {{"Out", "In", "ExpAux", "NegAux"}, {}};
     }
 
-    void index_hidden_states(indices& hidden_states, indices& y_ids) override {
+    void index_hidden_states(indices& hidden_states, indices& y_ids) const override {
         for (auto output: this->outputs) {
             for (auto i = 0; i < output->numel; i++) {
                 hidden_states.add(output->strkey(i));
@@ -165,7 +165,7 @@ public:
         }
     }
 
-    void index_constraint(IndexSet& inds) override {
+    void index_constraint(IndexSet& inds) const override {
         for(auto j = 0; j < this->X->numel;j++){
             inds["Constr"].add(this->Y->strkey(j));
             inds["In"].add_ref(this->X->strkey(j));
@@ -175,7 +175,7 @@ public:
         }
     }
 
-    void add_constraints(gravity::Model<>& NN, IndexSet& inds, gravity::param<>& w, gravity::var<>& x, gravity::var<int>& y) override {
+    void add_constraints(gravity::Model<>& NN, IndexSet& inds, gravity::param<>& w, gravity::var<>& x, gravity::var<int>& y) const override {
         // Negate x
         Constraint<> Neg_("Sigmoid_Neg_Aux");
         Neg_ = x.in(inds["NegAux"]) + x.in(inds["In"]);
@@ -220,7 +220,7 @@ public:
         return {{"Out", "In", "ExpAux", "ExpSum", "SumAux", "SumProd"}, {}};
     }
 
-    void index_hidden_states(indices& hidden_states, indices& y_ids) override {
+    void index_hidden_states(indices& hidden_states, indices& y_ids) const override {
         auto outer_shape = this->X->shape;
         outer_shape.at(this->axis) = 1;
         for (auto outer_ind: ShapeIter(outer_shape)) {
@@ -236,7 +236,7 @@ public:
         }
     }
 
-    void index_constraint(IndexSet& inds) override {
+    void index_constraint(IndexSet& inds) const override {
         auto outer_shape = this->X->shape;
         outer_shape.at(this->axis) = 1;
         for (auto outer_ind: ShapeIter(outer_shape)) {
@@ -259,7 +259,7 @@ public:
         }
     }
 
-    void add_constraints(gravity::Model<>& NN, IndexSet& inds, gravity::param<>& w, gravity::var<>& x, gravity::var<int>& y) override {
+    void add_constraints(gravity::Model<>& NN, IndexSet& inds, gravity::param<>& w, gravity::var<>& x, gravity::var<int>& y) const override {
         // Exp constraint
         Constraint<> Exp_("Softmax_Exp");
         Exp_ = x.in(inds["ExpAux"]) - gravity::exp(x.in(inds["In"]));

@@ -123,6 +123,12 @@ public:
             }
         }
 
+        // Print out the layers
+        std::cout << "Layers: " << std::endl;
+        for (auto layer: layers) {
+            std::cout << layer->name << std::endl;
+        }
+
         auto indices = IndexContainer();
         auto NN = Model<>(this->graph.name());
 
@@ -205,6 +211,7 @@ public:
 
         // Index parameters
         for (auto l: layers) {
+            std::cout << "Adding parameters for " << l->name << std::endl;
             l->add_parameters(indices.w);
         }
     }

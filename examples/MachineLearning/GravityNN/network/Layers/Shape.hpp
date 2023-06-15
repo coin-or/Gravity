@@ -16,7 +16,7 @@ public:
         return {{"In", "Out"}, {}};
     }
 
-    void index_constraint(IndexSet& inds) override {
+    void index_constraint(IndexSet& inds) const override {
         for(auto j = 0; j < this->X->numel;j++){
             inds["Constr"].add(this->Y->strkey(j));
             inds["In"].add_ref(this->X->strkey(j));
@@ -24,7 +24,7 @@ public:
         }
     }
 
-    void add_constraints(gravity::Model<>& NN, IndexSet& inds, gravity::param<>& w, gravity::var<>& x, gravity::var<int>& y) override {
+    void add_constraints(gravity::Model<>& NN, IndexSet& inds, gravity::param<>& w, gravity::var<>& x, gravity::var<int>& y) const override {
         Constraint<> NoOp("NoOp");
         NoOp = x.in(inds["Out"]) - x.in(inds["In"]);
         NN.add(NoOp.in(inds["Constr"]) == 0);
@@ -58,7 +58,7 @@ public:
         }
     }
 
-    void index_constraint(IndexSet& inds) override {
+    void index_constraint(IndexSet& inds) const override {
         size_t cur_axis_idx = 0;
         for (auto out: this->outputs) {
             for (auto y_ind: ShapeIter(out->shape)) {
@@ -98,7 +98,7 @@ public:
         return {{"hIn", "hOut", "pOut"}, {"pIn"}};
     }
 
-    void index_constraint(IndexSet& inds) override {
+    void index_constraint(IndexSet& inds) const override {
         size_t cur_axis_idx = 0;
         for (auto inp: this->inputs) {
             for (auto index: ShapeIter(inp->shape)) {
@@ -127,7 +127,7 @@ public:
         }
     }
 
-    void add_constraints(gravity::Model<>& NN, IndexSet& inds, gravity::param<>& w, gravity::var<>& x, gravity::var<int>& y) override {
+    void add_constraints(gravity::Model<>& NN, IndexSet& inds, gravity::param<>& w, gravity::var<>& x, gravity::var<int>& y) const override {
         Constraint<> Concat_H("Concat_Hidden");
         Concat_H = x.in(inds["hOut"]) - x.in(inds["hIn"]);
         NN.add(Concat_H.in(inds["Constr"]) == 0);
@@ -154,7 +154,7 @@ public:
         }
     }
 
-    void index_constraint(IndexSet& inds) override {
+    void index_constraint(IndexSet& inds) const override {
         for (auto xindex: ShapeIter(this->X->shape)) {
             auto yindex = apply_permutation(xindex, this->perm);
 
@@ -208,7 +208,7 @@ public:
         }
     }
 
-    void index_constraint(IndexSet& inds) override {
+    void index_constraint(IndexSet& inds) const override {
         /*
             Slice uses the starts, ends, axes and steps inputs to select a sub-tensor of its input data tensor.
             An effective start[i], end[i], and step[i] must be computed for each i in [0, ... r-1] where r = rank(input) as follows:
@@ -294,7 +294,7 @@ public:
         }
     }
 
-    void index_constraint(IndexSet& inds) override {
+    void index_constraint(IndexSet& inds) const override {
         /*
         Given data tensor of rank r >= 1, and indices tensor of rank q, gather entries of the axis dimension
         of data (by default outer-most one as axis=0) indexed by indices, and concatenates them in an output
