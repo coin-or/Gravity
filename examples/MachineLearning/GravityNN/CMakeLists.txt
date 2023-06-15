@@ -32,13 +32,3 @@ add_executable(
 add_dependencies(tighten proto_dep)
 target_include_directories(tighten PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/MachineLearning/GravityNN ${ONNX_PROTO_HDRS})
 target_link_libraries(tighten ${PROTOBUF_LIBRARIES} gravity OpenMP::OpenMP_CXX)
-
-add_executable(
-  verify
-	MachineLearning/GravityNN/verify.cpp
-        ${ONNX_PROTO_SRCS}
-        ${ONNX_PROTO_HDRS}
-)
-add_dependencies(verify proto_dep)
-target_include_directories(verify PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/MachineLearning/GravityNN ${ONNX_PROTO_HDRS})
-target_link_libraries(verify ${PROTOBUF_LIBRARIES} gravity)

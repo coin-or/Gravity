@@ -18,7 +18,7 @@ int main(int argc, char * argv[]){
     }
 
     // Empty string means we build the entire network, otherwise we build up to the specified node
-    std::string final_node = "BatchNormalization_1";
+    std::string final_node = "MatMul_1";
     NeuralNet nn(fname, final_node);
     Model<>& NN = nn.build_model(idx);
 

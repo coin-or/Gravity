@@ -142,7 +142,7 @@ public:
 
     static size_t flatten_index(const std::vector<size_t>& indices, const std::vector<size_t>& shape) {
         if (indices.size() != shape.size()) {
-            throw std::runtime_error("Cannot flatten index with " + std::to_string(indices.size()) + " indices and " + std::to_string(shape.size()) + " dimensions");
+            throw std::runtime_error("Cannot flatten index with " + std::to_string(indices.size()) + " indices for a tensor with " + std::to_string(shape.size()) + " dimensions");
         }
 
         size_t index = 0;

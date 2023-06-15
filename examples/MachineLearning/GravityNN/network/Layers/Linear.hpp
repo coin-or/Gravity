@@ -5,21 +5,6 @@
 
 using namespace gravity;
 
-std::vector<size_t> unflatten_index(size_t index, std::vector<size_t> shape) {
-    if (shape.empty()) {
-        return {};
-    }
-
-    std::vector<size_t> result;
-    std::reverse(shape.begin(), shape.end());
-    for (const auto& stride : shape) {
-        result.push_back(index % stride);
-        index = index / stride;
-    }
-    std::reverse(result.begin(), result.end());
-    return result;
-}
-
 class GEMM : public Layer {
 public:
     /*
@@ -160,22 +145,24 @@ public:
     void add_parameters(gravity::param<>& w) const override {
         if (this->A->is_initializer) {
             this->A->add_params(w);
-        } else {
+        } 
+
+        if (this->B->is_initializer) {
             this->B->add_params(w);
         }
     }
 
     void _index_constraint(std::vector<size_t> lmat_broad_ind, indices& lmat, indices& rmat, indices& constr, indices& out, size_t& row_id) {
-        for (size_t out_row = 0; out_row < this->Y->shape[this->rdim]; out_row++) {
-            for (size_t out_col = 0; out_col < this->Y->shape[this->cdim]; out_col++) {
-                auto y_ind = concat<size_t>(lmat_broad_ind, {out_row, out_col});
+        for (size_t out_row = 0; out_row < this->Y->shape.at(this->rdim); out_row++) {
+            for (size_t out_col = 0; out_col < this->Y->shape.at(this->cdim); out_col++) {
+                auto y_ind = concat(lmat_broad_ind, {out_row, out_col});
 
-                constr.add(this->Y->strkey(this->Y->flatten_index(y_ind)));
-                out.add_ref(this->Y->strkey(this->Y->flatten_index(y_ind)));
+                constr.add_in_row(row_id, this->Y->strkey(y_ind));
+                out.add_in_row(row_id, this->Y->strkey(y_ind));
 
-                for (size_t i = 0; i < this->A->shape[this->cdim]; i++) {
-                    auto a_ind = concat<size_t>(lmat_broad_ind, {out_row, i});
-                    lmat.add_in_row(row_id, this->A->strkey(this->A->flatten_index(a_ind)));
+                for (size_t i = 0; i < this->A->shape.at(this->cdim); i++) {
+                    auto a_ind = concat(lmat_broad_ind, {out_row, i});
+                    lmat.add_in_row(row_id, this->A->strkey(a_ind));
                     rmat.add_in_row(row_id, this->B->strkey(i, out_col));
                 }
                 row_id++;
@@ -186,15 +173,14 @@ public:
     void index_constraint(IndexSet& inds) override {
         std::vector<size_t> lmat_broad_ind;
         for (size_t i = 0; i < this->A->shape.size() - 2; i++) {
-            lmat_broad_ind.push_back(this->A->shape[i]);
+            lmat_broad_ind.push_back(this->A->shape.at(i));
         }
-        size_t niters = vecprod(lmat_broad_ind);
-        for (size_t i = 0; i < niters; i++) {
-            auto unflat = unflatten_index(i, lmat_broad_ind);
+
+        for (auto broad_ind: ShapeIter(lmat_broad_ind)) {
             if (this->A->is_initializer) {
-                this->_index_constraint(unflat, inds["Param"], inds["In"], inds["Constr"], inds["Out"], inds.row_id);
+                this->_index_constraint(broad_ind, inds["Param"], inds["In"], inds["Constr"], inds["Out"], inds.row_id);
             } else {
-                this->_index_constraint(unflat, inds["In"], inds["Param"], inds["Constr"], inds["Out"], inds.row_id);
+                this->_index_constraint(broad_ind, inds["In"], inds["Param"], inds["Constr"], inds["Out"], inds.row_id);
             }
         }
     }
