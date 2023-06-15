@@ -28,6 +28,7 @@ int main(int argc, const char * argv[]) {
     auto duration1 = duration_cast<seconds>(stop - start);
     cout << "Init + greedy time: " << duration1.count() << endl;
     m.mSolve();
+    m.writeGreedySol(); //writing opt sol to a file to load it to sensor_assign2
     auto stop2 = high_resolution_clock::now();
     auto duration2 = duration_cast<seconds>(stop2 - stop);
     cout << m.N << " " << m.M << " " << m.K << " " << duration1.count() + duration2.count() << endl; //prints num sensors; num objetcs; num agents; total time after reading input (init + greedy + solver)
@@ -161,6 +162,7 @@ void myModel::InitBilevel(param<double> &w0, param<double> &w_own, param<double>
     /*reset_range to define ub on prices*/
     w_own.reset_range();
     w_bought.reset_range();
+    w0.reset_range();
     
     /*---------Variables----------*/
     /*price + aux for price*/
@@ -184,6 +186,9 @@ void myModel::InitBilevel(param<double> &w0, param<double> &w_own, param<double>
     model.add(p_sn.in(sensors));
     var<double> p_z("p_z", 0, std::max(w_own._range->second,w_bought._range->second));
     model.add(p_z.in(bought_arcs));
+    /* experiimental */
+    var<double> p_z0("p_z0", 0, std::max(w_own._range->second,w0._range->second));
+    model.add(p_z0.in(arcs));
     
     /*multiplication vars def*/
     Constraint<> p_sn_def("p_sn_def");
@@ -193,6 +198,11 @@ void myModel::InitBilevel(param<double> &w0, param<double> &w_own, param<double>
     Constraint<> p_z_def("p_z_def");
     p_z_def = p.in_ignore_ith(1, 2, bought_arcs)*z - p_z;
     model.add(p_z_def.in(bought_arcs)==0);
+    
+    /* p*z0 for cancelling out price terms in the obj (experimental) */
+    Constraint<> p_z0_def("p_z0_def");
+    p_z0_def = p.in_ignore_ith(1, 1, arcs) * z0 - p_z0;
+    model.add(p_z0_def.in(arcs) == 0);
     
     /*weights for obj (own + leader, bought + leader); leader receives utility when an object is observed, no matter by whom*/
     func<> f = w_own + w0.in_ignore_ith(2, 1, own_arcs);
@@ -212,7 +222,9 @@ void myModel::InitBilevel(param<double> &w0, param<double> &w_own, param<double>
     obj += product(w_own0, s); //use own sens
     obj += sum(p_sn); //sell sens
     obj += product(w_bought0, z); //buy sens pt.1
+    obj += product(w0, z0);
     obj -= sum(p_z); //buy sens pt.2
+    obj -= sum(p_z0);
     obj -= e * sum(p_z); //regularization term; sets prices to their lb from Fair_price constraints (can't use equality there)
     model.max(obj);
     
@@ -242,13 +254,13 @@ void myModel::InitBilevel(param<double> &w0, param<double> &w_own, param<double>
     luo = sum(z0.in_matrix(0, 1));
     model.add(luo.in(objects) <= 1);
     
-    Constraint<> lulb("Leader_Utility_lb"); //leader doesn't pay more than thay get
+    Constraint<> lulb("Leader_Utility_lb"); //leader doesn't pay more than they get
     lulb = p.in_ignore_ith(1, 1, arcs) * z0.in(arcs) - w0.in(arcs);
     model.add(lulb.in(arcs) <= 0);
 
     Constraint<> fua("Unique_Own_Assignment"); //sensor cannot do 2 or more observations
     fua = sum(s.in_matrix(1, 1)) + sn.in_ignore_ith(1, 1, own_sens);
-    model.add(fua.in(own_sens) <= 1);
+    model.add(fua.in(own_sens) == 1);
     
     /*matching indices for Follower_Unique_Object*/
     indices c_fub("c_fub"), z_fub("z_fub"), s_fub("s_fub");
@@ -553,9 +565,10 @@ void myModel::writeGreedySol() {
                 no_operate = false;
                 break;
             }
-            if (no_operate) { solFile << "sensor" + to_string(i) + ",agent" + to_string(owner[i]) << " " << 0 << endl; } //sensor not operated by owner
-            no_operate = true;
         }
+        if (no_operate) { solFile << "sensor" + to_string(i) + ",agent" + to_string(owner[i]) << " " << 0 << endl; } //sensor not operated by owner
+        no_operate = true;
+        
         for (int k = owner[i] + 1; k < K; k++) {
             for (Arc* a: graph.get_node("sensor" + to_string(i))->get_out()) {
                 if (z.eval("sensor" + to_string(i) + "," + a->_dest->_name + ",agent" + to_string(k)) > 0.5) {
@@ -567,6 +580,15 @@ void myModel::writeGreedySol() {
             if (no_operate) { solFile << "sensor" + to_string(i) + ",agent" + to_string(k) << " " << 0 << endl; } //sensor not operated by that agent
             no_operate = true;
         }
+        for (Arc* a: graph.get_node("sensor" + to_string(i))->get_out()) {
+            if (z0.eval("sensor" + to_string(i) + "," + a->_dest->_name) > 0.5) {
+                solFile << "sensor" + to_string(i) << " " << 1 << endl; //sensor operated by CA
+                no_operate = false;
+                break;
+            }
+        }
+        if (no_operate) { solFile << "sensor" + to_string(i) << " " << 0 << endl; } //sensor not operated by CA
+        no_operate = true;
     }
     solFile.close();
 }

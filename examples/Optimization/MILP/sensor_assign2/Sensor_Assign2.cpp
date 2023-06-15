@@ -126,7 +126,7 @@ vector<param<double>> myModel::readData(int argc, const char * argv[], int n1, i
         file.close();
     }
     else {
-        /*generate data; probably won't work because index sets are define inside the reading from file case*/
+        /*generate data; probably won't work because index sets are defined inside the reading from file case*/
         random_device rd; // obtain a random number from hardware
         mt19937 gen(rd()); // seed the generator
         uniform_int_distribution<> distr(0, K-1); // define the range
@@ -147,6 +147,7 @@ void myModel::InitBilevel(param<double> &w0, param<double> &w, double eps) {
     
     /*reset_range to define ub on prices*/
     w.reset_range();
+    w0.reset_range();
 
     /*---------Variables---------*/
     /*price + aux for price*/
@@ -160,6 +161,9 @@ void myModel::InitBilevel(param<double> &w0, param<double> &w, double eps) {
     model.add(s.in(arcs));
     var<int> z("z", 0, 1);
     model.add(z.in(operations));
+    /* experimantal: z0 for CA*/
+    var<int> z0("z0", 0, 1);
+    model.add(z0.in(sensors));
     
     /*weights for obj (own + leader, bought + leader); leader receives utility when an object is observed, no matter by whom*/
     func<> f = w.in(own_arcs) + w0.in_ignore_ith(2, 1, own_arcs);
@@ -180,10 +184,13 @@ void myModel::InitBilevel(param<double> &w0, param<double> &w, double eps) {
     obj += sum(p); //sell sens pt.1
     obj -= product(1, p.in_ignore_ith(1, 2, own_arcs) * z.in_ignore_ith(1, 1, own_arcs)); //sell sens pt.2
     obj += product(w_bought0, s.in_ignore_ith(2, 1, bought_arcs) * z.in_ignore_ith(1, 1, bought_arcs)); //buy sens pt.1
+    obj += product(w0, s * z0.in_ignore_ith(1, 1, arcs));
     obj -= product(1, p.in_ignore_ith(1, 1, bought_sens) * z.in(bought_sens)); //buy sens pt.2
+    obj -= sum(p * z0);
     obj -= product(e, p.in_ignore_ith(1, 1, bought_sens) * z.in(bought_sens)); //regularization term; sets prices to their lb from Fair_price constraints (can't use equality there)
     model.max(obj);
     
+
     /*--------Constraints--------*/
     
     Constraint<> ua("Unique_Assignment");
@@ -191,7 +198,7 @@ void myModel::InitBilevel(param<double> &w0, param<double> &w, double eps) {
     model.add(ua.in(sensors) == 1);
 
     Constraint<> uo("Unique_Operation");
-    uo = sum(z.in_matrix(1, 1)); //sensor operated by exactly one agent
+    uo = sum(z.in_matrix(1, 1)) + z0; //sensor operated by exactly one agent
     model.add(uo.in(sensors) == 1);
     
 //    Constraint<> uobj("Unique_Object");
@@ -214,13 +221,21 @@ void myModel::InitBilevel(param<double> &w0, param<double> &w, double eps) {
         }
     }
     
-    Constraint<> uobj("Unique_Object");
+    /*Constraint<> uobj("Unique_Object");
     uobj = s.in(s_ids) + z.in(z_ids) - N; //agent observes each object no more than once (sum_i(s(i, j) * z(i, k)) <= 1 or sum_i(s(i, j) + z(i, k) - 1) <= 1)
+    model.add(uobj.in(uobj_ids) <= 1);*/
+    
+    Constraint<> uobj("Unique_Object2");
+    uobj = product(1, s.in(s_ids) * z.in(z_ids)); //agent observes each object no more than once (sum_i(s(i, j) * z(i, k)) <= 1 or sum_i(s(i, j) + z(i, k) - 1) <= 1)
     model.add(uobj.in(uobj_ids) <= 1);
     
     Constraint<> fulb("Followers_Utility_lb"); //agents don't pay more than they get
     fulb = w.in(bought_arcs) * s.in_ignore_ith(2, 1, bought_arcs) * z.in_ignore_ith(1, 1, bought_arcs) + w._range->second * (1 - s.in_ignore_ith(2, 1, bought_arcs) * z.in_ignore_ith(1, 1, bought_arcs)) - p.in_ignore_ith(1, 2, bought_arcs) * z.in_ignore_ith(1, 1, bought_arcs);
     model.add(fulb.in(bought_arcs) >= 0);
+    
+    Constraint<> lulb("Leader_Utility_lb"); //CA doesn't pay more than they get
+    lulb = w0.in(arcs) * s.in(arcs) * z0.in_ignore_ith(1, 1, arcs) + w0._range->second * (1 - s.in(arcs) * z0.in_ignore_ith(1, 1, arcs)) - p.in_ignore_ith(1, 1, arcs) * z0.in_ignore_ith(1, 1, arcs);
+    model.add(lulb.in(arcs) >= 0);
     
         //----Fair price----
     Constraint<> fp("FairPrice"); //set price to the mid-point btw buyer and seller
@@ -230,7 +245,7 @@ void myModel::InitBilevel(param<double> &w0, param<double> &w, double eps) {
     /*Price proxies (marginal utility of using own sensor)*/
     indices c_lb1("c_lb1"), y_lb1("y_lb1"), w_own_lb1("w_own_lb1"), z_lb1("z_lb1"), s_lb1("s_lb1");
     y_lb1 = sensors;
-    z_lb1 = bought_arcs;
+    z_lb1 = own_arcs;
     s_lb1 = own_arcs;
     w_own_lb1 = own_arcs;
     row_id = 0;
@@ -248,9 +263,9 @@ void myModel::InitBilevel(param<double> &w0, param<double> &w, double eps) {
         }
     }
     
-    Constraint<> sl1("Seller lb1"); //utility of adding this observation (if possible)
+    /*Constraint<> sl1("Seller lb1"); //utility of adding this observation (if possible)
     sl1 = y.in(y_lb1) + w.in(w_own_lb1) * s.in(s_lb1) * z.in(z_lb1) - w.in(w_own_lb1);
-    model.add(sl1.in(c_lb1) >= 0);
+    model.add(sl1.in(c_lb1) >= 0);*/
     
     /*Probably better to replace this with .add_in_row()*/
     indices tmp_ids2 = own_rplc.ignore_ith(0, 1).ignore_ith(3, 1);
@@ -273,12 +288,13 @@ void myModel::InitBilevel(param<double> &w0, param<double> &w, double eps) {
 
 void myModel::mSolve() {
     model.print_constraints_stats(1e-4);
+    //model.print();
     solver<> sol(model, gurobi);
 //    model.set_name("Greedy_read");
 //    model.write_solution();
     sol.run();
 //    model.set_name("Sensor_assign2");
-//    model.write_solution();
+    model.write_solution();
     //model.print_solution();
 }
 
@@ -288,6 +304,7 @@ void myModel::readGreedySol(string fname) {
     auto y = model.get_var<double>("y");
     auto s = model.get_var<int>("s");
     auto z = model.get_var<int>("z");
+    auto z0 = model.get_var<int>("z0");
     
     fstream file;
     file.open(fname);
@@ -310,6 +327,8 @@ void myModel::readGreedySol(string fname) {
             file >> id >> tmpval;
             z(id).set_val(stoi(tmpval));
         }
+        file >> id >> tmpval;
+        z0(id).set_val(stoi(tmpval));
     }
     file.close();
 }
