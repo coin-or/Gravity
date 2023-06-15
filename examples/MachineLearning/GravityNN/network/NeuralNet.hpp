@@ -278,6 +278,15 @@ public:
         }
     }
 
+    Layer* get_layer(const std::string& name) const {
+        for (auto l: this->layers) {
+            if (l->name == name) {
+                return l;
+            }
+        }
+        return nullptr;
+    }
+
     Tensors tensors;
     size_t input_numel;
 

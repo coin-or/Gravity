@@ -19,11 +19,11 @@ int main(int argc, char * argv[]){
 
     // Empty string means we build the entire network, otherwise we build up to the specified node
     std::string final_node = "MatMul_1";
-    NeuralNet nn(fname, final_node);
+    NeuralNet nn(fname);
     Model<> NN = nn.build_model(idx, final_node);
 
     if (idx < 0) {
-        auto tensor = nn.layers.back()->outputs.at(0);
+        auto tensor = nn.get_layer(final_node)->outputs.at(0);
         gravity::func<> expr = 0.0;
         for (auto index: ShapeIter(tensor->shape)) {
             expr += NN.get_var<double>("x")(tensor->strkey(index));
