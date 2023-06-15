@@ -136,13 +136,22 @@ public:
         if (this->A->is_initializer && this->B->is_initializer) {
             throw std::runtime_error("MatMul: A and B are both initializers. Why wasn't this optimized out?");
         }
-        if (!this->A->is_initializer && !this->B->is_initializer) {
-            throw std::runtime_error("MatMul: A and B are both hidden states. Not supported yet.");
+
+        // Either B must be two dimensional or must have the exact same shape as A
+        // This is simply because we dont support broadcasting over dims of B yet,
+        // Only A
+        if ((this->B->ndims != 2)) {
+            // Leading dimensions of B must match A
+            for (size_t i = 0; i < this->A->shape.size() - 2; i++) {
+                if (this->A->shape.at(i) != this->B->shape.at(i)) {
+                    throw std::runtime_error("MatMul: B must be two dimensional or have the same shape as A");
+                }
+            }
         }
     }
 
     std::vector<std::vector<std::string>> get_indices() const override {
-        return {{"In", "Out"}, {"Param"}};
+        return {{"pIn", "pOut", "hLeft", "hRight", "hOut"}, {"Param"}};
     }
 
     void add_parameters(gravity::param<>& w) const override {
@@ -155,7 +164,7 @@ public:
         }
     }
 
-    void _index_constraint(std::vector<size_t> lmat_broad_ind, indices& lmat, indices& rmat, indices& constr, indices& out, size_t& row_id) {
+    void _index_constraint(std::vector<size_t> lmat_broad_ind, indices& lmat, indices& rmat, indices& out, indices& constr, size_t& row_id) {
         for (size_t out_row = 0; out_row < this->Y->shape.at(this->rdim); out_row++) {
             for (size_t out_col = 0; out_col < this->Y->shape.at(this->cdim); out_col++) {
                 auto y_ind = concat(lmat_broad_ind, {out_row, out_col});
@@ -165,8 +174,13 @@ public:
 
                 for (size_t i = 0; i < this->A->shape.at(this->cdim); i++) {
                     auto a_ind = concat(lmat_broad_ind, {out_row, i});
+                    auto b_ind = std::vector<size_t>{i, out_col};
+                    if (this->B->ndims != 2) {
+                        b_ind = concat(lmat_broad_ind, b_ind);
+                    }
+                
                     lmat.add_in_row(row_id, this->A->strkey(a_ind));
-                    rmat.add_in_row(row_id, this->B->strkey(i, out_col));
+                    rmat.add_in_row(row_id, this->B->strkey(b_ind));
                 }
                 row_id++;
             }
@@ -181,17 +195,23 @@ public:
 
         for (auto broad_ind: ShapeIter(lmat_broad_ind)) {
             if (this->A->is_initializer) {
-                this->_index_constraint(broad_ind, inds["Param"], inds["In"], inds["Constr"], inds["Out"], inds.row_id);
+                this->_index_constraint(broad_ind, inds["Param"], inds["pIn"], inds["pOut"], inds["Constr"], inds.row_id);
+            } else if (this->B->is_initializer) {                                                                        
+                this->_index_constraint(broad_ind, inds["pIn"], inds["Param"], inds["pOut"], inds["Constr"], inds.row_id);
             } else {
-                this->_index_constraint(broad_ind, inds["In"], inds["Param"], inds["Constr"], inds["Out"], inds.row_id);
+                this->_index_constraint(broad_ind, inds["hLeft"], inds["hRight"], inds["hOut"], inds["ConstrB"], inds.row_id2);
             }
         }
     }
 
     void add_constraints(gravity::Model<>& NN, IndexSet& inds, gravity::param<>& w, gravity::var<>& x, gravity::var<int>& y) override {
-        Constraint<> MatMul_("MatMul");
-        MatMul_ = x.in(inds["Out"]) - (w.in(inds["Param"])*x.in(inds["In"]));
-        NN.add(MatMul_.in(inds["Constr"]) == 0);
+        Constraint<> MatMul_P("MatMul_Param");
+        MatMul_P = x.in(inds["pOut"]) - (w.in(inds["Param"])*x.in(inds["pIn"]));
+        NN.add(MatMul_P.in(inds["Constr"]) == 0);
+
+        Constraint<> MatMul_H("MatMul_Hidden");
+        MatMul_H = x.in(inds["hOut"]) - (x.in(inds["hLeft"])*x.in(inds["hRight"]));
+        NN.add(MatMul_H.in(inds["ConstrB"]) == 0);
     }
 
     Tensor *A, *B; // Inputs

@@ -9267,7 +9267,7 @@ namespace gravity {
         if(p1._range->first <0 && p1._range->second >0){
             res._range->second = 1;
         }
-        if((p1._range->first <-pi && p1._range->second >-pi) || (p1._range->first <pi && p1._range->second >pi)){
+        if(((p1._range->first <-pi) && (p1._range->second >-pi)) || (p1._range->first <pi && p1._range->second >pi)){
             res._range->first = -1;
         }
         res._expr->_range->first = res._range->first;
@@ -9294,7 +9294,7 @@ namespace gravity {
         if(shifted_range.first <0 && shifted_range.second >0){
             res._range->second = 1;
         }
-        if((shifted_range.first <-pi && shifted_range.second >-pi) || (shifted_range.first <pi && shifted_range.second >pi)){
+        if(((shifted_range.first < -pi) && (shifted_range.second >-pi)) || (shifted_range.first <pi && shifted_range.second >pi)){
             res._range->first = -1;
         }
         res._expr->_range->first = res._range->first;
@@ -9635,7 +9635,7 @@ namespace gravity {
         if(f._range->first <0 && f._range->second >0){
             res._range->second = 1;
         }
-        if((f._range->first <-pi && f._range->second >-pi) || (f._range->first <pi && f._range->second >pi)){
+        if(((f._range->first <-pi) && (f._range->second >-pi)) || (f._range->first <pi && f._range->second >pi)){
             res._range->first = -1;
         }
         res._expr->_range->first = res._range->first;
@@ -9706,7 +9706,7 @@ namespace gravity {
             if(shifted_range.first <0 && shifted_range.second >0){
                 res._range->second = 1;
             }
-            if((shifted_range.first <-pi && shifted_range.second >-pi) || (shifted_range.first <pi && shifted_range.second >pi)){
+            if(((shifted_range.first < -pi) && (shifted_range.second >-pi)) || (shifted_range.first <pi && shifted_range.second >pi)){
                 res._range->first = -1;
             }
         }

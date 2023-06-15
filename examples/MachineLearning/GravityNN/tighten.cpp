@@ -71,12 +71,12 @@ int main(int argc, char * argv[]) {
     std::vector<Layer*> layers_to_optimize;
 
     for (auto i = 1; i < nn.layers.size() - 1; i++) {
-        if (
-            (nn.layers[i+1]->operator_type != _relu) &&
-            (nn.layers[i+1]->operator_type != _clip)
-        ) {
-            continue;
-        }
+        // if (
+            // (nn.layers[i+1]->operator_type != _relu) &&
+            // (nn.layers[i+1]->operator_type != _clip)
+        // ) {
+            // continue;
+        // }
 
         layers_to_optimize.push_back(nn.layers[i]);
     }

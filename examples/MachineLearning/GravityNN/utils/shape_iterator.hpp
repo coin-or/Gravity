@@ -28,9 +28,11 @@ private:
             } else {
                 this->cur_vals = shape;
             }
+            this->iter_once = false;
         }
 
         ShapeIterImpl& operator++() {
+            this->iter_once = true;
             for (int i = cur_vals.size() - 1; i >= 0; --i) {
                 if (++cur_vals[i] >= shape[i]) {
                     if (i == 0) {
@@ -46,7 +48,7 @@ private:
         }
 
         bool operator!=(const ShapeIterImpl& other) const { 
-            return (cur_vals != other.cur_vals) || (shape != other.shape);
+            return (cur_vals != other.cur_vals) || (shape != other.shape) || (!iter_once);
         }
 
         const std::vector<size_t>& operator*() const {
@@ -56,5 +58,6 @@ private:
     private:
         const std::vector<size_t> shape;
         std::vector<size_t> cur_vals;
+        bool iter_once;
     };
 };
