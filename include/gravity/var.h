@@ -197,6 +197,10 @@ namespace gravity {
             this->set_val(v);
         }
         
+        size_t set_val(const string& key, type val) {            
+            return this->param<type>::set_val(key,val);
+        }
+        
         void set_val(type val) {
             if(this->is_indexed()){
                 for(auto &idx: this->_indices->_ids->at(0)){
@@ -769,7 +773,6 @@ namespace gravity {
         
         /**
          \brief Update dimensions based on the current indexing-set
-         \todo sparse matrix/double indexing
          */
         void update_dim(){
             this->_dim[0] = this->_indices->size();
@@ -1035,8 +1038,8 @@ namespace gravity {
             this->_range->second = _ub->_range->second;
         }
         
-       // template<typename T=type, typename=enable_if<is_arithmetic<T>::value>>
-        void copy_bounds(const shared_ptr<param_>& p){
+//        template<typename T=type, typename=enable_if<is_arithmetic<T>::value>>
+        void copy_bounds_(const shared_ptr<param_>& p){
             auto dim = p->get_dim();
             if(dim!=this->get_dim()){
                 throw invalid_argument("calling function copy_bounds with non-matching dimensions");
@@ -1055,6 +1058,26 @@ namespace gravity {
             this->_range->second = _ub->_range->second;
         }
         
+        void copy_bounds(const shared_ptr<param_>& p){
+            auto dim = p->get_dim();
+            if(dim!=this->get_dim()){
+                throw invalid_argument("calling function copy_bounds with non-matching dimensions");
+            }
+            auto lb_param = static_pointer_cast<param<type>>(_lb->_params->begin()->second.first);
+            auto ub_param = static_pointer_cast<param<type>>(_ub->_params->begin()->second.first);
+            for (size_t i = 0; i < dim; i++) {
+                _lb->_val->at(i) = p->get_double_lb(i);
+                _lb->update_range(_lb->_val->at(i));
+                _ub->_val->at(i) = p->get_double_ub(i);
+                _ub->update_range(_ub->_val->at(i));
+                lb_param->_val->at(i) = p->get_double_lb(i);
+                lb_param->update_range(_lb->_val->at(i));
+                ub_param->_val->at(i) = p->get_double_ub(i);
+                lb_param->update_range(_ub->_val->at(i));
+            }
+            this->_range->first = _lb->_range->first;
+            this->_range->second = _ub->_range->second;
+        }
         
         template<typename T=type, typename T2, typename enable_if<is_convertible<T2, T>::value>::type* = nullptr>
         void copy_bounds(const var<T2>& p){

@@ -209,7 +209,7 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
             if(it==_vars_name.end()){
                 /* create the lifted variable with proper lower and upper bounds */
                 var<Cpx> vlift(name, lb, ub);
-//                vlift._lift = true;
+                vlift._lift = true;
                 add(vlift.in(unique_ids));
                 lt._p = make_shared<var<Cpx>>(vlift.in(ids));
             }
@@ -1285,7 +1285,7 @@ double Model<type>::populate_final_interval_gap(const shared_ptr<Model<type>>& o
             var_key=vname+"|"+ key;
             interval_new[var_key]=v.get_ub(key)-v.get_lb(key);
             sum+=((interval_original.at(var_key)-interval_new.at(var_key))/(interval_original.at(var_key)+zero_tol)*100.0);
-            if( in_orig_model)
+            if( false &&  in_orig_model)
             {
                 var_ub.uneval();
                 if((var_ub.eval(key)-v.get_lb(key)) < - 1e-6 || (var_ub.eval(key)-v.get_ub(key))>1e-6){
@@ -1315,7 +1315,8 @@ void Model<type>::create_batch_models(shared_ptr<Model<type>>& obbt_model, vecto
             }
         batch_models.push_back(modelk);
         batch_models.at(i)->set_name(to_string(i));
-//        batch_models.at(i)->initialize_midpoint();
+//        batch_models.at(i)->print();
+//        batch_models.at(i)->print_solution();
     }
 }
 template <typename type>

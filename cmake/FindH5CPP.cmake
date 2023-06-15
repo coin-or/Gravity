@@ -14,13 +14,6 @@ find_path(H5CPP_INCLUDE_DIR
 )
 
 
-find_path(HDF5_INCLUDE_DIR
-        NAMES hdf5.h
-        HINTS /usr/local/include
-        HINTS ${HDF5_ROOT_DIR}/src/
-        HINTS ${PROJECT_SOURCE_DIR}/thirdparty/HDF5/src
-)
-include_directories(${HDF5_INCLUDE_DIR})
 if(WIN32)
 
 
@@ -32,15 +25,7 @@ find_library(H5CPP_LIBRARY
 	HINTS ${H5CPP_ROOT_DIR}/build/lib
 )
 
-find_library(HDF5_LIBRARY
-        libhdf5.lib
-        HINTS /usr/local/lib
-        HINTS ${PROJECT_SOURCE_DIR}/thirdparty/H5CPP/lib
-        HINTS ${H5CPP_ROOT_DIR}/lib
-        HINTS ${H5CPP_ROOT_DIR}/build/lib
-)
 
-find_package_handle_standard_args(H5CPP DEFAULT_MSG H5CPP_LIBRARY H5CPP_INCLUDE_DIR)
 elseif(APPLE)
 
 find_library(H5CPP_LIBRARY 
@@ -52,15 +37,7 @@ find_library(H5CPP_LIBRARY
 	HINTS /usr/local/lib
 )
 
-find_library(HDF5_LIBRARY
-        libhdf5.dylib
-        HINTS /usr/local/lib
-        HINTS ${PROJECT_SOURCE_DIR}/thirdparty/H5CPP/lib
-        HINTS ${H5CPP_ROOT_DIR}/lib
-        HINTS ${H5CPP_ROOT_DIR}/build/lib
-)
 
-find_package_handle_standard_args(H5CPP DEFAULT_MSG H5CPP_LIBRARY HDF5_LIBRARY H5CPP_INCLUDE_DIR)
 elseif(UNIX)
 
 find_library(H5CPP_LIBRARY 
@@ -72,26 +49,15 @@ find_library(H5CPP_LIBRARY
 	HINTS /usr/local/lib
 )
 
-find_library(HDF5_LIBRARY
-        libhdf5.so
-        HINTS ${H5CPP_ROOT_DIR}/lib
-        HINTS ${H5CPP_ROOT_DIR}/build/lib
-        HINTS ${PROJECT_SOURCE_DIR}/thirdparty/H5CPP/lib
-        HINTS ${PROJECT_SOURCE_DIR}/third_party/H5CPP/build/lib
-        HINTS /usr/local/lib
-)
 
-find_package_handle_standard_args(H5CPP DEFAULT_MSG H5CPP_LIBRARY HDF5_LIBRARY H5CPP_INCLUDE_DIR)
 endif(WIN32)
 
+find_package_handle_standard_args(H5CPP DEFAULT_MSG H5CPP_LIBRARY H5CPP_INCLUDE_DIR)
 if(H5CPP_FOUND)
 	message("—- Found H5CPP include dir under ${H5CPP_INCLUDE_DIR}")
-	message("—- Found HDF5 include dir under ${HDF5_INCLUDE_DIR}")
 	message("—- Found H5CPP lib at ${H5CPP_LIBRARY}")
-	message("—- Found HDF5 lib at ${HDF5_LIBRARY}")
     set(H5CPP_INCLUDE_DIRS ${H5CPP_INCLUDE_DIR})
-#    set(H5CPP_INCLUDE_DIRS ${H5CPP_INCLUDE_DIR} ${HDF5_INCLUDE_DIR})
-    set(H5CPP_LIBRARIES ${H5CPP_LIBRARY} ${HDF5_LIBRARY})
+    set(H5CPP_LIBRARIES ${H5CPP_LIBRARY})
 else (H5CPP_FOUND)
  message("Cannot find H5CPP, will try pulling it from github.")
 endif(H5CPP_FOUND)

@@ -70,7 +70,7 @@ public:
     }
     
     /* Connects the current arc to its source and destination, adding itself to the list of branches in these nodes */
-    void connect();
+    void connect(bool update_filling = false);
     
     void print();
     

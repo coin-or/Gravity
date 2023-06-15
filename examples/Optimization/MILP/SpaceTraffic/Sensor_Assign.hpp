@@ -18,6 +18,7 @@ public:
     Model<> model;
     indices sensors;
     indices objects;
+    indices agents;
     int M;
     int N;
     int K = 5;
@@ -32,21 +33,23 @@ public:
     indices oths_rplc;
     indices own_oths_rplc1;
     indices own_oths_rplc2;
-    vector<int> owner;
+    vector<int> owner;/*< vector storing ownership of each sensor */
+    vector<double> budget;
+    map<string,int> owner_map;/*< map storing ownership of each sensor */
     
 public:
     myModel(){ };
     vector<param<double>> readData(int argc, const char * argv[], int n1, int n2);
+    vector<param<double>> readHD5(const string& file_name);
     void InitBilevel(param<double> &w0, param<double> &w_own, param<double> &w_bought, double eps);
-    void mSolve();
+    void mSolve(bool run_mip=false);
     void saveSolStats();
     void GreedyStart(const param<double> &w0, const param<double> &w_own, const param<double> &w_bought);
     void writeGreedySol();
     void assignLeader(string &idx, param<double> &wt0, param<double> &wt_own, param<double> &wt_bought);
     void assignOwn(string &idx, param<double> &wt0, param<double> &wt_own, param<double> &wt_bought);
     void assignBought(string &idx, param<double> &wt0, param<double> &wt_own, param<double> &wt_bought);
-    double parSum(param<double> w);
-    string findMax(const param<double> &w);
+    double parSum(const param<double>& w);
     int nthOccurrence(const std::string& str, const std::string& findMe, int nth);
     ~myModel(){ };
 };

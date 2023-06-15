@@ -217,7 +217,9 @@ int run_parallel_new(const std::vector<std::string> objective_models, std::vecto
         models[s]->reset_constrs();
         models[s]->reset();
         models[s]->_status=0;
-        //models[s]->print();
+//        models[s]->print();
+//        models[s]->print_solution();
+//        models[s]->print_constraints_stats(1e-6);
         DebugOff("to create solver"<<endl);
         auto solverk = make_shared<solver<double>>(models[s], stype);
         if(stype==gurobi && initialize_primal){

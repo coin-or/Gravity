@@ -1,4 +1,4 @@
-/
+//
 //  main.cpp
 //  bilevel_sensor
 //
@@ -807,7 +807,11 @@ void myModel::GreedyStart(const param<double> &w0, const param<double> &w_own, c
     DebugOff("parSum(wt_own) = " << psum_wt_own << endl);
     DebugOff("parSum(wt_bought) = " << psum_wt_bought << endl);
     DebugOn("----------------------------------------" << endl);
+<<<<<<< HEAD
     DebugOn("Computing fair prices..." << endl);
+=======
+    DebugOn("Computing fair prices..." << endl); 
+>>>>>>> 5abd232d63163375ee7b3f2f57a4be8f2c5983ae
     /*set prices*/
     double y1 = 0; //Seller_lb1
     double y2 = 0; //Seller_lb2
