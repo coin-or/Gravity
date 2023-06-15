@@ -18,6 +18,7 @@ using namespace hdf5;
 
 int main(int argc, const char * argv[]) {
     bool run_MIP = false;
+    int tmp_check = 5;
     string fname = string(prj_dir)+"/data_sets/sensor/test.h5";
     if(argc<2){
         DebugOn("Please enter the input file path as first argument, using the default file test.h5 found under Gravity/datasets/sensor\n");
