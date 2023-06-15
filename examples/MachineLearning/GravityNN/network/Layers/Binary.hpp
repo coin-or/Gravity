@@ -4,14 +4,14 @@
 
 using namespace gravity;
 
-std::tuple<std::vector<bool>, std::vector<size_t>, std::vector<size_t>> get_matching_dims(const Tensor* A, const Tensor* B) {
+std::vector<bool> get_matching_dims(const Tensor* A, const Tensor* B) {
     auto a_dims = A->shape;
     auto b_dims = B->shape;
     // If one is smaller than the other, prepend with 1s
     if (a_dims.size() < b_dims.size()) {
-        a_dims.insert(a_dims.begin(), b_dims.size() - a_dims.size(), 1);
+        a_dims.insert(a_dims.begin(), b_dims.size() - a_dims.size(), std::numeric_limits<size_t>::max());
     } else if (b_dims.size() < a_dims.size()) {
-        b_dims.insert(b_dims.begin(), a_dims.size() - b_dims.size(), 1);
+        b_dims.insert(b_dims.begin(), a_dims.size() - b_dims.size(), std::numeric_limits<size_t>::max());
     }
     // Check that the dimensions match
     if (a_dims.size() != b_dims.size()) {
@@ -23,7 +23,7 @@ std::tuple<std::vector<bool>, std::vector<size_t>, std::vector<size_t>> get_matc
         matching_dims.push_back(a_dims.at(i) == b_dims.at(i));
     }
 
-    return {matching_dims, a_dims, b_dims};
+    return matching_dims;
 }
 
 class UnaryBase: public Layer {
@@ -44,10 +44,11 @@ public:
             std::swap(this->A, this->B);
         }
 
-        auto shapes = get_matching_dims(this->A, this->B);
-        this->broadcast_dims = std::get<0>(shapes);
-        this->a_dims = std::get<1>(shapes);
-        this->b_dims = std::get<2>(shapes);
+        this->broadcast_dims = get_matching_dims(this->A, this->B);
+
+        if (this->A->ndims < this->B->ndims) {
+            throw std::runtime_error("UnaryOp: A has less dimensions than B.");
+        }
     }
 
     void add_parameters(gravity::param<>& w) const override {
@@ -60,58 +61,30 @@ public:
         return {{"hOut", "pOut", "A", "B", "pA"}, {"UnaryVar"}};
     }
 
-    // Returns A index and B index taking into account broadcasting
-    std::pair<size_t, size_t> broadcast_index(size_t j) {
-        // If A has fewer elements than B, then we need to broadcast A
-        size_t A_ind = j;
-        size_t B_ind = j;
-        std::vector<size_t> A_ind_unflat, B_ind_unflat;
-        if (this->A->numel < this->B->numel) {
-            B_ind_unflat = Tensor::unflatten_index(j, this->b_dims);
-            A_ind_unflat = Tensor::unflatten_index(j, this->b_dims);
-            for (auto i = 0; i < this->broadcast_dims.size(); i++) {
-                if (this->broadcast_dims.at(i) == false) {
-                    A_ind_unflat.at(i) = 0;
-                }
-            }
-        } else {
-            B_ind_unflat = Tensor::unflatten_index(j, this->a_dims);
-            A_ind_unflat = Tensor::unflatten_index(j, this->a_dims);
-            for (auto i = 0; i < this->broadcast_dims.size(); i++) {
-                if (this->broadcast_dims.at(i) == false) {
-                    B_ind_unflat.at(i) = 0;
-                }
-            }
-        }
-
-        A_ind = Tensor::flatten_index(A_ind_unflat, this->a_dims);
-        B_ind = Tensor::flatten_index(B_ind_unflat, this->b_dims);
-
-        return {A_ind, B_ind};
-    }
-
     void index_constraint(IndexSet& inds) override {
-        for(size_t j = 0; j < this->Y->numel;j++){
-            auto broad_inds = broadcast_index(j);
-            auto A_ind = broad_inds.first;
-            auto B_ind = broad_inds.second;
+        for (auto aind: ShapeIter(this->A->shape)) {
+            std::vector<size_t> bind;
+            for (size_t i = 0; i < aind.size(); i++) {
+                if (this->broadcast_dims.at(i) == true) {
+                    bind.push_back(aind.at(i));
+                }
+            }
+
             if (this->B->is_initializer) {
-                inds["ConstrB"].add(this->Y->strkey(j));
-                inds["pA"].add_ref(this->A->strkey(A_ind));
-                inds["UnaryVar"].add_ref(this->B->strkey(B_ind));
-                inds["pOut"].add_ref(this->Y->strkey(j));
+                inds["ConstrB"].add(this->Y->strkey(aind));
+                inds["pA"].add_ref(this->A->strkey(aind));
+                inds["UnaryVar"].add_ref(this->B->strkey(bind));
+                inds["pOut"].add_ref(this->Y->strkey(aind));
             } else {
-                inds["Constr"].add(this->Y->strkey(j));
-                inds["A"].add_ref(this->A->strkey(A_ind));
-                inds["B"].add_ref(this->B->strkey(B_ind));
-                inds["hOut"].add_ref(this->Y->strkey(j));
+                inds["Constr"].add(this->Y->strkey(aind));
+                inds["A"].add_ref(this->A->strkey(aind));
+                inds["B"].add_ref(this->B->strkey(bind));
+                inds["hOut"].add_ref(this->Y->strkey(aind));
             }
         }
     }
 
     Tensor *A, *B, *Y; // Input and output
-    std::vector<size_t> a_dims;
-    std::vector<size_t> b_dims;
     std::vector<bool> broadcast_dims;
 };
 

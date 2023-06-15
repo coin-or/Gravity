@@ -136,6 +136,9 @@ public:
         if (this->A->is_initializer && this->B->is_initializer) {
             throw std::runtime_error("MatMul: A and B are both initializers. Why wasn't this optimized out?");
         }
+        if (!this->A->is_initializer && !this->B->is_initializer) {
+            throw std::runtime_error("MatMul: A and B are both hidden states. Not supported yet.");
+        }
     }
 
     std::vector<std::vector<std::string>> get_indices() const override {

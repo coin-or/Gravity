@@ -61,17 +61,15 @@ public:
     void index_constraint(IndexSet& inds) override {
         size_t cur_axis_idx = 0;
         for (auto out: this->outputs) {
-            for (size_t out_idx = 0; out_idx < out->numel; out_idx++) {
-                auto inp_vec_idx = out->unflatten_index(out_idx);
-                inp_vec_idx[this->axis] += cur_axis_idx;
-                auto inp_idx = this->X->flatten_index(inp_vec_idx);
+            for (auto y_ind: ShapeIter(out->shape)) {
+                auto x_ind = y_ind;
+                x_ind.at(this->axis) += cur_axis_idx;
 
-                inds["Constr"].add(out->strkey(out_idx));
-                inds["In"].add_ref(this->X->strkey(inp_idx));
-                inds["Out"].add_ref(out->strkey(out_idx));
+                inds["Constr"].add(out->strkey(y_ind));
+                inds["In"].add_ref(this->X->strkey(x_ind));
+                inds["Out"].add_ref(out->strkey(y_ind));
             }
-
-            cur_axis_idx += out->shape[this->axis];
+            cur_axis_idx += out->shape.at(this->axis);
         }
     }
 
@@ -157,8 +155,8 @@ public:
     }
 
     void index_constraint(IndexSet& inds) override {
-        for (auto yindex: ShapeIter(this->Y->shape)) {
-            auto xindex = apply_permutation(yindex, this->perm);
+        for (auto xindex: ShapeIter(this->X->shape)) {
+            auto yindex = apply_permutation(xindex, this->perm);
 
             inds["Constr"].add(this->Y->strkey(yindex));
             inds["In"].add_ref(this->X->strkey(xindex));
