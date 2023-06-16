@@ -69,6 +69,9 @@ public:
                     bind.push_back(aind.at(i));
                 }
             }
+            if (bind.size() == 0) {
+                bind.push_back(0);
+            }
 
             if (this->B->is_initializer) {
                 inds["ConstrB"].add(this->Y->strkey(aind));

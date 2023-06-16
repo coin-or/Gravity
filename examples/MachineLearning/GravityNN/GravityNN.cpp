@@ -18,7 +18,7 @@ int main(int argc, char * argv[]){
     }
 
     // Empty string means we build the entire network, otherwise we build up to the specified node
-    std::string final_node = "MatMul_1";
+    std::string final_node = "Softmax_0";
     NeuralNet nn(fname, final_node);
     Model<>& NN = nn.build_model(idx);
 
@@ -38,12 +38,9 @@ int main(int argc, char * argv[]){
     auto grb_mod = grb_prog->grb_mod;
     grb_mod->set(GRB_IntParam_Threads, get_num_threads() / 2);
     grb_mod->set(GRB_IntParam_NonConvex,2);
-    grb_mod->set(GRB_IntParam_CutPasses, 5);
-    grb_mod->set(GRB_DoubleParam_Heuristics, 0);
-    grb_mod->set(GRB_IntParam_VarBranch, 0);
     // grb_mod->set(GRB_IntParam_MIPFocus,3);
     // grb_mod->set(GRB_DoubleParam_BestBdStop, -1e-4);
-    // grb_mod->set(GRB_DoubleParam_BestObjStop, 1e-4);
+    grb_mod->set(GRB_DoubleParam_BestObjStop, -100);
 
     S.run();
 
