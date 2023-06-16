@@ -68,13 +68,18 @@ std::vector<T> apply_permutation(const std::vector<T>& v, const std::vector<T>& 
 
 /*
     * Extract a subgraph from an ONNX graph.
-    * The subgraph is defined by the path from the start_node to the final_node.
+    * BFS from the final node to a start node for the shortest path between these nodes, including immediate parents of the intermediate and final nodes.
     * If start_node and final_node is empty, return all layers.
 */
 std::set<std::string> subgraph_extraction(onnx::GraphProto& graph, std::string start_node, std::string final_node) {
     std::set<std::string> all_layers;
     for (auto& node: graph.node()) {
         all_layers.insert(node.name());
+    }
+    
+    // If start_node and final_node is empty, return all layers
+    if (start_node.empty() && final_node.empty()) {
+        return all_layers;
     }
 
     // If start_node is empty, set it to the first node in the graph
@@ -97,6 +102,8 @@ std::set<std::string> subgraph_extraction(onnx::GraphProto& graph, std::string s
 
     std::map<std::string, std::string> output_to_layer;
     std::map<std::string, int> layer_to_index;
+    std::map<std::string, std::string> parent_node;
+    std::map<std::string, std::set<std::string>> node_to_parents;
 
     for (auto i = 0; i < graph.node_size(); ++i) {
         auto node = graph.node(i);
@@ -108,17 +115,18 @@ std::set<std::string> subgraph_extraction(onnx::GraphProto& graph, std::string s
 
     std::queue<std::string> queue;
     queue.push(final_node);
-    std::set<std::string> subgraph;
+
     bool startNodeReached = false;
 
     while (!queue.empty()) {
         std::string node = queue.front();
         queue.pop();
-        subgraph.insert(node);
 
         auto layer = graph.node(layer_to_index[node]);
         for (const auto& input : layer.input()) {
             if (output_to_layer.find(input) != output_to_layer.end()) {
+                parent_node[output_to_layer[input]] = node;
+                node_to_parents[node].insert(output_to_layer[input]);
                 queue.push(output_to_layer[input]);
             }
         }
@@ -135,6 +143,19 @@ std::set<std::string> subgraph_extraction(onnx::GraphProto& graph, std::string s
         throw std::runtime_error("No path from start node " + start_node + " to final node " + final_node);
     }
 
+    // If start_node was reached, construct the shortest path
+    std::vector<std::string> path;
+    for(std::string at = start_node; at != final_node; at = parent_node[at]) {
+        path.push_back(at);
+        if (at != start_node) {
+            path.insert(path.end(), node_to_parents[at].begin(), node_to_parents[at].end());
+        }
+    }
+    path.push_back(final_node);
+    path.insert(path.end(), node_to_parents[final_node].begin(), node_to_parents[final_node].end());
+    
+    std::set<std::string> subgraph = std::set<std::string>(path.begin(), path.end());
+    
     return subgraph;
 }
 
