@@ -23,7 +23,6 @@ typedef enum {
     _batchnorm,
     _softmax,
     _reduce_sum,
-    _reduce_mean,
     _concat,
 } OType; /* Operator Type */
 typedef enum { LOWER, UPPER} Side;
