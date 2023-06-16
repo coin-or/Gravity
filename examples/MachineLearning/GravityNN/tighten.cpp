@@ -8,6 +8,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+// #include <utils/bound_file_reader.hpp>
 
 using namespace gravity;
 
@@ -49,7 +50,7 @@ float bound_neuron(std::string fname, std::string start_node, Bound neuron, cons
     // grb_mod->set(GRB_DoubleParam_BestObjStop, 1e-4);
 
     // int retval = S.run(1e-4, 5.0);
-    int retval = S.run(1e-6, 60.0);
+    int retval = S.run(1e-6, 120.0);
     if (retval == -1) {
         // throw std::runtime_error("Infeasible");
         return mult * std::numeric_limits<float>::max();
@@ -68,6 +69,7 @@ int main(int argc, char * argv[]) {
     }
 
     NeuralNet nn(fname);
+//     NeuralNet nn(fname, "Add_5");
     std::vector<Layer*> layers_to_optimize;
 
     for (auto i = 1; i < nn.layers.size() - 1; i++) {
@@ -81,11 +83,20 @@ int main(int argc, char * argv[]) {
         layers_to_optimize.push_back(nn.layers[i]);
     }
 
+    std::cout << "Optimizing layers:" << std::endl;
+    for (auto l: layers_to_optimize) {
+        std::cout << l->name << std::endl;
+    }
+
     std::vector<Bound> global_bounds;
-    int rolling_horizon = 2;
+
+    int rolling_horizon = layers_to_optimize.size();
     if (rolling_horizon > layers_to_optimize.size()){
         rolling_horizon = layers_to_optimize.size();
     }
+
+    // auto precomp = readBoundsFromFile("/vast/home/haydnj/Gravity/examples/MachineLearning/GravityNN/bounds.txt")
+
     for (auto lidx = 0; lidx < layers_to_optimize.size(); lidx++) {
         auto l = layers_to_optimize[lidx];
         std::cout << "################################################" << std::endl;
@@ -117,11 +128,13 @@ int main(int argc, char * argv[]) {
         close(new_);
 
         auto start_time = std::chrono::high_resolution_clock::now();
+
         std::string start_node = "";
         if (lidx > rolling_horizon - 1) {
             start_node = layers_to_optimize[lidx - (rolling_horizon - 1)]->name;
         }
-        #pragma omp parallel for
+        #pragma omp parallel for num_threads(get_num_threads() / 2)
+
         for (auto& neuron: local_bounds) {
             auto new_bound = bound_neuron(fname, start_node, neuron, global_bounds);
             auto prev_bound = neuron.value;

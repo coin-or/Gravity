@@ -21,7 +21,17 @@ int main(int argc, char * argv[]){
     std::string start_node = "";
     std::string final_node = "";
     NeuralNet nn(fname, start_node, final_node);
+
     Model<>& NN = nn.build_model(idx);
+
+    if (idx < 0) {
+        auto tensor = nn.layers.back()->outputs.at(0);
+        gravity::func<> expr = 0.0;
+        for (auto index: ShapeIter(tensor->shape)) {
+            expr += nn.x(tensor->strkey(index));
+        }
+        NN.max(expr);
+    }
 
     NN.write();
 
@@ -32,13 +42,12 @@ int main(int argc, char * argv[]){
     grb_mod->set(GRB_IntParam_NonConvex,2);
     // grb_mod->set(GRB_IntParam_MIPFocus,3);
     // grb_mod->set(GRB_DoubleParam_BestBdStop, -1e-4);
-    // grb_mod->set(GRB_DoubleParam_BestObjStop, 1e-4);
+    grb_mod->set(GRB_DoubleParam_BestObjStop, -100);
 
     S.run();
 
-    // NN.print_solution();
-
     auto sol = std::vector<double>();
+    NN.print_solution();
     NN.get_solution(sol);
     sol.resize(nn.input_numel);
 

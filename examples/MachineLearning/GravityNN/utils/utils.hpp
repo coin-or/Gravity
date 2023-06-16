@@ -31,6 +31,15 @@ std::string vec_to_index(const std::vector<T>& v) {
 }
 
 template <typename T>
+std::vector<T> concat(std::vector<T> a, std::vector<T> b) {
+    std::vector<T> out;
+    out.reserve(a.size() + b.size());
+    out.insert(out.end(), a.begin(), a.end());
+    out.insert(out.end(), b.begin(), b.end());
+    return out;
+}
+
+template <typename T>
 T vecprod (const std::vector<T>& v) {
     return std::accumulate(v.begin(), v.end(), 1, std::multiplies<T>());
 }
@@ -58,12 +67,12 @@ onnx::GraphProto _open_file(const std::string& onnx_path) {
 
 template<typename T>
 std::vector<T> apply_permutation(const std::vector<T>& v, const std::vector<T>& indices) {
-    std::vector<T> v2;
-    v2.reserve(v.size());
-    for (size_t i = 0; i < v.size(); i++) {
-        v2.push_back(v[indices[i]]);
+    std::vector<T> perm;
+    for (auto i : indices) {
+        perm.push_back(v.at(i));
     }
-    return v2;
+
+    return perm;
 }
 
 /*
@@ -78,6 +87,10 @@ std::set<std::string> subgraph_extraction(onnx::GraphProto& graph, std::string s
     }
     
     // If start_node and final_node is empty, return all layers
+    if (start_node.empty() && final_node.empty()) {
+        return all_layers;
+    }
+
     if (start_node.empty() && final_node.empty()) {
         return all_layers;
     }
@@ -135,7 +148,7 @@ std::set<std::string> subgraph_extraction(onnx::GraphProto& graph, std::string s
         // Stop extraction at the start node
         if(node == start_node) {
             startNodeReached = true;
-            break;
+            // break;
         }
     }
     
