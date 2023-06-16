@@ -95,12 +95,12 @@ int main(int argc, char * argv[]) {
         }
 
         std::cout << "Number of neurons to optimize: " << local_bounds.size()/2 << std::endl;
-        // int bak, new_;
-        // fflush(stdout);
-        // bak = dup(1);
-        // new_ = open("/dev/null", O_WRONLY);
-        // dup2(new_, 1);
-        // close(new_);
+        int bak, new_;
+        fflush(stdout);
+        bak = dup(1);
+        new_ = open("/dev/null", O_WRONLY);
+        dup2(new_, 1);
+        close(new_);
 
         auto start_time = std::chrono::high_resolution_clock::now();
         // #pragma omp parallel for
@@ -114,9 +114,9 @@ int main(int argc, char * argv[]) {
             }
         }
         auto end_time = std::chrono::high_resolution_clock::now();
-        // fflush(stdout);
-        // dup2(bak, 1);
-        // close(bak);
+        fflush(stdout);
+        dup2(bak, 1);
+        close(bak);
 
         // print out the final bounds
         for (int i = 0; i < local_bounds.size()-1; i+=2) {

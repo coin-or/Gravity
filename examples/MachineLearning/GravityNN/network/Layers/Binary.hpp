@@ -61,7 +61,7 @@ public:
         return {{"hOut", "pOut", "A", "B", "pA"}, {"UnaryVar"}};
     }
 
-    void index_constraint(IndexSet& inds) const override {
+    void index_constraint(IndexSet& inds) override {
         for (auto aind: ShapeIter(this->A->shape)) {
             std::vector<size_t> bind;
             for (size_t i = 0; i < aind.size(); i++) {
@@ -92,7 +92,7 @@ class Add: public UnaryBase {
 public:
     Add(const onnx::NodeProto& node, Tensors& tensors): UnaryBase(node, tensors, _add) {}
 
-    void add_constraints(gravity::Model<>& NN, IndexSet& inds, gravity::param<>& w, gravity::var<>& x, gravity::var<int>& y) const override {
+    void add_constraints(gravity::Model<>& NN, IndexSet& inds, gravity::param<>& w, gravity::var<>& x, gravity::var<int>& y) override {
         // Constraint for addition of hidden states
         Constraint<> Add_("Add");
         Add_ = x.in(inds["hOut"]) - (x.in(inds["A"]) + x.in(inds["B"]));
@@ -109,7 +109,7 @@ class Sub: public UnaryBase {
 public:
     Sub(const onnx::NodeProto& node, Tensors& tensors): UnaryBase(node, tensors, _sub) {}
 
-    void add_constraints(gravity::Model<>& NN, IndexSet& inds, gravity::param<>& w, gravity::var<>& x, gravity::var<int>& y) const override {
+    void add_constraints(gravity::Model<>& NN, IndexSet& inds, gravity::param<>& w, gravity::var<>& x, gravity::var<int>& y) override {
         // Constraint for addition of hidden states
         Constraint<> Sub_("Sub");
         Sub_ = x.in(inds["hOut"]) - (x.in(inds["A"]) - x.in(inds["B"]));
@@ -126,7 +126,7 @@ class Mul: public UnaryBase {
 public:
     Mul(const onnx::NodeProto& node, Tensors& tensors): UnaryBase(node, tensors, _mul) {}
 
-    void add_constraints(gravity::Model<>& NN, IndexSet& inds, gravity::param<>& w, gravity::var<>& x, gravity::var<int>& y) const override {
+    void add_constraints(gravity::Model<>& NN, IndexSet& inds, gravity::param<>& w, gravity::var<>& x, gravity::var<int>& y) override {
         // Constraint for mul of hidden states
         Constraint<> Mul_("Mul");
         Mul_ = x.in(inds["hOut"]) - (x.in(inds["A"]) * x.in(inds["B"]));
@@ -143,7 +143,7 @@ class Div: public UnaryBase {
 public:
     Div(const onnx::NodeProto& node, Tensors& tensors): UnaryBase(node, tensors, _div) {}
 
-    void add_constraints(gravity::Model<>& NN, IndexSet& inds, gravity::param<>& w, gravity::var<>& x, gravity::var<int>& y) const override {
+    void add_constraints(gravity::Model<>& NN, IndexSet& inds, gravity::param<>& w, gravity::var<>& x, gravity::var<int>& y) override {
         // Constraint for division of hidden states
         Constraint<> Div_("Div");
         Div_ = x.in(inds["hOut"])*x.in(inds["B"]) - x.in(inds["A"]);
