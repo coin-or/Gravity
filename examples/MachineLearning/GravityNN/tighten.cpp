@@ -11,8 +11,11 @@
 
 using namespace gravity;
 
-void final_run(const NeuralNet& nn, size_t obj_idx) {
-    Model<> NN = nn.build_model(obj_idx);
+void final_run(std::string fname, const std::vector<Bound>& global_bounds, size_t obj_idx) {
+    NeuralNet nn(fname);
+    nn.set_aux_bounds(global_bounds);
+
+    Model<>& NN = nn.build_model(obj_idx);
 
     solver<> S(NN,gurobi);
     auto grb_prog = (GurobiProgram*)(S._prog.get());
@@ -24,11 +27,16 @@ void final_run(const NeuralNet& nn, size_t obj_idx) {
     int retval = S.run();
 }
 
-float bound_neuron(const NeuralNet& nn, Bound neuron) {
-    Model<> NN = nn.build_model(-1, neuron.layer_name);
+float bound_neuron(std::string fname, Bound neuron, const std::vector<Bound>& global_bounds) {
+    NeuralNet nn(fname, neuron.layer_name);
+    nn.set_aux_bounds(global_bounds);
+
+    // Passing -1 means we will write a custom objective rather
+    // than use one in the model
+    Model<>& NN = nn.build_model(-1);
 
     float mult = (neuron.side == LOWER) ? -1.0 : 1.0;
-    NN.max(NN.get_var<double>("x")(neuron.neuron_name) * mult);
+    NN.max(nn.x(neuron.neuron_name) * mult);
 
     solver<> S(NN,gurobi);
     auto grb_prog = (GurobiProgram*)(S._prog.get());
@@ -60,7 +68,8 @@ int main(int argc, char * argv[]) {
     }
 
     NeuralNet nn(fname);
-    std::vector<std::string> layers_to_optimize;
+    std::vector<Layer*> layers_to_optimize;
+
     for (auto i = 1; i < nn.layers.size() - 1; i++) {
         // if (
             // (nn.layers[i+1]->operator_type != _relu) &&
@@ -69,11 +78,12 @@ int main(int argc, char * argv[]) {
             // continue;
         // }
 
-        layers_to_optimize.push_back(nn.layers.at(i)->name);
+        layers_to_optimize.push_back(nn.layers[i]);
     }
 
+    std::vector<Bound> global_bounds;
     for (auto lidx = 0; lidx < layers_to_optimize.size(); lidx++) {
-        auto l = nn.get_layer(layers_to_optimize[lidx]);
+        auto l = layers_to_optimize[lidx];
         std::cout << "################################################" << std::endl;
         std::cout << "Optimizing layer: " << l->name << std::endl;
         std::cout << "Layer " << lidx+1 << "/" << layers_to_optimize.size() << std::endl;
@@ -103,9 +113,9 @@ int main(int argc, char * argv[]) {
         close(new_);
 
         auto start_time = std::chrono::high_resolution_clock::now();
-        // #pragma omp parallel for
+        #pragma omp parallel for
         for (auto& neuron: local_bounds) {
-            auto new_bound = bound_neuron(nn, neuron);
+            auto new_bound = bound_neuron(fname, neuron, global_bounds);
             auto prev_bound = neuron.value;
             if (neuron.side == LOWER) {
                 neuron.value = std::max(neuron.value, new_bound);
@@ -132,15 +142,14 @@ int main(int argc, char * argv[]) {
         }
         auto time_taken = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
         std::cout << "Time: " << time_taken << "ms" << std::endl;
-
-        nn.set_aux_bounds(local_bounds);
+        global_bounds.insert(global_bounds.end(), local_bounds.begin(), local_bounds.end());
     }
 
     std::cout << "Starting final runs" << std::endl;
 
     for (size_t obj_idx = 0; obj_idx < nn.obj_spec->shape[0]; obj_idx++) {
         std::cout << "########################################" << std::endl;
-        final_run(nn, obj_idx);
+        final_run(fname, global_bounds, obj_idx);
     }
 
     return 0;
