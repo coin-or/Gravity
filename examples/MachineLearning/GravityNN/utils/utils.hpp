@@ -115,6 +115,7 @@ std::set<std::string> subgraph_extraction(onnx::GraphProto& graph, std::string s
 
     std::queue<std::string> queue;
     queue.push(final_node);
+    std::set<std::string> subgraph;
 
     bool startNodeReached = false;
 
@@ -145,16 +146,17 @@ std::set<std::string> subgraph_extraction(onnx::GraphProto& graph, std::string s
 
     // If start_node was reached, construct the shortest path
     std::vector<std::string> path;
-    for(std::string at = start_node; at != final_node; at = parent_node[at]) {
-        path.push_back(at);
-        if (at != start_node) {
-            path.insert(path.end(), node_to_parents[at].begin(), node_to_parents[at].end());
+    for(std::string curr_node = start_node; ; curr_node = parent_node[curr_node]) {
+        path.push_back(curr_node);
+        if (curr_node != start_node) {
+            path.insert(path.end(), node_to_parents[curr_node].begin(), node_to_parents[curr_node].end());
+        }
+        if (curr_node == final_node) {
+            break;
         }
     }
-    path.push_back(final_node);
-    path.insert(path.end(), node_to_parents[final_node].begin(), node_to_parents[final_node].end());
     
-    std::set<std::string> subgraph = std::set<std::string>(path.begin(), path.end());
+    subgraph = std::set<std::string>(path.begin(), path.end());
     
     return subgraph;
 }
