@@ -8,6 +8,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <utils/bound_file_reader.hpp>
 
 using namespace gravity;
 
@@ -49,7 +50,7 @@ float bound_neuron(std::string fname, Bound neuron, const std::vector<Bound>& gl
     // grb_mod->set(GRB_DoubleParam_BestObjStop, 1e-4);
 
     // int retval = S.run(1e-4, 5.0);
-    int retval = S.run(1e-6, 60.0);
+    int retval = S.run(1e-6, 120.0);
     if (retval == -1) {
         // throw std::runtime_error("Infeasible");
         return mult * std::numeric_limits<float>::max();
@@ -67,10 +68,10 @@ int main(int argc, char * argv[]) {
         fname = argv[1];
     }
 
-    NeuralNet nn(fname);
+    NeuralNet nn(fname, "Add_5");
     std::vector<Layer*> layers_to_optimize;
 
-    for (auto i = 1; i < nn.layers.size() - 1; i++) {
+    for (auto i = 1; i < nn.layers.size(); i++) {
         // if (
             // (nn.layers[i+1]->operator_type != _relu) &&
             // (nn.layers[i+1]->operator_type != _clip)
@@ -78,10 +79,21 @@ int main(int argc, char * argv[]) {
             // continue;
         // }
 
+        if (nn.layers[i]->name == "Softmax_0") {
+            continue;
+        }
+
         layers_to_optimize.push_back(nn.layers[i]);
     }
 
+    std::cout << "Optimizing layers:" << std::endl;
+    for (auto l: layers_to_optimize) {
+        std::cout << l->name << std::endl;
+    }
+
     std::vector<Bound> global_bounds;
+    // auto precomp = readBoundsFromFile("/vast/home/haydnj/Gravity/examples/MachineLearning/GravityNN/bounds.txt")
+
     for (auto lidx = 0; lidx < layers_to_optimize.size(); lidx++) {
         auto l = layers_to_optimize[lidx];
         std::cout << "################################################" << std::endl;
@@ -113,7 +125,7 @@ int main(int argc, char * argv[]) {
         close(new_);
 
         auto start_time = std::chrono::high_resolution_clock::now();
-        #pragma omp parallel for
+        #pragma omp parallel for num_threads(get_num_threads() / 2)
         for (auto& neuron: local_bounds) {
             auto new_bound = bound_neuron(fname, neuron, global_bounds);
             auto prev_bound = neuron.value;
@@ -145,12 +157,12 @@ int main(int argc, char * argv[]) {
         global_bounds.insert(global_bounds.end(), local_bounds.begin(), local_bounds.end());
     }
 
-    std::cout << "Starting final runs" << std::endl;
+    // std::cout << "Starting final runs" << std::endl;
 
-    for (size_t obj_idx = 0; obj_idx < nn.obj_spec->shape[0]; obj_idx++) {
-        std::cout << "########################################" << std::endl;
-        final_run(fname, global_bounds, obj_idx);
-    }
+    // for (size_t obj_idx = 0; obj_idx < nn.obj_spec->shape[0]; obj_idx++) {
+        // std::cout << "########################################" << std::endl;
+        // final_run(fname, global_bounds, obj_idx);
+    // }
 
     return 0;
 }

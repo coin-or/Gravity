@@ -139,7 +139,7 @@ std::set<std::string> subgraph_extraction(onnx::GraphProto& graph, std::string s
         // Stop extraction at the start node
         if(node == start_node) {
             startNodeReached = true;
-            break;
+            // break;
         }
     }
     
