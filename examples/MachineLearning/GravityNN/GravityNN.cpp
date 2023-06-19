@@ -42,7 +42,6 @@ int main(int argc, char * argv[]){
     grb_mod->set(GRB_IntParam_NonConvex,2);
     // grb_mod->set(GRB_IntParam_MIPFocus,3);
     // grb_mod->set(GRB_DoubleParam_BestBdStop, -1e-4);
-    grb_mod->set(GRB_DoubleParam_BestObjStop, -100);
 
     S.run();
 

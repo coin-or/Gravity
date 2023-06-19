@@ -361,6 +361,12 @@ include_directories(${PROJECT_SOURCE_DIR}/examples/MachineLearning)
 set(LIBS ${LIBS} ${PROJECT_SOURCE_DIR}/lib ${PROJECT_SOURCE_DIR}/lib/Release ${PROJECT_SOURCE_DIR}/lib/Debug)
 # Compiler options
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -Ofast")
+# ignore -Wunqualified-std-cast-call if compiler is clang 15
+if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+    if (CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL "15.0.0")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unqualified-std-cast-call")
+    endif()
+endif()
 
 # Build options
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/lib)

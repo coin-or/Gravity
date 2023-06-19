@@ -127,17 +127,14 @@ public:
         this->build_indexing();
         this->index_constraints();
 
-        this->x_lb.in(this->indices.hidden_states);
-        this->x_ub.in(this->indices.hidden_states);
-        this->x_lb = std::numeric_limits<double>::lowest();
-        this->x_ub = std::numeric_limits<double>::max();
-
-        this->set_bounds(x_lb, x_ub);
+        this->set_bounds();
 
         this->x.add_bounds(this->x_lb, this->x_ub);
         this->x.in(this->indices.hidden_states);
         this->y.in(this->indices.y_ids);
+
         this->initialize_state(x, y);
+
 
         this->NN.add(this->x);
         this->NN.add(this->y);
@@ -184,32 +181,49 @@ public:
         This includes hidden states, binaries, weight indices, etc.
     */
     void build_indexing() {
-        // Add index sets for each layer
+        std::cout << "##################################" << std::endl;
+        std::cout << "Adding index sets for each layer" << std::endl;
         for (auto l: this->layers) {
-            auto optype = l->operator_type;
             this->indices.add(l->operator_type, l->get_indices());
         }
 
         // First, index all hidden states
+        std::cout << "Indexing hidden layers" << std::endl;
         for (auto l: this->layers) {
+            std::cout << " - " << l->name << std::endl;
             l->index_hidden_states(this->indices.hidden_states, this->indices.y_ids);
         }
 
         // Index parameters
+        std::cout << "Adding parameters" << std::endl;
         for (auto l: this->layers) {
+            std::cout << " - " << l->name << std::endl;
             l->add_parameters(this->indices.w);
         }
     }
 
     // Builds constraints for each layer
     void index_constraints() {
+        std::cout << "##################################" << std::endl;
+        std::cout << "Indexing constraints" << std::endl;
         for (auto l: this->layers) {
+            std::cout << " - " << l->name << std::endl;
             l->index_constraint(this->indices(l->operator_type));
         }
     }
 
-    void set_bounds(gravity::param<>& x_lb, gravity::param<>& x_ub) {
+    void set_bounds() {
+        std::cout << "##################################" << std::endl;
+        std::cout << "Setting bounds" << std::endl;
+
+        this->x_lb.in(this->indices.hidden_states);
+        this->x_ub.in(this->indices.hidden_states);
+
+        this->x_lb = std::numeric_limits<double>::lowest();
+        this->x_ub = std::numeric_limits<double>::max();
+        
         for (auto l: this->layers) {
+            std::cout << " - " << l->name << std::endl;
             l->set_bounds(x_lb, x_ub);
         }
     }
@@ -233,7 +247,10 @@ public:
     }
 
     void initialize_state(gravity::var<>& x, gravity::var<int>& y) {
+        std::cout << "##################################" << std::endl;
+        std::cout << "Initializing state" << std::endl;
         for (auto l: this->layers) {
+            std::cout << " - " << l->name << std::endl;
             for (auto o: l->outputs) {
                 for(auto j = 0; j < o->numel; j++){
                     auto fv = o->forward.at(j);

@@ -89,6 +89,6 @@ public:
     std::vector<Tensor*> outputs;
     std::vector<Tensor*> inputs;
 
-    float range_lower = std::numeric_limits<float>::lowest();
-    float range_upper = std::numeric_limits<float>::max();
+    double range_lower = std::numeric_limits<double>::lowest();
+    double range_upper = std::numeric_limits<double>::max();
 };

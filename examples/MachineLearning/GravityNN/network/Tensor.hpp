@@ -21,9 +21,14 @@ public:
         this->_set_shape(std::vector<size_t>(tensor.dims().begin(), tensor.dims().end()));
 
         switch (tensor.data_type()) {
-            case onnx::TensorProto::FLOAT:
-                this->data = read_data<float>(tensor, tensor.float_data());
+            case onnx::TensorProto::FLOAT: {
+                auto data = read_data<float>(tensor, tensor.float_data());
+                this->data.clear();
+                for (auto d : data) {
+                    this->data.push_back(d);
+                }
                 break;
+            }
             case onnx::TensorProto::INT64:
                 this->int_data = read_data<int64_t>(tensor, tensor.int64_data());
                 break;
@@ -71,7 +76,7 @@ public:
         return newt;
     }
 
-    float operator()(size_t i) const {
+    double operator()(size_t i) const {
         if (!this->is_initializer) {
             throw std::runtime_error("Reading from non-initializer tensor. Perhaps you're assuming this tensor is a weight when it's actually an output of a previous layer?");
         }
@@ -93,7 +98,7 @@ public:
         this->added_to_vals = true;
 
         for (size_t i = 0; i < this->numel; i++) {
-            p.add_val(this->strkey(i), this->data[i]);
+            p.add_val(this->strkey(i), this->data.at(i));
         }
     }
 
@@ -182,9 +187,9 @@ public:
         this->numel = vecprod(this->shape);
         this->ndims = std::max(this->shape.size(), (size_t)1);
 
-        this->lb = std::vector<float>(this->numel, std::numeric_limits<float>::lowest());
-        this->ub = std::vector<float>(this->numel, std::numeric_limits<float>::max());
-        this->forward = std::vector<float>(this->numel, 0);
+        this->lb = std::vector<double>(this->numel, std::numeric_limits<double>::lowest());
+        this->ub = std::vector<double>(this->numel, std::numeric_limits<double>::max());
+        this->forward = std::vector<double>(this->numel, 0);
     }
 
     void _boundcheck(size_t flat_idx) const {
@@ -193,12 +198,12 @@ public:
         }
     }
 
-    void _set_data(const std::vector<float>& data) {
+    void _set_data(const std::vector<double>& data) {
         this->is_initializer = true;
         this->data = data;
     }
 
-    std::vector<float> get_data() {
+    std::vector<double> get_data() {
         return this->data;
     }
 
@@ -210,12 +215,12 @@ public:
     size_t ndims;
 
     // LB/UB/Forward
-    std::vector<float> lb;
-    std::vector<float> ub;
-    std::vector<float> forward;
+    std::vector<double> lb;
+    std::vector<double> ub;
+    std::vector<double> forward;
 
 private:
-    std::vector<float> data;
+    std::vector<double> data;
     std::vector<int64_t> int_data;
     bool added_to_vals = false;
 };

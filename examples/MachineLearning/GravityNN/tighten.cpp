@@ -28,7 +28,7 @@ void final_run(std::string fname, const std::vector<Bound>& global_bounds, size_
     int retval = S.run();
 }
 
-float bound_neuron(std::string fname, std::string start_node, Bound neuron, const std::vector<Bound>& global_bounds) {
+double bound_neuron(std::string fname, std::string start_node, Bound neuron, const std::vector<Bound>& global_bounds) {
     NeuralNet nn(fname, start_node, neuron.layer_name);
     nn.set_aux_bounds(global_bounds);
 
@@ -36,7 +36,7 @@ float bound_neuron(std::string fname, std::string start_node, Bound neuron, cons
     // than use one in the model
     Model<>& NN = nn.build_model(-1);
 
-    float mult = (neuron.side == LOWER) ? -1.0 : 1.0;
+    double mult = (neuron.side == LOWER) ? -1.0 : 1.0;
     NN.max(nn.x(neuron.neuron_name) * mult);
 
     solver<> S(NN,gurobi);
@@ -53,7 +53,7 @@ float bound_neuron(std::string fname, std::string start_node, Bound neuron, cons
     int retval = S.run(1e-6, 120.0);
     if (retval == -1) {
         // throw std::runtime_error("Infeasible");
-        return mult * std::numeric_limits<float>::max();
+        return mult * std::numeric_limits<double>::max();
     }
 
     // Return relative objective value because we're dumping once we hit negative
@@ -105,8 +105,8 @@ int main(int argc, char * argv[]) {
         std::vector<Bound> local_bounds;
         for (auto o: l->outputs) {
             for (auto i = 0; i < o->numel; i++) {
-                float lb  = o->lb.at(i);
-                float ub  = o->ub.at(i);
+                double lb  = o->lb.at(i);
+                double ub  = o->ub.at(i);
                 auto name = o->strkey(i);
 
                 // If both LB and UB are on the same side of 0, we can skip this neuron

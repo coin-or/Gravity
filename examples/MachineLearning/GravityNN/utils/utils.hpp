@@ -186,11 +186,11 @@ size_t get_num_threads() {
     return std::thread::hardware_concurrency();
 }
 
-std::string ftostr(float v) {
-    if (v == std::numeric_limits<float>::lowest()) {
+std::string ftostr(double v) {
+    if (v == std::numeric_limits<double>::lowest()) {
         return "-∞";
     }
-    if (v == std::numeric_limits<float>::max()) {
+    if (v == std::numeric_limits<double>::max()) {
         return "∞";
     }
     return std::to_string(v);

@@ -29,7 +29,7 @@ typedef enum { LOWER, UPPER} Side;
 
 class Bound {
 public:
-    Bound(std::string layer_name, std::string neuron_name, float value, Side side) {
+    Bound(std::string layer_name, std::string neuron_name, double value, Side side) {
         this->layer_name = layer_name;
         this->neuron_name = neuron_name;
         this->value = value;
@@ -39,7 +39,7 @@ public:
 
     std::string layer_name;
     std::string neuron_name;
-    float value;
-    float old_value;
+    double value;
+    double old_value;
     Side side;
 };

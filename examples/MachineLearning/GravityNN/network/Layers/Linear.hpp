@@ -112,8 +112,8 @@ public:
     Tensor *A, *B, *C = nullptr; // Inputs
     Tensor *Y; // Output
 
-    float alpha = 1.0;
-    float beta = 1.0;
+    double alpha = 1.0;
+    double beta = 1.0;
     bool transA = false;
     bool transB = false;
 };
