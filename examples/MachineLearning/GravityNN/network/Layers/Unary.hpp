@@ -98,8 +98,8 @@ public:
     Tensor* X; // Input
     Tensor* Y; // Output
 
-    double min = std::numeric_limits<double>::lowest();
-    double max = std::numeric_limits<double>::max();
+    double min = HMIN;
+    double max = HMAX;
 };
 
 class Relu : public Layer {

@@ -135,7 +135,6 @@ public:
 
         this->initialize_state(x, y);
 
-
         this->NN.add(this->x);
         this->NN.add(this->y);
         this->add_constraints();
@@ -216,16 +215,13 @@ public:
         std::cout << "##################################" << std::endl;
         std::cout << "Setting bounds" << std::endl;
 
-        this->x_lb.in(this->indices.hidden_states);
-        this->x_ub.in(this->indices.hidden_states);
-
-        this->x_lb = std::numeric_limits<double>::lowest();
-        this->x_ub = std::numeric_limits<double>::max();
-        
         for (auto l: this->layers) {
             std::cout << " - " << l->name << std::endl;
             l->set_bounds(x_lb, x_ub);
         }
+
+        this->x_lb.in(this->indices.hidden_states);
+        this->x_ub.in(this->indices.hidden_states);
     }
 
     void set_aux_bounds(const std::vector<Bound>& aux_bounds) {
@@ -280,13 +276,16 @@ public:
     }
 
     void add_constraints() {
+        std::cout << "##################################" << std::endl;
+        std::cout << "Adding constraints" << std::endl;
         // Add constraints. Only add constraints for each operator type once.
         std::set<OType> visited;
         for (auto l: this->layers) {
-            if (visited.find(l->operator_type) != visited.end()) {
+            if (visited.insert(l->operator_type).second == false) {
                 continue;
             }
-            visited.insert(l->operator_type);
+
+            std::cout << " - " << l->name << std::endl;
             l->add_constraints(this->NN, this->indices(l->operator_type), this->indices.w, this->x, this->y);
         }
     }

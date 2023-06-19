@@ -19,7 +19,7 @@ int main(int argc, char * argv[]){
 
     // Empty string means we build the entire network, otherwise we build up to the specified node
     std::string start_node = "";
-    std::string final_node = "";
+    std::string final_node = "Conv_0";
     NeuralNet nn(fname, start_node, final_node);
 
     Model<>& NN = nn.build_model(idx);
@@ -33,7 +33,7 @@ int main(int argc, char * argv[]){
         NN.max(expr);
     }
 
-    NN.write();
+    // NN.write();
 
     solver<> S(NN,gurobi);
     auto grb_prog = (GurobiProgram*)(S._prog.get());

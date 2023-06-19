@@ -19,7 +19,15 @@ public:
             this->inputs.push_back(&tensors.at(input));
         }
         for (const auto& output : node.output()) {
-            this->outputs.push_back(&tensors.at(output));
+            auto& out_ten = tensors.at(output);
+            this->outputs.push_back(&out_ten);
+
+            if (out_ten.lb.size() == 0) {
+                throw std::runtime_error("Output tensor " + out_ten.name + " has no lower bound");
+            }
+            if (out_ten.ub.size() == 0) {
+                throw std::runtime_error("Output tensor " + out_ten.name + " has no upper bound");
+            }
         }
 
         this->name = node.name();
@@ -67,8 +75,8 @@ public:
                     this->range_upper
                 );
 
-                x_lb.set_val(key, lb);
-                x_ub.set_val(key, ub);
+                x_lb.add_val(key, lb);
+                x_ub.add_val(key, ub);
             }
         }
     }
@@ -89,6 +97,6 @@ public:
     std::vector<Tensor*> outputs;
     std::vector<Tensor*> inputs;
 
-    double range_lower = std::numeric_limits<double>::lowest();
-    double range_upper = std::numeric_limits<double>::max();
+    double range_lower = HMIN;
+    double range_upper = HMAX;
 };

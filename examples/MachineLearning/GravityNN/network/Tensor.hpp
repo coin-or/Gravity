@@ -187,8 +187,8 @@ public:
         this->numel = vecprod(this->shape);
         this->ndims = std::max(this->shape.size(), (size_t)1);
 
-        this->lb = std::vector<double>(this->numel, std::numeric_limits<double>::lowest());
-        this->ub = std::vector<double>(this->numel, std::numeric_limits<double>::max());
+        this->lb = std::vector<double>(this->numel, HMIN);
+        this->ub = std::vector<double>(this->numel, HMAX);
         this->forward = std::vector<double>(this->numel, 0);
     }
 

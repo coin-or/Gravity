@@ -6,6 +6,11 @@
 #include <queue>
 #include <thread>
 
+// We are using float limits as we cannot perform
+// arithmetic ops on double limits (see extended_add I believe)
+constexpr double HMAX = std::numeric_limits<float>::max(); // Max value for hidden states
+constexpr double HMIN = std::numeric_limits<float>::lowest(); // Min value for hidden states
+
 template <typename T>
 std::string print_vector(const std::vector<T>& v) {
     std::stringstream ss;
@@ -185,10 +190,10 @@ size_t get_num_threads() {
 }
 
 std::string ftostr(double v) {
-    if (v == std::numeric_limits<double>::lowest()) {
+    if (v == HMIN) {
         return "-∞";
     }
-    if (v == std::numeric_limits<double>::max()) {
+    if (v == HMAX) {
         return "∞";
     }
     return std::to_string(v);

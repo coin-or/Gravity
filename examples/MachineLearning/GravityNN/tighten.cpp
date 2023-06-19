@@ -53,7 +53,7 @@ double bound_neuron(std::string fname, std::string start_node, Bound neuron, con
     int retval = S.run(1e-6, 120.0);
     if (retval == -1) {
         // throw std::runtime_error("Infeasible");
-        return mult * std::numeric_limits<double>::max();
+        return mult * HMAX;
     }
 
     // Return relative objective value because we're dumping once we hit negative

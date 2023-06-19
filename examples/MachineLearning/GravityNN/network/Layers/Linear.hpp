@@ -386,7 +386,7 @@ public:
 
     void add_parameters(gravity::param<>& w) const override {
         this->W->add_params(w);
-        if (this->B) {
+        if (this->B != nullptr) {
             this->B->add_params(w);
         }
     }
