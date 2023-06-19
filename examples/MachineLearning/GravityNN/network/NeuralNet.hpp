@@ -14,9 +14,9 @@ std::set<std::string> noops = {"Flatten", "Reshape", "Squeeze"};
 
 class NeuralNet {
 public:
-    NeuralNet(const std::string& onnx_path, std::string final_node = "") {
+    NeuralNet(const std::string& onnx_path, std::string start_node = "", std::string final_node = "") {
         onnx::GraphProto graph = _open_file(onnx_path);
-        this->layer_names = subgraph_extraction(graph, "", final_node);
+        this->layer_names = subgraph_extraction(graph, start_node, final_node);
 
         if (graph.input_size() > 1) {
             throw std::runtime_error("Network has more than one input. Not supported.");

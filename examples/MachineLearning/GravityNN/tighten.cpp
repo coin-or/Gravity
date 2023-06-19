@@ -8,7 +8,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
-#include <utils/bound_file_reader.hpp>
+// #include <utils/bound_file_reader.hpp>
 
 using namespace gravity;
 
@@ -28,8 +28,8 @@ void final_run(std::string fname, const std::vector<Bound>& global_bounds, size_
     int retval = S.run();
 }
 
-float bound_neuron(std::string fname, Bound neuron, const std::vector<Bound>& global_bounds) {
-    NeuralNet nn(fname, neuron.layer_name);
+float bound_neuron(std::string fname, std::string start_node, Bound neuron, const std::vector<Bound>& global_bounds) {
+    NeuralNet nn(fname, start_node, neuron.layer_name);
     nn.set_aux_bounds(global_bounds);
 
     // Passing -1 means we will write a custom objective rather
@@ -68,18 +68,15 @@ int main(int argc, char * argv[]) {
         fname = argv[1];
     }
 
-    NeuralNet nn(fname, "Add_5");
+    NeuralNet nn(fname);
+//     NeuralNet nn(fname, "Add_5");
     std::vector<Layer*> layers_to_optimize;
 
-    for (auto i = 1; i < nn.layers.size(); i++) {
-        // if (
-            // (nn.layers[i+1]->operator_type != _relu) &&
-            // (nn.layers[i+1]->operator_type != _clip)
-        // ) {
-            // continue;
-        // }
-
-        if (nn.layers[i]->name == "Softmax_0") {
+    for (auto i = 1; i < nn.layers.size() - 1; i++) {
+        if (
+            (nn.layers[i+1]->operator_type != _relu) &&
+            (nn.layers[i+1]->operator_type != _clip)
+        ) {
             continue;
         }
 
@@ -92,6 +89,12 @@ int main(int argc, char * argv[]) {
     }
 
     std::vector<Bound> global_bounds;
+
+    int rolling_horizon = layers_to_optimize.size();
+    if (rolling_horizon > layers_to_optimize.size()){
+        rolling_horizon = layers_to_optimize.size();
+    }
+
     // auto precomp = readBoundsFromFile("/vast/home/haydnj/Gravity/examples/MachineLearning/GravityNN/bounds.txt")
 
     for (auto lidx = 0; lidx < layers_to_optimize.size(); lidx++) {
@@ -125,9 +128,15 @@ int main(int argc, char * argv[]) {
         close(new_);
 
         auto start_time = std::chrono::high_resolution_clock::now();
+
+        std::string start_node = "";
+        if (lidx > rolling_horizon - 1) {
+            start_node = layers_to_optimize[lidx - (rolling_horizon - 1)]->name;
+        }
         #pragma omp parallel for num_threads(get_num_threads() / 2)
+
         for (auto& neuron: local_bounds) {
-            auto new_bound = bound_neuron(fname, neuron, global_bounds);
+            auto new_bound = bound_neuron(fname, start_node, neuron, global_bounds);
             auto prev_bound = neuron.value;
             if (neuron.side == LOWER) {
                 neuron.value = std::max(neuron.value, new_bound);
@@ -157,12 +166,12 @@ int main(int argc, char * argv[]) {
         global_bounds.insert(global_bounds.end(), local_bounds.begin(), local_bounds.end());
     }
 
-    // std::cout << "Starting final runs" << std::endl;
+    std::cout << "Starting final runs" << std::endl;
 
-    // for (size_t obj_idx = 0; obj_idx < nn.obj_spec->shape[0]; obj_idx++) {
-        // std::cout << "########################################" << std::endl;
-        // final_run(fname, global_bounds, obj_idx);
-    // }
+    for (size_t obj_idx = 0; obj_idx < nn.obj_spec->shape[0]; obj_idx++) {
+        std::cout << "########################################" << std::endl;
+        final_run(fname, global_bounds, obj_idx);
+    }
 
     return 0;
 }
