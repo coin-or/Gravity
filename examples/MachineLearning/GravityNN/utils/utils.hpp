@@ -91,10 +91,6 @@ std::set<std::string> subgraph_extraction(onnx::GraphProto& graph, std::string s
         return all_layers;
     }
 
-    if (start_node.empty() && final_node.empty()) {
-        return all_layers;
-    }
-
     // If start_node is empty, set it to the first node in the graph
     if (start_node.empty()) {
         start_node = graph.node(0).name();
@@ -116,7 +112,6 @@ std::set<std::string> subgraph_extraction(onnx::GraphProto& graph, std::string s
     std::map<std::string, std::string> output_to_layer;
     std::map<std::string, int> layer_to_index;
     std::map<std::string, std::string> parent_node;
-    std::map<std::string, std::set<std::string>> node_to_parents;
 
     for (auto i = 0; i < graph.node_size(); ++i) {
         auto node = graph.node(i);
@@ -128,7 +123,7 @@ std::set<std::string> subgraph_extraction(onnx::GraphProto& graph, std::string s
 
     std::queue<std::string> queue;
     queue.push(final_node);
-    std::set<std::string> subgraph;
+    std::set<std::string> visited;
 
     bool startNodeReached = false;
 
@@ -138,38 +133,41 @@ std::set<std::string> subgraph_extraction(onnx::GraphProto& graph, std::string s
 
         auto layer = graph.node(layer_to_index[node]);
         for (const auto& input : layer.input()) {
-            if (output_to_layer.find(input) != output_to_layer.end()) {
-                parent_node[output_to_layer[input]] = node;
-                node_to_parents[node].insert(output_to_layer[input]);
-                queue.push(output_to_layer[input]);
+            std::string parent = output_to_layer[input];
+            if (output_to_layer.find(input) != output_to_layer.end() && visited.find(parent) == visited.end()) {
+                parent_node[parent] = node;
+                queue.push(parent);
+                visited.insert(parent);
             }
         }
         
-        // Stop extraction at the start node
         if(node == start_node) {
             startNodeReached = true;
-            // break;
+            break;
         }
     }
     
-    // Check if start_node was reached during the traversal
     if (!startNodeReached) {
         throw std::runtime_error("No path from start node " + start_node + " to final node " + final_node);
     }
 
     // If start_node was reached, construct the shortest path
-    std::vector<std::string> path;
-    for(std::string curr_node = start_node; ; curr_node = parent_node[curr_node]) {
-        path.push_back(curr_node);
+    std::set<std::string> subgraph;
+    for (std::string curr_node = start_node; ; curr_node = parent_node[curr_node]) {
+        subgraph.insert(curr_node);
+        // Exclude parent nodes of the start_node
         if (curr_node != start_node) {
-            path.insert(path.end(), node_to_parents[curr_node].begin(), node_to_parents[curr_node].end());
+            auto layer = graph.node(layer_to_index[curr_node]);
+            for (const auto& input : layer.input()) {
+                if (output_to_layer.find(input) != output_to_layer.end()) {
+                    subgraph.insert(output_to_layer[input]);
+                }
+            }
         }
         if (curr_node == final_node) {
             break;
         }
     }
-    
-    subgraph = std::set<std::string>(path.begin(), path.end());
     
     return subgraph;
 }
