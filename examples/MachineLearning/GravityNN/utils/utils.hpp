@@ -91,10 +91,6 @@ std::set<std::string> subgraph_extraction(onnx::GraphProto& graph, std::string s
         return all_layers;
     }
 
-    if (start_node.empty() && final_node.empty()) {
-        return all_layers;
-    }
-
     // If start_node is empty, set it to the first node in the graph
     if (start_node.empty()) {
         start_node = graph.node(0).name();
