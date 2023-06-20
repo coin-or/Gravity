@@ -9,21 +9,21 @@
 #include <network/Layers/Unary.hpp>
 #include <network/Layers/NonLinear.hpp>
 #include <network/Layers/Shape.hpp>
+#include <utils/subgraph_extraction.hpp>
 
 std::set<std::string> noops = {"Flatten", "Reshape", "Squeeze"};
 
 class NeuralNet {
 public:
-    NeuralNet(const std::string& onnx_path, std::string start_node = "", std::string final_node = "") {
+    NeuralNet(const std::string& onnx_path) {
         onnx::GraphProto graph = _open_file(onnx_path);
-        this->layer_names = subgraph_extraction(graph, start_node, final_node);
-
         if (graph.input_size() > 1) {
             throw std::runtime_error("Network has more than one input. Not supported.");
         }
 
         this->tensors = get_tensors(graph);
         this->build_layers(graph);
+
 
         this->indices = IndexContainer();
 
@@ -50,18 +50,13 @@ public:
         this->input_numel = 0;
         for (const auto& input : graph.input()) {
             Layer* inp_layer = new Input(input, tensors);
-            this->layers.push_back(inp_layer);
+            this->_all_layers.push_back(inp_layer);
             this->input_numel += inp_layer->outputs[0]->numel;
         }
 
         for (const auto& node : graph.node()) {
             if (node.op_type() == "Constant") {
                 // We've stuffed all constants into the tensors map
-                continue;
-            }
-
-            // If node is not in requested subgraph, skip it
-            if (this->layer_names.count(node.name()) == 0) {
                 continue;
             }
 
@@ -115,18 +110,19 @@ public:
             } else if (node.op_type() == "ReduceSum") {
                 node_ptr = new ReduceSum(node, this->tensors);
             } else {
-                throw std::runtime_error("Unsupported operator " + node.op_type());
+                node_ptr = new UnsupportedLayer(node, this->tensors);
             }
 
-            this->layers.push_back(node_ptr);
+            this->_all_layers.push_back(node_ptr);
         }
     }
 
     // Set obj_index to -1 if you want to use a custom objective, otherwise the index of the objective
-    Model<>& build_model(int obj_index) {
+    Model<>& build_model(int obj_index, std::string start_node, std::string final_node) {
+        this->subgraph = subgraph_extraction(this->_all_layers, start_node, final_node);
+
         this->build_indexing();
         this->index_constraints();
-
         this->set_bounds();
 
         this->x.add_bounds(this->x_lb, this->x_ub);
@@ -157,13 +153,17 @@ public:
             throw std::runtime_error("Objective index out of bounds. This model has " + std::to_string(this->obj_spec->shape[0]) + " objectives.");
         }
 
+        if (this->_all_layers.size() != this->subgraph.size()) {
+            throw std::runtime_error("Cannot use objective with subgraph. Please use the full model.");
+        }
+
         auto& spec = *this->obj_spec;
         auto& val = *this->obj_val;
 
         gravity::func<> obj = 0;
         for (size_t i = 0; i < spec.shape[1]; i++) {
             auto coeff = spec(spec.flatten_index({(size_t)obj_index, i}));
-            std::string key = this->layers.back()->outputs[0]->strkey(i);
+            std::string key = this->_all_layers.back()->outputs[0]->strkey(i);
             obj += coeff * this->x(key);
         }
         // add the constant
@@ -182,20 +182,20 @@ public:
     void build_indexing() {
         std::cout << "##################################" << std::endl;
         std::cout << "Adding index sets for each layer" << std::endl;
-        for (auto l: this->layers) {
+        for (auto l: this->subgraph) {
             this->indices.add(l->operator_type, l->get_indices());
         }
 
         // First, index all hidden states
         std::cout << "Indexing hidden layers" << std::endl;
-        for (auto l: this->layers) {
+        for (auto l: this->subgraph) {
             std::cout << " - " << l->name << std::endl;
             l->index_hidden_states(this->indices.hidden_states, this->indices.y_ids);
         }
 
         // Index parameters
         std::cout << "Adding parameters" << std::endl;
-        for (auto l: this->layers) {
+        for (auto l: this->subgraph) {
             std::cout << " - " << l->name << std::endl;
             l->add_parameters(this->indices.w);
         }
@@ -205,7 +205,7 @@ public:
     void index_constraints() {
         std::cout << "##################################" << std::endl;
         std::cout << "Indexing constraints" << std::endl;
-        for (auto l: this->layers) {
+        for (auto l: this->subgraph) {
             std::cout << " - " << l->name << std::endl;
             l->index_constraint(this->indices(l->operator_type));
         }
@@ -215,7 +215,7 @@ public:
         std::cout << "##################################" << std::endl;
         std::cout << "Setting bounds" << std::endl;
 
-        for (auto l: this->layers) {
+        for (auto l: this->subgraph) {
             std::cout << " - " << l->name << std::endl;
             l->set_bounds(x_lb, x_ub);
         }
@@ -227,10 +227,6 @@ public:
     void set_aux_bounds(const std::vector<Bound>& aux_bounds) {
         // use newbounds
         for (auto& v: aux_bounds) {
-            if (this->layer_names.count(v.layer_name) == 0) {
-                continue;
-            }
-
             auto tensor_name = v.neuron_name.substr(0, v.neuron_name.find_last_of(","));
             size_t neuron_idx = std::stoi(v.neuron_name.substr(v.neuron_name.find_last_of(",") + 1));
             auto& ten = this->tensors.at(tensor_name);
@@ -245,7 +241,7 @@ public:
     void initialize_state(gravity::var<>& x, gravity::var<int>& y) {
         std::cout << "##################################" << std::endl;
         std::cout << "Initializing state" << std::endl;
-        for (auto l: this->layers) {
+        for (auto l: this->subgraph) {
             std::cout << " - " << l->name << std::endl;
             for (auto o: l->outputs) {
                 for(auto j = 0; j < o->numel; j++){
@@ -280,7 +276,7 @@ public:
         std::cout << "Adding constraints" << std::endl;
         // Add constraints. Only add constraints for each operator type once.
         std::set<OType> visited;
-        for (auto l: this->layers) {
+        for (auto l: this->subgraph) {
             if (visited.insert(l->operator_type).second == false) {
                 continue;
             }
@@ -297,8 +293,8 @@ public:
     Tensor* obj_spec = nullptr;
     Tensor* obj_val = nullptr;
 
-    std::vector<Layer*> layers;
-    std::set<std::string> layer_names;
+    std::vector<Layer*> _all_layers;
+    std::vector<Layer*> subgraph;
 
     Model<> NN;
     param<> x_lb, x_ub;

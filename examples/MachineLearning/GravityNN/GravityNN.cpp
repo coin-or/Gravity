@@ -19,13 +19,13 @@ int main(int argc, char * argv[]){
 
     // Empty string means we build the entire network, otherwise we build up to the specified node
     std::string start_node = "";
-    std::string final_node = "Conv_0";
-    NeuralNet nn(fname, start_node, final_node);
+    std::string final_node = "";
+    NeuralNet nn(fname);
 
-    Model<>& NN = nn.build_model(idx);
+    Model<>& NN = nn.build_model(idx, start_node, final_node);
 
     if (idx < 0) {
-        auto tensor = nn.layers.back()->outputs.at(0);
+        auto tensor = nn.subgraph.back()->outputs.at(0);
         gravity::func<> expr = 0.0;
         for (auto index: ShapeIter(tensor->shape)) {
             expr += nn.x(tensor->strkey(index));
@@ -40,6 +40,7 @@ int main(int argc, char * argv[]){
     auto grb_mod = grb_prog->grb_mod;
     grb_mod->set(GRB_IntParam_Threads, get_num_threads() / 2);
     grb_mod->set(GRB_IntParam_NonConvex,2);
+    grb_mod->set(GRB_IntParam_Presolve,2);
     // grb_mod->set(GRB_IntParam_MIPFocus,3);
     // grb_mod->set(GRB_DoubleParam_BestBdStop, -1e-4);
 

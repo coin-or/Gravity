@@ -24,6 +24,8 @@ typedef enum {
     _softmax,
     _reduce_sum,
     _concat,
+    _average_pool,
+    _unsupported,
 } OType; /* Operator Type */
 typedef enum { LOWER, UPPER} Side;
 

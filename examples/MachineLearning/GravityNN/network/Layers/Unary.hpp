@@ -258,3 +258,75 @@ public:
     std::vector<size_t> axes;
     int keepdims = 1;
 };
+
+class AveragePool : public Layer {
+public:
+    AveragePool(const onnx::NodeProto& node, Tensors& tensors): Layer(node, tensors) {
+        operator_type = _average_pool;
+        this->X = &tensors[node.input(0)];
+        this->Y = &tensors[node.output(0)];
+
+        if (const auto* auto_pad_attr = find_attribute("auto_pad", node)) {
+            this->auto_pad = auto_pad_attr->s();
+        }
+        if (this->auto_pad != "NOTSET") {
+            throw std::runtime_error("AveragePool: auto_pad " + this->auto_pad + " not implemented");
+        }
+
+        if (const auto* ceil_mode_attr = find_attribute("ceil_mode", node)) {
+            this->ceil_mode = ceil_mode_attr->i();
+        }
+
+        if (const auto* count_include_pad_attr = find_attribute("count_include_pad", node)) {
+            this->count_include_pad = count_include_pad_attr->i();
+        }
+
+        if (const auto* kernel_shape_attr = find_attribute("kernel_shape", node)) {
+            this->kernel_shape = std::vector<int>(kernel_shape_attr->ints().begin(), kernel_shape_attr->ints().end());
+        } else {
+            throw std::runtime_error("AveragePool: kernel_shape not found");
+        }
+
+        if (const auto* pads_attr = find_attribute("pads", node)) {
+            this->pads = std::vector<int>(pads_attr->ints().begin(), pads_attr->ints().end());
+        } else {
+            this->pads = std::vector<int>(this->kernel_shape.size() * 2, 0);
+        }
+        if (!std::all_of(this->pads.begin(), this->pads.end(), [](int i){return i == 0;})) {
+            throw std::runtime_error("AveragePool: padding != 0 not supported");
+        }
+
+        if (const auto* strides_attr = find_attribute("strides", node)) {
+            this->strides = std::vector<int>(strides_attr->ints().begin(), strides_attr->ints().end());
+        } else {
+            this->strides = std::vector<int>(this->kernel_shape.size(), 1);
+        }
+    }
+
+    std::vector<std::vector<std::string>> get_indices() const override {
+        return {{"Out", "In"}, {}};
+    }
+
+    void index_constraint(IndexSet& inds) override {
+        for(auto j = 0; j < this->X->numel; j++){
+            inds["Constr"].add(this->Y->strkey(j));
+            inds["In"].add_ref(this->X->strkey(j));
+            inds["Out"].add_ref(this->Y->strkey(j));
+        }
+    }
+
+    void add_constraints(gravity::Model<>& NN, IndexSet& inds, gravity::param<>& w, gravity::var<>& x, gravity::var<int>& y) override {
+        Constraint<> AveragePool_("AveragePool");
+        AveragePool_ = x.in(inds["Out"]) - x.in(inds["In"]);
+        NN.add(AveragePool_.in(inds["Constr"]) == 0);
+    }
+
+    Tensor *X, *Y; // Input and output
+
+    std::string auto_pad = "NOTSET";
+    int ceil_mode = 0;
+    int count_include_pad = 0;
+    std::vector<int> kernel_shape;
+    std::vector<int> pads;
+    std::vector<int> strides;
+};

@@ -16,7 +16,7 @@ void final_run(std::string fname, const std::vector<Bound>& global_bounds, size_
     NeuralNet nn(fname);
     nn.set_aux_bounds(global_bounds);
 
-    Model<>& NN = nn.build_model(obj_idx);
+    Model<>& NN = nn.build_model(obj_idx, "", "");
 
     solver<> S(NN,gurobi);
     auto grb_prog = (GurobiProgram*)(S._prog.get());
@@ -29,12 +29,12 @@ void final_run(std::string fname, const std::vector<Bound>& global_bounds, size_
 }
 
 double bound_neuron(std::string fname, std::string start_node, Bound neuron, const std::vector<Bound>& global_bounds) {
-    NeuralNet nn(fname, start_node, neuron.layer_name);
+    NeuralNet nn(fname);
     nn.set_aux_bounds(global_bounds);
 
     // Passing -1 means we will write a custom objective rather
     // than use one in the model
-    Model<>& NN = nn.build_model(-1);
+    Model<>& NN = nn.build_model(-1, start_node, neuron.layer_name);
 
     double mult = (neuron.side == LOWER) ? -1.0 : 1.0;
     NN.max(nn.x(neuron.neuron_name) * mult);
@@ -69,18 +69,17 @@ int main(int argc, char * argv[]) {
     }
 
     NeuralNet nn(fname);
-//     NeuralNet nn(fname, "Add_5");
     std::vector<Layer*> layers_to_optimize;
 
-    for (auto i = 1; i < nn.layers.size() - 1; i++) {
+    for (auto i = 1; i < nn._all_layers.size() - 1; i++) {
         if (
-            (nn.layers[i+1]->operator_type != _relu) &&
-            (nn.layers[i+1]->operator_type != _clip)
+            (nn._all_layers[i+1]->operator_type != _relu) &&
+            (nn._all_layers[i+1]->operator_type != _clip)
         ) {
             continue;
         }
 
-        layers_to_optimize.push_back(nn.layers[i]);
+        layers_to_optimize.push_back(nn._all_layers[i]);
     }
 
     std::cout << "Optimizing layers:" << std::endl;

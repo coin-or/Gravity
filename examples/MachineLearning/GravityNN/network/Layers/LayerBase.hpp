@@ -63,22 +63,34 @@ public:
     // Override this if the layer has aux vars that can be bounded
     // i.e. sigmoid produces an aux exp which has a lower bound of 0.0
     virtual void set_bounds(gravity::param<>& x_lb, gravity::param<>& x_ub) {
-        for (auto o: this->outputs) {
+        for (size_t i = 0; i < this->outputs.size(); i++) {
+            auto o = this->outputs.at(i);
             for(auto j = 0; j < o->numel; j++){
-                auto key  = o->strkey(j);
-                auto lb = std::max(
-                    o->lb.at(j),
-                    this->range_lower
-                );
-                auto ub = std::min(
-                    o->ub.at(j),
-                    this->range_upper
-                );
+                auto key = o->strkey(j);
+                auto lb  = this->get_lb(i, j);
+                auto ub  = this->get_ub(i, j);
 
                 x_lb.add_val(key, lb);
                 x_ub.add_val(key, ub);
             }
         }
+    }
+
+    double get_lb(size_t output_index, size_t neuron_index) const {
+        return std::max(this->outputs.at(output_index)->lb.at(neuron_index), this->range_lower);
+    }
+
+    double get_ub(size_t output_index, size_t neuron_index) const {
+        return std::min(this->outputs.at(output_index)->ub.at(neuron_index), this->range_upper);
+    }
+
+    bool is_bounded(size_t output_index) {
+        for (auto i = 0; i < this->outputs.at(output_index)->numel; i++) {
+            if (this->get_lb(output_index, i) == HMIN || this->get_ub(output_index, i) == HMAX) {
+                return false;
+            }
+        }
+        return true;
     }
 
     const onnx::AttributeProto* find_attribute(const std::string& name, const onnx::NodeProto& node) const {
@@ -90,6 +102,7 @@ public:
         return nullptr;
     }
 
+
     // Name of the layer
     std::string name;
     OType operator_type;
@@ -99,4 +112,25 @@ public:
 
     double range_lower = HMIN;
     double range_upper = HMAX;
+};
+
+class UnsupportedLayer: public Layer {
+public:
+    UnsupportedLayer(const onnx::NodeProto& node, Tensors& tensors) : Layer(node, tensors) {
+        this->operator_type = _unsupported;
+        std::cout << "WARNING: Unsupported layer: " << node.op_type() << std::endl;
+    }
+
+    std::vector<std::vector<std::string>> get_indices() const override {
+        throw std::runtime_error("Cannot get indices of unsupported layer " + this->name);
+    }
+
+    void index_constraint(IndexSet& inds) override {
+        throw std::runtime_error("Cannot index unsupported layer " + this->name);
+
+    }
+
+    void add_constraints(gravity::Model<>& NN, IndexSet& inds, gravity::param<>& w, gravity::var<>& x, gravity::var<int>& y) override {
+        throw std::runtime_error("Cannot add constraints to unsupported layer " + this->name);
+    }
 };
