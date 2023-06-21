@@ -334,7 +334,7 @@ namespace gravity {
             return _intype;
         }
 
-        shared_ptr<map<string,size_t>> get_keys_map() const {
+        shared_ptr<std::unordered_map<std::string, size_t>> get_keys_map() const {
             if(_indices){
                 return _indices->_keys_map;
             }
@@ -1679,7 +1679,7 @@ namespace gravity {
             res._type = matrix_;
             res._ids = make_shared<vector<vector<size_t>>>();
             string key = "", invariant_key="";
-            map<string,size_t> invariant_map;
+            std::unordered_map<std::string, size_t> invariant_map;
             int row_id = 0;
             string prev_key = "";
             if(is_indexed()){/* If ids has key references, use those */

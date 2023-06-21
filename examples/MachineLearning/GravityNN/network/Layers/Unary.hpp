@@ -156,6 +156,7 @@ class Input : public Layer {
 public:
     Input(const onnx::ValueInfoProto& node, Tensors& tensors): Layer(node, tensors) {
         operator_type = _input;
+        this->opname = "Input";
 
         // TODO: Remove!
         this->range_lower = -1000.0;

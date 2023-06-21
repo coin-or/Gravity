@@ -42,7 +42,7 @@ gravity::indices gravity::range(size_t p1 ,size_t p2){
     indices res("range("+to_string(p1)+"<"+to_string(p2)+")");
     auto n = p2 - p1 + 1;
     assert(n >= 0);
-    res._keys_map = make_shared<map<string,size_t>>();
+    res._keys_map = make_shared<std::unordered_map<std::string, size_t>>();
     res._keys = make_shared<vector<string>>();
     res._keys->resize(n);
     res._dim = make_shared<vector<size_t>>();

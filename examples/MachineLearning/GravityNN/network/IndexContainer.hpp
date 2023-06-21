@@ -1,6 +1,6 @@
 #pragma once
 
-#include <map>
+#include <unordered_map>
 #include <vector>
 #include <gravity/types.h>
 #include <gravity/var.h>
@@ -34,13 +34,10 @@ public:
     }
 
     indices& operator[](const std::string& name) {
-        if (this->_indices.count(name) == 0) {
-            throw std::runtime_error("Unknown index set: " + name);
-        }
         return this->_indices.at(name);
     }
 
-    std::map<std::string, indices> _indices;
+    std::unordered_map<std::string, indices> _indices;
     size_t row_id = 0;
     size_t row_id2 = 0;
 };
@@ -59,7 +56,7 @@ public:
     }
     
     void add(OType op, std::vector<std::vector<std::string>> names) {
-        if (this->_indices.count(op) > 0) {
+        if (this->_indices.find(op) != this->_indices.end()) {
             return;
         }
 
@@ -82,5 +79,5 @@ public:
     indices hidden_states, y_ids;
 
     // Map from operator type to index set
-    std::map<OType, IndexSet> _indices;
+    std::unordered_map<OType, IndexSet> _indices;
 };

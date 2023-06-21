@@ -354,28 +354,33 @@ public:
             inds["Constr"].add(this->name + "," + to_string(j));
         }
 
+        auto& oInd = inds["Out"];
+        auto& wInd = inds["W"];
+        auto& iInd = inds["In"];
+        auto& bInd = inds["B"];
+
         for (int ob = 0; ob < this->Y->shape[0]; ob++) {
             for (int oh = 0; oh < this->out_h; oh++) {
                 for (int ow = 0; ow < this->out_w; ow++) {
                     for (int oc = 0; oc < this->out_c; oc++) {
-                        inds["Out"].add_ref(this->Y->strkey(ob, oc, oh, ow));
+                        oInd.add_ref(this->Y->strkey(ob, oc, oh, ow));
                         for (int kh = 0; kh < this->kern_h; kh++) {
                             for (int kw = 0; kw < this->kern_w; kw++) {
                                 for (int kc = 0; kc < this->kern_c; kc++) {
                                     int h_ind = (this->strides[0]*oh + this->dilations[0]*kh - this->pads[0]);
                                     int w_ind = (this->strides[1]*ow + this->dilations[1]*kw - this->pads[3]);
                                     if ((h_ind < this->inp_h) && (h_ind >= 0) && (w_ind < this->inp_w) && (w_ind >= 0)) {
-                                        inds["W"].add_in_row(inds.row_id, this->W->strkey(oc, kc, kh, kw));
-                                        inds["In"].add_in_row(inds.row_id, this->X->strkey(ob, kc, h_ind, w_ind));
+                                        wInd.add_in_row(inds.row_id, this->W->strkey(oc, kc, kh, kw));
+                                        iInd.add_in_row(inds.row_id, this->X->strkey(ob, kc, h_ind, w_ind));
                                     }
                                 }
                             }
                         }
                         // Add bias
                         if (this->B) {
-                            inds["B"].add_in_row(inds.row_id, this->B->strkey(oc));
+                            bInd.add_in_row(inds.row_id, this->B->strkey(oc));
                         } else {
-                            inds["B"].add_empty_row();
+                            bInd.add_empty_row();
                         }
                         inds.row_id++;
                     }

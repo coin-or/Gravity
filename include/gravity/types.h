@@ -18,6 +18,7 @@
 #include <iostream>
 #include <algorithm>
 #include <complex>      // std::complex
+#include <unordered_map>
 
 inline int nthOccurrence(const std::string& str, const std::string& findMe, int nth)
 {
@@ -251,7 +252,7 @@ public:
     shared_ptr<vector<size_t>>              _dim = nullptr;/*<< A vector storing the dimension of sub-indices */
     shared_ptr<vector<string>>              _keys = nullptr; /*<< A vector storing all the keys */
     
-    shared_ptr<map<string,size_t>>          _keys_map = nullptr; /*<< A map storing all the indices, the size_t number indicates the right position in the _keys vector */
+    shared_ptr<std::unordered_map<std::string, size_t>>          _keys_map = nullptr; /*<< A map storing all the indices, the size_t number indicates the right position in the _keys vector */
     
     set<size_t>                             _excluded_keys; /*<< A set storing all indices that should be excluded */
     shared_ptr<vector<vector<size_t>>>      _ids = nullptr;
@@ -269,7 +270,7 @@ public:
     
     indices(string name){
         _name = name;
-        _keys_map = make_shared<map<string,size_t>>();
+        _keys_map = make_shared<std::unordered_map<std::string, size_t>>();
         _keys = make_shared<vector<string>>();
         _dim = make_shared<vector<size_t>>();
         _dim->resize(2,0);
@@ -282,14 +283,14 @@ public:
     
     indices(int name){
         _name = to_string(name);
-        _keys_map = make_shared<map<string,size_t>>();
+        _keys_map = make_shared<std::unordered_map<std::string, size_t>>();
         _keys = make_shared<vector<string>>();
         _dim = make_shared<vector<size_t>>();
         _dim->resize(2,0);
     }
     
     indices(){
-        _keys_map = make_shared<map<string,size_t>>();
+        _keys_map = make_shared<std::unordered_map<std::string, size_t>>();
         _keys = make_shared<vector<string>>();
         _dim = make_shared<vector<size_t>>();
         _dim->resize(2,0);
@@ -297,7 +298,7 @@ public:
     
     indices(const ordered_pairs& pairs){
         auto n = pairs._keys.size();
-        _keys_map = make_shared<map<string,size_t>>();
+        _keys_map = make_shared<std::unordered_map<std::string, size_t>>();
         _keys = make_shared<vector<string>>();
         _dim = make_shared<vector<size_t>>();
         _keys->resize(n);
@@ -1051,7 +1052,7 @@ public:
         indices = {forward<string>(args)...};
         indices.push_front(idx1);
         auto n = indices.size();
-        _keys_map = make_shared<map<string,size_t>>();
+        _keys_map = make_shared<std::unordered_map<std::string, size_t>>();
         _keys = make_shared<vector<string>>();
         _keys->resize(n);
         _dim = make_shared<vector<size_t>>();
@@ -1151,7 +1152,7 @@ public:
             cpy._keys = make_shared<vector<string>>(*_keys);
         }
         if(_keys_map){
-            cpy._keys_map = make_shared<map<string,size_t>>(*_keys_map);
+            cpy._keys_map = make_shared<std::unordered_map<std::string, size_t>>(*_keys_map);
         }
         cpy._time_extended = _time_extended;
         cpy._time_pos = _time_pos;
@@ -1182,7 +1183,7 @@ public:
     
     //        template<typename Tobj>
     //        indices(const vector<Tobj*>& vec){
-    //            _keys_map = make_shared<map<string,size_t>>();
+    //            _keys_map = make_shared<std::unordered_map<std::string, size_t>>();
     //            _keys = make_shared<vector<string>>();
     //            size_t i = 0;
     //            for (auto idx:vec) {
@@ -1196,7 +1197,7 @@ public:
     //
     //        template<typename Tobj>
     //        indices(const vector<Tobj>& vec){
-    //            _keys_map = make_shared<map<string,size_t>>();
+    //            _keys_map = make_shared<std::unordered_map<std::string, size_t>>();
     //            _keys = make_shared<vector<string>>();
     //            size_t i = 0;
     //            for (auto idx:vec) {
@@ -1210,7 +1211,7 @@ public:
     
     template<typename Tobj>
     indices(const vector<Tobj*>& vec, bool include_inactive = false){
-        _keys_map = make_shared<map<string,size_t>>();
+        _keys_map = make_shared<std::unordered_map<std::string, size_t>>();
         _keys = make_shared<vector<string>>();
         _dim = make_shared<vector<size_t>>();
         _dim->resize(1);
@@ -1230,7 +1231,7 @@ public:
     
     template<typename Tobj>
     indices(const vector<Tobj>& vec, bool include_inactive = false){
-        _keys_map = make_shared<map<string,size_t>>();
+        _keys_map = make_shared<std::unordered_map<std::string, size_t>>();
         _keys = make_shared<vector<string>>();
         _dim = make_shared<vector<size_t>>();
         _dim->resize(1);
@@ -1283,7 +1284,7 @@ public:
         //            if (vecs.size()==2) {
         //                _type = matrix_;
         //            }
-        _keys_map = make_shared<map<string,size_t>>();
+        _keys_map = make_shared<std::unordered_map<std::string, size_t>>();
         _keys = make_shared<vector<string>>();
         _dim = make_shared<vector<size_t>>();
         _dim->resize(vecs.size());
@@ -1540,7 +1541,7 @@ public:
     
     void remove_excluded(){
         _ids = nullptr;
-        map<string,size_t> new_keys_map;
+        std::unordered_map<std::string, size_t> new_keys_map;
         for(auto &key_id: _excluded_keys){
             auto key = _keys->at(key_id);
             _keys_map->erase(key);
@@ -1569,7 +1570,7 @@ public:
     
     indices exclude(string key){
         auto res =  *this;
-        res._keys_map = make_shared<map<string,size_t>>(*_keys_map);
+        res._keys_map = make_shared<std::unordered_map<std::string, size_t>>(*_keys_map);
         res._keys = make_shared<vector<string>>(*_keys);
         res._excluded_keys.insert(res._keys_map->at(key));
         //            if(!is_indexed()){
@@ -1661,7 +1662,7 @@ indices union_ids(const indices& ids1, Args&&... args) {
     indices res("Union(");
     auto nb_entries = ids1.get_nb_entries();
     if(!ids1.is_indexed()){ //if the index set is not indexed, we assume the rest are not indexed as well
-        res._keys_map = make_shared<map<string,size_t>>(*ids1._keys_map);
+        res._keys_map = make_shared<std::unordered_map<std::string, size_t>>(*ids1._keys_map);
         res._keys = make_shared<vector<string>>(*ids1._keys);
         for (size_t i= 1; i < all_ids.size(); i++) {
             auto ids = all_ids[i];

@@ -129,7 +129,8 @@ public:
         this->x.in(this->indices.hidden_states);
         this->y.in(this->indices.y_ids);
 
-        this->initialize_state(x, y);
+        // This is taking far too long on ConvNets
+        // this->initialize_state(x, y);
 
         this->NN.add(this->x);
         this->NN.add(this->y);
@@ -281,7 +282,7 @@ public:
                 continue;
             }
 
-            std::cout << " - " << l->name << std::endl;
+            std::cout << " - " << l->opname << std::endl;
             l->add_constraints(this->NN, this->indices(l->operator_type), this->indices.w, this->x, this->y);
         }
     }

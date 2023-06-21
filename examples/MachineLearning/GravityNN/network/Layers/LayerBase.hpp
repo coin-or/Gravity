@@ -15,6 +15,8 @@ class Layer {
 public:
     Layer(const onnx::NodeProto& node, Tensors& tensors) {
         this->name = node.name();
+        this->opname = node.op_type();
+
         for (const auto& input : node.input()) {
             this->inputs.push_back(&tensors.at(input));
         }
@@ -112,13 +114,15 @@ public:
 
     double range_lower = HMIN;
     double range_upper = HMAX;
+
+    std::string opname;
 };
 
 class UnsupportedLayer: public Layer {
 public:
     UnsupportedLayer(const onnx::NodeProto& node, Tensors& tensors) : Layer(node, tensors) {
         this->operator_type = _unsupported;
-        std::cout << "WARNING: Unsupported layer: " << node.op_type() << std::endl;
+        std::cout << "WARNING: Unsupported layer: " << node.op_type() << " | " << node.name() << std::endl;
     }
 
     std::vector<std::vector<std::string>> get_indices() const override {

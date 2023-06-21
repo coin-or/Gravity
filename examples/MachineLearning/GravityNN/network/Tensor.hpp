@@ -105,13 +105,13 @@ public:
     std::string strkey(std::vector<size_t> indices) const {
         size_t flat = this->flatten_index(indices);
         this->_boundcheck(flat);
-        return this->name + "," + std::to_string(flat);
+        return Tensor::_strkey(this->name, flat);
     }
 
     std::string strkey(size_t idx) const {
         size_t flat = idx;
         this->_boundcheck(flat);
-        return this->name + "," + std::to_string(flat);
+        return Tensor::_strkey(this->name, flat);
     }
 
     std::string strkey(size_t i, size_t j) const {
@@ -120,7 +120,7 @@ public:
         }
         size_t flat = i * this->shape[1] + j;
         this->_boundcheck(flat);
-        return this->name + "," + std::to_string(flat);
+        return Tensor::_strkey(this->name, flat);
     }
 
     std::string strkey(size_t i, size_t j, size_t k) const {
@@ -129,7 +129,7 @@ public:
         }
         size_t flat = i * this->shape[1] * this->shape[2] + j * this->shape[2] + k;
         this->_boundcheck(flat);
-        return this->name + "," + std::to_string(flat);
+        return Tensor::_strkey(this->name, flat);
     }
 
     std::string strkey(size_t i, size_t j, size_t k, size_t l) const {
@@ -138,11 +138,15 @@ public:
         }
         size_t flat = i * this->shape[1] * this->shape[2] * this->shape[3] + j * this->shape[2] * this->shape[3] + k * this->shape[3] + l;
         this->_boundcheck(flat);
-        return this->name + "," + std::to_string(flat);
+        return Tensor::_strkey(this->name, flat);
     }
 
     size_t flatten_index(const std::vector<size_t>& indices) const {
         return Tensor::flatten_index(indices, this->shape);
+    }
+
+    static std::string _strkey(std::string name, size_t idx) {
+        return name.append(",").append(std::to_string(idx));
     }
 
     static size_t flatten_index(const std::vector<size_t>& indices, const std::vector<size_t>& shape) {
