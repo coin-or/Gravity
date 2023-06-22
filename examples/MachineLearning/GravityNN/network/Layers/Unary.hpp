@@ -152,25 +152,6 @@ public:
     Tensor* Y; // Output
 };
 
-class Input : public Layer {
-public:
-    Input(const onnx::ValueInfoProto& node, Tensors& tensors): Layer(node, tensors) {
-        operator_type = _input;
-        this->opname = "Input";
-
-        // TODO: Remove!
-        this->range_lower = -1000.0;
-        this->range_upper =  1000.0;
-    }
-
-    void index_constraint(IndexSet& inds) override {}
-    std::vector<std::vector<std::string>> get_indices() const override {
-        return {{}, {}};
-    }
-
-    void add_constraints(gravity::Model<>& NN, IndexSet& inds, gravity::param<>& w, gravity::var<>& x, gravity::var<int>& y) override {}
-};
-
 class Neg : public Layer {
 public:
     Neg(const onnx::NodeProto& node, Tensors& tensors): Layer(node, tensors) {
@@ -283,7 +264,7 @@ public:
         }
 
         if (const auto* kernel_shape_attr = find_attribute("kernel_shape", node)) {
-            this->kernel_shape = std::vector<int>(kernel_shape_attr->ints().begin(), kernel_shape_attr->ints().end());
+            this->kernel_shape = std::vector<size_t>(kernel_shape_attr->ints().begin(), kernel_shape_attr->ints().end());
         } else {
             throw std::runtime_error("AveragePool: kernel_shape not found");
         }
@@ -304,21 +285,41 @@ public:
         }
     }
 
+    void add_parameters(gravity::param<>& w) const override {
+        double scale = 1.0 / ((double)vecprod(this->kernel_shape));
+        for (auto i = 0; i < this->Y->numel; i++) {
+            w.add_val(this->Y->strkey(i) + "_scale", scale);
+        }
+    }
+
+
     std::vector<std::vector<std::string>> get_indices() const override {
-        return {{"Out", "In"}, {}};
+        return {{"Out", "In"}, {"scale"}};
     }
 
     void index_constraint(IndexSet& inds) override {
-        for(auto j = 0; j < this->X->numel; j++){
-            inds["Constr"].add(this->Y->strkey(j));
-            inds["In"].add_ref(this->X->strkey(j));
-            inds["Out"].add_ref(this->Y->strkey(j));
+        for (auto out_idx: ShapeIter(this->Y->shape)) {
+            inds["Constr"].add(this->Y->strkey(out_idx));
+            inds["Out"].add_ref(this->Y->strkey(out_idx));
+            inds["scale"].add_ref(this->Y->strkey(out_idx) + "_scale");
+
+            std::vector<size_t> tl;
+            for (int ax = 2; ax < this->Y->ndims; ax++) {
+                tl.push_back(out_idx.at(ax) * this->strides.at(ax-2));
+            }
+
+            for (auto window_idx: ShapeIter(this->kernel_shape)) {
+                std::vector<size_t> x_feature = vecsum(tl, window_idx);
+                std::vector<size_t> xindex = concat({out_idx.at(0), out_idx.at(1)}, x_feature);
+                inds["In"].add_in_row(inds.row_id, this->X->strkey(xindex));
+            }
+            inds.row_id++;
         }
     }
 
     void add_constraints(gravity::Model<>& NN, IndexSet& inds, gravity::param<>& w, gravity::var<>& x, gravity::var<int>& y) override {
         Constraint<> AveragePool_("AveragePool");
-        AveragePool_ = x.in(inds["Out"]) - x.in(inds["In"]);
+        AveragePool_ = x.in(inds["Out"]) - (x.in(inds["In"]) * w.in(inds["scale"]));
         NN.add(AveragePool_.in(inds["Constr"]) == 0);
     }
 
@@ -327,7 +328,7 @@ public:
     std::string auto_pad = "NOTSET";
     int ceil_mode = 0;
     int count_include_pad = 0;
-    std::vector<int> kernel_shape;
+    std::vector<size_t> kernel_shape;
     std::vector<int> pads;
     std::vector<int> strides;
 };

@@ -138,3 +138,22 @@ public:
         throw std::runtime_error("Cannot add constraints to unsupported layer " + this->name);
     }
 };
+
+class Input : public Layer {
+public:
+    Input(const onnx::ValueInfoProto& node, Tensors& tensors): Layer(node, tensors) {
+        operator_type = _input;
+        this->opname = "Input";
+
+        // TODO: Remove!
+        this->range_lower = -1.0;
+        this->range_upper =  1.0;
+    }
+
+    void index_constraint(IndexSet& inds) override {}
+    std::vector<std::vector<std::string>> get_indices() const override {
+        return {{}, {}};
+    }
+
+    void add_constraints(gravity::Model<>& NN, IndexSet& inds, gravity::param<>& w, gravity::var<>& x, gravity::var<int>& y) override {}
+};

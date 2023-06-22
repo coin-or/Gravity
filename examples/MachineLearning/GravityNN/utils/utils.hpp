@@ -101,3 +101,14 @@ std::string ftostr(double v) {
     }
     return std::to_string(v);
 }
+
+template <typename T>
+std::vector<T> vecsum(const std::vector<T>& a, const std::vector<T>& b) {
+    if (a.size() != b.size()) {
+        throw std::runtime_error("Cannot sum vectors of different sizes.");
+    }
+    std::vector<T> out;
+    out.reserve(a.size());
+    std::transform(a.begin(), a.end(), b.begin(), std::back_inserter(out), std::plus<T>());
+    return out;
+}
