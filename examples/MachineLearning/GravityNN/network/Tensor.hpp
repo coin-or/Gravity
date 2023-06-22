@@ -307,6 +307,11 @@ Tensors get_tensors(const onnx::GraphProto& graph) {
         }
     }
 
+    // Delete _lower, _upper, and _forward tensors
+    for (const auto& name : todel) {
+        tensors.erase(name);
+    }
+
     return tensors;
 }
 

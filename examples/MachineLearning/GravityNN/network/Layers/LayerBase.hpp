@@ -145,9 +145,19 @@ public:
         operator_type = _input;
         this->opname = "Input";
 
-        // TODO: Remove!
-        this->range_lower = -1.0;
-        this->range_upper =  1.0;
+        // If the input layer is unbounded, set the range to [-1, 1]
+        for (auto o: this->outputs) {
+            for (size_t i = 0; i < o->numel; i++) {
+                if ((o->lb.at(i) == HMIN) || (o->ub.at(i) == HMAX)) {
+                    this->range_lower = -1.0;
+                    this->range_upper =  1.0;
+                }
+            }
+        }
+
+        if (this->range_lower == -1.0 || this->range_upper == 1.0) {
+            std::cout << "WARNING: Input layer " << this->name << " is unbounded. Setting range to [-1, 1]" << std::endl;
+        }
     }
 
     void index_constraint(IndexSet& inds) override {}
