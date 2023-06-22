@@ -8,7 +8,6 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
-// #include <utils/bound_file_reader.hpp>
 
 using namespace gravity;
 
@@ -89,12 +88,10 @@ int main(int argc, char * argv[]) {
 
     std::vector<Bound> global_bounds;
 
-    int rolling_horizon = layers_to_optimize.size();
+    int rolling_horizon = 2;
     if (rolling_horizon > layers_to_optimize.size()){
         rolling_horizon = layers_to_optimize.size();
     }
-
-    // auto precomp = readBoundsFromFile("/vast/home/haydnj/Gravity/examples/MachineLearning/GravityNN/bounds.txt")
 
     for (auto lidx = 0; lidx < layers_to_optimize.size(); lidx++) {
         auto l = layers_to_optimize[lidx];
@@ -132,8 +129,8 @@ int main(int argc, char * argv[]) {
         if (lidx > rolling_horizon - 1) {
             start_node = layers_to_optimize[lidx - (rolling_horizon - 1)]->name;
         }
-        #pragma omp parallel for num_threads(get_num_threads() / 2)
 
+        #pragma omp parallel for num_threads(get_num_threads() / 2)
         for (auto& neuron: local_bounds) {
             auto new_bound = bound_neuron(fname, start_node, neuron, global_bounds);
             auto prev_bound = neuron.value;
@@ -155,9 +152,6 @@ int main(int argc, char * argv[]) {
             std::cout << lb.neuron_name << ": ";
             std::cout << "[" << ftostr(lb.old_value) << ", " << ftostr(ub.old_value) << "] -> ";
             std::cout << "[" << ftostr(lb.value) << ", " << ftostr(ub.value) << "]";
-            if (lb.value > ub.value) {
-                std::cout << " !!!!!!";
-            }
             std::cout << std::endl;
         }
         auto time_taken = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();

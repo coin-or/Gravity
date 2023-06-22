@@ -24,7 +24,6 @@ public:
         this->tensors = get_tensors(graph);
         this->build_layers(graph);
 
-
         this->indices = IndexContainer();
 
         // Initialize MIP variables
@@ -44,6 +43,11 @@ public:
             this->obj_val = &this->tensors.at("obj_spec_values");
         }
 
+        for (auto layer : this->_all_layers) {
+            for (auto output : layer->outputs) {
+                this->output_to_layer[output->name] = layer;
+            }
+        }
     }
 
     void build_layers(const onnx::GraphProto& graph) {
@@ -209,8 +213,14 @@ public:
         std::cout << "##################################" << std::endl;
         std::cout << "Indexing constraints" << std::endl;
         for (auto l: this->subgraph) {
-            std::cout << " - " << l->name << std::endl;
-            l->index_constraint(this->indices(l->operator_type));
+            // Horizon start layers do not have inputs
+            if (!this->_inputs_in_subgraph(l)) {
+                std::cout << " - " << l->name << " SKIPPED (horizon_start)" << std::endl;
+                continue;
+            } else {
+                std::cout << " - " << l->name << std::endl;
+                l->index_constraint(this->indices(l->operator_type));
+            }
         }
     }
 
@@ -289,6 +299,23 @@ public:
         }
     }
 
+    // Indicates whether or not all of a layers inputs are in the subgraph
+    // If they are not, this is a horizon "input" layer
+    bool _inputs_in_subgraph(Layer* layer) {
+        for (auto& i: layer->inputs) {
+            // Initializers are not "inputs"
+            if (i->is_initializer) {
+                continue;
+            }
+            auto producer = this->output_to_layer.at(i->name);
+            // Check if the producer is in the subgraph
+            if (std::find(this->subgraph.begin(), this->subgraph.end(), producer) == this->subgraph.end()) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     Tensors tensors;
     IndexContainer indices;
     size_t input_numel;
@@ -303,4 +330,6 @@ public:
     param<> x_lb, x_ub;
     var<> x;
     var<int> y;
+
+    std::map<std::string, Layer*> output_to_layer;
 };
