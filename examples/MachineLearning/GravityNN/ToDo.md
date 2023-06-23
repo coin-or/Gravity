@@ -43,7 +43,7 @@
 - [ ] cgan
   - ConvTranspose, Resize, Tanh
 - [ ] collins_yolo_robustness
-  - Resize + Leaky Relu + MaxPool 
+  - Resize + MaxPool 
 - [ ] metaroom
   - BROKEN BECAUSE OF PROJECTION OP
 - [ ] traffic_signs_recognition
