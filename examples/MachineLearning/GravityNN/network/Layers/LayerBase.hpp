@@ -79,11 +79,11 @@ public:
     }
 
     double get_lb(size_t output_index, size_t neuron_index) const {
-        return std::max(this->outputs.at(output_index)->lb.at(neuron_index), this->range_lower);
+        return std::max(this->outputs.at(output_index)->lb.at(neuron_index) - 1e-6, this->range_lower);
     }
 
     double get_ub(size_t output_index, size_t neuron_index) const {
-        return std::min(this->outputs.at(output_index)->ub.at(neuron_index), this->range_upper);
+        return std::min(this->outputs.at(output_index)->ub.at(neuron_index) + 1e-6, this->range_upper);
     }
 
     bool is_bounded(size_t output_index) {

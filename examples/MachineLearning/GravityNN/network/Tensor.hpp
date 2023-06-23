@@ -70,12 +70,6 @@ public:
         return newt;
     }
 
-    static Tensor reshape(const Tensor& t, std::vector<size_t> new_shape) {
-        Tensor newt = t;
-        newt._set_shape(new_shape);
-        return newt;
-    }
-
     double operator()(size_t i) const {
         if (!this->is_initializer) {
             throw std::runtime_error("Reading from non-initializer tensor. Perhaps you're assuming this tensor is a weight when it's actually an output of a previous layer?");
@@ -104,14 +98,12 @@ public:
 
     std::string strkey(std::vector<size_t> indices) const {
         size_t flat = this->flatten_index(indices);
-        this->_boundcheck(flat);
-        return Tensor::_strkey(this->name, flat);
+        return Tensor::_strkey(this->name, flat, this->numel);
     }
 
     std::string strkey(size_t idx) const {
         size_t flat = idx;
-        this->_boundcheck(flat);
-        return Tensor::_strkey(this->name, flat);
+        return Tensor::_strkey(this->name, flat, this->numel);
     }
 
     std::string strkey(size_t i, size_t j) const {
@@ -119,8 +111,7 @@ public:
             throw std::runtime_error("Cannot use 2D indexing on tensor with " + std::to_string(this->ndims) + " dimensions");
         }
         size_t flat = i * this->shape[1] + j;
-        this->_boundcheck(flat);
-        return Tensor::_strkey(this->name, flat);
+        return Tensor::_strkey(this->name, flat, this->numel);
     }
 
     std::string strkey(size_t i, size_t j, size_t k) const {
@@ -128,8 +119,7 @@ public:
             throw std::runtime_error("Cannot use 3D indexing on tensor with " + std::to_string(this->ndims) + " dimensions");
         }
         size_t flat = i * this->shape[1] * this->shape[2] + j * this->shape[2] + k;
-        this->_boundcheck(flat);
-        return Tensor::_strkey(this->name, flat);
+        return Tensor::_strkey(this->name, flat, this->numel);
     }
 
     std::string strkey(size_t i, size_t j, size_t k, size_t l) const {
@@ -137,16 +127,23 @@ public:
             throw std::runtime_error("Cannot use 4D indexing on tensor with " + std::to_string(this->ndims) + " dimensions");
         }
         size_t flat = i * this->shape[1] * this->shape[2] * this->shape[3] + j * this->shape[2] * this->shape[3] + k * this->shape[3] + l;
-        this->_boundcheck(flat);
-        return Tensor::_strkey(this->name, flat);
+        return Tensor::_strkey(this->name, flat, this->numel);
     }
 
     size_t flatten_index(const std::vector<size_t>& indices) const {
         return Tensor::flatten_index(indices, this->shape);
     }
 
-    static std::string _strkey(std::string name, size_t idx) {
-        return name.append(",").append(std::to_string(idx));
+    static std::string _strkey(const std::string& name, size_t idx, size_t numel) {
+        if (idx >= numel) {
+            throw std::runtime_error("Index " + std::to_string(idx) + " out of bounds for tensor of size " + std::to_string(numel) + ".");
+        }
+        std::string str;
+        str.reserve(name.size() + 1 + 5);
+        str.append(name);
+        str.push_back(',');
+        str.append(std::to_string(idx));
+        return str;
     }
 
     static size_t flatten_index(const std::vector<size_t>& indices, const std::vector<size_t>& shape) {
@@ -194,17 +191,6 @@ public:
         this->lb = std::vector<double>(this->numel, HMIN);
         this->ub = std::vector<double>(this->numel, HMAX);
         this->forward = std::vector<double>(this->numel, 0);
-    }
-
-    void _boundcheck(size_t flat_idx) const {
-        if (flat_idx >= this->numel) {
-            throw std::runtime_error("Index " + std::to_string(flat_idx) + " out of bounds for tensor of size " + std::to_string(this->numel) + ".");
-        }
-    }
-
-    void _set_data(const std::vector<double>& data) {
-        this->is_initializer = true;
-        this->data = data;
     }
 
     std::vector<double> get_data() {
