@@ -25,6 +25,7 @@ typedef enum {
     _reduce_sum,
     _concat,
     _average_pool,
+    _leaky_relu,
     _unsupported,
 } OType; /* Operator Type */
 typedef enum { LOWER, UPPER} Side;

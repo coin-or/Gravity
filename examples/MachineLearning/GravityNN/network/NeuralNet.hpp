@@ -115,6 +115,8 @@ public:
                 node_ptr = new ReduceSum(node, this->tensors);
             } else if (node.op_type() == "AveragePool") {
                 node_ptr = new AveragePool(node, this->tensors);
+            } else if (node.op_type() == "LeakyRelu") {
+                node_ptr = new LeakyRelu(node, this->tensors);
             } else {
                 node_ptr = new UnsupportedLayer(node, this->tensors);
             }

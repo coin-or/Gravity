@@ -349,21 +349,19 @@ public:
     }
 
     void index_constraint_2d(IndexSet& inds) {
-        // Output indexing
-        for (auto j = 0; j < this->Y->numel; j++) {
-            inds["Constr"].add(this->name + "," + to_string(j));
-        }
-
         auto& oInd = inds["Out"];
         auto& wInd = inds["W"];
         auto& iInd = inds["In"];
         auto& bInd = inds["B"];
+        auto& cInd = inds["Constr"];
 
         for (int ob = 0; ob < this->Y->shape[0]; ob++) {
             for (int oh = 0; oh < this->out_h; oh++) {
                 for (int ow = 0; ow < this->out_w; ow++) {
                     for (int oc = 0; oc < this->out_c; oc++) {
-                        oInd.add_ref(this->Y->strkey(ob, oc, oh, ow));
+                        auto okey = this->Y->strkey(ob, oc, oh, ow);
+                        oInd.add_ref(okey);
+                        cInd.add(okey);
                         for (int kh = 0; kh < this->kern_h; kh++) {
                             for (int kw = 0; kw < this->kern_w; kw++) {
                                 for (int kc = 0; kc < this->kern_c; kc++) {

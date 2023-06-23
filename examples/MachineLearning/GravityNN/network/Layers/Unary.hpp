@@ -139,17 +139,83 @@ public:
         ReLU = x.in(inds["Out"]) - x.in(inds["In"]);
         NN.add(ReLU.in(inds["Constr"]) >= 0);
 
+        // Using == 0 instead of <= 0 on these constraints seems better
         Constraint<> ReLU_on("ReLU_on");
         ReLU_on = x.in(inds["Out"]) - x.in(inds["In"]);
-        NN.add_on_off(ReLU_on.in(inds["Constr"]) <= 0, y.in(inds["Constr"]), true);
+        NN.add_on_off(ReLU_on.in(inds["Constr"]) == 0, y.in(inds["Constr"]), true);
 
         Constraint<> ReLU_y_off("ReLU_y_off");
         ReLU_y_off = x.in(inds["Out"]);
-        NN.add_on_off(ReLU_y_off.in(inds["Constr"]) <= 0, y.in(inds["Constr"]), false);
+        NN.add_on_off(ReLU_y_off.in(inds["Constr"]) == 0, y.in(inds["Constr"]), false);
     }
 
     Tensor* X; // Input
     Tensor* Y; // Output
+};
+
+class LeakyRelu : public Layer {
+public:
+    LeakyRelu(const onnx::NodeProto& node, Tensors& tensors): Layer(node, tensors) {
+        operator_type = _leaky_relu;
+        this->X = &tensors.at(node.input(0));
+        this->Y = &tensors.at(node.output(0));
+
+        if (const auto* alpha_attr = find_attribute("alpha", node)) {
+            this->alpha = alpha_attr->f();
+        }
+
+        std::cout << "WARNING: LeakyRelu does not work properly!" << std::endl;
+        std::cout << "WARNING: LeakyRelu does not work properly!" << std::endl;
+        std::cout << "WARNING: LeakyRelu does not work properly!" << std::endl;
+    }
+
+    std::vector<std::vector<std::string>> get_indices() const override {
+        return {{"In", "Out"}, {"alpha"}};
+    }
+
+    void index_hidden_states(indices& hidden_states, indices& y_ids) override {
+        for (auto output: this->outputs) {
+            for (auto i = 0; i < output->numel; i++) {
+                hidden_states.add(output->strkey(i));
+                y_ids.add(output->strkey(i));
+            }
+        }
+    }
+
+    void index_constraint(IndexSet& inds) override {
+        for(auto j = 0; j < this->X->numel; j++){
+            inds["Constr"].add(this->Y->strkey(j));
+            inds["In"].add_ref(this->X->strkey(j));
+            inds["Out"].add_ref(this->Y->strkey(j));
+            inds["alpha"].add_ref(this->Y->strkey(j) + "_alpha");
+        }
+    }
+
+    void add_parameters(gravity::param<>& w) const override {
+        for (auto i = 0; i < this->Y->numel; i++) {
+            w.add_val(this->Y->strkey(i) + "_alpha", this->alpha);
+        }
+    }
+
+    void add_constraints(gravity::Model<>& NN, IndexSet& inds, gravity::param<>& w, gravity::var<>& x, gravity::var<int>& y) override {
+        /* Constraints */
+        Constraint<> LeakyReLU("LeakyReLU");
+        LeakyReLU = x.in(inds["Out"]) - w.in(inds["alpha"])*x.in(inds["In"]);
+        NN.add(LeakyReLU.in(inds["Constr"]) >= 0);
+
+        Constraint<> LeakyReLU_on("LeakyReLU_on");
+        LeakyReLU_on = x.in(inds["Out"]) - x.in(inds["In"]);
+        NN.add_on_off(LeakyReLU_on.in(inds["Constr"]) == 0, y.in(inds["Constr"]), true);
+
+        Constraint<> LeakyReLU_off("LeakyReLU_off");
+        LeakyReLU_off = x.in(inds["Out"]) - w.in(inds["alpha"]) * x.in(inds["In"]);
+        NN.add_on_off(LeakyReLU_off.in(inds["Constr"]) == 0, y.in(inds["Constr"]), false);
+    }
+
+    Tensor* X; // Input
+    Tensor* Y; // Output
+
+    double alpha = 0.01;
 };
 
 class Neg : public Layer {
