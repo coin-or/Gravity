@@ -79,11 +79,25 @@ public:
     }
 
     double get_lb(size_t output_index, size_t neuron_index) const {
-        return std::max(this->outputs.at(output_index)->lb.at(neuron_index) - 1e-6, this->range_lower);
+        auto lb = this->outputs.at(output_index)->lb.at(neuron_index);
+        auto ub = this->outputs.at(output_index)->ub.at(neuron_index);
+        // Numerical issues
+        if (lb == ub) {
+            return std::max(lb - 1e-6, this->range_lower);
+        } else {
+            return std::max(lb, this->range_lower);
+        }
     }
 
     double get_ub(size_t output_index, size_t neuron_index) const {
-        return std::min(this->outputs.at(output_index)->ub.at(neuron_index) + 1e-6, this->range_upper);
+        auto lb = this->outputs.at(output_index)->lb.at(neuron_index);
+        auto ub = this->outputs.at(output_index)->ub.at(neuron_index);
+        // Numerical issues
+        if (lb == ub) {
+            return std::min(ub + 1e-6, this->range_upper);
+        } else {
+            return std::min(ub, this->range_upper);
+        }
     }
 
     bool is_bounded(size_t output_index) {
