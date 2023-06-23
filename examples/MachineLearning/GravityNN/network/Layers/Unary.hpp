@@ -164,9 +164,9 @@ public:
             this->alpha = alpha_attr->f();
         }
 
-        std::cout << "WARNING: LeakyRelu does not work properly!" << std::endl;
-        std::cout << "WARNING: LeakyRelu does not work properly!" << std::endl;
-        std::cout << "WARNING: LeakyRelu does not work properly!" << std::endl;
+        if (this->alpha > 1.0 || this->alpha < 0.0) {
+            throw std::runtime_error("LeakyRelu: alpha must be between 0 and 1 in our formulation.");
+        }
     }
 
     std::vector<std::vector<std::string>> get_indices() const override {
@@ -202,6 +202,10 @@ public:
         Constraint<> LeakyReLU("LeakyReLU");
         LeakyReLU = x.in(inds["Out"]) - w.in(inds["alpha"])*x.in(inds["In"]);
         NN.add(LeakyReLU.in(inds["Constr"]) >= 0);
+
+        Constraint<> LeakyReLU2("LeakyReLU2");
+        LeakyReLU2 = x.in(inds["Out"]) - x.in(inds["In"]);
+        NN.add(LeakyReLU2.in(inds["Constr"]) >= 0);
 
         Constraint<> LeakyReLU_on("LeakyReLU_on");
         LeakyReLU_on = x.in(inds["Out"]) - x.in(inds["In"]);
