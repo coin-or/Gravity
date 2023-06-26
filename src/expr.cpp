@@ -106,19 +106,19 @@ namespace gravity {
         }
         switch(otype){
             case product_:{
-                this->_range = get_product_range(lson_range, rson_range);
+                *this->_range = get_product_range(*lson_range, *rson_range);
             }
                 break;
             case plus_:{
-                this->_range = get_plus_range(lson_range, rson_range);
+                *this->_range = get_plus_range(*lson_range, *rson_range);
             }
                 break;
             case minus_:{
-                this->_range = get_minus_range(lson_range, rson_range);
+                *this->_range = get_minus_range(*lson_range, *rson_range);
             }
                 break;
             case div_:{
-                this->_range = get_div_range(lson_range, rson_range);
+                *this->_range = get_div_range(*lson_range, *rson_range);
             }
                 break;
             default:
