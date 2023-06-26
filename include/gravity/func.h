@@ -608,6 +608,46 @@ namespace gravity {
         res.second = gravity::max(max1,max2);
         return res;
     }
+
+    template<class T1, class T2, typename enable_if<is_convertible<T2, T1>::value && sizeof(T2) <= sizeof(T1)>::type* = nullptr>
+    vector<pair<T1,T1>> get_product_range(const vector<pair<T1,T1>>& x, const vector<pair<T2,T2>>& y){
+        vector<pair<T1,T1>> res;
+        assert(x.size()==y.size());
+#pragma omp parallel for num_threads(get_num_threads() / 2)
+        for(auto i = 0; i<x.size(); i++){
+            T1 x1 = x[i].first;
+            T1 x2 = x[i].second;
+            T1 y1 = y[i].first;
+            T1 y2 = y[i].second;
+            T1 min1 = gravity::min(extended_mult(x1,y1), extended_mult(x1,y2));
+            T1 min2 = gravity::min(extended_mult(x2,y1), extended_mult(x2,y2));
+            T1 max1 = gravity::max(extended_mult(x1,y1), extended_mult(x1,y2));
+            T1 max2 = gravity::max(extended_mult(x2,y1), extended_mult(x2,y2));
+            res[i].first = gravity::min(min1,min2);
+            res[i].second = gravity::max(max1,max2);
+        }
+        return res;
+    }
+
+    template<class T1, class T2, typename enable_if<is_convertible<T1, T2>::value && sizeof(T1) < sizeof(T2)>::type* = nullptr>
+    vector<pair<T2,T2>> get_product_range(const vector<pair<T1,T1>>& x, const vector<pair<T2,T2>>& y){
+        vector<pair<T2,T2>> res;
+        assert(x.size()==y.size());
+#pragma omp parallel for num_threads(get_num_threads() / 2)
+        for(auto i = 0; i<x.size(); i++){
+            T2 x1 = x[i].first;
+            T2 x2 = x[i].second;
+            T2 y1 = y[i].first;
+            T2 y2 = y[i].second;
+            T2 min1 = gravity::min(extended_mult(x1,y1), extended_mult(x1,y2));
+            T2 min2 = gravity::min(extended_mult(x2,y1), extended_mult(x2,y2));
+            T2 max1 = gravity::max(extended_mult(x1,y1), extended_mult(x1,y2));
+            T2 max2 = gravity::max(extended_mult(x2,y1), extended_mult(x2,y2));
+            res[i].first = gravity::min(min1,min2);
+            res[i].second = gravity::max(max1,max2);
+        }
+        return res;
+    }
     
     template<class T1, class T2, typename enable_if<is_convertible<T1, T2>::value && sizeof(T1) < sizeof(T2)>::type* = nullptr>
     pair<T2,T2> get_product_range(const pair<T1,T1>& x, const pair<T2,T2>& y){
@@ -639,6 +679,48 @@ namespace gravity {
         inv_range2.second = 1./inv_range2.second;
         return get_product_range<T1, T1, nullptr>(range1, inv_range2);
     }
+
+    template<class T1, class T2, typename enable_if<is_convertible<T2, T1>::value && sizeof(T2) <= sizeof(T1)>::type* = nullptr>
+    vector<pair<T1,T1>> get_div_range(const vector<pair<T1,T1>>& range1, const vector<pair<T2,T2>>& range2){
+        assert(range1.size()==range2.size());
+        vector<pair<T1,T1>> res;
+        #pragma omp parallel for num_threads(get_num_threads() / 2)
+        for(auto i = 0; i<range1.size(); i++){
+            if(range2[i].first==numeric_limits<T2>::lowest() || range2[i].second==numeric_limits<T2>::max()
+               || range1[i].first==numeric_limits<T1>::lowest()|| range1[i].second==numeric_limits<T1>::max()){
+                res[i].first =numeric_limits<T1>::lowest();
+                res[i].second =numeric_limits<T1>::max();
+            }
+            else{
+                auto inv_range2 = range2[i];
+                inv_range2.first = 1./inv_range2.first;
+                inv_range2.second = 1./inv_range2.second;
+                res[i] = get_product_range<T1, T1, nullptr>(range1[i], inv_range2);
+            }
+        }
+        return res;
+    }
+
+    template<class T1, class T2, typename enable_if<is_convertible<T1, T2>::value && sizeof(T1) < sizeof(T2)>::type* = nullptr>
+    vector<pair<T2,T2>> get_div_range(const vector<pair<T1,T1>>& range1, const vector<pair<T2,T2>>& range2){
+        assert(range1.size()==range2.size());
+        vector<pair<T2,T2>> res;
+        #pragma omp parallel for num_threads(get_num_threads() / 2)
+        for(auto i = 0; i<range1.size(); i++){
+            if(range2[i].first==numeric_limits<T2>::lowest() || range2[i].second==numeric_limits<T2>::max()
+               || range1[i].first==numeric_limits<T1>::lowest()|| range1[i].second==numeric_limits<T1>::max()){
+                res[i].first =numeric_limits<T2>::lowest();
+                res[i].second =numeric_limits<T2>::max();
+            }
+            else{
+                auto inv_range2 = range2[i];
+                inv_range2.first = 1./inv_range2.first;
+                inv_range2.second = 1./inv_range2.second;
+                res[i] = get_product_range<T2, T2, nullptr>(range1[i], inv_range2);
+            }
+        }
+        return res;
+    }
     
     template<class T1, class T2, typename enable_if<is_convertible<T1, T2>::value && sizeof(T1) < sizeof(T2)>::type* = nullptr>
     pair<T2,T2> get_div_range(const pair<T1,T1>& range1, const pair<T2,T2>& range2){
@@ -666,9 +748,41 @@ namespace gravity {
         res.second = extended_plus(x2,y2);
         return res;
     }
+
+    template<class T1, class T2, typename enable_if<is_convertible<T2, T1>::value && sizeof(T2) <= sizeof(T1)>::type* = nullptr>
+    vector<pair<T1,T1>> get_plus_range(const vector<pair<T1,T1>>& x, const vector<pair<T2,T2>>& y){
+        vector<pair<T1,T1>> res;
+        assert(x.size()==y.size());
+        #pragma omp parallel for num_threads(get_num_threads() / 2)
+        for(auto i = 0; i<x.size(); i++){
+            T1 x1 = x[i].first;
+            T1 x2 = x[i].second;
+            T1 y1 = y[i].first;
+            T1 y2 = y[i].second;
+            res[i].first = extended_plus(x1,y1);
+            res[i].second = extended_plus(x2,y2);
+        }
+        return res;
+    }
     
     template<class T1, class T2, typename enable_if<is_convertible<T1, T2>::value && sizeof(T1) < sizeof(T2)>::type* = nullptr>
-    pair<T1,T1> get_plus_range(const pair<T1,T1>& x, const pair<T2,T2>& y){
+    vector<pair<T2,T2>> get_plus_range(const vector<pair<T1,T1>>& x, const vector<pair<T2,T2>>& y){
+        vector<pair<T2,T2>> res;
+        assert(x.size()==y.size());
+        #pragma omp parallel for num_threads(get_num_threads() / 2)
+        for(auto i = 0; i<x.size(); i++){
+            T2 x1 = x[i].first;
+            T2 x2 = x[i].second;
+            T2 y1 = y[i].first;
+            T2 y2 = y[i].second;
+            res[i].first = extended_plus(x1,y1);
+            res[i].second = extended_plus(x2,y2);
+        }
+        return res;
+    }
+
+    template<class T1, class T2, typename enable_if<is_convertible<T1, T2>::value && sizeof(T1) < sizeof(T2)>::type* = nullptr>
+    pair<T2,T2> get_plus_range(const pair<T1,T1>& x, const pair<T2,T2>& y){
         pair<T2,T2> res;
         T2 x1 = x.first;
         T2 x2 = x.second;
@@ -679,6 +793,37 @@ namespace gravity {
         return res;
     }
     
+    template<class T1, class T2, typename enable_if<is_convertible<T2, T1>::value && sizeof(T2) <= sizeof(T1)>::type* = nullptr>
+    vector<pair<T1,T1>> get_minus_range(const vector<pair<T1,T1>>& x, const vector<pair<T2,T2>>& y){
+        vector<pair<T1,T1>> res;
+        assert(x.size()==y.size());
+        #pragma omp parallel for num_threads(get_num_threads() / 2)
+        for(auto i = 0; i<x.size(); i++){
+            T1 x1 = x[i].first;
+            T1 x2 = x[i].second;
+            T1 y1 = y[i].first;
+            T1 y2 = y[i].second;
+            res[i].first = extended_minus(x1,y2);
+            res[i].second = extended_minus(x2,y1);
+        }
+        return res;
+    }
+
+    template<class T1, class T2, typename enable_if<is_convertible<T1, T2>::value && sizeof(T1) < sizeof(T2)>::type* = nullptr>
+    vector<pair<T2,T2>> get_minus_range(const vector<pair<T1,T1>>& x, const vector<pair<T2,T2>>& y){
+        vector<pair<T2,T2>> res;
+        assert(x.size()==y.size());
+        #pragma omp parallel for num_threads(get_num_threads() / 2)
+        for(auto i = 0; i<x.size(); i++){
+            T2 x1 = x[i].first;
+            T2 x2 = x[i].second;
+            T2 y1 = y[i].first;
+            T2 y2 = y[i].second;
+            res[i].first = extended_minus(x1,y2);
+            res[i].second = extended_minus(x2,y1);
+        }
+        return res;
+    }
     
     template<class T1, class T2, typename enable_if<is_convertible<T2, T1>::value && sizeof(T2) <= sizeof(T1)>::type* = nullptr>
     pair<T1,T1> get_minus_range(const pair<T1,T1>& x, const pair<T2,T2>& y){
@@ -693,7 +838,7 @@ namespace gravity {
     }
     
     template<class T1, class T2, typename enable_if<is_convertible<T1, T2>::value && sizeof(T1) < sizeof(T2)>::type* = nullptr>
-    pair<T1,T1> get_minus_range(const pair<T1,T1>& x, const pair<T2,T2>& y){
+    pair<T2,T2> get_minus_range(const pair<T1,T1>& x, const pair<T2,T2>& y){
         pair<T2,T2> res;
         T2 x1 = x.first;
         T2 x2 = x.second;
