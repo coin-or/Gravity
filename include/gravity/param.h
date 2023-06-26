@@ -612,11 +612,11 @@ namespace gravity {
     public:
 
         shared_ptr<vector<type>>                _val = nullptr; /**< vector of values **/
-        shared_ptr<pair<type,type>>             _range = nullptr; /**< (Min,Max) values in vals **/
+        shared_ptr<pair<type,type>>             _range = make_shared<pair<type,type>>(); /**< (Min,Max) values in vals **/
 
         param() {
             update_type();
-            _range = make_shared<pair<type,type>>(make_pair<>(numeric_limits<type>::max(), numeric_limits<type>::lowest()));
+            *_range = (make_pair<>(numeric_limits<type>::max(), numeric_limits<type>::lowest()));
             _val = make_shared<vector<type>>();
             _in = make_shared<bool>(true);
         }
@@ -734,7 +734,7 @@ namespace gravity {
             res._vec_id = make_shared<size_t>(*_vec_id);
             res._val = make_shared<vector<type>>();
             res.copy_vals(*this);
-            res._range = make_shared<pair<type,type>>(*_range);
+            *res._range = pair<type,type>(*_range);
             res._name = _name;
             res._is_transposed = _is_transposed;
             res._is_vector = _is_vector;
@@ -806,7 +806,6 @@ namespace gravity {
             for(auto i = 0; i<p._val->size();i++){
                 _val->at(i) = p._val->at(i);
             }
-            _range = make_shared<pair<type,type>>();
             _range->first = p._range->first;
             _range->second = p._range->second;
             _name = p._name;
@@ -1068,7 +1067,7 @@ namespace gravity {
         
         template<class T=type, class = typename enable_if<is_same<T, Cpx>::value>::type>
         void init_range() {
-            _range = make_shared<pair<type,type>>(make_pair<>(Cpx(numeric_limits<double>::max(), numeric_limits<double>::max()), Cpx(numeric_limits<double>::lowest(), numeric_limits<double>::lowest())));
+            *_range = (make_pair<>(Cpx(numeric_limits<double>::max(), numeric_limits<double>::max()), Cpx(numeric_limits<double>::lowest(), numeric_limits<double>::lowest())));
         }
 
         

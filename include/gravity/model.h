@@ -6388,20 +6388,20 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
                         auto coef = lt.second._coef->copy();
                         if (coef->is_function()) {
                             auto f_cst = *((func<type>*)(coef.get()));
-                            auto var_range = make_shared<pair<type,type>>(c.get_range(lt.second._p));
-                            term_range = get_product_range(f_cst._range,var_range);
+                            auto var_range = (c.get_range(lt.second._p));
+                            term_range = get_product_range(*f_cst._range,var_range);
                             LHS.insert(lt.second._sign, f_cst, *lt.second._p);
                         }
                         else if(coef->is_param()) {
                             auto p_cst = *((param<type>*)(coef.get()));
-                            auto var_range = make_shared<pair<type,type>>(c.get_range(lt.second._p));
-                            term_range = get_product_range(p_cst._range,var_range);
+                            auto var_range = (c.get_range(lt.second._p));
+                            term_range = get_product_range(*p_cst._range,var_range);
                             LHS.insert(lt.second._sign, p_cst, *lt.second._p);
                         }
                         else if(coef->is_number()) {
                             auto p_cst = *((constant<type>*)(coef.get()));
-                            auto var_range = make_shared<pair<type,type>>(c.get_range(lt.second._p));
-                            term_range = get_product_range(make_shared<pair<type,type>>(p_cst.eval(),p_cst.eval()),var_range);
+                            auto var_range = (c.get_range(lt.second._p));
+                            term_range = get_product_range(pair<type,type>(p_cst.eval(),p_cst.eval()),var_range);
                             LHS.insert(lt.second._sign, p_cst, *lt.second._p);
                         }
                         //update the ranges of the function appropriately

@@ -875,11 +875,11 @@ namespace gravity {
         
         shared_ptr<map<string,shared_ptr<func>>>                _dfdx = nullptr;/**< A map storing the derivatives indexed by variables' names */
         shared_ptr<vector<type>>                                _val = nullptr; /**< vector of values **/
-        shared_ptr<pair<type,type>>                             _range = nullptr; /**< (Min,Max) values in vals **/
-        shared_ptr<vector<pair<type,type>>>                     _all_range = nullptr; /**< Vector of (Min,Max) values for each instance of this func **/
+        shared_ptr<pair<type,type>>                             _range = make_shared<pair<type,type>>(); /**< (Min,Max) values in vals **/
+        shared_ptr<vector<pair<type,type>>>                     _all_range = make_shared<vector<pair<type,type>>>(); /**< Vector of (Min,Max) values for each instance of this func **/
         
         void update_range(){
-            _range = make_shared<pair<type,type>>(make_pair<>(zero<type>().eval(), zero<type>().eval()));
+            *_range = (make_pair<>(zero<type>().eval(), zero<type>().eval()));
         }
         
         
@@ -1304,27 +1304,27 @@ namespace gravity {
         template<typename T=type,
         typename std::enable_if<is_arithmetic<T>::value>::type* = nullptr>
         void init_range() {
-            _range = make_shared<pair<type,type>>(make_pair<>(numeric_limits<type>::max(), numeric_limits<type>::lowest()));
-            _all_range = make_shared<vector<pair<type,type>>>(get_dim(), {numeric_limits<type>::max(), numeric_limits<type>::lowest()});
+            *_range = (make_pair<>(numeric_limits<type>::max(), numeric_limits<type>::lowest()));
+            *_all_range = vector<pair<type,type>>(get_dim(), {numeric_limits<type>::max(), numeric_limits<type>::lowest()});
         }
         
         
         template<class T=type, class = typename enable_if<is_same<T, Cpx>::value>::type>
         void init_range() {
-            _range = make_shared<pair<type,type>>(make_pair<>(Cpx(numeric_limits<double>::max(), numeric_limits<double>::max()), Cpx(numeric_limits<double>::lowest(), numeric_limits<double>::lowest())));
+            *_range = (make_pair<>(Cpx(numeric_limits<double>::max(), numeric_limits<double>::max()), Cpx(numeric_limits<double>::lowest(), numeric_limits<double>::lowest())));
         }
         
         template<typename T=type,
         typename std::enable_if<is_arithmetic<T>::value>::type* = nullptr>
         void unbounded_range() {
-            _range = make_shared<pair<type,type>>(make_pair<>(numeric_limits<type>::lowest(), numeric_limits<type>::max()));
-            _all_range = make_shared<vector<pair<type,type>>>(get_dim(), pair<type,type>(numeric_limits<type>::lowest(), numeric_limits<type>::max()));
+            *_range = (make_pair<>(numeric_limits<type>::lowest(), numeric_limits<type>::max()));
+            *_all_range = vector<pair<type,type>>(get_dim(), pair<type,type>(numeric_limits<type>::lowest(), numeric_limits<type>::max()));
         }
         
         
         template<class T=type, class = typename enable_if<is_same<T, Cpx>::value>::type>
         void unbounded_range() {
-            _range = make_shared<pair<type,type>>(make_pair<>(Cpx(numeric_limits<double>::lowest(), numeric_limits<double>::lowest()), Cpx(numeric_limits<double>::max(), numeric_limits<double>::max())));
+            *_range = (make_pair<>(Cpx(numeric_limits<double>::lowest(), numeric_limits<double>::lowest()), Cpx(numeric_limits<double>::max(), numeric_limits<double>::max())));
         }
         
         /**
@@ -3879,7 +3879,6 @@ namespace gravity {
                 (*_vars)[vp.second.first->get_name(false,false)] = {vp.second.first->ptr_deep_copy(),vp.second.second};
             }
             _val = make_shared<vector<type>>();
-            _range = make_shared<pair<type,type>>();
             _lterms = make_shared<map<string, lterm>>();
             _qterms = make_shared<map<string, qterm>>();
             _pterms = make_shared<map<string, pterm>>();
@@ -4034,7 +4033,6 @@ namespace gravity {
                 (*_vars)[vp.second.first->get_name(false,false)] = {vp.second.first->ptr_deep_copy(),vp.second.second};
             }
             _val = make_shared<vector<type>>();
-            _range = make_shared<pair<type,type>>();
             _lterms = make_shared<map<string, lterm>>();
             _qterms = make_shared<map<string, qterm>>();
             _pterms = make_shared<map<string, pterm>>();
@@ -4194,7 +4192,6 @@ namespace gravity {
                 _cst = constant<type>(coef.eval()).copy();
             }
             _val = make_shared<vector<type>>();
-            _range = make_shared<pair<type,type>>();
             _vars = make_shared<map<string, pair<shared_ptr<param_>, unsigned>>>();
             _lterms = make_shared<map<string, lterm>>();
             _qterms = make_shared<map<string, qterm>>();
@@ -4283,7 +4280,6 @@ namespace gravity {
                 _cst = constant<type>(coef.eval()).copy();
             }
             _val = make_shared<vector<type>>();
-            _range = make_shared<pair<type,type>>();
             _vars = make_shared<map<string, pair<shared_ptr<param_>, unsigned>>>();
             _lterms = make_shared<map<string, lterm>>();
             _qterms = make_shared<map<string, qterm>>();
