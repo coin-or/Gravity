@@ -249,9 +249,10 @@ public:
                 inner_ind.at(this->axis) = axind;
 
                 inds["Constr"].add(this->Y->strkey(inner_ind));
+                inds["Out"].add_ref(this->Y->strkey(inner_ind));
+
                 inds["In"].add_ref(this->X->strkey(inner_ind));
                 inds["ExpAux"].add_ref(this->Y->strkey(inner_ind) + "_exp_aux");
-                inds["Out"].add_ref(this->Y->strkey(inner_ind));
 
                 inds["ExpSum"].add_in_row(inds.row_id, this->Y->strkey(inner_ind) + "_exp_aux");
                 inds["SumProd"].add_ref(this->Y->strkey(outer_ind) + "_sum_aux");
@@ -276,6 +277,26 @@ public:
         Constraint<> Out_("Softmax_Out");
         Out_ = x.in(inds["Out"])*x.in(inds["SumProd"]) - x.in(inds["ExpAux"]);
         NN.add(Out_.in(inds["Constr"]) == 0);
+    }
+
+    void set_bounds(gravity::param<>& x_lb, gravity::param<>& x_ub) override {
+        auto outer_shape = this->X->shape;
+        outer_shape.at(this->axis) = 1;
+
+        for (auto outer_ind: ShapeIter(outer_shape)) {
+            x_lb.add_val(this->Y->strkey(outer_ind) + "_sum_aux", 0.0);
+            x_ub.add_val(this->Y->strkey(outer_ind) + "_sum_aux", HMAX);
+            for (size_t axind = 0; axind < this->X->shape.at(this->axis); axind++) {
+                auto inner_ind = outer_ind;
+                inner_ind.at(this->axis) = axind;
+
+                x_lb.add_val(this->Y->strkey(inner_ind), 0.0);
+                x_ub.add_val(this->Y->strkey(inner_ind), 1.0);
+
+                x_lb.add_val(this->Y->strkey(inner_ind) + "_exp_aux", 0.0);
+                x_ub.add_val(this->Y->strkey(inner_ind) + "_exp_aux", HMAX);
+            }
+        }
     }
 
     Tensor *X, *Y; // Input and output

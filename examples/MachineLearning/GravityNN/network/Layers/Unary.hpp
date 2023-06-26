@@ -402,3 +402,75 @@ public:
     std::vector<int> pads;
     std::vector<int> strides;
 };
+
+class SigNum : public Layer {
+public:
+    SigNum(const onnx::NodeProto& node, Tensors& tensors): Layer(node, tensors) {
+        operator_type = _sign;
+        this->X = &tensors.at(node.input(0));
+        this->Y = &tensors.at(node.output(0));
+
+        this->range_lower = -1.0;
+        this->range_upper =  1.0;
+    }
+
+    std::vector<std::vector<std::string>> get_indices() const override {
+        return {{"In", "Out"}, {}, {"z0", "z1", "z2"}};
+    }
+
+    void index_hidden_states(indices& hidden_states, indices& y_ids) override {
+        for (auto i = 0; i < this->Y->numel; i++) {
+            hidden_states.add(this->Y->strkey(i));
+            y_ids.add(this->Y->strkey(i) + "z0");
+            y_ids.add(this->Y->strkey(i) + "z1");
+            y_ids.add(this->Y->strkey(i) + "z2");
+        }
+    }
+
+    void index_constraint(IndexSet& inds) override {
+        for(auto j = 0; j < this->X->numel;j++){
+            inds["Constr"].add(this->Y->strkey(j));
+            inds["In"].add_ref(this->X->strkey(j));
+            inds["Out"].add_ref(this->Y->strkey(j));
+
+            inds["z0"].add_in_row(inds.row_id, this->Y->strkey(j) + "z0");
+            inds["z1"].add_in_row(inds.row_id, this->Y->strkey(j) + "z1");
+            inds["z2"].add_in_row(inds.row_id, this->Y->strkey(j) + "z2");
+
+            inds.row_id++;
+        }
+    }
+
+    void add_constraints(gravity::Model<>& NN, IndexSet& inds, gravity::param<>& w, gravity::var<>& x, gravity::var<int>& y) override {
+        Constraint<> SignSum("ReLU_on");
+        SignSum = y.in(inds["z0"]) + y.in(inds["z1"]) + y.in(inds["z2"]);
+        NN.add(SignSum.in(inds["Constr"]) == 1);
+
+        Constraint<> SignConstraint1("SignConstraint_Z0");
+        SignConstraint1 = x.in(inds["In"]);
+        NN.add_on_off(SignConstraint1.in(inds["Constr"]) == 0, y.in(inds["z0"]), true);
+
+        Constraint<> SignConstraint2("SignConstraint_Z1_a");
+        SignConstraint2 = x.in(inds["In"]);
+        NN.add_on_off(SignConstraint2.in(inds["Constr"]) >= 0, y.in(inds["z1"]), true);
+
+        Constraint<> SignConstraint3("SignConstraint_Z1_b");
+        SignConstraint3 = x.in(inds["In"]);
+        NN.add_on_off(SignConstraint3.in(inds["Constr"]) <= 0, y.in(inds["z1"]), false);
+
+        Constraint<> SignConstraint4("SignConstraint_Z2_a");
+        SignConstraint4 = x.in(inds["In"]);
+        NN.add_on_off(SignConstraint4.in(inds["Constr"]) <= 0, y.in(inds["z2"]), true);
+
+        Constraint<> SignConstraint5("SignConstraint_Z2_b");
+        SignConstraint5 = x.in(inds["In"]);
+        NN.add_on_off(SignConstraint5.in(inds["Constr"]) >= 0, y.in(inds["z2"]), false);
+
+        Constraint<> SignConstraint6("SignConstraint_out");
+        SignConstraint6 = x.in(inds["Out"]) - (1 - y.in(inds["z0"])) + y.in(inds["z1"]) - 2 * y.in(inds["z2"]);
+        NN.add(SignConstraint6.in(inds["Constr"]) == 0);
+    }
+
+    Tensor* X; // Input
+    Tensor* Y; // Output
+};
