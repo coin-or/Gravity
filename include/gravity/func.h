@@ -1305,6 +1305,7 @@ namespace gravity {
         typename std::enable_if<is_arithmetic<T>::value>::type* = nullptr>
         void init_range() {
             _range = make_shared<pair<type,type>>(make_pair<>(numeric_limits<type>::max(), numeric_limits<type>::lowest()));
+            _all_range = make_shared<vector<pair<type,type>>>(get_dim(), {numeric_limits<type>::max(), numeric_limits<type>::lowest()});
         }
         
         
@@ -1317,6 +1318,7 @@ namespace gravity {
         typename std::enable_if<is_arithmetic<T>::value>::type* = nullptr>
         void unbounded_range() {
             _range = make_shared<pair<type,type>>(make_pair<>(numeric_limits<type>::lowest(), numeric_limits<type>::max()));
+            _all_range = make_shared<vector<pair<type,type>>>(get_dim(), pair<type,type>(numeric_limits<type>::lowest(), numeric_limits<type>::max()));
         }
         
         
@@ -8724,7 +8726,7 @@ namespace gravity {
         }
         res._all_sign = sign_add(p1.get_all_sign(), p2.get_all_sign());
         if(res.is_quadratic()){res.update_quad_convexity();}
-        res._range = get_plus_range(p1._range,p2._range);
+        *res._range = get_plus_range(*p1._range,*p2._range);
         return res;
     }
     
@@ -8748,7 +8750,7 @@ namespace gravity {
         }
         res._all_sign = sign_add(p1.get_all_sign(), reverse(p2.get_all_sign()));
         if(res.is_quadratic()){res.update_quad_convexity();}
-        res._range = get_minus_range(p1._range, p2._range);
+        *res._range = get_minus_range(*p1._range, *p2._range);
         return res;
     }
     
@@ -10199,7 +10201,7 @@ namespace gravity {
         func<T1> res(v);
         res.reverse_sign();
         res.add_cst(p);
-        res._range = get_minus_range(p.range(),v._range);
+        *res._range = get_minus_range(*p.range(),*v._range);
         res.update_all_sign();
         return res;
     }
@@ -10501,7 +10503,7 @@ namespace gravity {
         }
         res.update_dot_dim(new_c,p);
         res.insert(true,new_c,p);
-        res._range = get_product_range(*new_c.range(), *p._range);
+        *res._range = get_product_range(*new_c.range(), *p._range);
         res.update_all_sign();
         if(c._is_transposed){
             res._range->first = extended_mult(res._range->first,(T1)p._dim[0]);

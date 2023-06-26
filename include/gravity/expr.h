@@ -10,6 +10,7 @@
 #define expr_h
 
 #include <gravity/poly.h>
+#include<algorithm>
 #include <stdio.h>
 #include <map>
 #include <iterator>
@@ -33,7 +34,8 @@ namespace gravity {
         Convexity                              _all_convexity = linear_; /**< If all instances of this expression have the same convexity type, it stores it here, i.e. linear, convex, concave, otherwise it stores unknown. >>**/
         Sign                                   _all_sign = zero_; /**< If all instances of this expression have the same sign, it stores it here, otherwise it stores unknown. >>**/
 
-        shared_ptr<pair<type,type>>            _range; /**< (Min,Max) values of expression **/
+        shared_ptr<pair<type,type>>            _range = nullptr; /**< (Min,Max) values of expression **/
+        shared_ptr<vector<pair<type,type>>>    _all_range = nullptr; /**< Vector of (Min,Max) values for each instance of this expr **/
         string                                 _to_str; /**< A string representation of the expression */
         
         virtual void in(const indices& ids){};
@@ -184,6 +186,7 @@ namespace gravity {
             _otype = ot;
             _son = son;
             this->_range = make_shared<pair<type,type>>();
+            this->_all_range = make_shared<vector<pair<type,type>>>();
             this->_type = uexp_c;
             this->_dim[0] = son->_dim[0];
             this->_dim[1] = son->_dim[1];
@@ -200,9 +203,11 @@ namespace gravity {
             this->_all_convexity = exp._all_convexity;
             this->_all_sign = exp._all_sign;
             if(exp._range){
-                this->_range = make_shared<pair<type,type>>();
                 this->_range->first = exp._range->first;
                 this->_range->second = exp._range->second;
+            }
+            if(exp._all_range){
+                *this->_all_range = *exp._all_range;
             }
             this->_to_str = exp._to_str;
             this->_coef = exp._coef;
@@ -220,6 +225,7 @@ namespace gravity {
             this->_all_convexity = exp._all_convexity;
             this->_all_sign = exp._all_sign;
             this->_range = move(exp._range);
+            this->_all_range = move(exp._all_range);
             this->_to_str = exp._to_str;
             this->_coef = exp._coef;
             this->_is_vector = exp._is_vector;
@@ -240,7 +246,8 @@ namespace gravity {
         
         uexpr(){
             this->_type = uexp_c;
-	    this->_range = make_shared<pair<type,type>>();
+            this->_range = make_shared<pair<type,type>>();
+            this->_all_range = make_shared<vector<pair<type,type>>>();
         }
         
         void print() {
@@ -256,10 +263,13 @@ namespace gravity {
             this->_all_convexity = exp._all_convexity;
             this->_all_sign = exp._all_sign;
             if(exp._range){
-                this->_range = make_shared<pair<type,type>>();
                 this->_range->first = exp._range->first;
                 this->_range->second = exp._range->second;
             }
+            if(exp._all_range){
+                std::copy(exp._all_range->begin(), exp._all_range->end(), back_inserter(*this->_all_range));
+            }
+
             this->_to_str = exp._to_str;
             this->_coef = exp._coef;
             this->_is_vector = exp._is_vector;
@@ -275,9 +285,11 @@ namespace gravity {
             this->_all_convexity = exp._all_convexity;
             this->_all_sign = exp._all_sign;
             if(exp._range){
-                this->_range = make_shared<pair<type,type>>();
                 this->_range->first = exp._range->first;
                 this->_range->second = exp._range->second;
+            }
+            if(exp._all_range){
+                *this->_all_range = *exp._all_range;
             }
             this->_to_str = exp._to_str;
             this->_coef = exp._coef;
@@ -343,8 +355,9 @@ namespace gravity {
         
         bexpr(){
             this->_type = bexp_c;
-	    this->_to_str = "noname";
-	    this->_range = make_shared<pair<type,type>>();
+            this->_to_str = "noname";
+            this->_range = make_shared<pair<type,type>>();
+            this->_all_range = make_shared<vector<pair<type,type>>>();
         }
         
         shared_ptr<constant_> get_lson() const {return _lson;};
@@ -378,9 +391,11 @@ namespace gravity {
             this->_all_convexity = exp._all_convexity;
             this->_all_sign = exp._all_sign;
             if(exp._range){
-                this->_range = make_shared<pair<type,type>>();
                 this->_range->first = exp._range->first;
                 this->_range->second = exp._range->second;
+            }
+            if(exp._all_range){
+                *this->_all_range = *exp._all_range;
             }
             this->_to_str = exp._to_str;
             this->_coef = exp._coef;
@@ -398,6 +413,7 @@ namespace gravity {
             this->_all_convexity = exp._all_convexity;
             this->_all_sign = exp._all_sign;
             this->_range = move(exp._range);
+            this->_all_range = move(exp._all_range);
             this->_to_str = exp._to_str;
             this->_coef = exp._coef;
             this->_is_vector = exp._is_vector;
@@ -763,9 +779,11 @@ namespace gravity {
             this->_all_convexity = exp._all_convexity;
             this->_all_sign = exp._all_sign;
             if(exp._range){
-                this->_range = make_shared<pair<type,type>>();
                 this->_range->first = exp._range->first;
                 this->_range->second = exp._range->second;
+            }
+            if(exp._all_range){
+                std::copy(exp._all_range->begin(), exp._all_range->end(), back_inserter(*this->_all_range));
             }
             this->_to_str = exp._to_str;
             this->_coef = exp._coef;
@@ -783,9 +801,11 @@ namespace gravity {
             this->_all_convexity = exp._all_convexity;
             this->_all_sign = exp._all_sign;
             if(exp._range){
-                this->_range = make_shared<pair<type,type>>();
                 this->_range->first = exp._range->first;
                 this->_range->second = exp._range->second;
+            }
+            if(exp._all_range){
+                *this->_all_range = *exp._all_range;
             }
             this->_to_str = exp._to_str;
             this->_coef = exp._coef;
@@ -812,6 +832,7 @@ namespace gravity {
             this->_type = mexp_c;
             this->_to_str = "noname";
             this->_range = make_shared<pair<type,type>>();
+            this->_all_range = make_shared<vector<pair<type,type>>>();
         }
         
         mexpr(OperatorType otype, const vector<var<type>>& vec){
@@ -820,6 +841,7 @@ namespace gravity {
             this->_children = make_shared<vector<var<type>>>(vec);
             this->_to_str = "noname";
             this->_range = make_shared<pair<type,type>>();
+            this->_all_range = make_shared<vector<pair<type,type>>>();
         }
         
         template<class T2, typename enable_if<is_convertible<T2, type>::value && sizeof(T2) < sizeof(type)>::type* = nullptr>
@@ -830,9 +852,11 @@ namespace gravity {
             this->_all_convexity = exp._all_convexity;
             this->_all_sign = exp._all_sign;
             if(exp._range){
-                this->_range = make_shared<pair<type,type>>();
                 this->_range->first = exp._range->first;
                 this->_range->second = exp._range->second;
+            }
+            if(exp._all_range){
+                *this->_all_range = *exp._all_range;
             }
             this->_to_str = exp._to_str;
             this->_coef = exp._coef;
@@ -849,6 +873,7 @@ namespace gravity {
             this->_all_convexity = exp._all_convexity;
             this->_all_sign = exp._all_sign;
             this->_range = move(exp._range);
+            this->_all_range = move(exp._all_range);
             this->_to_str = exp._to_str;
             this->_coef = exp._coef;
             this->_is_vector = exp._is_vector;
@@ -864,9 +889,11 @@ namespace gravity {
             this->_all_convexity = exp._all_convexity;
             this->_all_sign = exp._all_sign;
             if(exp._range){
-                this->_range = make_shared<pair<type,type>>();
                 this->_range->first = exp._range->first;
                 this->_range->second = exp._range->second;
+            }
+            if(exp._all_range){
+                *this->_all_range = *exp._all_range;
             }
             this->_to_str = exp._to_str;
             this->_coef = exp._coef;
