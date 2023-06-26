@@ -9,9 +9,11 @@
 #include <network/Layers/Unary.hpp>
 #include <network/Layers/NonLinear.hpp>
 #include <network/Layers/Shape.hpp>
+#include <network/Layers/Fusion.hpp>
 #include <utils/subgraph_extraction.hpp>
 
 std::set<std::string> noops = {"Flatten", "Reshape", "Squeeze"};
+bool can_fuse_gemm(std::vector<Layer*>& layers, GEMM* gemm, Relu* relu, std::map<std::string, Layer*>& output_to_layer);
 
 class NeuralNet {
 public:
@@ -41,12 +43,6 @@ public:
 
         if (this->tensors.count("obj_spec_values") != 0) {
             this->obj_val = &this->tensors.at("obj_spec_values");
-        }
-
-        for (auto layer : this->_all_layers) {
-            for (auto output : layer->outputs) {
-                this->output_to_layer[output->name] = layer;
-            }
         }
     }
 
@@ -122,6 +118,20 @@ public:
             }
 
             this->_all_layers.push_back(node_ptr);
+        }
+        for (auto layer : this->_all_layers) {
+            for (auto output : layer->outputs) {
+                this->output_to_layer[output->name] = layer;
+            }
+        }
+
+        this->_fuse_layers();
+
+        this->output_to_layer.clear();
+        for (auto layer : this->_all_layers) {
+            for (auto output : layer->outputs) {
+                this->output_to_layer[output->name] = layer;
+            }
         }
     }
 
@@ -318,6 +328,40 @@ public:
         return true;
     }
 
+    void _fuse_layers() {
+        // Fuse GEMM and ReLU layers if the GEMM output is only used by the ReLU
+        std::vector<Layer*> new_layers;
+        for (size_t i = 0; i < this->_all_layers.size(); i+=2) {
+            if ((i+1) == this->_all_layers.size()) {
+                new_layers.push_back(this->_all_layers.at(i));
+                break;
+            }
+
+            auto l1 = this->_all_layers.at(i);
+            auto l2 = this->_all_layers.at(i+1);
+            if (l1->operator_type != _gemm || l2->operator_type != _relu) {
+                new_layers.push_back(l1);
+                new_layers.push_back(l2);
+                continue;
+            }
+        
+            auto gemm = static_cast<GEMM*>(l1);
+            auto relu = static_cast<Relu*>(l2);
+
+            if (!can_fuse_gemm(this->_all_layers, gemm, relu, this->output_to_layer)) {
+                new_layers.push_back(l1);
+                new_layers.push_back(l2);
+                continue;
+            }
+
+            // Fuse the layers
+            auto fused = new FusedGEMMRelu(gemm, relu);
+            new_layers.push_back(fused);
+        }
+
+        this->_all_layers = new_layers;
+    }
+
     Tensors tensors;
     IndexContainer indices;
     size_t input_numel;
@@ -335,3 +379,21 @@ public:
 
     std::map<std::string, Layer*> output_to_layer;
 };
+
+// If the GEMM output is only used by the ReLU, we can fuse them
+bool can_fuse_gemm(std::vector<Layer*>& layers, GEMM* gemm, Relu* relu, std::map<std::string, Layer*>& output_to_layer) {
+    for (size_t i = 0; i < layers.size(); i++) {
+        auto layer = layers.at(i); 
+        for (auto& input: layer->inputs) {
+            if (input->is_initializer) {
+                continue;
+            }
+            auto using_gemm = output_to_layer.at(input->name)->name == gemm->name;
+            if (using_gemm && layer->name != relu->name) {
+                return false;
+            }
+        }
+    }
+
+    return true;
+}

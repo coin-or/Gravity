@@ -13,6 +13,8 @@ using namespace gravity;
 
 class Layer {
 public:
+    Layer() = default;
+
     Layer(const onnx::NodeProto& node, Tensors& tensors) {
         this->name = node.name();
         this->opname = node.op_type();
