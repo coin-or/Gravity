@@ -11,23 +11,23 @@ using namespace gravity;
 
 class IndexSet {
 public:
-    IndexSet() {}
+    IndexSet() = default;
 
-    IndexSet(std::vector<string> state_names, std::vector<std::string> w_names, std::vector<std::string> y_names, indices& hidden_states, indices& w_ids, indices& y_ids) {
+    IndexSet(std::vector<std::vector<std::string>> names, indices& hidden_states, indices& w_ids, indices& y_ids) {
         this->_indices["Constr"] = indices("Constr");
         this->_indices["ConstrB"] = indices("ConstrB");
 
-        for (const auto& name : state_names) {
+        for (const auto& name : names.at(0)) {
             this->_indices[name] = indices(name);
             this->_indices[name] = hidden_states;
         }
 
-        for (const auto& name : w_names) {
+        for (const auto& name : names.at(1)) {
             this->_indices[name] = indices(name);
             this->_indices[name] = w_ids;
         }
 
-        for (const auto& name : y_names) {
+        for (const auto& name : names.at(2)) {
             this->_indices[name] = indices(name);
             this->_indices[name] = y_ids;
         }
@@ -60,11 +60,13 @@ public:
             return;
         }
 
-        if (names.size() == 2) {
-            this->_indices[op] = IndexSet(names[0], names[1], {}, this->hidden_states, this->w_ids, this->y_ids);
-        } else {
-            this->_indices[op] = IndexSet(names[0], names[1], names[2], this->hidden_states, this->w_ids, this->y_ids);
-        }
+        names.resize(3);
+        this->_indices[op] = IndexSet(
+            names,
+            this->hidden_states,
+            this->w_ids,
+            this->y_ids
+        );
     }
 
     IndexSet& operator()(OType op) {

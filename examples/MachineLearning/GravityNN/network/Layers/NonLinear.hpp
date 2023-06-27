@@ -284,17 +284,17 @@ public:
         outer_shape.at(this->axis) = 1;
 
         for (auto outer_ind: ShapeIter(outer_shape)) {
-            x_lb.add_val(this->Y->strkey(outer_ind) + "_sum_aux", 0.0);
-            x_ub.add_val(this->Y->strkey(outer_ind) + "_sum_aux", HMAX);
+            x_lb.set_val(this->Y->strkey(outer_ind) + "_sum_aux", 0.0);
+            x_ub.set_val(this->Y->strkey(outer_ind) + "_sum_aux", HMAX);
             for (size_t axind = 0; axind < this->X->shape.at(this->axis); axind++) {
                 auto inner_ind = outer_ind;
                 inner_ind.at(this->axis) = axind;
 
-                x_lb.add_val(this->Y->strkey(inner_ind), 0.0);
-                x_ub.add_val(this->Y->strkey(inner_ind), 1.0);
+                x_lb.set_val(this->Y->strkey(inner_ind), 0.0);
+                x_ub.set_val(this->Y->strkey(inner_ind), 1.0);
 
-                x_lb.add_val(this->Y->strkey(inner_ind) + "_exp_aux", 0.0);
-                x_ub.add_val(this->Y->strkey(inner_ind) + "_exp_aux", HMAX);
+                x_lb.set_val(this->Y->strkey(inner_ind) + "_exp_aux", 0.0);
+                x_ub.set_val(this->Y->strkey(inner_ind) + "_exp_aux", HMAX);
             }
         }
     }

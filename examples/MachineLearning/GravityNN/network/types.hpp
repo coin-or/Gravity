@@ -26,7 +26,7 @@ typedef enum {
     _concat,
     _average_pool,
     _leaky_relu,
-    _sign,
+    _signum,
     _unsupported,
 } OType; /* Operator Type */
 typedef enum { LOWER, UPPER} Side;
