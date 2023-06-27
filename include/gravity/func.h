@@ -612,6 +612,7 @@ namespace gravity {
     template<class T1, class T2, typename enable_if<is_convertible<T2, T1>::value && sizeof(T2) <= sizeof(T1)>::type* = nullptr>
     vector<pair<T1,T1>> get_product_range(const vector<pair<T1,T1>>& x, const vector<pair<T2,T2>>& y){
         vector<pair<T1,T1>> res;
+        res.resize(x.size());
         assert(x.size()==y.size());
 #pragma omp parallel for num_threads(get_num_threads() / 2)
         for(auto i = 0; i<x.size(); i++){
@@ -632,6 +633,7 @@ namespace gravity {
     template<class T1, class T2, typename enable_if<is_convertible<T1, T2>::value && sizeof(T1) < sizeof(T2)>::type* = nullptr>
     vector<pair<T2,T2>> get_product_range(const vector<pair<T1,T1>>& x, const vector<pair<T2,T2>>& y){
         vector<pair<T2,T2>> res;
+        res.resize(x.size());
         assert(x.size()==y.size());
 #pragma omp parallel for num_threads(get_num_threads() / 2)
         for(auto i = 0; i<x.size(); i++){
@@ -684,6 +686,7 @@ namespace gravity {
     vector<pair<T1,T1>> get_div_range(const vector<pair<T1,T1>>& range1, const vector<pair<T2,T2>>& range2){
         assert(range1.size()==range2.size());
         vector<pair<T1,T1>> res;
+        res.resize(range1.size());
         #pragma omp parallel for num_threads(get_num_threads() / 2)
         for(auto i = 0; i<range1.size(); i++){
             if(range2[i].first==numeric_limits<T2>::lowest() || range2[i].second==numeric_limits<T2>::max()
@@ -705,6 +708,7 @@ namespace gravity {
     vector<pair<T2,T2>> get_div_range(const vector<pair<T1,T1>>& range1, const vector<pair<T2,T2>>& range2){
         assert(range1.size()==range2.size());
         vector<pair<T2,T2>> res;
+        res.resize(range1.size());
         #pragma omp parallel for num_threads(get_num_threads() / 2)
         for(auto i = 0; i<range1.size(); i++){
             if(range2[i].first==numeric_limits<T2>::lowest() || range2[i].second==numeric_limits<T2>::max()
@@ -749,9 +753,11 @@ namespace gravity {
         return res;
     }
 
+
     template<class T1, class T2, typename enable_if<is_convertible<T2, T1>::value && sizeof(T2) <= sizeof(T1)>::type* = nullptr>
     vector<pair<T1,T1>> get_plus_range(const vector<pair<T1,T1>>& x, const vector<pair<T2,T2>>& y){
         vector<pair<T1,T1>> res;
+        res.resize(x.size());
         assert(x.size()==y.size());
         #pragma omp parallel for num_threads(get_num_threads() / 2)
         for(auto i = 0; i<x.size(); i++){
@@ -768,6 +774,7 @@ namespace gravity {
     template<class T1, class T2, typename enable_if<is_convertible<T1, T2>::value && sizeof(T1) < sizeof(T2)>::type* = nullptr>
     vector<pair<T2,T2>> get_plus_range(const vector<pair<T1,T1>>& x, const vector<pair<T2,T2>>& y){
         vector<pair<T2,T2>> res;
+        res.resize(x.size());
         assert(x.size()==y.size());
         #pragma omp parallel for num_threads(get_num_threads() / 2)
         for(auto i = 0; i<x.size(); i++){
@@ -796,6 +803,7 @@ namespace gravity {
     template<class T1, class T2, typename enable_if<is_convertible<T2, T1>::value && sizeof(T2) <= sizeof(T1)>::type* = nullptr>
     vector<pair<T1,T1>> get_minus_range(const vector<pair<T1,T1>>& x, const vector<pair<T2,T2>>& y){
         vector<pair<T1,T1>> res;
+        res.resize(x.size());
         assert(x.size()==y.size());
         #pragma omp parallel for num_threads(get_num_threads() / 2)
         for(auto i = 0; i<x.size(); i++){
@@ -812,6 +820,7 @@ namespace gravity {
     template<class T1, class T2, typename enable_if<is_convertible<T1, T2>::value && sizeof(T1) < sizeof(T2)>::type* = nullptr>
     vector<pair<T2,T2>> get_minus_range(const vector<pair<T1,T1>>& x, const vector<pair<T2,T2>>& y){
         vector<pair<T2,T2>> res;
+        res.resize(x.size());
         assert(x.size()==y.size());
         #pragma omp parallel for num_threads(get_num_threads() / 2)
         for(auto i = 0; i<x.size(); i++){
@@ -2581,9 +2590,11 @@ namespace gravity {
                     }
                     if(lt.second._sign){
                         *res._range = get_plus_range(*res._range, term_range);
+//                        *res._all_range = get_plus_range(*res._all_range, term_range);
                     }
                     else {
                         *res._range = get_minus_range(*res._range, term_range);
+//                        *res._all_range = get_minus_range(*res._all_range, term_range);
                     }
                 }
                 if (lt.second._p->second->get_name(false,false) == name) {
@@ -2618,9 +2629,11 @@ namespace gravity {
                     }
                     if(lt.second._sign){
                         *res._range = get_plus_range(*res._range, term_range);
+//                        *res._all_range = get_plus_range(*res._all_range, term_range);
                     }
                     else {
                         *res._range = get_minus_range(*res._range, term_range);
+//                        *res._all_range = get_minus_range(*res._all_range, term_range);
                     }
                 }
             }
@@ -2696,9 +2709,11 @@ namespace gravity {
                     }
                     if(lt.second._sign){
                         *res._range = get_plus_range(*res._range, pterm_range);
+//                        *res._all_range = get_plus_range(*res._all_range, pterm_range);
                     }
                     else {
                         *res._range = get_minus_range(*res._range, pterm_range);
+//                        *res._all_range = get_minus_range(*res._all_range, pterm_range);
                     }
                 }
             }
@@ -2969,6 +2984,12 @@ namespace gravity {
             auto temp = _range->first;
             _range->first = -1.*_range->second;
             _range->second = -1.*temp;
+#pragma omp parallel for num_threads(get_num_threads() / 2)
+            for(int i = 0; i<_all_range->size();i++){
+                auto temp = _all_range->at(i).first;
+                _all_range->at(i).first = -1.*_all_range->at(i).second;
+                _all_range->at(i).second = -1.*temp;
+            }
         }
         
         
@@ -3815,12 +3836,13 @@ namespace gravity {
             _all_sign = _cst->get_sign();
             _val->resize(1);
             _val->at(0) = c.eval();
-            set_range(_val->at(0));
             _all_sign = c.get_all_sign();
             _is_vector = c._is_vector;
             _is_transposed = c._is_transposed;
             _dim[0] = c._dim[0];
             _dim[1] = c._dim[1];
+            set_range(_val->at(0));
+            set_all_range(*_val);
             _evaluated = true;
             return *this;
         }
@@ -3844,10 +3866,29 @@ namespace gravity {
             //            if(c.is_matrix_indexed()){
             //                _indices = c._indices;
             //            }
+            set_all_range(*c._val);
             return *this;
         }
         
-        
+        template<class T2, typename enable_if<is_convertible<T2, type>::value && sizeof(T2) <= sizeof(type)>::type* = nullptr>
+        func& operator=(const var<T2>& c){
+            reset();
+            insert(true,unit<type>(),c);
+            _dim[0] = c.get_nb_inst();
+            _dim[1] = c._dim[1];
+            _is_transposed = c._is_transposed;
+            _is_vector = c._is_vector;
+            _val->clear();
+            _range->first = c._range->first;
+            _range->second = c._range->second;
+            _all_sign = c.get_all_sign();
+            _evaluated = false;
+            if(c._indices){
+                _indices = make_shared<indices>(*c._indices);
+            }
+            set_all_range(*c._lb->_val, *c._ub->_val);
+            return *this;
+        }
         
         func(func&& f){
             *this = move(f);
@@ -4226,8 +4267,6 @@ namespace gravity {
             else {
                 _indices = nullptr;
             }
-            _range->first = f._range->first;
-            _range->second = f._range->second;
             //            _val->clear();
             _val->resize(f._val->size());
             for(auto i = 0; i< f._val->size(); i++){
@@ -4256,6 +4295,8 @@ namespace gravity {
             _hess_link = f._hess_link;
             _nb_vars = f._nb_vars;
             _evaluated = f._evaluated;
+            *_range = *f._range;
+            *_all_range = *f._all_range;
             return  *this;
         }
         
@@ -4363,8 +4404,6 @@ namespace gravity {
             else {
                 _indices = nullptr;
             }
-            _range->first = f._range->first;
-            _range->second = f._range->second;
             _val->clear();
             _val->resize(f._val->size());
             for(auto i = 0; i< f._val->size(); i++){
@@ -4393,6 +4432,8 @@ namespace gravity {
             _hess_link = f._hess_link;
             _nb_vars = f._nb_vars;
             _evaluated = f._evaluated;
+            *_range = *f._range;
+            std::copy(f._all_range->begin(), f._all_range->end(), back_inserter(*this->_all_range));
             return  *this;
         }
         
@@ -4412,6 +4453,7 @@ namespace gravity {
             _cst = move(f._cst);
             _indices = move(f._indices);
             _range = move(f._range);
+            _all_range = move(f._all_range);
             _val = move(f._val);
             _convexity = move(f._convexity);
             _sign = f._sign;
@@ -4474,6 +4516,26 @@ namespace gravity {
         void set_range(type val) {
             _range->first = val;
             _range->second = val;
+        }
+        
+        template<class T2, typename enable_if<is_convertible<T2, type>::value && sizeof(T2) <= sizeof(type)>::type* = nullptr>
+        void set_all_range(const vector<T2>& vals) {
+            _all_range->resize(vals.size());
+#pragma omp parallel for num_threads(get_num_threads() / 2)
+            for(int i = 0; i<vals.size();i++){
+                _all_range->at(i).first = vals[i];
+                _all_range->at(i).second = vals[i];
+            }
+        }
+        
+        template<class T2, typename enable_if<is_convertible<T2, type>::value && sizeof(T2) <= sizeof(type)>::type* = nullptr>
+        void set_all_range(const vector<T2>& lbs, const vector<T2>& ubs) {
+            _all_range->resize(lbs.size());
+#pragma omp parallel for num_threads(get_num_threads() / 2)
+            for(int i = 0; i<lbs.size();i++){
+                _all_range->at(i).first = lbs[i];
+                _all_range->at(i).second = ubs[i];
+            }
         }
         
         void update_range(type val) {
@@ -7448,6 +7510,7 @@ namespace gravity {
                 this->add_cst(f);
                 update_sign_add(f);
                 *_range = get_plus_range(*_range, *f._range);
+                *_all_range = get_plus_range(*_all_range, *f._all_range);
                 return *this;
             }
             if (!f.get_cst()->is_zero()) {
@@ -7583,6 +7646,7 @@ namespace gravity {
                 update_convexity_add(f._all_convexity);
             }
             *_range = get_plus_range(*_range, *f._range);
+            *_all_range = get_plus_range(*_all_range, *f._all_range);
             if(func_is_number()){
                 _ftype = const_;
                 set_range(eval(_cst));
@@ -7623,7 +7687,6 @@ namespace gravity {
         void reset(){
             _to_str = "";
             update_range();
-            _all_range = nullptr;
             _vars->clear();
             _val->clear();
             _params->clear();
@@ -8684,95 +8747,199 @@ namespace gravity {
     
     template<class T1,class T2, typename enable_if<is_convertible<T2, T1>::value && sizeof(T2) <= sizeof(T1)>::type* = nullptr>
     func<T1> operator+(const param<T1>& p1, const param<T2>& p2){
-        func<T1> res;
-        res.set_max_dim(p1,p2);
-        if(p1.is_param() && p2.is_var()){
-            res.insert(true,unit<T1>(),p2);
-            res.add_cst(p1);
-        }
-        else if(p2.is_param() && p1.is_var()){
-            res.insert(true,unit<T1>(),p1);
-            res.add_cst(param<T1>(p2));
-        }
-        else {//Both vars or both params
-            res.insert(true,unit<T1>(),p1);
-            res.insert(true,unit<T1>(),p2);
-        }
-        res._all_sign = sign_add(p1.get_all_sign(), p2.get_all_sign());
-        if(res.is_quadratic()){res.update_quad_convexity();}
-        *res._range = get_plus_range(*p1._range,*p2._range);
-        return res;
+//        func<T1> res;
+//        res.set_max_dim(p1,p2);
+//        if(p1.is_param() && p2.is_var()){
+//            res.insert(true,unit<T1>(),p2);
+//            res.add_cst(p1);
+//        }
+//        else if(p2.is_param() && p1.is_var()){
+//            res.insert(true,unit<T1>(),p1);
+//            res.add_cst(param<T1>(p2));
+//        }
+//        else {//Both vars or both params
+//            res.insert(true,unit<T1>(),p1);
+//            res.insert(true,unit<T1>(),p2);
+//        }
+//        res._all_sign = sign_add(p1.get_all_sign(), p2.get_all_sign());
+//        if(res.is_quadratic()){res.update_quad_convexity();}
+//        *res._range = get_plus_range(*p1._range,*p2._range);
+////        *res._all_range = get_plus_range(*p1._val, *p2._val);
+//        return res;
+        return func<T1>(p1) + func<T1>(p2);
     }
+
+template<class T1,class T2, typename enable_if<is_convertible<T2, T1>::value && sizeof(T2) <= sizeof(T1)>::type* = nullptr>
+func<T1> operator+(const var<T1>& p1, const var<T2>& p2){
+//        func<T1> res;
+//        res.set_max_dim(p1,p2);
+//        if(p1.is_param() && p2.is_var()){
+//            res.insert(true,unit<T1>(),p2);
+//            res.add_cst(p1);
+//        }
+//        else if(p2.is_param() && p1.is_var()){
+//            res.insert(true,unit<T1>(),p1);
+//            res.add_cst(param<T1>(p2));
+//        }
+//        else {//Both vars or both params
+//            res.insert(true,unit<T1>(),p1);
+//            res.insert(true,unit<T1>(),p2);
+//        }
+//        res._all_sign = sign_add(p1.get_all_sign(), p2.get_all_sign());
+//        if(res.is_quadratic()){res.update_quad_convexity();}
+//        *res._range = get_plus_range(*p1._range,*p2._range);
+////        *res._all_range = get_plus_range(*p1._val, *p2._val);
+//        return res;
+    return func<T1>(p1) + func<T1>(p2);
+}
     
     template<class T1,class T2, typename enable_if<is_convertible<T1, T2>::value && sizeof(T1) < sizeof(T2)>::type* = nullptr>
     func<T2> operator+(const param<T1>& p1, const param<T2>& p2){
-        func<T2> res;
-        res.set_max_dim(p1,p2);
-        if(p1.is_param() && p2.is_var()){
-            res.insert(true,unit<T2>(),p2);
-            res.add_cst(param<T2>(p1));
-        }
-        else if(p2.is_param() && p1.is_var()){
-            res.insert(true,unit<T2>(),p1);
-            res.add_cst(p2);
-        }
-        else {//Both vars or both params
-            res.insert(true,unit<T2>(),p1);
-            res.insert(true,unit<T2>(),p2);
-        }
-        res._all_sign = sign_add(p1.get_all_sign(), p2.get_all_sign());
-        if(res.is_quadratic()){res.update_quad_convexity();}
-        *res._range = get_plus_range(*p1._range,*p2._range);
-        return res;
+//        func<T2> res;
+//        res.set_max_dim(p1,p2);
+//        if(p1.is_param() && p2.is_var()){
+//            res.insert(true,unit<T2>(),p2);
+//            res.add_cst(param<T2>(p1));
+//        }
+//        else if(p2.is_param() && p1.is_var()){
+//            res.insert(true,unit<T2>(),p1);
+//            res.add_cst(p2);
+//        }
+//        else {//Both vars or both params
+//            res.insert(true,unit<T2>(),p1);
+//            res.insert(true,unit<T2>(),p2);
+//        }
+//        res._all_sign = sign_add(p1.get_all_sign(), p2.get_all_sign());
+//        if(res.is_quadratic()){res.update_quad_convexity();}
+//        *res._range = get_plus_range(*p1._range,*p2._range);
+////        *res._all_range = get_plus_range(*p1._all_range, *p2._all_range);
+//        return res;
+        return func<T2>(p1) + func<T2>(p2);
     }
     
+
+template<class T1,class T2, typename enable_if<is_convertible<T1, T2>::value && sizeof(T1) < sizeof(T2)>::type* = nullptr>
+func<T2> operator+(const var<T1>& p1, const var<T2>& p2){
+//        func<T2> res;
+//        res.set_max_dim(p1,p2);
+//        if(p1.is_param() && p2.is_var()){
+//            res.insert(true,unit<T2>(),p2);
+//            res.add_cst(param<T2>(p1));
+//        }
+//        else if(p2.is_param() && p1.is_var()){
+//            res.insert(true,unit<T2>(),p1);
+//            res.add_cst(p2);
+//        }
+//        else {//Both vars or both params
+//            res.insert(true,unit<T2>(),p1);
+//            res.insert(true,unit<T2>(),p2);
+//        }
+//        res._all_sign = sign_add(p1.get_all_sign(), p2.get_all_sign());
+//        if(res.is_quadratic()){res.update_quad_convexity();}
+//        *res._range = get_plus_range(*p1._range,*p2._range);
+////        *res._all_range = get_plus_range(*p1._all_range, *p2._all_range);
+//        return res;
+    return func<T2>(p1) + func<T2>(p2);
+}
     template<class T1,class T2, typename enable_if<is_convertible<T2, T1>::value && sizeof(T2) < sizeof(T1)>::type* = nullptr>
     func<T1> operator-(const param<T1>& p1, const param<T2>& p2){
-        func<T1> res;
-        res.set_max_dim(p1,p2);
-        if(p1.is_param() && p2.is_var()){
-            res.insert(false,unit<T1>(),p2);
-            res.add_cst(p1);
-        }
-        else if(p2.is_param() && p1.is_var()){
-            res.insert(true,unit<T1>(),p1);
-            func<T1> newp(p2);
-            newp.reverse_sign();
-            res.add_cst(newp);
-        }
-        else {//Both vars or both params
-            res.insert(true,unit<T1>(),p1);
-            res.insert(false,unit<T1>(),p2);
-        }
-        res._all_sign = sign_add(p1.get_all_sign(), reverse(p2.get_all_sign()));
-        if(res.is_quadratic()){res.update_quad_convexity();}
-        *res._range = get_minus_range(*p1._range, *p2._range);
-        return res;
+//        func<T1> res;
+//        res.set_max_dim(p1,p2);
+//        if(p1.is_param() && p2.is_var()){
+//            res.insert(false,unit<T1>(),p2);
+//            res.add_cst(p1);
+//        }
+//        else if(p2.is_param() && p1.is_var()){
+//            res.insert(true,unit<T1>(),p1);
+//            func<T1> newp(p2);
+//            newp.reverse_sign();
+//            res.add_cst(newp);
+//        }
+//        else {//Both vars or both params
+//            res.insert(true,unit<T1>(),p1);
+//            res.insert(false,unit<T1>(),p2);
+//        }
+//        res._all_sign = sign_add(p1.get_all_sign(), reverse(p2.get_all_sign()));
+//        if(res.is_quadratic()){res.update_quad_convexity();}
+//        *res._range = get_minus_range(*p1._range, *p2._range);
+//        return res;
+        return func<T1>(p1) - func<T1>(p2);
     }
+
+template<class T1,class T2, typename enable_if<is_convertible<T2, T1>::value && sizeof(T2) < sizeof(T1)>::type* = nullptr>
+func<T1> operator-(const var<T1>& p1, const var<T2>& p2){
+//        func<T1> res;
+//        res.set_max_dim(p1,p2);
+//        if(p1.is_param() && p2.is_var()){
+//            res.insert(false,unit<T1>(),p2);
+//            res.add_cst(p1);
+//        }
+//        else if(p2.is_param() && p1.is_var()){
+//            res.insert(true,unit<T1>(),p1);
+//            func<T1> newp(p2);
+//            newp.reverse_sign();
+//            res.add_cst(newp);
+//        }
+//        else {//Both vars or both params
+//            res.insert(true,unit<T1>(),p1);
+//            res.insert(false,unit<T1>(),p2);
+//        }
+//        res._all_sign = sign_add(p1.get_all_sign(), reverse(p2.get_all_sign()));
+//        if(res.is_quadratic()){res.update_quad_convexity();}
+//        *res._range = get_minus_range(*p1._range, *p2._range);
+//        return res;
+    return func<T1>(p1) - func<T1>(p2);
+}
     
     template<class T1,class T2, typename enable_if<is_convertible<T1, T2>::value && sizeof(T2) >= sizeof(T1)>::type* = nullptr>
     func<T2> operator-(const param<T1>& p1, const param<T2>& p2){
-        func<T2> res;
-        res.set_max_dim(p1,p2);
-        if(p1.is_param() && p2.is_var()){
-            res.insert(false,unit<T2>(),p2);
-            res.add_cst(param<T2>(p1));
-        }
-        else if(p2.is_param() && p1.is_var()){
-            res.insert(true,unit<T2>(),p1);
-            func<T2> newp(p2);
-            newp.reverse_sign();
-            res.add_cst(newp);
-        }
-        else {//Both vars or both params
-            res.insert(true,unit<T2>(),p1);
-            res.insert(false,unit<T2>(),p2);
-        }
-        res._all_sign = sign_add(p1.get_all_sign(), reverse(p2.get_all_sign()));
-        if(res.is_quadratic()){res.update_quad_convexity();}
-        *res._range = get_minus_range(*p1._range,*p2._range);
-        return res;
+//        func<T2> res;
+//        res.set_max_dim(p1,p2);
+//        if(p1.is_param() && p2.is_var()){
+//            res.insert(false,unit<T2>(),p2);
+//            res.add_cst(param<T2>(p1));
+//        }
+//        else if(p2.is_param() && p1.is_var()){
+//            res.insert(true,unit<T2>(),p1);
+//            func<T2> newp(p2);
+//            newp.reverse_sign();
+//            res.add_cst(newp);
+//        }
+//        else {//Both vars or both params
+//            res.insert(true,unit<T2>(),p1);
+//            res.insert(false,unit<T2>(),p2);
+//        }
+//        res._all_sign = sign_add(p1.get_all_sign(), reverse(p2.get_all_sign()));
+//        if(res.is_quadratic()){res.update_quad_convexity();}
+//        *res._range = get_minus_range(*p1._range,*p2._range);
+//        return res;
+        return func<T2>(p1) - func<T2>(p2);
     }
+
+template<class T1,class T2, typename enable_if<is_convertible<T1, T2>::value && sizeof(T2) >= sizeof(T1)>::type* = nullptr>
+func<T2> operator-(const var<T1>& p1, const var<T2>& p2){
+//        func<T2> res;
+//        res.set_max_dim(p1,p2);
+//        if(p1.is_param() && p2.is_var()){
+//            res.insert(false,unit<T2>(),p2);
+//            res.add_cst(param<T2>(p1));
+//        }
+//        else if(p2.is_param() && p1.is_var()){
+//            res.insert(true,unit<T2>(),p1);
+//            func<T2> newp(p2);
+//            newp.reverse_sign();
+//            res.add_cst(newp);
+//        }
+//        else {//Both vars or both params
+//            res.insert(true,unit<T2>(),p1);
+//            res.insert(false,unit<T2>(),p2);
+//        }
+//        res._all_sign = sign_add(p1.get_all_sign(), reverse(p2.get_all_sign()));
+//        if(res.is_quadratic()){res.update_quad_convexity();}
+//        *res._range = get_minus_range(*p1._range,*p2._range);
+//        return res;
+    return func<T2>(p1) - func<T2>(p2);
+}
     
     template<class T1,class T2, typename enable_if<is_convertible<T2, T1>::value && sizeof(T2) <= sizeof(T1)>::type* = nullptr>
     constant<T1> operator+(const constant<T1>& p1, const constant<T2>& p2){
@@ -10239,6 +10406,7 @@ namespace gravity {
         func<T1> res(v);
         res.add_cst(p);
         *res._range = get_plus_range(*v._range,*p.range());
+//        *res._all_range = get_plus_range(*v._all_range, *p._all_range);
         res.update_all_sign();
         return res;
     }
@@ -10248,6 +10416,7 @@ namespace gravity {
         func<T2> res(v);
         res.add_cst(p);
         *res._range = get_plus_range(*v._range,*p.range());
+//        *res._all_range = get_plus_range(*p._val, *v._val);
         res.update_all_sign();
         return res;
     }
@@ -10257,6 +10426,7 @@ namespace gravity {
         func<T1> res(v);
         res.add_cst(p);
         *res._range = get_plus_range(*v._range,*p.range());
+        *res._all_range = get_plus_range(*v._all_range, *p._all_range);
         res.update_all_sign();
         return res;
     }
@@ -10266,6 +10436,7 @@ namespace gravity {
         func<T2> res(v);
         res.add_cst(p);
         *res._range = get_plus_range(*v._range,*p.range());
+//        *res._all_range = get_plus_range(*v._all_range, *p._all_range);
         res.update_all_sign();
         return res;
     }
@@ -10500,12 +10671,34 @@ namespace gravity {
         res.update_dot_dim(new_c,p);
         res.insert(true,new_c,p);
         *res._range = get_product_range(*new_c.range(), *p._range);
+        res.eval_all();
+        res.set_all_range(*res._val);
         res.update_all_sign();
         if(c._is_transposed){
             res._range->first = extended_mult(res._range->first,(T1)p._dim[0]);
             res._range->second = extended_mult(res._range->second,(T1)p._dim[0]);
         }
         return res;
+    }
+    
+    template<class T1,class T2, typename enable_if<is_convertible<T2, T1>::value && sizeof(T2) < sizeof(T1)>::type* = nullptr>
+    func<T1> operator*(const constant<T1>& c, const var<T2>& p){
+//        func<T1> res;
+//        auto new_c(c);
+//        if(c._is_transposed){/* If this is a dot product resize the constant to match p's number of rows */
+//            new_c._dim[1] = p._dim[0];
+//        }
+//        res.update_dot_dim(new_c,p);
+//        res.insert(true,new_c,p);
+//        *res._range = get_product_range(*new_c.range(), *p._range);
+//
+//        res.update_all_sign();
+//        if(c._is_transposed){
+//            res._range->first = extended_mult(res._range->first,(T1)p._dim[0]);
+//            res._range->second = extended_mult(res._range->second,(T1)p._dim[0]);
+//        }
+//        return res;
+        return func<T1>(c)*func<T1>(p);
     }
     
     template<class T1,class T2, typename enable_if<is_convertible<T1, T2>::value && sizeof(T2) >= sizeof(T1)>::type* = nullptr>
@@ -10518,11 +10711,31 @@ namespace gravity {
         res.update_dot_dim(new_c,p);
         res.insert(true,new_c,p);
         *res._range = get_product_range(*new_c.range(), *p._range);
+        res.eval_all();
+        res.set_all_range(*res._val);
         if(c._is_transposed){
             res._range->first = extended_mult(res._range->first,(T2)p._dim[0]);
             res._range->second = extended_mult(res._range->second,(T2)p._dim[0]);
         }
         return res;
+    }
+
+    template<class T1,class T2, typename enable_if<is_convertible<T1, T2>::value && sizeof(T2) >= sizeof(T1)>::type* = nullptr>
+    func<T2> operator*(const constant<T1>& c, const var<T2>& p){
+//        func<T2> res;
+//        constant<T2> new_c(c);
+//        if(c._is_transposed){/* If this is a dot product resize the constant to match p's number of rows */
+//            new_c._dim[1] = p._dim[0];
+//        }
+//        res.update_dot_dim(new_c,p);
+//        res.insert(true,new_c,p);
+//        *res._range = get_product_range(*new_c.range(), *p._range);
+//        if(c._is_transposed){
+//            res._range->first = extended_mult(res._range->first,(T2)p._dim[0]);
+//            res._range->second = extended_mult(res._range->second,(T2)p._dim[0]);
+//        }
+//        return res;
+        return func<T2>(c)*func<T2>(p);
     }
     
     
@@ -10609,6 +10822,28 @@ namespace gravity {
     func<T2> operator*(const param<T1>& v, T2 p){
         return v*constant<T2>(p);
     }
+
+//TODO: Uncommenting these breaks something
+//template<class T1,class T2, typename enable_if<is_convertible<T2, T1>::value && sizeof(T2) < sizeof(T1)>::type* = nullptr>
+//func<T1> operator*(T1 p, const var<T2>& v){
+//    return constant<T1>(p)*v;
+//}
+//
+//template<class T1,class T2, typename enable_if<is_convertible<T1, T2>::value && sizeof(T2) >= sizeof(T1)>::type* = nullptr>
+//func<T2> operator*(T1 p, const var<T2>& v){
+//    return constant<T2>(p)*v;
+//}
+//
+//
+//template<class T1,class T2, typename enable_if<is_convertible<T2, T1>::value && sizeof(T2) < sizeof(T1)>::type* = nullptr>
+//func<T1> operator*(const var<T1>& v, T2 p){
+//    return v*constant<T1>(p);
+//}
+//
+//template<class T1,class T2, typename enable_if<is_convertible<T1, T2>::value && sizeof(T2) >= sizeof(T1)>::type* = nullptr>
+//func<T2> operator*(const var<T1>& v, T2 p){
+//    return v*constant<T2>(p);
+//}
     
     
     template<class T1,class T2, typename enable_if<is_convertible<T2, T1>::value && sizeof(T2) < sizeof(T1)>::type* = nullptr>

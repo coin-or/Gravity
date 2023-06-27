@@ -22,7 +22,65 @@
 using namespace std;
 using namespace gravity;
 
-
+TEST_CASE("testing bound propagation") {
+    param<> A("A");
+    // Make identity matrix
+    string key;
+    for (int i = 0; i < 4; i++) {
+        for (int j = 0; j < 4; j++) {
+            key = to_string(i)+","+to_string(j);
+            A.add_val(key, 10*i+j);
+        }
+    }
+    A.print();
+    
+    var<> x("x", -1, 1), y("y", 1, 5);
+    x.in(R(4));
+    y.in(R(4));
+    x.print();
+    y.print();
+    auto f_sum = x+y;
+    CHECK(f_sum._all_range->at(0).first==0);
+    CHECK(f_sum._all_range->at(0).second==6);
+    
+    auto f_minus = x-y;
+    CHECK(f_minus._all_range->at(0).first==-6);
+    CHECK(f_minus._all_range->at(0).second==0);
+    
+    
+    f_sum.print();
+    y.set_lb("0", 4);
+    y.set_ub("3", 1);
+    y.print();
+    
+    auto f_sum2 = x+y;
+    CHECK(f_sum2._all_range->at(0).first==3);
+    CHECK(f_sum2._all_range->at(0).second==6);
+    CHECK(f_sum2._all_range->at(3).first==0);
+    CHECK(f_sum2._all_range->at(3).second==2);
+    
+    auto f_minus2 = x-y;
+    CHECK(f_minus2._all_range->at(0).first==-6);
+    CHECK(f_minus2._all_range->at(0).second==-3);
+    CHECK(f_minus2._all_range->at(3).first==-2);
+    CHECK(f_minus2._all_range->at(3).second==0);
+    
+    
+    auto f_lin1 = 2*x-y;
+    CHECK(f_lin1._all_range->at(0).first==3);
+    CHECK(f_lin1._all_range->at(0).second==6);
+    CHECK(f_lin1._all_range->at(3).first==0);
+    CHECK(f_lin1._all_range->at(3).second==2);
+    
+    
+    
+    gravity::func<> fx = 1*x;
+    gravity::func<> fA = 1*A;
+    auto fy = fA*fx;
+    fy.eval_all();
+    fy.print();
+    fy.print_symbolic();
+}
 TEST_CASE("testing matrix operations") {
     gravity::param<float> A("A");
     A.set_size(4, 4);
