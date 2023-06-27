@@ -48,6 +48,8 @@ string operator_str(gravity::OperatorType ot){
             return "min";
         case gravity::max_:
             return "max";
+        case gravity::gurobi_relu_:
+            return "ReLU";
         default:
             break;
     }

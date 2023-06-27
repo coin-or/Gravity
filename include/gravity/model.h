@@ -8052,7 +8052,7 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
         res._expr->_all_sign = res._all_sign;
         return res;
     }
-    
+
     template<class T>
     func<T> min(const param<T>& p1, const func<T>& p2){
         func<T> res(bexpr<T>(min_, p1.copy(), p2.copy()));

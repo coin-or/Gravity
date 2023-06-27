@@ -1204,6 +1204,9 @@ namespace gravity {
                     case unit_step_:
                         return zero<type>();
                         break;
+                    case gurobi_relu_:
+                        return zero<type>();
+                        break;
                     default:
                         throw invalid_argument("Unsupported unary operation");
                         break;
@@ -6085,6 +6088,9 @@ namespace gravity {
                     return exp->_coef;
                 }
                     break;
+                case gurobi_relu_:
+                    return exp->_coef*std::max(res, static_cast<T>(0.0));
+                    break;
                 default:
                     throw invalid_argument("Unsupported unary operator");
                     break;
@@ -9272,6 +9278,22 @@ namespace gravity {
         }
         res._range->first = std::exp(p1._range->first);
         res._range->second = std::exp(p1._range->second);
+        res._expr->_range->first = res._range->first;
+        res._expr->_range->second = res._range->second;
+        res._expr->_all_convexity = res._all_convexity;
+        res._expr->_all_sign = res._all_sign;
+        return res;
+    }
+
+    template<class T1>
+    func<T1> gurobi_relu(const param<T1>& p1){
+        func<T1> res(uexpr<T1>(gurobi_relu_, p1.copy()));
+        res._all_sign = pos_;
+        if (p1.is_var()) {
+            res._all_convexity = convex_;
+        }
+        res._range->first = 0.0;
+        res._range->second = std::max(p1._range->second, 0.0);
         res._expr->_range->first = res._range->first;
         res._expr->_range->second = res._range->second;
         res._expr->_all_convexity = res._all_convexity;
