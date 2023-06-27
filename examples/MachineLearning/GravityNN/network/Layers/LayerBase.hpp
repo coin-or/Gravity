@@ -72,8 +72,8 @@ public:
                 auto lb  = this->get_lb(i, j);
                 auto ub  = this->get_ub(i, j);
 
-                x_lb.add_val(key, lb);
-                x_ub.add_val(key, ub);
+                x_lb.set_val(key, lb);
+                x_ub.set_val(key, ub);
             }
         }
     }

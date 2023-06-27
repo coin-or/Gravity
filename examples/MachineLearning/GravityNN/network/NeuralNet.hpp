@@ -29,10 +29,7 @@ public:
         // Initialize MIP variables
         this->NN = Model<>(graph.name());
 
-        this->x_lb = param<>("x_lb");
-        this->x_ub = param<>("x_ub");
-
-        this->x = var<>("x");
+        this->x = var<>("x", HMIN, HMAX);
         this->y = var<int>("y", 0, 1);
 
         if (this->tensors.count("obj_spec_matrix") != 0) {
@@ -133,11 +130,11 @@ public:
 
         this->build_indexing();
         this->index_constraints();
-        this->set_bounds();
 
-        this->x.add_bounds(this->x_lb, this->x_ub);
         this->x.in(this->indices.hidden_states);
         this->y.in(this->indices.y_ids);
+
+        this->set_bounds();
 
         // This is taking far too long on ConvNets
         // this->initialize_state(x, y);
@@ -231,14 +228,13 @@ public:
     void set_bounds() {
         std::cout << "##################################" << std::endl;
         std::cout << "Setting bounds" << std::endl;
+        auto lb = this->x.get_lb();
+        auto ub = this->x.get_ub();
 
         for (auto l: this->subgraph) {
             std::cout << " - " << l->name << std::endl;
-            l->set_bounds(x_lb, x_ub);
+            l->set_bounds(lb, ub);
         }
-
-        this->x_lb.in(this->indices.hidden_states);
-        this->x_ub.in(this->indices.hidden_states);
     }
 
     void set_aux_bounds(const std::vector<Bound>& aux_bounds) {
@@ -331,7 +327,6 @@ public:
     std::vector<Layer*> subgraph;
 
     Model<> NN;
-    param<> x_lb, x_ub;
     var<> x;
     var<int> y;
 

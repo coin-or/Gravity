@@ -113,15 +113,13 @@ public:
     }
 
     std::vector<std::vector<std::string>> get_indices() const override {
-        return {{"In", "Out"}, {}};
+        return {{"In", "Out"}, {}, {"y_ids"}};
     }
 
     void index_hidden_states(indices& hidden_states, indices& y_ids) override {
-        for (auto output: this->outputs) {
-            for (auto i = 0; i < output->numel; i++) {
-                hidden_states.add(output->strkey(i));
-                y_ids.add(output->strkey(i));
-            }
+        for (auto i = 0; i < this->Y->numel; i++) {
+            hidden_states.add(this->Y->strkey(i));
+            y_ids.add(this->Y->strkey(i));
         }
     }
 
@@ -130,6 +128,7 @@ public:
             inds["Constr"].add(this->Y->strkey(j));
             inds["In"].add_ref(this->X->strkey(j));
             inds["Out"].add_ref(this->Y->strkey(j));
+            inds["y_ids"].add_ref(this->Y->strkey(j));
         }
     }
 
@@ -142,11 +141,11 @@ public:
         // Using == 0 instead of <= 0 on these constraints seems better
         Constraint<> ReLU_on("ReLU_on");
         ReLU_on = x.in(inds["Out"]) - x.in(inds["In"]);
-        NN.add_on_off(ReLU_on.in(inds["Constr"]) == 0, y.in(inds["Constr"]), true);
+        NN.add_on_off(ReLU_on.in(inds["Constr"]) == 0, y.in(inds["y_ids"]), true);
 
         Constraint<> ReLU_y_off("ReLU_y_off");
         ReLU_y_off = x.in(inds["Out"]);
-        NN.add_on_off(ReLU_y_off.in(inds["Constr"]) == 0, y.in(inds["Constr"]), false);
+        NN.add_on_off(ReLU_y_off.in(inds["Constr"]) == 0, y.in(inds["y_ids"]), false);
     }
 
     Tensor* X; // Input
@@ -406,7 +405,7 @@ public:
 class SigNum : public Layer {
 public:
     SigNum(const onnx::NodeProto& node, Tensors& tensors): Layer(node, tensors) {
-        operator_type = _sign;
+        operator_type = _signum;
         this->X = &tensors.at(node.input(0));
         this->Y = &tensors.at(node.output(0));
 
@@ -420,55 +419,56 @@ public:
 
     void index_hidden_states(indices& hidden_states, indices& y_ids) override {
         for (auto i = 0; i < this->Y->numel; i++) {
-            hidden_states.add(this->Y->strkey(i));
-            y_ids.add(this->Y->strkey(i) + "z0");
-            y_ids.add(this->Y->strkey(i) + "z1");
-            y_ids.add(this->Y->strkey(i) + "z2");
+            auto key = this->Y->strkey(i);
+            hidden_states.add(key);
+            y_ids.add(key + "_z0");
+            y_ids.add(key + "_z1");
+            y_ids.add(key + "_z2");
         }
     }
 
     void index_constraint(IndexSet& inds) override {
-        for(auto j = 0; j < this->X->numel;j++){
-            inds["Constr"].add(this->Y->strkey(j));
-            inds["In"].add_ref(this->X->strkey(j));
-            inds["Out"].add_ref(this->Y->strkey(j));
+        for(auto j = 0; j < this->X->numel; j++){
+            auto xkey = this->X->strkey(j);
+            auto ykey = this->Y->strkey(j);
 
-            inds["z0"].add_in_row(inds.row_id, this->Y->strkey(j) + "z0");
-            inds["z1"].add_in_row(inds.row_id, this->Y->strkey(j) + "z1");
-            inds["z2"].add_in_row(inds.row_id, this->Y->strkey(j) + "z2");
-
-            inds.row_id++;
+            inds["Constr"].add(ykey);
+            inds["Out"].add_ref(ykey);
+            inds["In"].add_ref(xkey);
+            inds["z0"].add_ref(ykey + "_z0");
+            inds["z1"].add_ref(ykey + "_z1");
+            inds["z2"].add_ref(ykey + "_z2");
         }
     }
 
     void add_constraints(gravity::Model<>& NN, IndexSet& inds, gravity::param<>& w, gravity::var<>& x, gravity::var<int>& y) override {
-        Constraint<> SignSum("ReLU_on");
+        Constraint<> SignSum("Sign_Sum");
         SignSum = y.in(inds["z0"]) + y.in(inds["z1"]) + y.in(inds["z2"]);
         NN.add(SignSum.in(inds["Constr"]) == 1);
 
-        Constraint<> SignConstraint1("SignConstraint_Z0");
-        SignConstraint1 = x.in(inds["In"]);
-        NN.add_on_off(SignConstraint1.in(inds["Constr"]) == 0, y.in(inds["z0"]), true);
+        Constraint<> Sign1("Sign_Z0");
+        Sign1 = x.in(inds["In"]);
+        NN.add_on_off(Sign1.in(inds["Constr"]) == 0, y.in(inds["z0"]), true);
 
-        Constraint<> SignConstraint2("SignConstraint_Z1_a");
-        SignConstraint2 = x.in(inds["In"]);
-        NN.add_on_off(SignConstraint2.in(inds["Constr"]) >= 0, y.in(inds["z1"]), true);
+        Constraint<> Sign2("Sign_Z1_on");
+        Sign2 = x.in(inds["In"]);
+        NN.add_on_off(Sign2.in(inds["Constr"]) >= 0, y.in(inds["z1"]), true);
 
-        Constraint<> SignConstraint3("SignConstraint_Z1_b");
-        SignConstraint3 = x.in(inds["In"]);
-        NN.add_on_off(SignConstraint3.in(inds["Constr"]) <= 0, y.in(inds["z1"]), false);
+        Constraint<> Sign3("Sign_Z1_off");
+        Sign3 = x.in(inds["In"]);
+        NN.add_on_off(Sign3.in(inds["Constr"]) <= 0, y.in(inds["z1"]), false);
 
-        Constraint<> SignConstraint4("SignConstraint_Z2_a");
-        SignConstraint4 = x.in(inds["In"]);
-        NN.add_on_off(SignConstraint4.in(inds["Constr"]) <= 0, y.in(inds["z2"]), true);
+        Constraint<> Sign4("Sign_Z2_on");
+        Sign4 = x.in(inds["In"]);
+        NN.add_on_off(Sign4.in(inds["Constr"]) <= 0, y.in(inds["z2"]), true);
 
-        Constraint<> SignConstraint5("SignConstraint_Z2_b");
-        SignConstraint5 = x.in(inds["In"]);
-        NN.add_on_off(SignConstraint5.in(inds["Constr"]) >= 0, y.in(inds["z2"]), false);
+        Constraint<> Sign5("Sign_Z2_off");
+        Sign5 = x.in(inds["In"]);
+        NN.add_on_off(Sign5.in(inds["Constr"]) >= 0, y.in(inds["z2"]), false);
 
-        Constraint<> SignConstraint6("SignConstraint_out");
-        SignConstraint6 = x.in(inds["Out"]) - (1 - y.in(inds["z0"])) + y.in(inds["z1"]) - 2 * y.in(inds["z2"]);
-        NN.add(SignConstraint6.in(inds["Constr"]) == 0);
+        Constraint<> Sign6("Sign_out");
+        Sign6 = x.in(inds["Out"]) - ((1 - y.in(inds["z0"])) + y.in(inds["z1"]) - 2 * y.in(inds["z2"]));
+        NN.add(Sign6.in(inds["Constr"]) == 0);
     }
 
     Tensor* X; // Input

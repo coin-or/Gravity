@@ -1152,8 +1152,16 @@ void GurobiProgram::create_grb_constraints(){
                                 grb_mod->addGenConstrExp(gvar2, gvar1, options);
                             break;
                         }
-                        default:
+                        case gravity::gurobi_relu_:{
+                            if(c->_indices)
+                                grb_mod->addGenConstrMax(gvar1, &gvar2, 1, 0.0, c->get_name()+"("+c->_indices->_keys->at(i)+")");
+                            else
+                                grb_mod->addGenConstrMax(gvar1, &gvar2, 1, 0.0);
                             break;
+                        }
+                        default:{
+                            break;
+                        }
                     }
                 }
                 else{/* Multi expression*/
