@@ -18,6 +18,7 @@ public:
     Model<> model;
     indices sensors;
     indices objects;
+    indices objects2;
     indices agents;
     int M;
     int N;
@@ -48,9 +49,10 @@ public:
     void writeGreedySol();
     void assignLeader(string &idx, param<double> &wt0, param<double> &wt_own, param<double> &wt_bought);
     void assignOwn(string &idx, param<double> &wt0, param<double> &wt_own, param<double> &wt_bought);
-    void assignBought(string &idx, param<double> &wt0, param<double> &wt_own, param<double> &wt_bought);
+    void assignBought(string &idx, param<double> &wt0, param<double> &wt_own, param<double> &wt_bought, int ownr, string owner_name);
     double parSum(const param<double>& w);
     int nthOccurrence(const std::string& str, const std::string& findMe, int nth);
+    void InitBilevel2(param<double> &w0, param<double> &w_own, param<double> &w_bought, double eps);
     ~myModel(){ };
 };
 

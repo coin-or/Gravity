@@ -17,6 +17,7 @@ int main(int argc, const char * argv[]) {
     auto start = high_resolution_clock::now();
     m.InitBilevel(par[0], par[1], 0.001);
 //    m.readGreedySol(string(prj_dir)+"/data_sets/sol.dat"); //comment if not using greedy sol
+    m.readGreedySol("/Users/svetlanariabova/Projects/Sensor/Data/sol_tmp/sol1000.dat");
     auto stop = high_resolution_clock::now();
     auto duration1 = duration_cast<seconds>(stop - start);
     cout << "Init + greedy time: " << duration1.count() << endl;
@@ -147,6 +148,7 @@ void myModel::InitBilevel(param<double> &w0, param<double> &w, double eps) {
     
     /*reset_range to define ub on prices*/
     w.reset_range();
+    w0.reset_range();
 
     /*---------Variables---------*/
     /*price + aux for price*/
@@ -160,6 +162,9 @@ void myModel::InitBilevel(param<double> &w0, param<double> &w, double eps) {
     model.add(s.in(arcs));
     var<int> z("z", 0, 1);
     model.add(z.in(operations));
+    /* experimantal: z0 for CA*/
+    var<int> z0("z0", 0, 1);
+    model.add(z0.in(sensors));
     
     /*weights for obj (own + leader, bought + leader); leader receives utility when an object is observed, no matter by whom*/
     func<> f = w.in(own_arcs) + w0.in_ignore_ith(2, 1, own_arcs);
@@ -180,10 +185,16 @@ void myModel::InitBilevel(param<double> &w0, param<double> &w, double eps) {
     obj += sum(p); //sell sens pt.1
     obj -= product(1, p.in_ignore_ith(1, 2, own_arcs) * z.in_ignore_ith(1, 1, own_arcs)); //sell sens pt.2
     obj += product(w_bought0, s.in_ignore_ith(2, 1, bought_arcs) * z.in_ignore_ith(1, 1, bought_arcs)); //buy sens pt.1
+    obj += product(w0, s * z0.in_ignore_ith(1, 1, arcs));
     obj -= product(1, p.in_ignore_ith(1, 1, bought_sens) * z.in(bought_sens)); //buy sens pt.2
-    obj -= product(e, p.in_ignore_ith(1, 1, bought_sens) * z.in(bought_sens)); //regularization term; sets prices to their lb from Fair_price constraints (can't use equality there)
+    obj -= sum(p * z0);
+    obj -= product(e, p.in_ignore_ith(1, 1, bought_sens));// * z.in(bought_sens)); //regularization term; sets prices to their lb from Fair_price constraints (can't use equality there)
     model.max(obj);
     
+    /* Printing part of the obj to find the discrepancy*/
+    //cout << ;
+    
+
     /*--------Constraints--------*/
     
     Constraint<> ua("Unique_Assignment");
@@ -191,7 +202,7 @@ void myModel::InitBilevel(param<double> &w0, param<double> &w, double eps) {
     model.add(ua.in(sensors) == 1);
 
     Constraint<> uo("Unique_Operation");
-    uo = sum(z.in_matrix(1, 1)); //sensor operated by exactly one agent
+    uo = sum(z.in_matrix(1, 1)) + z0; //sensor operated by exactly one agent
     model.add(uo.in(sensors) == 1);
     
 //    Constraint<> uobj("Unique_Object");
@@ -214,55 +225,63 @@ void myModel::InitBilevel(param<double> &w0, param<double> &w, double eps) {
         }
     }
     
-    Constraint<> uobj("Unique_Object");
+    /*Constraint<> uobj("Unique_Object");
     uobj = s.in(s_ids) + z.in(z_ids) - N; //agent observes each object no more than once (sum_i(s(i, j) * z(i, k)) <= 1 or sum_i(s(i, j) + z(i, k) - 1) <= 1)
+    model.add(uobj.in(uobj_ids) <= 1);*/
+    
+    Constraint<> uobj("Unique_Object2");
+    uobj = product(1, s.in(s_ids) * z.in(z_ids)); //agent observes each object no more than once (sum_i(s(i, j) * z(i, k)) <= 1 or sum_i(s(i, j) + z(i, k) - 1) <= 1)
     model.add(uobj.in(uobj_ids) <= 1);
     
     Constraint<> fulb("Followers_Utility_lb"); //agents don't pay more than they get
     fulb = w.in(bought_arcs) * s.in_ignore_ith(2, 1, bought_arcs) * z.in_ignore_ith(1, 1, bought_arcs) + w._range->second * (1 - s.in_ignore_ith(2, 1, bought_arcs) * z.in_ignore_ith(1, 1, bought_arcs)) - p.in_ignore_ith(1, 2, bought_arcs) * z.in_ignore_ith(1, 1, bought_arcs);
     model.add(fulb.in(bought_arcs) >= 0);
     
-        //----Fair price----
-    Constraint<> fp("FairPrice"); //set price to the mid-point btw buyer and seller
-    fp = p.in_ignore_ith(1, 2, bought_arcs) - (w.in(bought_arcs) * s.in_ignore_ith(2, 1, bought_arcs) * z.in_ignore_ith(1, 1, bought_arcs) + y.in_ignore_ith(1, 2, bought_arcs))/2;
-    model.add(fp.in(bought_arcs) >= 0);
+    Constraint<> lulb("Leader_Utility_lb"); //CA doesn't pay more than they get
+    lulb = w0.in(arcs) * s.in(arcs) * z0.in_ignore_ith(1, 1, arcs) + w0._range->second * (1 - s.in(arcs) * z0.in_ignore_ith(1, 1, arcs)) - p.in_ignore_ith(1, 1, arcs) * z0.in_ignore_ith(1, 1, arcs);
+    model.add(lulb.in(arcs) >= 0);
     
-    /*Price proxies (marginal utility of using own sensor)*/
-    indices c_lb1("c_lb1"), y_lb1("y_lb1"), w_own_lb1("w_own_lb1"), z_lb1("z_lb1"), s_lb1("s_lb1");
-    y_lb1 = sensors;
-    z_lb1 = bought_arcs;
-    s_lb1 = own_arcs;
-    w_own_lb1 = own_arcs;
-    row_id = 0;
-    for (int i = 0; i < N; i++) {
-        for (Arc* b: graph.get_node("sensor" + to_string(i))->get_out()) {
-            string j = b->_dest->_name;
-            c_lb1.add("sensor" + to_string(i) + "," + b->_dest->_name);
-            y_lb1.add_ref("sensor" + to_string(i));
-            w_own_lb1.add_ref("sensor" + to_string(i) + "," + b->_dest->_name + ",agent" + to_string(owner[i]));
-            for (Arc* a: graph.get_node(j)->get_in()) {
-                s_lb1.add_in_row(row_id, a->_src->_name + "," + j);
-                z_lb1.add_in_row(row_id, a->_src->_name + ",agent" + to_string(owner[i]));
-            }
-            row_id++;
-        }
-    }
-    
-    Constraint<> sl1("Seller lb1"); //utility of adding this observation (if possible)
-    sl1 = y.in(y_lb1) + w.in(w_own_lb1) * s.in(s_lb1) * z.in(z_lb1) - w.in(w_own_lb1);
-    model.add(sl1.in(c_lb1) >= 0);
-    
-    /*Probably better to replace this with .add_in_row()*/
-    indices tmp_ids2 = own_rplc.ignore_ith(0, 1).ignore_ith(3, 1);
-    Constraint<> sl2("Seller lb2"); //utility of replacing observation done by another sensor of their own by this one
-    sl2 = y.in_ignore_ith(1, 3, own_rplc) - (w.in_ignore_ith(1, 1, own_rplc) - w.in_ignore_ith(0, 1, own_rplc)) * s.in_ignore_ith(2, 3, tmp_ids2);
-    model.add(sl2.in(own_rplc) >= 0);
-
-    indices tmp_ids = oths_rplc.ignore_ith(0, 1).ignore_ith(2, 1);
-    indices tmp_ids1 = oths_rplc.ignore_ith(0, 1);
-    Constraint<> sl3("Seller lb3"); //utility of replacing observation done by a bought sensor by this one
-    sl3 = y.in_ignore_ith(1, 3, oths_rplc) - (w.in_ignore_ith(1, 1, oths_rplc) - w.in_ignore_ith(0, 1, oths_rplc)) * s.in_ignore_ith(2, 3, tmp_ids) * z.in_ignore_ith(1, 1, tmp_ids1) - p.in_ignore_ith(1, 2, tmp_ids1) * z.in_ignore_ith(1, 1, tmp_ids1);
-    model.add(sl3.in(oths_rplc) >= 0);
+//        //----Fair price----
+//    Constraint<> fp("FairPrice"); //set price to the mid-point btw buyer and seller
+//    fp = p.in_ignore_ith(1, 2, bought_arcs) - (w.in(bought_arcs) * s.in_ignore_ith(2, 1, bought_arcs) * z.in_ignore_ith(1, 1, bought_arcs) + y.in_ignore_ith(1, 2, bought_arcs))/2;
+//    model.add(fp.in(bought_arcs) >= 0);
+//
+//    /*Price proxies (marginal utility of using own sensor)*/
+//    indices c_lb1("c_lb1"), y_lb1("y_lb1"), w_own_lb1("w_own_lb1"), z_lb1("z_lb1"), s_lb1("s_lb1");
+//    y_lb1 = sensors;
+//    z_lb1 = own_arcs;
+//    s_lb1 = own_arcs;
+//    w_own_lb1 = own_arcs;
+//    row_id = 0;
+//    for (int i = 0; i < N; i++) {
+//        for (Arc* b: graph.get_node("sensor" + to_string(i))->get_out()) {
+//            string j = b->_dest->_name;
+//            c_lb1.add("sensor" + to_string(i) + "," + b->_dest->_name);
+//            y_lb1.add_ref("sensor" + to_string(i));
+//            w_own_lb1.add_ref("sensor" + to_string(i) + "," + b->_dest->_name + ",agent" + to_string(owner[i]));
+//            for (Arc* a: graph.get_node(j)->get_in()) {
+//                s_lb1.add_in_row(row_id, a->_src->_name + "," + j);
+//                z_lb1.add_in_row(row_id, a->_src->_name + ",agent" + to_string(owner[i]));
+//            }
+//            row_id++;
+//        }
+//    }
+//
+//    /*Constraint<> sl1("Seller lb1"); //utility of adding this observation (if possible)
+//    sl1 = y.in(y_lb1) + w.in(w_own_lb1) * s.in(s_lb1) * z.in(z_lb1) - w.in(w_own_lb1);
+//    model.add(sl1.in(c_lb1) >= 0);*/
+//
+//    /*Probably better to replace this with .add_in_row()*/
+//    indices tmp_ids2 = own_rplc.ignore_ith(0, 1).ignore_ith(3, 1);
+//    Constraint<> sl2("Seller lb2"); //utility of replacing observation done by another sensor of their own by this one
+//    sl2 = y.in_ignore_ith(1, 3, own_rplc) - (w.in_ignore_ith(1, 1, own_rplc) - w.in_ignore_ith(0, 1, own_rplc)) * s.in_ignore_ith(2, 3, tmp_ids2);
+//    model.add(sl2.in(own_rplc) >= 0);
+//
+//    indices tmp_ids = oths_rplc.ignore_ith(0, 1).ignore_ith(2, 1);
+//    indices tmp_ids1 = oths_rplc.ignore_ith(0, 1);
+//    /*Constraint<> sl3("Seller lb3"); //utility of replacing observation done by a bought sensor by this one
+//    sl3 = y.in_ignore_ith(1, 3, oths_rplc) - (w.in_ignore_ith(1, 1, oths_rplc) - w.in_ignore_ith(0, 1, oths_rplc)) * s.in_ignore_ith(2, 3, tmp_ids) * z.in_ignore_ith(1, 1, tmp_ids1) - p.in_ignore_ith(1, 2, tmp_ids1) * z.in_ignore_ith(1, 1, tmp_ids1);
+//    model.add(sl3.in(oths_rplc) >= 0);*/
     
     //For comparison: case with no collaboration (only using own sensors)
     /*Constraint<> no_colab("nc");
@@ -270,6 +289,7 @@ void myModel::InitBilevel(param<double> &w0, param<double> &w, double eps) {
     model.add(no_colab.in(sensors) == 0);*/
     
 }
+
 
 void myModel::mSolve() {
     model.print_constraints_stats(1e-4);
@@ -288,6 +308,7 @@ void myModel::readGreedySol(string fname) {
     auto y = model.get_var<double>("y");
     auto s = model.get_var<int>("s");
     auto z = model.get_var<int>("z");
+    auto z0 = model.get_var<int>("z0");
     
     fstream file;
     file.open(fname);
@@ -310,6 +331,8 @@ void myModel::readGreedySol(string fname) {
             file >> id >> tmpval;
             z(id).set_val(stoi(tmpval));
         }
+        file >> id >> tmpval;
+        z0(id).set_val(stoi(tmpval));
     }
     file.close();
 }
