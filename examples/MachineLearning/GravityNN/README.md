@@ -1,57 +1,19 @@
-# Supported Operators
+# Using onnx_init
 
-| Op            | Impl | Count |
-| ------------- | ---- | ----- |
-| Add           | Yes  | 82    |
-| Batched GEMM  | Yes  | ?     |
-| Constant      | Yes  | ?     |
-| Cos           | Yes  | ?     |
-| Conv          | Yes  | 744   |
-| Flatten       | Yes  | 138   |
-| Gemm          | Yes  | 1229  |
-| MatMul        | Yes  | 42    |
-| Mul           | Yes  | 18    |
-| Neg           | Yes  | ?     |
-| Pow           | Yes  | ?     |
-| Relu          | Yes  | 1330  |
-| Reshape       | Yes  | 76    |
-| Sin           | Yes  | ?     |
-| Slice         | Yes  | 24    |
-| Sub           | Yes  | 3     |
-| Transpose     | Yes  | 6     |
-| Split         | Yes  | 18    |
-| Concat        | Yes  | ?     |
-| Div           | Yes  | 19    |
-| ReduceSum     | Yes  | 38    |
-| Sigmoid       | Yes  | 6     |
-| Softmax       | Yes  | 2     |
-| AveragePool   |      | 1     |
-| ArgMax        |      | 2     |
-| Cast          |      | 6     |
-| ConvTranspose |      | 1     |
-| Equal         |      | 2     |
-| Gather        |      | 6     |
-| OneHot        |      | 2     |
-| Pad           |      | 1     |
+First set up a conda environment with python version 3.10
+```bash
+conda create -n vnn2023 python=3.10
+conda activate vnn2023
+```
 
+Then install requirements:
+```bash
+pip install -r requirements.txt
+```
 
-# Georgia Tech model
-| Task         | Impl |
-| ------------ | ---- |
-| Batched GEMM | Yes  |
-| Gemm         | Yes  |
-| Concat       | Yes  |
-| Relu         | Yes  |
-| Add          | Yes  |
-| Cos          | Yes  |
-| Sin          | Yes  |
-| Sub          | Yes  |
-| Neg          | Yes  |
-| Pow          | Yes  |
-| Mul          | Yes  |
-| MatMul       | Yes  |
-| Transpose    | Yes  |
-| Slice        | Yes  |
-| Sigmoid      |      |
-| Gather       |      |
+Now we can create onnx models. Here is an example:
+```bash
+python onnx_init.py ~/Documents/vnncomp2023_benchmarks/benchmarks/tllverifybench/ 0 ../../../data_sets/VNN/tll_new.onnx
+```
 
+This will initialize an ONNX model with instance 0 in the TLL benchmark and write it out to the file `data_sets/VNN/tll_new.onnx`
