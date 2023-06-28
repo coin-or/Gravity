@@ -31,7 +31,7 @@ int main(int argc, const char * argv[]) {
 //    auto par = m.readHD5(fname);
     vector<param<double>> par = m.readData(argc, argv, 1, 2);
     auto start = high_resolution_clock::now();
-    m.InitBilevel(par[0], par[1], par[2], 0.001);
+    m.InitBilevel2(par[0], par[1], par[2], 0.001);
 //    m.GreedyStart(par[0], par[1], par[2]); //comment if no greedy start not needed
 //    cout << "Writing solution file." << endl;
 //    m.writeGreedySol(); //writing greedy sol to a file to load it to sensor_assign2
@@ -40,7 +40,7 @@ int main(int argc, const char * argv[]) {
     cout << "Init + greedy time: " << duration1.count() << " seconds." << endl;
 //    bool run_MIP = true;
     m.mSolve(run_MIP);
-    //m.writeGreedySol(); //writing opt sol to a file to load it to sensor_assign2
+    m.writeGreedySol(); //writing opt sol to a file to load it to sensor_assign2
     auto stop2 = high_resolution_clock::now();
     auto duration2 = duration_cast<seconds>(stop2 - stop);
 //    cout << "Done." << endl;
@@ -427,7 +427,6 @@ void myModel::InitBilevel(param<double> &w0, param<double> &w_own, param<double>
     obj += product(w0, z0);
     obj -= sum(p_z); //buy sens pt.2
     obj -= sum(p_z0);
-    //obj += p_diff;
     obj -= e * sum(p_sn); //regularization term; sets prices to their lb from Fair_price constraints (can't use equality there)
     model.max(obj);
     
@@ -437,8 +436,8 @@ void myModel::InitBilevel(param<double> &w0, param<double> &w_own, param<double>
     indices z0_ids("z0_ids"), z_ids("z_ids"), ub_idx("ub_idx"), ub_idx2("ub_idx2");
     z0_ids = arcs;
     z_ids = bought_arcs;
-    ub_idx = sensors;
-    ub_idx2 = sensors;
+    //ub_idx = sensors;
+    //ub_idx2 = sensors;
 
     for (int i = 0; i<N; i++) {
         for (Arc* b: graph.get_node("Sensor_" + to_string(i))->get_out()) {
@@ -939,7 +938,7 @@ void myModel::writeGreedySol() {
     
     ofstream solFile;
     //solFile.open("sol.dat");
-    solFile.open("/Users/svetlanariabova/Projects/Sensor/Data/sol_tmp/sol16.dat"); //hardcoded file name; might need to change later
+    solFile.open("/Users/svetlanariabova/Projects/Sensor/Data/sol_tmp/sol20bl_test.dat"); //hardcoded file name; might need to change later
     for (int i = 0; i < N; i++) {
         /*greedy solution might have vars at -inf when sensor is not used; replacing it with 0 in else statement*/
         if (p.eval("Sensor_" + to_string(i)) >= 0) {
@@ -1285,8 +1284,8 @@ void myModel::InitBilevel2(param<double> &w0, param<double> &w_own, param<double
     indices z0_ids("z0_ids"), z_ids("z_ids"), ub_idx("ub_idx"), ub_idx2("ub_idx2");
     z0_ids = arcs;
     z_ids = bought_arcs;
-    ub_idx = sensors;
-    ub_idx2 = sensors;
+    //ub_idx = sensors;
+    //ub_idx2 = sensors;
 
     for (int i = 0; i<N; i++) {
         for (Arc* b: graph.get_node("Sensor_" + to_string(i))->get_out()) {
@@ -1343,8 +1342,8 @@ void myModel::InitBilevel2(param<double> &w0, param<double> &w_own, param<double
     a_sd = own_sens;
     b_sd = bought_sens;
     g_sd = objects;
-    sd_idx = agents;
-    sd_idx2 = agents;
+    //sd_idx = agents;
+    //sd_idx2 = agents;
     string idx, sensor_name, sub_idx, object_name, agent_name;
     
     for (int k = 0; k < K; k++) {
@@ -1505,7 +1504,12 @@ void myModel::InitBilevel2(param<double> &w0, param<double> &w_own, param<double
     df3 = g.in(g_df3) - w_bought.in(bought_arcs) + p.in_ignore_ith(1, 2, bought_arcs);
     model.add(df3.in(bought_arcs) >= 0);
     
-   
+    indices test_idx("test_idx");
+    test_idx.add("Sensor_4,Object_11,Agent_1");
+    
+    Constraint<> test("test");
+    test = s.in(test_idx);
+    model.add(test == 1);
 //    Constraint<> fulb("Followers_Utility_lb"); //agents don't pay more than they get
 //    fulb = w_bought - p_z;
 //    model.add(fulb.in(bought_arcs) >= 0);
