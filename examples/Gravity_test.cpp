@@ -67,10 +67,22 @@ TEST_CASE("testing bound propagation") {
     
     
     auto f_lin1 = 2*x-y;
-    CHECK(f_lin1._all_range->at(0).first==3);
-    CHECK(f_lin1._all_range->at(0).second==6);
-    CHECK(f_lin1._all_range->at(3).first==0);
-    CHECK(f_lin1._all_range->at(3).second==2);
+    CHECK(f_lin1._all_range->at(0).first==-7);
+    CHECK(f_lin1._all_range->at(0).second==-2);
+    CHECK(f_lin1._all_range->at(3).first==-3);
+    CHECK(f_lin1._all_range->at(3).second==1);
+    
+    auto f_lin2 = y-2;
+    CHECK(f_lin2._all_range->at(0).first==2);
+    CHECK(f_lin2._all_range->at(0).second==3);
+    CHECK(f_lin2._all_range->at(3).first==-1);
+    CHECK(f_lin2._all_range->at(3).second==-1);
+    
+    auto f_lin3 = 2-y;
+    CHECK(f_lin3._all_range->at(0).first==-3);
+    CHECK(f_lin3._all_range->at(0).second==-2);
+    CHECK(f_lin3._all_range->at(3).first==1);
+    CHECK(f_lin3._all_range->at(3).second==1);
     
     
     

@@ -630,6 +630,28 @@ namespace gravity {
         return res;
     }
 
+template<class T1, class T2, typename enable_if<is_convertible<T2, T1>::value && sizeof(T2) <= sizeof(T1)>::type* = nullptr>
+vector<pair<T1,T1>> get_product_range(T1 x, const vector<pair<T2,T2>>& y){
+    vector<pair<T1,T1>> res;
+    res.resize(y.size());
+    if(x<0){
+    #pragma omp parallel for num_threads(get_num_threads() / 2)
+        for(auto i = 0; i<y.size(); i++){
+            res[i].first = x*y[i].second;
+            res[i].second = x*y[i].first;
+        }
+    }
+    else{
+    #pragma omp parallel for num_threads(get_num_threads() / 2)
+        for(auto i = 0; i<y.size(); i++){
+            res[i].first = x*y[i].first;
+            res[i].second = x*y[i].second;
+        }
+
+    }
+    return res;
+}
+
     template<class T1, class T2, typename enable_if<is_convertible<T1, T2>::value && sizeof(T1) < sizeof(T2)>::type* = nullptr>
     vector<pair<T2,T2>> get_product_range(const vector<pair<T1,T1>>& x, const vector<pair<T2,T2>>& y){
         vector<pair<T2,T2>> res;
@@ -770,6 +792,55 @@ namespace gravity {
         }
         return res;
     }
+
+template<class T1, class T2, typename enable_if<is_convertible<T2, T1>::value && sizeof(T2) <= sizeof(T1)>::type* = nullptr>
+vector<pair<T1,T1>> get_plus_range(T1 x, const vector<pair<T2,T2>>& y){
+    vector<pair<T1,T1>> res;
+    res.resize(y.size());
+    #pragma omp parallel for num_threads(get_num_threads() / 2)
+    for(auto i = 0; i<y.size(); i++){
+        res[i].first = extended_plus(x,y[i].first);
+        res[i].second = extended_plus(x,y[i].second);
+    }
+    return res;
+}
+
+template<class T1, class T2, typename enable_if<is_convertible<T1, T2>::value && sizeof(T1) < sizeof(T2)>::type* = nullptr>
+vector<pair<T2,T2>> get_plus_range(T1 x, const vector<pair<T2,T2>>& y){
+    vector<pair<T2,T2>> res;
+    res.resize(y.size());
+    #pragma omp parallel for num_threads(get_num_threads() / 2)
+    for(auto i = 0; i<y.size(); i++){
+        res[i].first = extended_plus((T2)x,y[i].first);
+        res[i].second = extended_plus((T2)x,y[i].second);
+    }
+    return res;
+}
+
+
+template<class T1, class T2, typename enable_if<is_convertible<T2, T1>::value && sizeof(T2) <= sizeof(T1)>::type* = nullptr>
+vector<pair<T1,T1>> get_plus_range(const vector<pair<T2,T2>>& y, T1 x){
+    vector<pair<T1,T1>> res;
+    res.resize(y.size());
+    #pragma omp parallel for num_threads(get_num_threads() / 2)
+    for(auto i = 0; i<y.size(); i++){
+        res[i].first = extended_plus(x,y[i].first);
+        res[i].second = extended_plus(x,y[i].second);
+    }
+    return res;
+}
+
+template<class T1, class T2, typename enable_if<is_convertible<T1, T2>::value && sizeof(T1) < sizeof(T2)>::type* = nullptr>
+vector<pair<T2,T2>> get_plus_range(const vector<pair<T2,T2>>& y, T1 x){
+    vector<pair<T2,T2>> res;
+    res.resize(y.size());
+    #pragma omp parallel for num_threads(get_num_threads() / 2)
+    for(auto i = 0; i<y.size(); i++){
+        res[i].first = extended_plus(x,y[i].first);
+        res[i].second = extended_plus(x,y[i].second);
+    }
+    return res;
+}
     
     template<class T1, class T2, typename enable_if<is_convertible<T1, T2>::value && sizeof(T1) < sizeof(T2)>::type* = nullptr>
     vector<pair<T2,T2>> get_plus_range(const vector<pair<T1,T1>>& x, const vector<pair<T2,T2>>& y){
@@ -787,6 +858,23 @@ namespace gravity {
         }
         return res;
     }
+
+//template<class T1, class T2, typename enable_if<is_convertible<T2, T1>::value && sizeof(T2) <= sizeof(T1)>::type* = nullptr>
+//vector<pair<T1,T1>> get_plus_range(const vector<pair<T1,T1>>& x, const vector<pair<T2,T2>>& y){
+//    vector<pair<T1,T1>> res;
+//    res.resize(x.size());
+//    assert(x.size()==y.size());
+//    #pragma omp parallel for num_threads(get_num_threads() / 2)
+//    for(auto i = 0; i<x.size(); i++){
+//        T1 x1 = x[i].first;
+//        T1 x2 = x[i].second;
+//        T1 y1 = y[i].first;
+//        T1 y2 = y[i].second;
+//        res[i].first = extended_plus(x1,y1);
+//        res[i].second = extended_plus(x2,y2);
+//    }
+//    return res;
+//}
 
     template<class T1, class T2, typename enable_if<is_convertible<T1, T2>::value && sizeof(T1) < sizeof(T2)>::type* = nullptr>
     pair<T2,T2> get_plus_range(const pair<T1,T1>& x, const pair<T2,T2>& y){
@@ -816,6 +904,30 @@ namespace gravity {
         }
         return res;
     }
+
+template<class T1, class T2, typename enable_if<is_convertible<T2, T1>::value && sizeof(T2) <= sizeof(T1)>::type* = nullptr>
+vector<pair<T1,T1>> get_minus_range(T1 x, const vector<pair<T2,T2>>& y){
+    vector<pair<T1,T1>> res;
+    res.resize(y.size());
+    #pragma omp parallel for num_threads(get_num_threads() / 2)
+    for(auto i = 0; i<y.size(); i++){
+        res[i].first = extended_minus(x,y[i].second);
+        res[i].second = extended_minus(x,y[i].first);
+    }
+    return res;
+}
+
+template<class T1, class T2, typename enable_if<is_convertible<T2, T1>::value && sizeof(T2) <= sizeof(T1)>::type* = nullptr>
+vector<pair<T1,T1>> get_minus_range(const vector<pair<T2,T2>>& y, T1 x){
+    vector<pair<T1,T1>> res;
+    res.resize(y.size());
+    #pragma omp parallel for num_threads(get_num_threads() / 2)
+    for(auto i = 0; i<y.size(); i++){
+        res[i].first = extended_minus(y[i].first, x);
+        res[i].second = extended_minus(y[i].second, x);
+    }
+    return res;
+}
 
     template<class T1, class T2, typename enable_if<is_convertible<T1, T2>::value && sizeof(T1) < sizeof(T2)>::type* = nullptr>
     vector<pair<T2,T2>> get_minus_range(const vector<pair<T1,T1>>& x, const vector<pair<T2,T2>>& y){
@@ -6918,6 +7030,7 @@ namespace gravity {
                 update_sign_multiply(f);
                 res._all_sign = _all_sign;
                 *res._range = get_product_range(*_range,*f._range);
+                *res._all_range = get_product_range(_val->at(0),*f._all_range);
                 if(_is_transposed){
                     res._range->first = extended_mult(res._range->first,(type)_dim[0]);
                     res._range->second = extended_mult(res._range->second,(type)_dim[0]);
@@ -7014,6 +7127,7 @@ namespace gravity {
                 res._is_transposed = _is_transposed;
                 res._all_sign = _all_sign;
                 *res._range = get_product_range(*_range,*f._range);
+                *res._all_range = get_product_range(*_all_range,*f._all_range);
                 if(_is_transposed){
                     res._range->first = extended_mult(res._range->first,(type)_dim[0]);
                     res._range->second = extended_mult(res._range->second,(type)_dim[0]);
@@ -7042,6 +7156,7 @@ namespace gravity {
             }
             else {
                 *res._range = get_product_range(*_range,*f._range);
+                *res._all_range = get_product_range(*_all_range,*f._all_range);
             }
             if(_is_transposed){
                 res._range->first = extended_mult(res._range->first,(type)_dim[0]);
@@ -7516,7 +7631,7 @@ namespace gravity {
                 this->add_cst(f);
                 update_sign_add(f);
                 *_range = get_plus_range(*_range, *f._range);
-                *_all_range = get_plus_range(*_all_range, *f._all_range);
+                *_all_range = get_plus_range(f._range->first, *_all_range);
                 return *this;
             }
             if (!f.get_cst()->is_zero()) {
@@ -10380,6 +10495,46 @@ func<T2> operator-(const var<T1>& p1, const var<T2>& p2){
     func<T2> operator+(const param<T1>& v, T2 p){
         return v + constant<T2>(p);
     }
+
+template<class T1,class T2, typename enable_if<is_convertible<T2, T1>::value && sizeof(T2) < sizeof(T1)>::type* = nullptr>
+func<T1> operator-(T1 p, const var<T2>& v){
+    return constant<T1>(p) - v;
+}
+
+template<class T1,class T2, typename enable_if<is_convertible<T1, T2>::value && sizeof(T2) >= sizeof(T1)>::type* = nullptr>
+func<T2> operator-(T1 p, const var<T2>& v){
+    return constant<T2>(p) - v;
+}
+
+template<class T1,class T2, typename enable_if<is_convertible<T2, T1>::value && sizeof(T2) < sizeof(T1)>::type* = nullptr>
+func<T1> operator-(const var<T1>& v, T2 p){
+    return v - constant<T1>(p);
+}
+
+template<class T1,class T2, typename enable_if<is_convertible<T1, T2>::value && sizeof(T2) >= sizeof(T1)>::type* = nullptr>
+func<T2> operator-(const var<T1>& v, T2 p){
+    return v - constant<T2>(p);
+}
+
+template<class T1,class T2, typename enable_if<is_convertible<T2, T1>::value && sizeof(T2) < sizeof(T1)>::type* = nullptr>
+func<T1> operator+(T1 p, const var<T2>& v){
+    return constant<T1>(p) + v;
+}
+
+template<class T1,class T2, typename enable_if<is_convertible<T1, T2>::value && sizeof(T2) >= sizeof(T1)>::type* = nullptr>
+func<T2> operator+(T1 p, const var<T2>& v){
+    return constant<T2>(p) + v;
+}
+
+template<class T1,class T2, typename enable_if<is_convertible<T2, T1>::value && sizeof(T2) < sizeof(T1)>::type* = nullptr>
+func<T1> operator+(const var<T1>& v, T2 p){
+    return v + constant<T1>(p);
+}
+
+template<class T1,class T2, typename enable_if<is_convertible<T1, T2>::value && sizeof(T2) >= sizeof(T1)>::type* = nullptr>
+func<T2> operator+(const var<T1>& v, T2 p){
+    return v + constant<T2>(p);
+}
     
     template<class T1,class T2, typename enable_if<is_convertible<T2, T1>::value && sizeof(T2) < sizeof(T1)>::type* = nullptr>
     func<T1> operator-(const constant<T1>& p, const param<T2>& v){
@@ -10419,9 +10574,21 @@ func<T2> operator-(const var<T1>& p1, const var<T2>& p2){
         newp.reverse_sign();
         res.add_cst(newp);
         *res._range = get_minus_range(*v._range,*p.range());
+        res.eval_all();
+        res.set_all_range(*res._val);
         res.update_all_sign();
         return res;
     }
+
+    template<class T1,class T2, typename enable_if<is_convertible<T1, T2>::value && sizeof(T2) >= sizeof(T1)>::type* = nullptr>
+    func<T2> operator-(const var<T1>& v, const constant<T2>& p){
+        return func<T2>(v) - func<T2>(p);
+    }
+
+template<class T1,class T2, typename enable_if<is_convertible<T1, T2>::value && sizeof(T2) >= sizeof(T1)>::type* = nullptr>
+func<T2> operator-(const constant<T2>& p, const var<T1>& v){
+    return func<T2>(p) - func<T2>(v);
+}
     
     template<class T1,class T2, typename enable_if<is_convertible<T2, T1>::value && sizeof(T2) < sizeof(T1)>::type* = nullptr>
     func<T1> operator+(const constant<T1>& p, const param<T2>& v){
@@ -10462,6 +10629,16 @@ func<T2> operator-(const var<T1>& p1, const var<T2>& p2){
         res.update_all_sign();
         return res;
     }
+
+template<class T1,class T2, typename enable_if<is_convertible<T1, T2>::value && sizeof(T2) >= sizeof(T1)>::type* = nullptr>
+func<T2> operator+(const constant<T1>& p, const var<T2>& v){
+    return func<T2>(p) + func<T2>(v);
+}
+
+template<class T1,class T2, typename enable_if<is_convertible<T1, T2>::value && sizeof(T2) >= sizeof(T1)>::type* = nullptr>
+func<T2> operator+(const var<T1>& v, const constant<T2>& p){
+    return func<T2>(v) + func<T2>(p);
+}
     
     
     
@@ -10492,6 +10669,34 @@ func<T2> operator-(const var<T1>& p1, const var<T2>& p2){
         res += f;
         return res;
     }
+
+template<class T1,class T2, typename enable_if<is_convertible<T2, T1>::value && sizeof(T2) < sizeof(T1)>::type* = nullptr>
+func<T1> operator+(const var<T1>& v, const func<T2>& f){
+    func<T1> res(v);
+    res += f;
+    return res;
+}
+
+template<class T1,class T2, typename enable_if<is_convertible<T1, T2>::value && sizeof(T2) >= sizeof(T1)>::type* = nullptr>
+func<T2> operator+(const var<T1>& v, const func<T2>& f){
+    func<T2> res(v);
+    res += f;
+    return res;
+}
+
+template<class T1,class T2, typename enable_if<is_convertible<T2, T1>::value && sizeof(T2) < sizeof(T1)>::type* = nullptr>
+func<T1> operator+(const func<T1>& f, const var<T2>& v){
+    func<T1> res(v);
+    res += f;
+    return res;
+}
+
+template<class T1,class T2, typename enable_if<is_convertible<T1, T2>::value && sizeof(T2) >= sizeof(T1)>::type* = nullptr>
+func<T2> operator+(const func<T1>& f, const var<T2>& v){
+    func<T2> res(v);
+    res += f;
+    return res;
+}
     
     
     template<class T1,class T2, typename enable_if<is_convertible<T2, T1>::value && sizeof(T2) < sizeof(T1)>::type* = nullptr>
@@ -10607,6 +10812,37 @@ func<T2> operator-(const var<T1>& p1, const var<T2>& p2){
         res -= v;//TODO check when v = f
         return res;
     }
+template<class T1,class T2, typename enable_if<is_convertible<T2, T1>::value && sizeof(T2) < sizeof(T1)>::type* = nullptr>
+func<T1> operator-(const func<T1>& f, const var<T2>& v){
+    func<T1> res(v);
+    res.reverse_sign();
+    res += f;
+    return res;
+}
+
+template<class T1,class T2, typename enable_if<is_convertible<T1, T2>::value && sizeof(T2) >= sizeof(T1)>::type* = nullptr>
+func<T2> operator-(const func<T1>& f, const var<T2>& v){
+    func<T2> res(v);
+    res.reverse_sign();
+    res += f;
+    return res;
+}
+
+template<class T1,class T2, typename enable_if<is_convertible<T2, T1>::value && sizeof(T2) < sizeof(T1)>::type* = nullptr>
+func<T1> operator-(const var<T1>& p, const func<T2>& f){
+    func<T1> res(f);
+    res.reverse_sign();
+    res += p;
+    return res;
+}
+
+template<class T1,class T2, typename enable_if<is_convertible<T1, T2>::value && sizeof(T2) >= sizeof(T1)>::type* = nullptr>
+func<T2> operator-(const var<T1>& p, const func<T2>& f){
+    func<T2> res(f);
+    res.reverse_sign();
+    res += p;
+    return res;
+}
     
     template<class T1,class T2, typename enable_if<is_convertible<T2, T1>::value && sizeof(T2) < sizeof(T1)>::type* = nullptr>
     func<T1> operator-(const func<T1>& f, const param<T2>& v){
@@ -10662,8 +10898,30 @@ func<T2> operator-(const var<T1>& p1, const var<T2>& p2){
         return res;
     }
     
+template<class T1,class T2, typename enable_if<is_convertible<T2, T1>::value && sizeof(T2) < sizeof(T1)>::type* = nullptr>
+func<T1> operator*(const var<T1>& v, const func<T2>& f){
+    func<T1> res(v);
+    func<T1> f2(f);
+    if((v._is_transposed || v.is_matrix()) && (!f2.func_is_number() && !f2._is_vector)){
+        return res *= f2.vec();
+    }
+    res *= f2;
+    return res;
+}
+
+template<class T1,class T2, typename enable_if<is_convertible<T1, T2>::value && sizeof(T2) >= sizeof(T1)>::type* = nullptr>
+func<T2> operator*(const var<T1>& v, const func<T2>& f){
+    func<T2> res(v);
+    func<T2> f2(f);
+    if((v._is_transposed || v.is_matrix()) && (!f2.func_is_number() && !f2._is_vector)){
+        return res *= f2.vec();
+    }
+    res *= f2;
+    return res;
+}
+
     template<class T1,class T2, typename enable_if<is_convertible<T2, T1>::value && sizeof(T2) < sizeof(T1)>::type* = nullptr>
-    func<T1> operator*(const func<T1>& f, const param<T2>& v){
+    func<T1> operator*(const func<T1>& f, const var<T2>& v){
         func<T1> res(f);
         func<T1> f2(v);
         if((f._is_transposed || f.is_matrix()) && (!f2.func_is_number() && !f2._is_vector)){
@@ -10674,6 +10932,18 @@ func<T2> operator-(const var<T1>& p1, const var<T2>& p2){
     
     template<class T1,class T2, typename enable_if<is_convertible<T1, T2>::value && sizeof(T2) >= sizeof(T1)>::type* = nullptr>
     func<T2> operator*(const func<T1>& f, const param<T2>& v){
+        func<T2> res(f);
+        func<T2> f2(v);
+        if((f._is_transposed || f.is_matrix()) && (!f2.func_is_number() && !f2._is_vector)){
+            return res *= f2.vec();
+        }
+        res *= f2;
+        return res;
+    }
+    
+
+    template<class T1,class T2, typename enable_if<is_convertible<T1, T2>::value && sizeof(T2) >= sizeof(T1)>::type* = nullptr>
+    func<T2> operator*(const func<T1>& f, const var<T2>& v){
         func<T2> res(f);
         func<T2> f2(v);
         if((f._is_transposed || f.is_matrix()) && (!f2.func_is_number() && !f2._is_vector)){
@@ -10846,26 +11116,26 @@ func<T2> operator-(const var<T1>& p1, const var<T2>& p2){
     }
 
 //TODO: Uncommenting these breaks something
-//template<class T1,class T2, typename enable_if<is_convertible<T2, T1>::value && sizeof(T2) < sizeof(T1)>::type* = nullptr>
-//func<T1> operator*(T1 p, const var<T2>& v){
-//    return constant<T1>(p)*v;
-//}
-//
-//template<class T1,class T2, typename enable_if<is_convertible<T1, T2>::value && sizeof(T2) >= sizeof(T1)>::type* = nullptr>
-//func<T2> operator*(T1 p, const var<T2>& v){
-//    return constant<T2>(p)*v;
-//}
-//
-//
-//template<class T1,class T2, typename enable_if<is_convertible<T2, T1>::value && sizeof(T2) < sizeof(T1)>::type* = nullptr>
-//func<T1> operator*(const var<T1>& v, T2 p){
-//    return v*constant<T1>(p);
-//}
-//
-//template<class T1,class T2, typename enable_if<is_convertible<T1, T2>::value && sizeof(T2) >= sizeof(T1)>::type* = nullptr>
-//func<T2> operator*(const var<T1>& v, T2 p){
-//    return v*constant<T2>(p);
-//}
+template<class T1,class T2, typename enable_if<is_convertible<T2, T1>::value && sizeof(T2) < sizeof(T1)>::type* = nullptr>
+func<T1> operator*(T1 p, const var<T2>& v){
+    return constant<T1>(p)*v;
+}
+
+template<class T1,class T2, typename enable_if<is_convertible<T1, T2>::value && sizeof(T2) >= sizeof(T1)>::type* = nullptr>
+func<T2> operator*(T1 p, const var<T2>& v){
+    return constant<T2>(p)*v;
+}
+
+
+template<class T1,class T2, typename enable_if<is_convertible<T2, T1>::value && sizeof(T2) < sizeof(T1)>::type* = nullptr>
+func<T1> operator*(const var<T1>& v, T2 p){
+    return v*constant<T1>(p);
+}
+
+template<class T1,class T2, typename enable_if<is_convertible<T1, T2>::value && sizeof(T2) >= sizeof(T1)>::type* = nullptr>
+func<T2> operator*(const var<T1>& v, T2 p){
+    return v*constant<T2>(p);
+}
     
     
     template<class T1,class T2, typename enable_if<is_convertible<T2, T1>::value && sizeof(T2) < sizeof(T1)>::type* = nullptr>
