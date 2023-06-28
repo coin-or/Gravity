@@ -138,7 +138,7 @@ public:
         // If it is, we want aux_key to point to the value
         // that true_key points to
         if (this->noop_remap->find(true_key) != this->noop_remap->end()) {
-            aux_key = this->noop_remap->at(true_key);
+            true_key = this->noop_remap->at(true_key);
         }
         this->noop_remap->insert({aux_key, true_key});
     }

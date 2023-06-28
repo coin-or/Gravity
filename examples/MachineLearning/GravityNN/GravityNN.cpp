@@ -4,36 +4,49 @@
 #include <vector>
 #include <network/NeuralNet.hpp>
 #include <gravity/solver.h>
+#include <CLI11/CLI11.hpp>
 
 using namespace gravity;
 
-int main(int argc, char * argv[]){
-    string fname = string(prj_dir)+"/data_sets/VNN/tll_new_old.onnx";
-    if(argc >= 2) {
-        fname = argv[1];
-    }
-    int idx = 0;
-    if (argc >= 3) {
-        idx = atoi(argv[2]);
-    }
-
-    // Empty string means we build the entire network, otherwise we build up to the specified node
+class Config {
+public:
+    std::string fname;
     std::string start_node = "";
     std::string final_node = "";
-    NeuralNet nn(fname);
+    bool w_gurobi = false;
+    bool w_gravity = false;
+    int obj_idx;
 
-    Model<>& NN = nn.build_model(idx, start_node, final_node);
+    Config(int argc, char * argv[]): app("GravityNN", "GravityNN") {
+        this->app.add_option("-f,--file", this->fname, "ONNX file path")
+            ->required()
+            ->check(CLI::ExistingFile);
 
-    if (idx < 0) {
-        auto tensor = nn.subgraph.back()->outputs.at(0);
-        gravity::func<> expr = 0.0;
-        for (auto index: ShapeIter(tensor->shape)) {
-            expr += nn.x(tensor->strkey(index));
+        this->app.add_option("-s,--start",     this->start_node, "Start node name");
+        this->app.add_option("-e,--end",       this->final_node, "Final node name");
+        this->app.add_option("-i,--index",     this->obj_idx,    "Objective index (-1 will sum output of last layer)")
+            ->required()
+            ->check(CLI::Number);
+
+        this->app.add_flag("-g,--gurobi",      this->w_gurobi,   "Write Gurobi model");
+        this->app.add_flag("-v,--gravity",     this->w_gravity,  "Write Gravity model");
+
+        try {
+            this->app.parse(argc, argv);
+        } catch(const CLI::ParseError &e) {
+            std::exit(this->app.exit(e));
         }
-        NN.max(expr);
     }
 
-    // NN.write();
+    CLI::App app;
+};
+
+int main(int argc, char * argv[]){
+    Config config(argc, argv);
+    NeuralNet nn(config.fname);
+
+    Model<>& NN = nn.build_model(config.obj_idx, config.start_node, config.final_node);
+
 
     solver<> S(NN,gurobi);
     auto grb_prog = (GurobiProgram*)(S._prog.get());
@@ -42,6 +55,13 @@ int main(int argc, char * argv[]){
     grb_mod->set(GRB_IntParam_NonConvex,2);
     grb_mod->set(GRB_IntParam_Presolve,2);
     // grb_mod->set(GRB_DoubleParam_BestBdStop, -1e-4);
+
+    if (config.w_gravity) {
+        NN.write();
+    }
+    if (config.w_gurobi) {
+        grb_mod->write("gurobiprint.lp");
+    }
 
     S.run();
 

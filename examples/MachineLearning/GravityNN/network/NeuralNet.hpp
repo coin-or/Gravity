@@ -126,12 +126,12 @@ public:
             this->_all_layers.push_back(node_ptr);
         }
 
-        this->_fold_noops();
     }
 
     // Set obj_index to -1 if you want to use a custom objective, otherwise the index of the objective
     Model<>& build_model(int obj_index, std::string start_node, std::string final_node) {
         this->subgraph = subgraph_extraction(this->_all_layers, start_node, final_node);
+        this->_fold_noops();
 
         this->build_indexing();
         this->index_constraints();
@@ -155,6 +155,12 @@ public:
 
     void set_objective(int obj_index) {
         if (obj_index < 0) {
+            auto tensor = this->subgraph.back()->outputs.at(0);
+            gravity::func<> expr = 0.0;
+            for (auto index: ShapeIter(tensor->shape)) {
+                expr += this->x(tensor->strkey(index));
+            }
+            NN.max(expr);
             return;
         }
 
@@ -185,7 +191,7 @@ public:
         std::cout << "Objective: " << obj_index << std::endl;
         obj.print();
 
-        NN.min(obj);
+        this->NN.min(obj);
     }
 
     /*
@@ -312,12 +318,13 @@ public:
             if (i->is_initializer) {
                 continue;
             }
-            if (i->folded) {
-                continue;
-            }
+
             auto producer = this->output_to_layer.at(i->name);
             // Check if the producer is in the subgraph
-            if (std::find(this->subgraph.begin(), this->subgraph.end(), producer) == this->subgraph.end()) {
+            if (
+                std::find(this->subgraph.begin(), this->subgraph.end(), producer) == this->subgraph.end() &&
+                producer->folded == false
+            ) {
                 return false;
             }
         }
@@ -329,7 +336,7 @@ public:
         std::cout << "Folding NoOps" << std::endl;
 
         std::set<Layer*> todelete;
-        for (auto l: this->_all_layers) {
+        for (auto l: this->subgraph) {
             // Pure noops just need to have their constraints indexed
             if (PURE_NOOPS.count(l->operator_type) > 0) {
                 std::cout << " - " << l->name << " (Deleted)" << std::endl;
@@ -351,13 +358,13 @@ public:
             }
         }
 
-        this->_all_layers.erase(
+        this->subgraph.erase(
             std::remove_if(
-                this->_all_layers.begin(), 
-                this->_all_layers.end(),
+                this->subgraph.begin(), 
+                this->subgraph.end(),
                 [&](Layer* l) { return todelete.find(l) != todelete.end(); }
             ),
-            this->_all_layers.end()
+            this->subgraph.end()
         );
     }
 
@@ -376,4 +383,5 @@ public:
     var<int> y;
 
     std::map<std::string, Layer*> output_to_layer;
+    std::set<Layer*> folded_layers;
 };

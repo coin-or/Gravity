@@ -12,6 +12,8 @@ std::set<OType> IMPURE_NOOPS = {_concat};
 class NoOp : public Layer {
 public:
     NoOp(const onnx::NodeProto& node, Tensors& tensors): Layer(node, tensors) {
+        this->folded = true;
+
         // operator_type = _noop;
         this->X = &tensors[node.input(0)];
         this->Y = &tensors[node.output(0)];
@@ -27,8 +29,6 @@ public:
     void index_constraint(IndexSet& inds) override {}
 
     virtual void remap_indices(IndexContainer& inds) {
-        this->outputs.at(0)->folded = true;
-
         for(auto j = 0; j < this->X->numel;j++){
             inds.add_remap(this->X->strkey(j), this->Y->strkey(j));
         }
@@ -89,7 +89,6 @@ public:
     void remap_indices(IndexContainer& inds) override {
         size_t cur_axis_idx = 0;
         for (auto out: this->outputs) {
-            out->folded = true;
             for (auto y_ind: ShapeIter(out->shape)) {
                 auto x_ind = y_ind;
                 x_ind.at(this->axis) += cur_axis_idx;
@@ -126,7 +125,6 @@ public:
 
     void remap_indices(IndexContainer& inds) override {
         size_t cur_axis_idx = 0;
-        this->outputs.at(0)->folded = true;
         for (auto inp: this->inputs) {
             if (inp->is_initializer) {
                 cur_axis_idx += inp->shape[this->axis];
@@ -140,6 +138,23 @@ public:
             }
             cur_axis_idx += inp->shape[this->axis];
         }
+    }
+
+    void index_hidden_states(indices& hidden_states, indices& y_ids) override {
+        size_t cur_axis_idx = 0;
+        for (auto inp: this->inputs) {
+            if (!inp->is_initializer) {
+                cur_axis_idx += inp->shape[this->axis];
+                continue;
+            }
+            for (auto index: ShapeIter(inp->shape)) {
+                auto yindex = index;
+                yindex.at(this->axis) += cur_axis_idx;
+                hidden_states.add(this->Y->strkey(yindex));
+            }
+            cur_axis_idx += inp->shape[this->axis];
+        }
+
     }
 
     void index_constraint(IndexSet& inds) override {
@@ -194,7 +209,6 @@ public:
     }
 
     void remap_indices(IndexContainer& inds) override {
-        this->outputs.at(0)->folded = true;
         for (auto xindex: ShapeIter(this->X->shape)) {
             auto yindex = apply_permutation(xindex, this->perm);
             inds.add_remap(this->X->strkey(xindex), this->Y->strkey(yindex));
@@ -246,8 +260,6 @@ public:
     }
 
     void remap_indices(IndexContainer& inds) override {
-        this->outputs.at(0)->folded = true;
-
         std::map<int64_t, int64_t> eff_start;
         std::map<int64_t, int64_t> eff_end;
         std::map<int64_t, int64_t> eff_step;
@@ -322,7 +334,6 @@ public:
     }
 
     void remap_indices(IndexContainer& inds) override {
-        this->outputs.at(0)->folded = true;
         /*
         Given data tensor of rank r >= 1, and indices tensor of rank q, gather entries of the axis dimension
         of data (by default outer-most one as axis=0) indexed by indices, and concatenates them in an output

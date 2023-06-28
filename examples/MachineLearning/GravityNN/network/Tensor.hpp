@@ -209,8 +209,6 @@ public:
     std::vector<double> ub;
     std::vector<double> forward;
 
-    bool folded = false;
-
 private:
     std::vector<double> data;
     std::vector<int64_t> int_data;
