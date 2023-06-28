@@ -11,7 +11,6 @@
 #include <network/Layers/Shape.hpp>
 #include <utils/subgraph_extraction.hpp>
 
-std::set<std::string> noops = {"Flatten", "Reshape", "Squeeze"};
 
 class NeuralNet {
 public:
@@ -21,10 +20,10 @@ public:
             throw std::runtime_error("Network has more than one input. Not supported.");
         }
 
+        this->indices = IndexContainer();
         this->tensors = get_tensors(graph);
         this->build_layers(graph);
 
-        this->indices = IndexContainer();
 
         // Initialize MIP variables
         this->NN = Model<>(graph.name());
@@ -70,8 +69,12 @@ public:
                 node_ptr = new Relu(node, this->tensors);
             } else if (node.op_type() == "Conv") {
                 node_ptr = new Conv(node, this->tensors);
-            } else if (noops.count(node.op_type())) {
-                node_ptr = new NoOp(node, this->tensors);
+            } else if (node.op_type() == "Flatten") {
+                node_ptr = new Flatten(node, this->tensors);
+            } else if (node.op_type() == "Reshape") {
+                node_ptr = new Reshape(node, this->tensors);
+            } else if (node.op_type() == "Squeeze") {
+                node_ptr = new Squeeze(node, this->tensors);
             } else if (node.op_type() == "Split") {
                 node_ptr = new Split(node, this->tensors);
             } else if (node.op_type() == "Concat") {
@@ -122,11 +125,13 @@ public:
 
             this->_all_layers.push_back(node_ptr);
         }
+
     }
 
     // Set obj_index to -1 if you want to use a custom objective, otherwise the index of the objective
     Model<>& build_model(int obj_index, std::string start_node, std::string final_node) {
         this->subgraph = subgraph_extraction(this->_all_layers, start_node, final_node);
+        this->_fold_noops();
 
         this->build_indexing();
         this->index_constraints();
@@ -150,6 +155,12 @@ public:
 
     void set_objective(int obj_index) {
         if (obj_index < 0) {
+            auto tensor = this->subgraph.back()->outputs.at(0);
+            gravity::func<> expr = 0.0;
+            for (auto index: ShapeIter(tensor->shape)) {
+                expr += this->x(tensor->strkey(index));
+            }
+            NN.max(expr);
             return;
         }
 
@@ -180,7 +191,7 @@ public:
         std::cout << "Objective: " << obj_index << std::endl;
         obj.print();
 
-        NN.min(obj);
+        this->NN.min(obj);
     }
 
     /*
@@ -307,13 +318,54 @@ public:
             if (i->is_initializer) {
                 continue;
             }
+
             auto producer = this->output_to_layer.at(i->name);
             // Check if the producer is in the subgraph
-            if (std::find(this->subgraph.begin(), this->subgraph.end(), producer) == this->subgraph.end()) {
+            if (
+                std::find(this->subgraph.begin(), this->subgraph.end(), producer) == this->subgraph.end() &&
+                producer->folded == false
+            ) {
                 return false;
             }
         }
         return true;
+    }
+
+    void _fold_noops() {
+        std::cout << "##################################" << std::endl;
+        std::cout << "Folding NoOps" << std::endl;
+
+        std::set<Layer*> todelete;
+        for (auto l: this->subgraph) {
+            // Pure noops just need to have their constraints indexed
+            if (PURE_NOOPS.count(l->operator_type) > 0) {
+                std::cout << " - " << l->name << " (Deleted)" << std::endl;
+                auto noop = dynamic_cast<NoOp*>(l);
+                if (!noop) {
+                    throw std::runtime_error("Could not cast to NoOp");
+                }
+                noop->remap_indices(this->indices);
+                todelete.insert(l);
+            } else if (IMPURE_NOOPS.count(l->operator_type) > 0) {
+                std::cout << " - " << l->name << " (Partial fold)" << std::endl;
+                auto noop = dynamic_cast<NoOp*>(l);
+                if (!noop) {
+                    throw std::runtime_error("Could not cast to NoOp");
+                }
+                noop->remap_indices(this->indices);
+            } else {
+                continue;
+            }
+        }
+
+        this->subgraph.erase(
+            std::remove_if(
+                this->subgraph.begin(), 
+                this->subgraph.end(),
+                [&](Layer* l) { return todelete.find(l) != todelete.end(); }
+            ),
+            this->subgraph.end()
+        );
     }
 
     Tensors tensors;
@@ -331,4 +383,5 @@ public:
     var<int> y;
 
     std::map<std::string, Layer*> output_to_layer;
+    std::set<Layer*> folded_layers;
 };

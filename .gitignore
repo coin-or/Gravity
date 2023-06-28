@@ -7,3 +7,5 @@ data_sets/Classification
 include/gravity/GravityConfig.h
 lib/
 thirdparty/
+
+**/__pycache__/

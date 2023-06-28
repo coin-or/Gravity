@@ -130,6 +130,9 @@ public:
     double range_upper = HMAX;
 
     std::string opname;
+
+    // NoOps like reshape get folded out of the network
+    double folded = false;
 };
 
 class UnsupportedLayer: public Layer {

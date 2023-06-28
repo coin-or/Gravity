@@ -4,10 +4,17 @@
 
 using namespace gravity;
 
+// These are operators that do not need to generate constraints / add params
+std::set<OType> PURE_NOOPS = {_flatten, _squeeze, _reshape, _split, _transpose, _gather};
+// These are operators that do
+std::set<OType> IMPURE_NOOPS = {_concat};
+
 class NoOp : public Layer {
 public:
     NoOp(const onnx::NodeProto& node, Tensors& tensors): Layer(node, tensors) {
-        operator_type = _noop;
+        this->folded = true;
+
+        // operator_type = _noop;
         this->X = &tensors[node.input(0)];
         this->Y = &tensors[node.output(0)];
     }
@@ -16,26 +23,47 @@ public:
         return {{"In", "Out"}, {}};
     }
 
-    void index_constraint(IndexSet& inds) override {
-        for(auto j = 0; j < this->X->numel;j++){
-            inds["Constr"].add(this->Y->strkey(j));
-            inds["In"].add_ref(this->X->strkey(j));
-            inds["Out"].add_ref(this->Y->strkey(j));
-        }
-    }
+    void set_bounds(gravity::param<>& x_lb, gravity::param<>& x_ub) override {}
+    void index_hidden_states(indices& hidden_states, indices& y_ids) override {}
+    void add_constraints(gravity::Model<>& NN, IndexSet& inds, gravity::param<>& w, gravity::var<>& x, gravity::var<int>& y) override {}
+    void index_constraint(IndexSet& inds) override {}
 
-    void add_constraints(gravity::Model<>& NN, IndexSet& inds, gravity::param<>& w, gravity::var<>& x, gravity::var<int>& y) override {
-        Constraint<> NoOp("NoOp");
-        NoOp = x.in(inds["Out"]) - x.in(inds["In"]);
-        NN.add(NoOp.in(inds["Constr"]) == 0);
+    virtual void remap_indices(IndexContainer& inds) {
+        for(auto j = 0; j < this->X->numel;j++){
+            inds.add_remap(this->X->strkey(j), this->Y->strkey(j));
+        }
     }
 
     Tensor *X, *Y; // Input and output
 };
 
+class Flatten: public NoOp {
+public:
+    Flatten(const onnx::NodeProto& node, Tensors& tensors): NoOp(node, tensors) {
+        this->operator_type = _flatten;
+    }
+};
+
+
+class Reshape: public NoOp {
+public:
+    Reshape(const onnx::NodeProto& node, Tensors& tensors): NoOp(node, tensors) {
+        this->operator_type = _reshape;
+    }
+};
+
+class Squeeze: public NoOp {
+public:
+    Squeeze(const onnx::NodeProto& node, Tensors& tensors): NoOp(node, tensors) {
+        this->operator_type = _squeeze;
+    }
+};
+
 class Split : public NoOp {
 public:
     Split(const onnx::NodeProto& node, Tensors& tensors): NoOp(node, tensors) {
+        this->operator_type = _split;
+
         if (const auto* axis_attr = find_attribute("axis", node)) {
             int ax = axis_attr->i();
             if (ax < 0) {
@@ -58,16 +86,13 @@ public:
         }
     }
 
-    void index_constraint(IndexSet& inds) override {
+    void remap_indices(IndexContainer& inds) override {
         size_t cur_axis_idx = 0;
         for (auto out: this->outputs) {
             for (auto y_ind: ShapeIter(out->shape)) {
                 auto x_ind = y_ind;
                 x_ind.at(this->axis) += cur_axis_idx;
-
-                inds["Constr"].add(out->strkey(y_ind));
-                inds["In"].add_ref(this->X->strkey(x_ind));
-                inds["Out"].add_ref(out->strkey(y_ind));
+                inds.add_remap(this->X->strkey(x_ind), out->strkey(y_ind));
             }
             cur_axis_idx += out->shape.at(this->axis);
         }
@@ -77,9 +102,9 @@ public:
     std::vector<size_t> split;
 };
 
-class Concat : public Layer {
+class Concat : public NoOp {
 public:
-    Concat(const onnx::NodeProto& node, Tensors& tensors): Layer(node, tensors) {
+    Concat(const onnx::NodeProto& node, Tensors& tensors): NoOp(node, tensors) {
         this->operator_type = _concat;
         this->Y = &tensors[node.output(0)];
 
@@ -95,25 +120,57 @@ public:
     }
 
     std::vector<std::vector<std::string>> get_indices() const override {
-        return {{"hIn", "hOut", "pOut"}, {"pIn"}};
+        return {{"pOut"}, {"pIn"}};
+    }
+
+    void remap_indices(IndexContainer& inds) override {
+        size_t cur_axis_idx = 0;
+        for (auto inp: this->inputs) {
+            if (inp->is_initializer) {
+                cur_axis_idx += inp->shape[this->axis];
+                continue;
+            }
+
+            for (auto index: ShapeIter(inp->shape)) {
+                auto yindex = index;
+                yindex.at(this->axis) += cur_axis_idx;
+                inds.add_remap(inp->strkey(index), this->Y->strkey(yindex));
+            }
+            cur_axis_idx += inp->shape[this->axis];
+        }
+    }
+
+    void index_hidden_states(indices& hidden_states, indices& y_ids) override {
+        size_t cur_axis_idx = 0;
+        for (auto inp: this->inputs) {
+            if (!inp->is_initializer) {
+                cur_axis_idx += inp->shape[this->axis];
+                continue;
+            }
+            for (auto index: ShapeIter(inp->shape)) {
+                auto yindex = index;
+                yindex.at(this->axis) += cur_axis_idx;
+                hidden_states.add(this->Y->strkey(yindex));
+            }
+            cur_axis_idx += inp->shape[this->axis];
+        }
+
     }
 
     void index_constraint(IndexSet& inds) override {
         size_t cur_axis_idx = 0;
         for (auto inp: this->inputs) {
+            if (!inp->is_initializer) {
+                cur_axis_idx += inp->shape[this->axis];
+                continue;
+            }
             for (auto index: ShapeIter(inp->shape)) {
                 auto yindex = index;
                 yindex.at(this->axis) += cur_axis_idx;
 
-                if (inp->is_initializer) {
-                    inds["ConstrB"].add(this->Y->strkey(yindex));
-                    inds["pIn"].add_ref(inp->strkey(index));
-                    inds["pOut"].add_ref(this->Y->strkey(yindex));
-                } else {
-                    inds["Constr"].add(this->Y->strkey(yindex));
-                    inds["hIn"].add_ref(inp->strkey(index));
-                    inds["hOut"].add_ref(this->Y->strkey(yindex));
-                }
+                inds["Constr"].add(this->Y->strkey(yindex));
+                inds["pIn"].add_ref(inp->strkey(index));
+                inds["pOut"].add_ref(this->Y->strkey(yindex));
             }
             cur_axis_idx += inp->shape[this->axis];
         }
@@ -128,13 +185,9 @@ public:
     }
 
     void add_constraints(gravity::Model<>& NN, IndexSet& inds, gravity::param<>& w, gravity::var<>& x, gravity::var<int>& y) override {
-        Constraint<> Concat_H("Concat_Hidden");
-        Concat_H = x.in(inds["hOut"]) - x.in(inds["hIn"]);
-        NN.add(Concat_H.in(inds["Constr"]) == 0);
-
         Constraint<> Concat_P("Concat_Param");
         Concat_P = x.in(inds["pOut"]) - w.in(inds["pIn"]);
-        NN.add(Concat_P.in(inds["ConstrB"]) == 0);
+        NN.add(Concat_P.in(inds["Constr"]) == 0);
     }
 
     size_t axis;
@@ -144,6 +197,7 @@ public:
 class Transpose : public NoOp {
 public:
     Transpose(const onnx::NodeProto& node, Tensors& tensors): NoOp(node, tensors) {
+        this->operator_type = _transpose;
         this->X = &tensors[node.input(0)];
         this->Y = &tensors[node.output(0)];
 
@@ -154,13 +208,10 @@ public:
         }
     }
 
-    void index_constraint(IndexSet& inds) override {
+    void remap_indices(IndexContainer& inds) override {
         for (auto xindex: ShapeIter(this->X->shape)) {
             auto yindex = apply_permutation(xindex, this->perm);
-
-            inds["Constr"].add(this->Y->strkey(yindex));
-            inds["In"].add_ref(this->X->strkey(xindex));
-            inds["Out"].add_ref(this->Y->strkey(yindex));
+            inds.add_remap(this->X->strkey(xindex), this->Y->strkey(yindex));
         }
     }
 
@@ -208,19 +259,7 @@ public:
         }
     }
 
-    void index_constraint(IndexSet& inds) override {
-        /*
-            Slice uses the starts, ends, axes and steps inputs to select a sub-tensor of its input data tensor.
-            An effective start[i], end[i], and step[i] must be computed for each i in [0, ... r-1] where r = rank(input) as follows:
-            If axes are omitted, they are set to [0, ..., r-1]. If steps are omitted, they are set to [1, ..., 1] of length len(starts)
-            The effective values are initialized as start[i] = 0, end[i] = dims[i] where dims are the dimensions of input and step[i] = 1.
-            All negative elements of axes are made non-negatve by adding r to them, where r =rank(input).
-            All negative values in starts[i] and ends[i] have dims[axes[i]] added to them, where dims are the dimensions of input. Then start[axes[i]] is the adjusted starts[i] is clamped into the range [0, dims[axes[i]]] for positive stepping and [0, dims[axes[i]]-1] for negative stepping.
-            The clamping for the adjusted ends[i] depends on the sign of steps[i] and must accommodate copying 0 through dims[axes[i]] elements, so for positive stepping end[axes[i]] is clamped to [0, dims[axes[i]]], while for negative stepping it is clamped to [-1, dims[axes[i]]-1].
-            Finally, step[axes[i]] = steps[i].
-            For slicing to the end of a dimension with unknown size, it is recommended to pass in INT_MAX when slicing forward and ‘INT_MIN’ when slicing backward.
-        */
-
+    void remap_indices(IndexContainer& inds) override {
         std::map<int64_t, int64_t> eff_start;
         std::map<int64_t, int64_t> eff_end;
         std::map<int64_t, int64_t> eff_step;
@@ -255,9 +294,7 @@ public:
             }
             // If all dimensions are in the slice, add this point to the constraint
             if (std::all_of(in_slice.begin(), in_slice.end(), [](bool v) { return v; })) {
-                inds["Constr"].add(this->Y->strkey(out_idx));
-                inds["In"].add_ref(this->X->strkey(i));
-                inds["Out"].add_ref(this->Y->strkey(out_idx));
+                inds.add_remap(this->X->strkey(i), this->Y->strkey(out_idx));
                 out_idx += 1;
             }
         }
@@ -273,6 +310,8 @@ public:
 class Gather : public NoOp {
 public:
     Gather(const onnx::NodeProto& node, Tensors& tensors): NoOp(node, tensors) {
+        this->operator_type = _gather;
+
         this->X = &tensors[node.input(0)];
         this->Y = &tensors[node.output(0)];
 
@@ -294,7 +333,7 @@ public:
         }
     }
 
-    void index_constraint(IndexSet& inds) override {
+    void remap_indices(IndexContainer& inds) override {
         /*
         Given data tensor of rank r >= 1, and indices tensor of rank q, gather entries of the axis dimension
         of data (by default outer-most one as axis=0) indexed by indices, and concatenates them in an output
@@ -313,9 +352,7 @@ public:
             for (auto i = 0; i < this->X->numel; i++) {
                 auto xunflat = this->X->unflatten_index(i);
                 if (xunflat.at(this->axis) == this->indices.at(ind_ptr)) {
-                    inds["Constr"].add(this->Y->strkey(out_numel));
-                    inds["In"].add_ref(this->X->strkey(i));
-                    inds["Out"].add_ref(this->Y->strkey(out_numel));
+                    inds.add_remap(this->X->strkey(i), this->Y->strkey(out_numel));
                     out_numel += 1;
                 }
             }

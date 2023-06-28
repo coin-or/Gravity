@@ -11,6 +11,14 @@ message(${PC_Protobuf_INCLUDEDIR})
 
 include_directories(${PC_Protobuf_INCLUDEDIR} ${ONNX_PROTO_HDRS} ${ONNX_PROTO_SRCS})
 
+include(FetchContent)
+FetchContent_Declare(
+  cli11
+  GIT_REPOSITORY https://github.com/CLIUtils/CLI11
+  GIT_TAG        v2.3.2
+)
+
+FetchContent_MakeAvailable(cli11)
 
 add_executable(
   GravityNN
@@ -20,7 +28,7 @@ add_executable(
 )
 add_dependencies(GravityNN proto_dep)
 target_include_directories(GravityNN PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/MachineLearning/GravityNN ${ONNX_PROTO_HDRS})
-target_link_libraries(GravityNN ${PROTOBUF_LIBRARIES} gravity)
+target_link_libraries(GravityNN ${PROTOBUF_LIBRARIES} gravity CLI11)
 
 find_package(OpenMP)
 add_executable(
