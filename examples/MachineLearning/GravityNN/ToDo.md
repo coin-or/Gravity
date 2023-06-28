@@ -38,6 +38,10 @@
   - Sigmoid, Sub, Pow, Gemm, Concat, Slice, Flatten, Relu, Mul, Div, MatMul, Reshape, ReduceSum, Conv, Gather, Add, Split
 - [X] vit
 - [X] yolo
+- [X] traffic_signs_recognition
+  - Binary convs
+- [X] vggnet16
+  - [ ] Simply too big
 - [ ] cctsdb_yolo
   - Argmax + A bunch of other unsupported stuff
 - [ ] cgan
@@ -46,7 +50,3 @@
   - Resize + MaxPool 
 - [ ] metaroom
   - BROKEN BECAUSE OF PROJECTION OP
-- [ ] traffic_signs_recognition
-  - [ ] Binary convs
-- [ ] vggnet16
-  - [ ] Simply too big

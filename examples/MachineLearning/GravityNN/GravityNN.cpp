@@ -41,18 +41,17 @@ int main(int argc, char * argv[]){
     grb_mod->set(GRB_IntParam_Threads, get_num_threads() / 2);
     grb_mod->set(GRB_IntParam_NonConvex,2);
     grb_mod->set(GRB_IntParam_Presolve,2);
-    // grb_mod->set(GRB_IntParam_MIPFocus,3);
     // grb_mod->set(GRB_DoubleParam_BestBdStop, -1e-4);
 
     S.run();
 
-    //auto sol = std::vector<double>();
-    //NN.print_solution();
-    //NN.get_solution(sol);
-    //sol.resize(nn.input_numel);
+    auto sol = std::vector<double>();
+    NN.print_solution();
+    NN.get_solution(sol);
+    sol.resize(nn.input_numel);
 
-    //std::cout << "Solution: " << print_vector(sol) << std::endl;
-    //std::cout << "Obj. value: " << std::setprecision(8) << NN.get_obj_val() << std::endl;
+    std::cout << "Solution: " << print_vector(sol) << std::endl;
+    std::cout << "Obj. value: " << std::setprecision(8) << NN.get_obj_val() << std::endl;
 
     return 0;
 }
