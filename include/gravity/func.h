@@ -630,6 +630,20 @@ namespace gravity {
         return res;
     }
 
+
+template<class T1, class T2, typename enable_if<is_convertible<T2, T1>::value && sizeof(T2) <= sizeof(T1)>::type* = nullptr>
+vector<pair<T1,T1>> get_product_range(const vector<T1>& x, const vector<T2>& y){
+    vector<pair<T1,T1>> res;
+    res.resize(x.size());
+    assert(x.size()==y.size());
+#pragma omp parallel for num_threads(get_num_threads() / 2)
+    for(auto i = 0; i<x.size(); i++){
+        res[i].first = x[i]*y[i];
+        res[i].second = x[i]*y[i];
+    }
+    return res;
+}
+
 template<class T1, class T2, typename enable_if<is_convertible<T2, T1>::value && sizeof(T2) <= sizeof(T1)>::type* = nullptr>
 vector<pair<T1,T1>> get_product_range(T1 x, const vector<pair<T2,T2>>& y){
     vector<pair<T1,T1>> res;
@@ -648,6 +662,19 @@ vector<pair<T1,T1>> get_product_range(T1 x, const vector<pair<T2,T2>>& y){
             res[i].second = x*y[i].second;
         }
 
+    }
+    return res;
+}
+
+template<class T1, class T2, typename enable_if<is_convertible<T1, T2>::value && sizeof(T1) < sizeof(T2)>::type* = nullptr>
+vector<pair<T2,T2>> get_product_range(const vector<T1>& x, const vector<T2>& y){
+    vector<pair<T2,T2>> res;
+    res.resize(x.size());
+    assert(x.size()==y.size());
+#pragma omp parallel for num_threads(get_num_threads() / 2)
+    for(auto i = 0; i<x.size(); i++){
+        res[i].first = x[i]*y[i];
+        res[i].second = x[i]*y[i];
     }
     return res;
 }
@@ -3981,7 +4008,32 @@ vector<pair<T1,T1>> get_minus_range(const vector<pair<T2,T2>>& y, T1 x){
             //            if(c.is_matrix_indexed()){
             //                _indices = c._indices;
             //            }
-            set_all_range(*c._val);
+            if(c.is_indexed()){
+                if (c.is_matrix_indexed()) {
+                    auto nb_rows = c.get_nb_rows();
+                    _all_range->resize(nb_rows,{0,0});
+                    for (size_t i = 0; i<nb_rows; i++) {
+                        auto nb_cols = c.get_dim(i);
+                        for (size_t j = 0; j<nb_cols; j++) {
+                            _all_range->at(i).first += c.eval(i,j);
+                            _all_range->at(i).second += c.eval(i,j);
+                        }
+                    }
+                }
+                else{
+                    auto nb_rows = c.get_nb_inst();
+                    _all_range->resize(nb_rows);
+                    for (size_t i = 0; i<nb_rows; i++) {
+                        _all_range->at(i).first = c.eval(i);
+                        _all_range->at(i).second = c.eval(i);
+                    }
+                    
+                }
+                
+            }
+            else{
+                set_all_range(*c._val);
+            }
             return *this;
         }
         
@@ -4001,7 +4053,34 @@ vector<pair<T1,T1>> get_minus_range(const vector<pair<T2,T2>>& y, T1 x){
             if(c._indices){
                 _indices = make_shared<indices>(*c._indices);
             }
-            set_all_range(*c._lb->_val, *c._ub->_val);
+            if(c.is_indexed()){
+                if (c.is_matrix_indexed()) {
+                    auto nb_rows = c.get_nb_rows();
+                    _all_range->resize(nb_rows,{0,0});
+                    for (size_t i = 0; i<nb_rows; i++) {
+                        auto nb_cols = c.get_dim(i);
+                        for (size_t j = 0; j<nb_cols; j++) {
+                            size_t v_id_inst = c.get_id_inst(i,j);
+                            _all_range->at(i).first += c.get_lb(v_id_inst);
+                            _all_range->at(i).second += c.get_ub(v_id_inst);
+                        }
+                    }
+                }
+                else{
+                    auto nb_rows = c.get_nb_inst();
+                    _all_range->resize(nb_rows);
+                    for (size_t i = 0; i<nb_rows; i++) {
+                        auto id_inst = c.get_id_inst(i);
+                        _all_range->at(i).first = c.get_lb(id_inst);
+                        _all_range->at(i).second = c.get_ub(id_inst);
+                    }
+                    
+                }
+                
+            }
+            else{
+                set_all_range(*c._lb->_val, *c._ub->_val);
+            }
             return *this;
         }
         
@@ -4142,6 +4221,7 @@ vector<pair<T1,T1>> get_minus_range(const vector<pair<T2,T2>>& y, T1 x){
             }
             _range->first = f._range->first;
             _range->second = f._range->second;
+            *_all_range = *f._all_range;
             //            _val->clear();
             _val->resize(f._val->size());
             for(auto i = 0; i< f._val->size(); i++){
@@ -4296,6 +4376,7 @@ vector<pair<T1,T1>> get_minus_range(const vector<pair<T2,T2>>& y, T1 x){
             }
             _range->first = f._range->first;
             _range->second = f._range->second;
+            *_all_range = *f._all_range;
             //            _val->clear();
             _val->resize(f._val->size());
             for(auto i = 0; i< f._val->size(); i++){
@@ -4904,6 +4985,9 @@ vector<pair<T1,T1>> get_minus_range(const vector<pair<T2,T2>>& y, T1 x){
         }
         
         type eval(size_t i=0) {
+            if(_val->size()==0){
+                allocate_mem();
+            }
             if(is_zero()){
                 if (func_is_number()){
                     return this->_range->first;
@@ -7030,7 +7114,13 @@ vector<pair<T1,T1>> get_minus_range(const vector<pair<T2,T2>>& y, T1 x){
                 update_sign_multiply(f);
                 res._all_sign = _all_sign;
                 *res._range = get_product_range(*_range,*f._range);
-                *res._all_range = get_product_range(_val->at(0),*f._all_range);
+                if(func_is_number()){
+                    *res._all_range = get_product_range(_val->at(0),*f._all_range);
+                }
+                else{
+//                    eval_all();
+                    *res._all_range = get_product_range(*_all_range,*f._all_range);
+                }
                 if(_is_transposed){
                     res._range->first = extended_mult(res._range->first,(type)_dim[0]);
                     res._range->second = extended_mult(res._range->second,(type)_dim[0]);
@@ -7613,6 +7703,11 @@ vector<pair<T1,T1>> get_minus_range(const vector<pair<T2,T2>>& y, T1 x){
         }
         
         template<class T2, typename enable_if<is_convertible<T2, type>::value && sizeof(T2) <= sizeof(type)>::type* = nullptr>
+        func& operator+=(const var<T2>& p){
+            return *this += func<type>(p);
+        }
+        
+        template<class T2, typename enable_if<is_convertible<T2, type>::value && sizeof(T2) <= sizeof(type)>::type* = nullptr>
         func& operator+=(const func<T2>& f){
             if (f.is_zero()) {
                 return *this;
@@ -7631,7 +7726,12 @@ vector<pair<T1,T1>> get_minus_range(const vector<pair<T2,T2>>& y, T1 x){
                 this->add_cst(f);
                 update_sign_add(f);
                 *_range = get_plus_range(*_range, *f._range);
-                *_all_range = get_plus_range(f._range->first, *_all_range);
+                if(f.func_is_number()){
+                    *_all_range = get_plus_range(f._range->first, *_all_range);
+                }
+                else{
+                    *_all_range = get_plus_range(*_all_range, *f._all_range);
+                }
                 return *this;
             }
             if (!f.get_cst()->is_zero()) {
@@ -7788,6 +7888,11 @@ vector<pair<T1,T1>> get_minus_range(const vector<pair<T2,T2>>& y, T1 x){
         
         template<class T2, typename enable_if<is_convertible<T2, type>::value && sizeof(T2) <= sizeof(type)>::type* = nullptr>
         func& operator-=(const param<T2>& p){
+            return *this -= func<type>(p);
+        }
+        
+        template<class T2, typename enable_if<is_convertible<T2, type>::value && sizeof(T2) <= sizeof(type)>::type* = nullptr>
+        func& operator-=(const var<T2>& p){
             return *this -= func<type>(p);
         }
         
@@ -8791,7 +8896,15 @@ vector<pair<T1,T1>> get_minus_range(const vector<pair<T2,T2>>& y, T1 x){
             res._range->second=extended_mult(std::max(std::abs(p1._range->second),std::abs(p1._range->first)),std::max(std::abs(p1._range->second),std::abs(p1._range->first)));
         }
         else {
+//            res._all_range->resize(dim, zero<T1>().eval());
             *res._range = get_product_range(*p1._range,*p2._range);
+//#pragma omp parallel for num_threads(get_num_threads() / 2)
+//                for(auto i = 0; i<dim; i++){
+//                    T1 pval1 = p1.eval(i);
+//                    T1 pval2 = p2.eval(i);
+//                    res._all_range->at(i).first=pval1*pval;
+//                    res._all_range->at(i).second=pval*pval;
+//                }
             res._all_sign = sign_product(p1.get_all_sign(), p2.get_all_sign());
         }
         if(res.is_quadratic()){res.update_quad_convexity();}
@@ -8799,6 +8912,7 @@ vector<pair<T1,T1>> get_minus_range(const vector<pair<T2,T2>>& y, T1 x){
             res._range->first = extended_mult(res._range->first,(T1)p1._dim[0]);
             res._range->second = extended_mult(res._range->second,(T1)p1._dim[0]);
         }
+        *res._all_range = get_product_range(*p1._val,*p2._val);
         return res;
     }
     
@@ -8808,116 +8922,569 @@ vector<pair<T1,T1>> get_minus_range(const vector<pair<T2,T2>>& y, T1 x){
         if(p1.is_zero() || p2.is_zero()){
             return res;
         }
-        if(p1.is_param() && p2.is_var()){
-            if(p1._is_transposed && ! p2._is_vector){
-                res.insert(true,param<T2>(p1),p2.vec());
-            }
-            else {
-                res.insert(true,param<T2>(p1),p2);
-            }
-            res.update_dot_dim(p1,p2);
-        }
-        else if(p2.is_param() && p1.is_var()){
-            if(p1._is_transposed && (p2.is_row_vector() || p2.is_matrix_indexed())){/* transform x^T*p to (p^T*x)^T */
-                auto new_p2 = p2.tr();
-                auto new_p1 = p1.tr();
-                res.insert(true,new_p2,new_p1);
-                res.update_dot_dim(new_p2,new_p1);
-                res.transpose();
-            }
-            else {
-                res.insert(true,p2,p1);
-                res.update_dot_dim(p1,p2);
-            }
-        }
-        else {//Both vars or both params
-            if(p1._is_transposed && !p2._is_vector){
-                res.insert(true,unit<T2>(),p1,p2.vec());
-            }
-            else {
-                res.insert(true,unit<T2>(),p1,p2);
-            }
-            res.update_dot_dim(p1,p2);
-        }
-        
-        if(res.has_square()){
-            auto signp = p1.get_all_sign();
-            if(signp==neg_ || signp==pos_){
-                res._all_sign = pos_;
-            }
-            else {
-                res._all_sign = non_neg_;
-            }
-            res._range->first=zero<T2>().eval();
-            if(p1.is_positive() || p1.is_negative()){
-                res._range->first=extended_mult(p1._range->first,p1._range->first);
-            }
-            res._range->second=extended_mult(std::max(std::abs(p1._range->second),std::abs(p1._range->first)),std::max(std::abs(p1._range->second),std::abs(p1._range->first)));
+        //Both vars or both params
+        if(p1._is_transposed && !p2._is_vector){
+            res.insert(true,unit<T2>(),p1,p2.vec());
         }
         else {
-            *res._range = get_product_range(*p1._range,*p2._range);
-            res._all_sign = sign_product(p1.get_all_sign(), p2.get_all_sign());
+            res.insert(true,unit<T2>(),p1,p2);
         }
-        if(res.is_quadratic()){res.update_quad_convexity();}
-        if(p1._is_transposed){
-            res._range->first = extended_mult(res._range->first,(T2)p1._dim[0]);
-            res._range->second = extended_mult(res._range->second,(T2)p1._dim[0]);
+        res.update_dot_dim(p1,p2);
+        *res._range = get_product_range(*p1._range,*p2._range);
+        res._all_sign = sign_product(p1.get_all_sign(), p2.get_all_sign());
+        
+        if (p1.is_matrix_indexed()) {
+            auto nb_rows = p1.get_nb_rows();
+            res._all_range->resize(nb_rows);
+    #pragma omp parallel for num_threads(get_num_threads() / 2)
+            for (size_t i = 0; i<nb_rows; i++) {
+                auto nb_cols = p1.get_dim(i);
+                T2 pval = 0;
+                for (size_t j = 0; j<nb_cols; j++) {
+                    pval += p1.eval(i,j)*p2.eval(i,j);
+                }
+                res._all_range->at(i).first = pval;
+                res._all_range->at(i).second = pval;
+            }
         }
+        else if(p1._is_transposed){ /* Dot product */
+            res._all_range->resize(1);
+            auto nb_cols = p1.get_dim();
+            T2 pval = 0;
+    #pragma omp parallel for num_threads(get_num_threads() / 2)
+            for (size_t i = 0; i<nb_cols; i++) {
+                pval += p1.eval(i)*p2.eval(i);
+            }
+            res._all_range->at(0).first = pval;
+            res._all_range->at(0).second = pval;
+        }
+        else{
+            auto nb_rows = p1.get_nb_inst();
+            res._all_range->resize(nb_rows);
+    #pragma omp parallel for num_threads(get_num_threads() / 2)
+            for (size_t i = 0; i<nb_rows; i++) {
+                res._all_range->at(i).first = p1.eval(i)*p2.eval(i);
+                res._all_range->at(i).second = res._all_range->at(i).first;
+            }
+        }        
         return res;
     }
+
+template<class T1,class T2, typename enable_if<is_convertible<T1, T2>::value && sizeof(T2) >= sizeof(T1)>::type* = nullptr>
+func<T2> operator*(const var<T1>& p1, const var<T2>& p2){
+    func<T2> res;
+    if(p1._is_transposed && !p2._is_vector){
+        res.insert(true,unit<T2>(),p1,p2.vec());
+    }
+    else {
+        res.insert(true,unit<T2>(),p1,p2);
+    }
+    res.update_dot_dim(p1,p2);
     
+    if(res.has_square()){
+        auto signp = p1.get_all_sign();
+        if(signp==neg_ || signp==pos_){
+            res._all_sign = pos_;
+        }
+        else {
+            res._all_sign = non_neg_;
+        }
+        auto dim = res.get_dim();
+        res._all_range->resize(dim, {zero<T2>().eval(),zero<T2>().eval()});
+        res._range->first=zero<T2>().eval();
+        if(p1.is_positive() || p1.is_negative()){
+            res._range->first=extended_mult(p1._range->first,p1._range->first);
+#pragma omp parallel for num_threads(get_num_threads() / 2)
+                for(auto i = 0; i<dim; i++){
+                    res._all_range->at(i).first=extended_mult(p1.get_lb(i),p1.get_lb(i));
+                }
+            }
+        }
+    auto dim = res.get_dim();
+        res._range->second=extended_mult(std::max(std::abs(p1._range->second),std::abs(p1._range->first)),std::max(std::abs(p1._range->second),std::abs(p1._range->first)));
+#pragma omp parallel for num_threads(get_num_threads() / 2)
+                for(auto i = 0; i<dim; i++){
+                    res._all_range->at(i).second=extended_mult(std::max(std::abs(p1.get_ub(i)),std::abs(p1.get_lb(i))),std::max(std::abs(p1.get_ub(i)),std::abs(p1.get_lb(i))));
+                }
+//    }
+//    else {
+//        *res._range = get_product_range(*p1._range,*p2._range);
+//        res._all_sign = sign_product(p1.get_all_sign(), p2.get_all_sign());
+//    }
+    if(res.is_quadratic()){res.update_quad_convexity();}
+//    if(p1._is_transposed){
+//        res._range->first = extended_mult(res._range->first,(T2)p1._dim[0]);
+//        res._range->second = extended_mult(res._range->second,(T2)p1._dim[0]);
+//    }
+    
+    return res;
+}
+
+template<class T1,class T2, typename enable_if<is_convertible<T2, T1>::value && sizeof(T2) < sizeof(T1)>::type* = nullptr>
+func<T1> operator*(const var<T1>& v1, const var<T2>& v2){
+    return func<T1>(v1) * func<T1>(v2);
+}
+    
+template<class T1,class T2, typename enable_if<is_convertible<T2, T1>::value && sizeof(T2) < sizeof(T1)>::type* = nullptr>
+func<T1> operator*(const var<T1>& v, const param<T2>& p){
+    func<T1> res;
+    if(p.is_zero() || v.is_zero()){
+        return res;
+    }
+    auto new_p = p;
+    auto new_v = v;
+    if(v._is_transposed && (p.is_column_vector() || p.is_matrix_indexed())){/* transform x^T*p to (p^T*x)^T */
+        new_p = p.tr();
+        new_v = v.tr();
+        res.insert(true,new_p,new_v);
+        res.update_dot_dim(new_p,new_v);
+        res.transpose();
+    }
+    else {
+        res.insert(true,p,v);
+        res.update_dot_dim(v,p);
+    }
+    *res._range = get_product_range(*p._range,*v._range);
+    res._all_sign = sign_product(p.get_all_sign(), v.get_all_sign());
+    if (p.is_matrix_indexed()) {
+        auto nb_rows = p.get_nb_rows();
+        res._all_range->resize(nb_rows);
+#pragma omp parallel for num_threads(get_num_threads() / 2)
+        for (size_t i = 0; i<nb_rows; i++) {
+            auto nb_cols = p.get_dim(i);
+            T1 range_lb = 0, range_ub = 0, p_val = 0;
+            size_t v_id_inst = 0;
+            for (size_t j = 0; j<nb_cols; j++) {
+                v_id_inst = v.get_id_inst(i,j);
+                p_val = p.eval(i,j);
+                if(p_val<0){
+                    range_lb += p_val*v.get_ub(v_id_inst);
+                    range_ub += p_val*v.get_lb(v_id_inst);
+                }
+                else{
+                    range_lb += p_val*v.get_lb(v_id_inst);
+                    range_ub += p_val*v.get_ub(v_id_inst);
+                }
+                    
+            }
+            res._all_range->at(i).first = range_lb;
+            res._all_range->at(i).second = range_ub;
+        }
+    }
+    else if(new_p._is_transposed){ /* Dot product */
+        res._all_range->resize(1);
+        auto nb_cols = p.get_dim();
+        T1 range_lb = 0, range_ub = 0, p_val = 0;
+#pragma omp parallel for num_threads(get_num_threads() / 2)
+        for (size_t i = 0; i<nb_cols; i++) {
+            size_t v_id_inst = v.get_id_inst(i);
+            p_val = p.eval(i);
+            if(p_val<0){
+                range_lb += p_val*v.get_ub(v_id_inst);
+                range_ub += p_val*v.get_lb(v_id_inst);
+            }
+            else{
+                range_lb += p_val*v.get_lb(v_id_inst);
+                range_ub += p_val*v.get_ub(v_id_inst);
+            }
+        }
+        res._all_range->at(0).first = range_lb;
+        res._all_range->at(0).second = range_ub;
+    }
+    else{
+        auto nb_rows = new_p.get_nb_inst();
+        res._all_range->resize(nb_rows);
+#pragma omp parallel for num_threads(get_num_threads() / 2)
+        for (size_t i = 0; i<nb_rows; i++) {
+            auto v_id_inst = v.get_id_inst(i);
+            T1 p_val = p.eval(i);
+            if(p_val<0){
+                res._all_range->at(i).first = p_val*v.get_ub(v_id_inst);
+                res._all_range->at(i).second = p_val*v.get_lb(v_id_inst);
+            }
+            else{
+                res._all_range->at(i).first = p_val*v.get_lb(v_id_inst);
+                res._all_range->at(i).second = p_val*v.get_ub(v_id_inst);
+            }
+        }
+    }
+    
+    return res;
+}
+
+template<class T1,class T2, typename enable_if<is_convertible<T1, T2>::value && sizeof(T2) >= sizeof(T1)>::type* = nullptr>
+func<T2> operator*(const var<T1>& v, const param<T2>& p){
+    func<T2> res;
+    if(p.is_zero() || v.is_zero()){
+        return res;
+    }
+    auto new_p = p;
+    auto new_v = v;
+    if(v._is_transposed && (p.is_column_vector() || p.is_matrix_indexed())){/* transform x^T*p to (p^T*x)^T */
+        new_p = p.tr();
+        new_v = v.tr();
+        res.insert(true,new_p,new_v);
+        res.update_dot_dim(new_p,new_v);
+        res.transpose();
+    }
+    else {
+        res.insert(true,p,v);
+        res.update_dot_dim(v,p);
+    }
+    *res._range = get_product_range(*p._range,*v._range);
+    res._all_sign = sign_product(p.get_all_sign(), v.get_all_sign());
+    if (p.is_matrix_indexed()) {
+        auto nb_rows = p.get_nb_rows();
+        res._all_range->resize(nb_rows);
+#pragma omp parallel for num_threads(get_num_threads() / 2)
+        for (size_t i = 0; i<nb_rows; i++) {
+            auto nb_cols = p.get_dim(i);
+            T2 range_lb = 0, range_ub = 0, p_val = 0;
+            size_t v_id_inst = 0;
+            for (size_t j = 0; j<nb_cols; j++) {
+                v_id_inst = v.get_id_inst(i,j);
+                p_val = p.eval(i,j);
+                if(p_val<0){
+                    range_lb += p_val*v.get_ub(v_id_inst);
+                    range_ub += p_val*v.get_lb(v_id_inst);
+                }
+                else{
+                    range_lb += p_val*v.get_lb(v_id_inst);
+                    range_ub += p_val*v.get_ub(v_id_inst);
+                }
+                    
+            }
+            res._all_range->at(i).first = range_lb;
+            res._all_range->at(i).second = range_ub;
+        }
+    }
+    else if(new_p._is_transposed){ /* Dot product */
+        res._all_range->resize(1);
+        auto nb_cols = p.get_dim();
+        T2 range_lb = 0, range_ub = 0, p_val = 0;
+#pragma omp parallel for num_threads(get_num_threads() / 2)
+        for (size_t i = 0; i<nb_cols; i++) {
+            size_t v_id_inst = v.get_id_inst(i);
+            p_val = p.eval(i);
+            if(p_val<0){
+                range_lb += p_val*v.get_ub(v_id_inst);
+                range_ub += p_val*v.get_lb(v_id_inst);
+            }
+            else{
+                range_lb += p_val*v.get_lb(v_id_inst);
+                range_ub += p_val*v.get_ub(v_id_inst);
+            }
+        }
+        res._all_range->at(0).first = range_lb;
+        res._all_range->at(0).second = range_ub;
+    }
+    else{
+        auto nb_rows = new_p.get_nb_inst();
+        res._all_range->resize(nb_rows);
+#pragma omp parallel for num_threads(get_num_threads() / 2)
+        for (size_t i = 0; i<nb_rows; i++) {
+            auto v_id_inst = v.get_id_inst(i);
+            T2 p_val = p.eval(i);
+            if(p_val<0){
+                res._all_range->at(i).first = p_val*v.get_ub(v_id_inst);
+                res._all_range->at(i).second = p_val*v.get_lb(v_id_inst);
+            }
+            else{
+                res._all_range->at(i).first = p_val*v.get_lb(v_id_inst);
+                res._all_range->at(i).second = p_val*v.get_ub(v_id_inst);
+            }
+        }
+    }
+    
+    return res;
+}
+
+template<class T1,class T2, typename enable_if<is_convertible<T2, T1>::value && sizeof(T2) < sizeof(T1)>::type* = nullptr>
+func<T1> operator*(const param<T1>& p, const var<T2>& v){
+    func<T1> res;
+    if(p.is_zero() || v.is_zero()){
+        return res;
+    }
+    if(p._is_transposed && ! v._is_vector){
+        res.insert(true,param<T1>(p),v.vec());
+    }
+    else {
+        res.insert(true,param<T1>(p),v);
+    }
+    res.update_dot_dim(p,v);
+    *res._range = get_product_range(*p._range,*v._range);
+    res._all_sign = sign_product(p.get_all_sign(), v.get_all_sign());
+    if (p.is_matrix_indexed()) {
+        auto nb_rows = p.get_nb_rows();
+        res._all_range->resize(nb_rows);
+#pragma omp parallel for num_threads(get_num_threads() / 2)
+        for (size_t i = 0; i<nb_rows; i++) {
+            auto nb_cols = p.get_dim(i);
+            T1 range_lb = 0, range_ub = 0, p_val = 0;
+            size_t v_id_inst = 0;
+            for (size_t j = 0; j<nb_cols; j++) {
+                v_id_inst = v.get_id_inst(i,j);
+                p_val = p.eval(i,j);
+                if(p_val<0){
+                    range_lb += p_val*v.get_ub(v_id_inst);
+                    range_ub += p_val*v.get_lb(v_id_inst);
+                }
+                else{
+                    range_lb += p_val*v.get_lb(v_id_inst);
+                    range_ub += p_val*v.get_ub(v_id_inst);
+                }
+                    
+            }
+            res._all_range->at(i).first = range_lb;
+            res._all_range->at(i).second = range_ub;
+        }
+    }
+    else if(p._is_transposed){ /* Dot product */
+        res._all_range->resize(1);
+        auto nb_cols = p.get_dim();
+        T1 range_lb = 0, range_ub = 0, p_val = 0;
+#pragma omp parallel for num_threads(get_num_threads() / 2)
+        for (size_t i = 0; i<nb_cols; i++) {
+            size_t v_id_inst = v.get_id_inst(i);
+            p_val = p.eval(i);
+            if(p_val<0){
+                range_lb += p_val*v.get_ub(v_id_inst);
+                range_ub += p_val*v.get_lb(v_id_inst);
+            }
+            else{
+                range_lb += p_val*v.get_lb(v_id_inst);
+                range_ub += p_val*v.get_ub(v_id_inst);
+            }
+        }
+        res._all_range->at(0).first = range_lb;
+        res._all_range->at(0).second = range_ub;
+    }
+    else{
+        auto nb_rows = p.get_nb_inst();
+        res._all_range->resize(nb_rows);
+#pragma omp parallel for num_threads(get_num_threads() / 2)
+        for (size_t i = 0; i<nb_rows; i++) {
+            auto v_id_inst = v.get_id_inst(i);
+            T1 p_val = p.eval(i);
+            if(p_val<0){
+                res._all_range->at(i).first = p_val*v.get_ub(v_id_inst);
+                res._all_range->at(i).second = p_val*v.get_lb(v_id_inst);
+            }
+            else{
+                res._all_range->at(i).first = p_val*v.get_lb(v_id_inst);
+                res._all_range->at(i).second = p_val*v.get_ub(v_id_inst);
+            }
+        }
+    }
+    
+    return res;
+}
+
+template<class T1,class T2, typename enable_if<is_convertible<T1, T2>::value && sizeof(T2) >= sizeof(T1)>::type* = nullptr>
+func<T2> operator*(const param<T1>& p, const var<T2>& v){
+    func<T2> res;
+    if(p.is_zero() || v.is_zero()){
+        return res;
+    }
+    if(p._is_transposed && ! v._is_vector){
+        res.insert(true,param<T2>(p),v.vec());
+    }
+    else {
+        res.insert(true,param<T2>(p),v);
+    }
+    res.update_dot_dim(p,v);
+    *res._range = get_product_range(*p._range,*v._range);
+    res._all_sign = sign_product(p.get_all_sign(), v.get_all_sign());
+    if (p.is_matrix_indexed()) {
+        auto nb_rows = p.get_nb_rows();
+        res._all_range->resize(nb_rows);
+#pragma omp parallel for num_threads(get_num_threads() / 2)
+        for (size_t i = 0; i<nb_rows; i++) {
+            auto nb_cols = p.get_dim(i);
+            T2 range_lb = 0, range_ub = 0, p_val = 0;
+            size_t v_id_inst = 0;
+            for (size_t j = 0; j<nb_cols; j++) {
+                v_id_inst = v.get_id_inst(i,j);
+                p_val = p.eval(i,j);
+                if(p_val<0){
+                    range_lb += p_val*v.get_ub(v_id_inst);
+                    range_ub += p_val*v.get_lb(v_id_inst);
+                }
+                else{
+                    range_lb += p_val*v.get_lb(v_id_inst);
+                    range_ub += p_val*v.get_ub(v_id_inst);
+                }
+                    
+            }
+            res._all_range->at(i).first = range_lb;
+            res._all_range->at(i).second = range_ub;
+        }
+    }
+    else if(p._is_transposed){ /* Dot product */
+        res._all_range->resize(1);
+        auto nb_cols = p.get_dim();
+        T2 range_lb = 0, range_ub = 0, p_val = 0;
+#pragma omp parallel for num_threads(get_num_threads() / 2)
+        for (size_t i = 0; i<nb_cols; i++) {
+            size_t v_id_inst = v.get_id_inst(i);
+            p_val = p.eval(i);
+            if(p_val<0){
+                range_lb += p_val*v.get_ub(v_id_inst);
+                range_ub += p_val*v.get_lb(v_id_inst);
+            }
+            else{
+                range_lb += p_val*v.get_lb(v_id_inst);
+                range_ub += p_val*v.get_ub(v_id_inst);
+            }
+        }
+        res._all_range->at(0).first = range_lb;
+        res._all_range->at(0).second = range_ub;
+    }
+    else{
+        auto nb_rows = p.get_nb_inst();
+        res._all_range->resize(nb_rows);
+#pragma omp parallel for num_threads(get_num_threads() / 2)
+        for (size_t i = 0; i<nb_rows; i++) {
+            auto v_id_inst = v.get_id_inst(i);
+            T2 p_val = p.eval(i);
+            if(p_val<0){
+                res._all_range->at(i).first = p_val*v.get_ub(v_id_inst);
+                res._all_range->at(i).second = p_val*v.get_lb(v_id_inst);
+            }
+            else{
+                res._all_range->at(i).first = p_val*v.get_lb(v_id_inst);
+                res._all_range->at(i).second = p_val*v.get_ub(v_id_inst);
+            }
+        }
+    }
+    
+    return res;
+}
     template<class T1,class T2, typename enable_if<is_convertible<T2, T1>::value && sizeof(T2) <= sizeof(T1)>::type* = nullptr>
     func<T1> operator+(const param<T1>& p1, const param<T2>& p2){
-//        func<T1> res;
-//        res.set_max_dim(p1,p2);
-//        if(p1.is_param() && p2.is_var()){
-//            res.insert(true,unit<T1>(),p2);
-//            res.add_cst(p1);
-//        }
-//        else if(p2.is_param() && p1.is_var()){
-//            res.insert(true,unit<T1>(),p1);
-//            res.add_cst(param<T1>(p2));
-//        }
-//        else {//Both vars or both params
-//            res.insert(true,unit<T1>(),p1);
-//            res.insert(true,unit<T1>(),p2);
-//        }
-//        res._all_sign = sign_add(p1.get_all_sign(), p2.get_all_sign());
-//        if(res.is_quadratic()){res.update_quad_convexity();}
-//        *res._range = get_plus_range(*p1._range,*p2._range);
-////        *res._all_range = get_plus_range(*p1._val, *p2._val);
-//        return res;
-        return func<T1>(p1) + func<T1>(p2);
+        func<T1> res;
+        res.set_max_dim(p1,p2);
+    //        if(p1.is_param() && p2.is_var()){
+    //            res.insert(true,unit<T2>(),p2);
+    //            res.add_cst(param<T2>(p1));
+    //        }
+    //        else if(p2.is_param() && p1.is_var()){
+    //            res.insert(true,unit<T2>(),p1);
+    //            res.add_cst(p2);
+    //        }
+    //        else {//Both vars or both params
+        res.insert(true,unit<T1>(),p1);
+        res.insert(true,unit<T1>(),p2);
+    //        }
+        res._all_sign = sign_add(p1.get_all_sign(), p2.get_all_sign());
+    //        if(res.is_quadratic()){res.update_quad_convexity();}
+        *res._range = get_plus_range(*p1._range,*p2._range);
+        if (p1.is_matrix_indexed()) {
+            auto nb_rows = p1.get_nb_rows();
+            res._all_range->resize(nb_rows,{0,0});
+    #pragma omp parallel for num_threads(get_num_threads() / 2)
+            for (size_t i = 0; i<nb_rows; i++) {
+                auto nb_cols = p1.get_dim(i);
+                for (size_t j = 0; j<nb_cols; j++) {
+                    res._all_range->at(i).first += p1.eval(i,j);
+                    res._all_range->at(i).second += p1.eval(i,j);
+                }
+            }
+        }
+        else{
+            auto nb_rows = p1.get_nb_inst();
+            res._all_range->resize(nb_rows,{0,0});
+    #pragma omp parallel for num_threads(get_num_threads() / 2)
+            for (size_t i = 0; i<nb_rows; i++) {
+                auto pval = p1.eval(i);
+                res._all_range->at(i).first += pval;
+                res._all_range->at(i).second += pval;
+            }
+        }
+        if (p2.is_matrix_indexed()) {
+            auto nb_rows = p2.get_nb_rows();
+    #pragma omp parallel for num_threads(get_num_threads() / 2)
+            for (size_t i = 0; i<nb_rows; i++) {
+                auto nb_cols = p2.get_dim(i);
+                for (size_t j = 0; j<nb_cols; j++) {
+                    res._all_range->at(i).first += p2.eval(i,j);
+                    res._all_range->at(i).second += p2.eval(i,j);
+                }
+            }
+        }
+        else{
+            auto nb_rows = p2.get_nb_inst();
+    #pragma omp parallel for num_threads(get_num_threads() / 2)
+            for (size_t i = 0; i<nb_rows; i++) {
+                auto pval = p2.eval(i);
+                res._all_range->at(i).first += pval;
+                res._all_range->at(i).second += pval;
+            }
+        }
+    ////        *res._all_range = get_plus_range(*p1._all_range, *p2._all_range);
+        return res;
     }
 
 template<class T1,class T2, typename enable_if<is_convertible<T2, T1>::value && sizeof(T2) <= sizeof(T1)>::type* = nullptr>
 func<T1> operator+(const var<T1>& p1, const var<T2>& p2){
-//        func<T1> res;
-//        res.set_max_dim(p1,p2);
-//        if(p1.is_param() && p2.is_var()){
-//            res.insert(true,unit<T1>(),p2);
-//            res.add_cst(p1);
-//        }
-//        else if(p2.is_param() && p1.is_var()){
-//            res.insert(true,unit<T1>(),p1);
-//            res.add_cst(param<T1>(p2));
-//        }
-//        else {//Both vars or both params
-//            res.insert(true,unit<T1>(),p1);
-//            res.insert(true,unit<T1>(),p2);
-//        }
-//        res._all_sign = sign_add(p1.get_all_sign(), p2.get_all_sign());
-//        if(res.is_quadratic()){res.update_quad_convexity();}
-//        *res._range = get_plus_range(*p1._range,*p2._range);
-////        *res._all_range = get_plus_range(*p1._val, *p2._val);
-//        return res;
-    return func<T1>(p1) + func<T1>(p2);
+    func<T1> res;
+    res.set_max_dim(p1,p2);
+    res.insert(true,unit<T1>(),p1);
+    res.insert(true,unit<T1>(),p2);
+    res._all_sign = sign_add(p1.get_all_sign(), p2.get_all_sign());
+    *res._range = get_plus_range(*p1._range,*p2._range);
+    if (p1.is_matrix_indexed()) {
+        auto nb_rows = p1.get_nb_rows();
+        res._all_range->resize(nb_rows,{0,0});
+#pragma omp parallel for num_threads(get_num_threads() / 2)
+        for (size_t i = 0; i<nb_rows; i++) {
+            auto nb_cols = p1.get_dim(i);
+            for (size_t j = 0; j<nb_cols; j++) {
+                size_t v_id_inst = p1.get_id_inst(i,j);
+                res._all_range->at(i).first += p1.get_lb(v_id_inst);
+                res._all_range->at(i).second += p1.get_ub(v_id_inst);
+            }
+        }
+    }
+    else{
+        auto nb_rows = p1.get_nb_inst();
+        res._all_range->resize(nb_rows,{0,0});
+#pragma omp parallel for num_threads(get_num_threads() / 2)
+        for (size_t i = 0; i<nb_rows; i++) {
+            size_t v_id_inst = p1.get_id_inst(i);
+            res._all_range->at(i).first += p1.get_lb(v_id_inst);
+            res._all_range->at(i).second += p1.get_ub(v_id_inst);
+        }
+    }
+    if (p2.is_matrix_indexed()) {
+        auto nb_rows = p2.get_nb_rows();
+#pragma omp parallel for num_threads(get_num_threads() / 2)
+        for (size_t i = 0; i<nb_rows; i++) {
+            auto nb_cols = p2.get_dim(i);
+            for (size_t j = 0; j<nb_cols; j++) {
+                size_t v_id_inst = p2.get_id_inst(i,j);
+                res._all_range->at(i).first += p2.get_lb(v_id_inst);
+                res._all_range->at(i).second += p2.get_ub(v_id_inst);
+            }
+        }
+    }
+    else{
+        auto nb_rows = p2.get_nb_inst();
+#pragma omp parallel for num_threads(get_num_threads() / 2)
+        for (size_t i = 0; i<nb_rows; i++) {
+            size_t v_id_inst = p2.get_id_inst(i);
+            res._all_range->at(i).first += p2.get_lb(v_id_inst);
+            res._all_range->at(i).second += p2.get_ub(v_id_inst);
+        }
+    }
+////        *res._all_range = get_plus_range(*p1._all_range, *p2._all_range);
+    return res;
 }
     
     template<class T1,class T2, typename enable_if<is_convertible<T1, T2>::value && sizeof(T1) < sizeof(T2)>::type* = nullptr>
     func<T2> operator+(const param<T1>& p1, const param<T2>& p2){
-//        func<T2> res;
-//        res.set_max_dim(p1,p2);
+        func<T2> res;
+        res.set_max_dim(p1,p2);
 //        if(p1.is_param() && p2.is_var()){
 //            res.insert(true,unit<T2>(),p2);
 //            res.add_cst(param<T2>(p1));
@@ -8927,139 +9494,354 @@ func<T1> operator+(const var<T1>& p1, const var<T2>& p2){
 //            res.add_cst(p2);
 //        }
 //        else {//Both vars or both params
-//            res.insert(true,unit<T2>(),p1);
-//            res.insert(true,unit<T2>(),p2);
+        res.insert(true,unit<T2>(),p1);
+        res.insert(true,unit<T2>(),p2);
 //        }
-//        res._all_sign = sign_add(p1.get_all_sign(), p2.get_all_sign());
+        res._all_sign = sign_add(p1.get_all_sign(), p2.get_all_sign());
 //        if(res.is_quadratic()){res.update_quad_convexity();}
-//        *res._range = get_plus_range(*p1._range,*p2._range);
+        *res._range = get_plus_range(*p1._range,*p2._range);
+        if (p1.is_matrix_indexed()) {
+            auto nb_rows = p1.get_nb_rows();
+            res._all_range->resize(nb_rows,{0,0});
+    #pragma omp parallel for num_threads(get_num_threads() / 2)
+            for (size_t i = 0; i<nb_rows; i++) {
+                auto nb_cols = p1.get_dim(i);
+                for (size_t j = 0; j<nb_cols; j++) {
+                    res._all_range->at(i).first += p1.eval(i,j);
+                    res._all_range->at(i).second += p1.eval(i,j);
+                }
+            }
+        }
+        else{
+            auto nb_rows = p1.get_nb_inst();
+            res._all_range->resize(nb_rows,{0,0});
+    #pragma omp parallel for num_threads(get_num_threads() / 2)
+            for (size_t i = 0; i<nb_rows; i++) {
+                auto pval = p1.eval(i);
+                res._all_range->at(i).first += pval;
+                res._all_range->at(i).second += pval;
+            }
+        }
+        if (p2.is_matrix_indexed()) {
+            auto nb_rows = p2.get_nb_rows();
+    #pragma omp parallel for num_threads(get_num_threads() / 2)
+            for (size_t i = 0; i<nb_rows; i++) {
+                auto nb_cols = p2.get_dim(i);
+                for (size_t j = 0; j<nb_cols; j++) {
+                    res._all_range->at(i).first += p2.eval(i,j);
+                    res._all_range->at(i).second += p2.eval(i,j);
+                }
+            }
+        }
+        else{
+            auto nb_rows = p2.get_nb_inst();
+    #pragma omp parallel for num_threads(get_num_threads() / 2)
+            for (size_t i = 0; i<nb_rows; i++) {
+                auto pval = p2.eval(i);
+                res._all_range->at(i).first += pval;
+                res._all_range->at(i).second += pval;
+            }
+        }
 ////        *res._all_range = get_plus_range(*p1._all_range, *p2._all_range);
-//        return res;
-        return func<T2>(p1) + func<T2>(p2);
+        return res;
     }
     
 
 template<class T1,class T2, typename enable_if<is_convertible<T1, T2>::value && sizeof(T1) < sizeof(T2)>::type* = nullptr>
 func<T2> operator+(const var<T1>& p1, const var<T2>& p2){
-//        func<T2> res;
-//        res.set_max_dim(p1,p2);
-//        if(p1.is_param() && p2.is_var()){
-//            res.insert(true,unit<T2>(),p2);
-//            res.add_cst(param<T2>(p1));
-//        }
-//        else if(p2.is_param() && p1.is_var()){
-//            res.insert(true,unit<T2>(),p1);
-//            res.add_cst(p2);
-//        }
-//        else {//Both vars or both params
-//            res.insert(true,unit<T2>(),p1);
-//            res.insert(true,unit<T2>(),p2);
-//        }
-//        res._all_sign = sign_add(p1.get_all_sign(), p2.get_all_sign());
-//        if(res.is_quadratic()){res.update_quad_convexity();}
-//        *res._range = get_plus_range(*p1._range,*p2._range);
+    func<T2> res;
+    res.set_max_dim(p1,p2);
+    res.insert(true,unit<T2>(),p1);
+    res.insert(true,unit<T2>(),p2);
+    res._all_sign = sign_add(p1.get_all_sign(), p2.get_all_sign());
+    *res._range = get_plus_range(*p1._range,*p2._range);
+    if (p1.is_matrix_indexed()) {
+        auto nb_rows = p1.get_nb_rows();
+        res._all_range->resize(nb_rows,{0,0});
+#pragma omp parallel for num_threads(get_num_threads() / 2)
+        for (size_t i = 0; i<nb_rows; i++) {
+            auto nb_cols = p1.get_dim(i);
+            for (size_t j = 0; j<nb_cols; j++) {
+                size_t v_id_inst = p1.get_id_inst(i,j);
+                res._all_range->at(i).first += p1.get_lb(v_id_inst);
+                res._all_range->at(i).second += p1.get_ub(v_id_inst);
+            }
+        }
+    }
+    else{
+        auto nb_rows = p1.get_nb_inst();
+        res._all_range->resize(nb_rows,{0,0});
+#pragma omp parallel for num_threads(get_num_threads() / 2)
+        for (size_t i = 0; i<nb_rows; i++) {
+            size_t v_id_inst = p1.get_id_inst(i);
+            res._all_range->at(i).first += p1.get_lb(v_id_inst);
+            res._all_range->at(i).second += p1.get_ub(v_id_inst);
+        }
+    }
+    if (p2.is_matrix_indexed()) {
+        auto nb_rows = p2.get_nb_rows();
+#pragma omp parallel for num_threads(get_num_threads() / 2)
+        for (size_t i = 0; i<nb_rows; i++) {
+            auto nb_cols = p2.get_dim(i);
+            for (size_t j = 0; j<nb_cols; j++) {
+                size_t v_id_inst = p2.get_id_inst(i,j);
+                res._all_range->at(i).first += p2.get_lb(v_id_inst);
+                res._all_range->at(i).second += p2.get_ub(v_id_inst);
+            }
+        }
+    }
+    else{
+        auto nb_rows = p2.get_nb_inst();
+#pragma omp parallel for num_threads(get_num_threads() / 2)
+        for (size_t i = 0; i<nb_rows; i++) {
+            size_t v_id_inst = p2.get_id_inst(i);
+            res._all_range->at(i).first += p2.get_lb(v_id_inst);
+            res._all_range->at(i).second += p2.get_ub(v_id_inst);
+        }
+    }
 ////        *res._all_range = get_plus_range(*p1._all_range, *p2._all_range);
-//        return res;
-    return func<T2>(p1) + func<T2>(p2);
+    return res;
 }
     template<class T1,class T2, typename enable_if<is_convertible<T2, T1>::value && sizeof(T2) < sizeof(T1)>::type* = nullptr>
     func<T1> operator-(const param<T1>& p1, const param<T2>& p2){
-//        func<T1> res;
-//        res.set_max_dim(p1,p2);
-//        if(p1.is_param() && p2.is_var()){
-//            res.insert(false,unit<T1>(),p2);
-//            res.add_cst(p1);
-//        }
-//        else if(p2.is_param() && p1.is_var()){
-//            res.insert(true,unit<T1>(),p1);
-//            func<T1> newp(p2);
-//            newp.reverse_sign();
-//            res.add_cst(newp);
-//        }
-//        else {//Both vars or both params
-//            res.insert(true,unit<T1>(),p1);
-//            res.insert(false,unit<T1>(),p2);
-//        }
-//        res._all_sign = sign_add(p1.get_all_sign(), reverse(p2.get_all_sign()));
-//        if(res.is_quadratic()){res.update_quad_convexity();}
-//        *res._range = get_minus_range(*p1._range, *p2._range);
-//        return res;
-        return func<T1>(p1) - func<T1>(p2);
+        func<T1> res;
+        res.set_max_dim(p1,p2);
+    //        if(p1.is_param() && p2.is_var()){
+    //            res.insert(true,unit<T2>(),p2);
+    //            res.add_cst(param<T2>(p1));
+    //        }
+    //        else if(p2.is_param() && p1.is_var()){
+    //            res.insert(true,unit<T2>(),p1);
+    //            res.add_cst(p2);
+    //        }
+    //        else {//Both vars or both params
+        res.insert(true,unit<T1>(),p1);
+        res.insert(false,unit<T1>(),p2);
+    //        }
+        res._all_sign = sign_add(p1.get_all_sign(), reverse(p2.get_all_sign()));
+    //        if(res.is_quadratic()){res.update_quad_convexity();}
+        *res._range = get_minus_range(*p1._range,*p2._range);
+        if (p1.is_matrix_indexed()) {
+            auto nb_rows = p1.get_nb_rows();
+            res._all_range->resize(nb_rows,0);
+    #pragma omp parallel for num_threads(get_num_threads() / 2)
+            for (size_t i = 0; i<nb_rows; i++) {
+                auto nb_cols = p1.get_dim(i);
+                for (size_t j = 0; j<nb_cols; j++) {
+                    res._all_range->at(i).first += p1.eval(i,j);
+                    res._all_range->at(i).second += p1.eval(i,j);
+                }
+            }
+        }
+        else{
+            auto nb_rows = p1.get_nb_inst();
+            res._all_range->resize(nb_rows,0);
+    #pragma omp parallel for num_threads(get_num_threads() / 2)
+            for (size_t i = 0; i<nb_rows; i++) {
+                auto pval = p1.eval(i);
+                res._all_range->at(i).first += pval;
+                res._all_range->at(i).second += pval;
+            }
+        }
+        if (p2.is_matrix_indexed()) {
+            auto nb_rows = p2.get_nb_rows();
+    #pragma omp parallel for num_threads(get_num_threads() / 2)
+            for (size_t i = 0; i<nb_rows; i++) {
+                auto nb_cols = p2.get_dim(i);
+                for (size_t j = 0; j<nb_cols; j++) {
+                    res._all_range->at(i).first -= p2.eval(i,j);
+                    res._all_range->at(i).second -= p2.eval(i,j);
+                }
+            }
+        }
+        else{
+            auto nb_rows = p2.get_nb_inst();
+    #pragma omp parallel for num_threads(get_num_threads() / 2)
+            for (size_t i = 0; i<nb_rows; i++) {
+                auto pval = p2.eval(i);
+                res._all_range->at(i).first -= pval;
+                res._all_range->at(i).second -= pval;
+            }
+        }
+    ////        *res._all_range = get_plus_range(*p1._all_range, *p2._all_range);
+        return res;
     }
 
 template<class T1,class T2, typename enable_if<is_convertible<T2, T1>::value && sizeof(T2) < sizeof(T1)>::type* = nullptr>
 func<T1> operator-(const var<T1>& p1, const var<T2>& p2){
-//        func<T1> res;
-//        res.set_max_dim(p1,p2);
-//        if(p1.is_param() && p2.is_var()){
-//            res.insert(false,unit<T1>(),p2);
-//            res.add_cst(p1);
-//        }
-//        else if(p2.is_param() && p1.is_var()){
-//            res.insert(true,unit<T1>(),p1);
-//            func<T1> newp(p2);
-//            newp.reverse_sign();
-//            res.add_cst(newp);
-//        }
-//        else {//Both vars or both params
-//            res.insert(true,unit<T1>(),p1);
-//            res.insert(false,unit<T1>(),p2);
-//        }
-//        res._all_sign = sign_add(p1.get_all_sign(), reverse(p2.get_all_sign()));
-//        if(res.is_quadratic()){res.update_quad_convexity();}
-//        *res._range = get_minus_range(*p1._range, *p2._range);
-//        return res;
-    return func<T1>(p1) - func<T1>(p2);
+    func<T1> res;
+    res.set_max_dim(p1,p2);
+    res.insert(true,unit<T1>(),p1);
+    res.insert(false,unit<T1>(),p2);
+    res._all_sign = sign_add(p1.get_all_sign(), reverse(p2.get_all_sign()));
+    *res._range = get_minus_range(*p1._range,*p2._range);
+    if (p1.is_matrix_indexed()) {
+        auto nb_rows = p1.get_nb_rows();
+        res._all_range->resize(nb_rows,{0,0});
+#pragma omp parallel for num_threads(get_num_threads() / 2)
+        for (size_t i = 0; i<nb_rows; i++) {
+            auto nb_cols = p1.get_dim(i);
+            for (size_t j = 0; j<nb_cols; j++) {
+                size_t v_id_inst = p1.get_id_inst(i,j);
+                res._all_range->at(i).first += p1.get_lb(v_id_inst);
+                res._all_range->at(i).second += p1.get_ub(v_id_inst);
+            }
+        }
+    }
+    else{
+        auto nb_rows = p1.get_nb_inst();
+        res._all_range->resize(nb_rows,{0,0});
+#pragma omp parallel for num_threads(get_num_threads() / 2)
+        for (size_t i = 0; i<nb_rows; i++) {
+            size_t v_id_inst = p1.get_id_inst(i);
+            res._all_range->at(i).first += p1.get_lb(v_id_inst);
+            res._all_range->at(i).second += p1.get_ub(v_id_inst);
+        }
+    }
+    if (p2.is_matrix_indexed()) {
+        auto nb_rows = p2.get_nb_rows();
+#pragma omp parallel for num_threads(get_num_threads() / 2)
+        for (size_t i = 0; i<nb_rows; i++) {
+            auto nb_cols = p2.get_dim(i);
+            for (size_t j = 0; j<nb_cols; j++) {
+                size_t v_id_inst = p2.get_id_inst(i,j);
+                res._all_range->at(i).first -= p2.get_ub(v_id_inst);
+                res._all_range->at(i).second -= p2.get_lb(v_id_inst);
+            }
+        }
+    }
+    else{
+        auto nb_rows = p2.get_nb_inst();
+#pragma omp parallel for num_threads(get_num_threads() / 2)
+        for (size_t i = 0; i<nb_rows; i++) {
+            size_t v_id_inst = p2.get_id_inst(i);
+            res._all_range->at(i).first -= p2.get_ub(v_id_inst);
+            res._all_range->at(i).second -= p2.get_lb(v_id_inst);
+        }
+    }
+////        *res._all_range = get_plus_range(*p1._all_range, *p2._all_range);
+    return res;
 }
     
     template<class T1,class T2, typename enable_if<is_convertible<T1, T2>::value && sizeof(T2) >= sizeof(T1)>::type* = nullptr>
     func<T2> operator-(const param<T1>& p1, const param<T2>& p2){
-//        func<T2> res;
-//        res.set_max_dim(p1,p2);
-//        if(p1.is_param() && p2.is_var()){
-//            res.insert(false,unit<T2>(),p2);
-//            res.add_cst(param<T2>(p1));
-//        }
-//        else if(p2.is_param() && p1.is_var()){
-//            res.insert(true,unit<T2>(),p1);
-//            func<T2> newp(p2);
-//            newp.reverse_sign();
-//            res.add_cst(newp);
-//        }
-//        else {//Both vars or both params
-//            res.insert(true,unit<T2>(),p1);
-//            res.insert(false,unit<T2>(),p2);
-//        }
-//        res._all_sign = sign_add(p1.get_all_sign(), reverse(p2.get_all_sign()));
-//        if(res.is_quadratic()){res.update_quad_convexity();}
-//        *res._range = get_minus_range(*p1._range,*p2._range);
-//        return res;
-        return func<T2>(p1) - func<T2>(p2);
+        func<T2> res;
+        res.set_max_dim(p1,p2);
+    //        if(p1.is_param() && p2.is_var()){
+    //            res.insert(true,unit<T2>(),p2);
+    //            res.add_cst(param<T2>(p1));
+    //        }
+    //        else if(p2.is_param() && p1.is_var()){
+    //            res.insert(true,unit<T2>(),p1);
+    //            res.add_cst(p2);
+    //        }
+    //        else {//Both vars or both params
+        res.insert(true,unit<T2>(),p1);
+        res.insert(false,unit<T2>(),p2);
+    //        }
+        res._all_sign = sign_add(p1.get_all_sign(), reverse(p2.get_all_sign()));
+    //        if(res.is_quadratic()){res.update_quad_convexity();}
+        *res._range = get_minus_range(*p1._range,*p2._range);
+        if (p1.is_matrix_indexed()) {
+            auto nb_rows = p1.get_nb_rows();
+            res._all_range->resize(nb_rows,{0,0});
+    #pragma omp parallel for num_threads(get_num_threads() / 2)
+            for (size_t i = 0; i<nb_rows; i++) {
+                auto nb_cols = p1.get_dim(i);
+                for (size_t j = 0; j<nb_cols; j++) {
+                    res._all_range->at(i).first += p1.eval(i,j);
+                    res._all_range->at(i).second += p1.eval(i,j);
+                }
+            }
+        }
+        else{
+            auto nb_rows = p1.get_nb_inst();
+            res._all_range->resize(nb_rows,{0,0});
+    #pragma omp parallel for num_threads(get_num_threads() / 2)
+            for (size_t i = 0; i<nb_rows; i++) {
+                auto pval = p1.eval(i);
+                res._all_range->at(i).first += pval;
+                res._all_range->at(i).second += pval;
+            }
+        }
+        if (p2.is_matrix_indexed()) {
+            auto nb_rows = p2.get_nb_rows();
+    #pragma omp parallel for num_threads(get_num_threads() / 2)
+            for (size_t i = 0; i<nb_rows; i++) {
+                auto nb_cols = p2.get_dim(i);
+                for (size_t j = 0; j<nb_cols; j++) {
+                    res._all_range->at(i).first -= p2.eval(i,j);
+                    res._all_range->at(i).second -= p2.eval(i,j);
+                }
+            }
+        }
+        else{
+            auto nb_rows = p2.get_nb_inst();
+    #pragma omp parallel for num_threads(get_num_threads() / 2)
+            for (size_t i = 0; i<nb_rows; i++) {
+                auto pval = p2.eval(i);
+                res._all_range->at(i).first -= pval;
+                res._all_range->at(i).second -= pval;
+            }
+        }
+    ////        *res._all_range = get_plus_range(*p1._all_range, *p2._all_range);
+        return res;
     }
 
 template<class T1,class T2, typename enable_if<is_convertible<T1, T2>::value && sizeof(T2) >= sizeof(T1)>::type* = nullptr>
 func<T2> operator-(const var<T1>& p1, const var<T2>& p2){
-//        func<T2> res;
-//        res.set_max_dim(p1,p2);
-//        if(p1.is_param() && p2.is_var()){
-//            res.insert(false,unit<T2>(),p2);
-//            res.add_cst(param<T2>(p1));
-//        }
-//        else if(p2.is_param() && p1.is_var()){
-//            res.insert(true,unit<T2>(),p1);
-//            func<T2> newp(p2);
-//            newp.reverse_sign();
-//            res.add_cst(newp);
-//        }
-//        else {//Both vars or both params
-//            res.insert(true,unit<T2>(),p1);
-//            res.insert(false,unit<T2>(),p2);
-//        }
-//        res._all_sign = sign_add(p1.get_all_sign(), reverse(p2.get_all_sign()));
-//        if(res.is_quadratic()){res.update_quad_convexity();}
-//        *res._range = get_minus_range(*p1._range,*p2._range);
-//        return res;
-    return func<T2>(p1) - func<T2>(p2);
+    func<T2> res;
+    res.set_max_dim(p1,p2);
+    res.insert(true,unit<T2>(),p1);
+    res.insert(false,unit<T2>(),p2);
+    res._all_sign = sign_add(p1.get_all_sign(), reverse(p2.get_all_sign()));
+    *res._range = get_minus_range(*p1._range,*p2._range);
+    if (p1.is_matrix_indexed()) {
+        auto nb_rows = p1.get_nb_rows();
+        res._all_range->resize(nb_rows,{0,0});
+#pragma omp parallel for num_threads(get_num_threads() / 2)
+        for (size_t i = 0; i<nb_rows; i++) {
+            auto nb_cols = p1.get_dim(i);
+            for (size_t j = 0; j<nb_cols; j++) {
+                size_t v_id_inst = p1.get_id_inst(i,j);
+                res._all_range->at(i).first += p1.get_lb(v_id_inst);
+                res._all_range->at(i).second += p1.get_ub(v_id_inst);
+            }
+        }
+    }
+    else{
+        auto nb_rows = p1.get_nb_inst();
+        res._all_range->resize(nb_rows,{0,0});
+#pragma omp parallel for num_threads(get_num_threads() / 2)
+        for (size_t i = 0; i<nb_rows; i++) {
+            size_t v_id_inst = p1.get_id_inst(i);
+            res._all_range->at(i).first += p1.get_lb(v_id_inst);
+            res._all_range->at(i).second += p1.get_ub(v_id_inst);
+        }
+    }
+    if (p2.is_matrix_indexed()) {
+        auto nb_rows = p2.get_nb_rows();
+#pragma omp parallel for num_threads(get_num_threads() / 2)
+        for (size_t i = 0; i<nb_rows; i++) {
+            auto nb_cols = p2.get_dim(i);
+            for (size_t j = 0; j<nb_cols; j++) {
+                size_t v_id_inst = p2.get_id_inst(i,j);
+                res._all_range->at(i).first -= p2.get_ub(v_id_inst);
+                res._all_range->at(i).second -= p2.get_lb(v_id_inst);
+            }
+        }
+    }
+    else{
+        auto nb_rows = p2.get_nb_inst();
+#pragma omp parallel for num_threads(get_num_threads() / 2)
+        for (size_t i = 0; i<nb_rows; i++) {
+            size_t v_id_inst = p2.get_id_inst(i);
+            res._all_range->at(i).first -= p2.get_ub(v_id_inst);
+            res._all_range->at(i).second -= p2.get_lb(v_id_inst);
+        }
+    }
+////        *res._all_range = get_plus_range(*p1._all_range, *p2._all_range);
+    return res;
 }
     
     template<class T1,class T2, typename enable_if<is_convertible<T2, T1>::value && sizeof(T2) <= sizeof(T1)>::type* = nullptr>
@@ -9560,12 +10342,41 @@ func<T2> operator-(const var<T1>& p1, const var<T2>& p2){
         }
         res._range->first = std::exp(p1._range->first);
         res._range->second = std::exp(p1._range->second);
+        auto nb_rows = p1.get_nb_inst();
+        res._all_range->resize(nb_rows);
+        for (size_t i = 0; i<nb_rows; i++) {
+            res._all_range->at(i).first = p1.eval(i);
+            res._all_range->at(i).second = p1.eval(i);
+        }
         res._expr->_range->first = res._range->first;
         res._expr->_range->second = res._range->second;
         res._expr->_all_convexity = res._all_convexity;
         res._expr->_all_sign = res._all_sign;
         return res;
     }
+
+template<class T1>
+func<T1> exp(const var<T1>& p1){
+    func<T1> res(uexpr<T1>(exp_, p1.copy()));
+    res._all_sign = pos_;
+    if (p1.is_var()) {
+        res._all_convexity = convex_;
+    }
+    res._range->first = std::exp(p1._range->first);
+    res._range->second = std::exp(p1._range->second);
+    auto nb_rows = p1.get_nb_inst();
+    res._all_range->resize(nb_rows);
+    for (size_t i = 0; i<nb_rows; i++) {
+        size_t v_id_inst = p1.get_id_inst(i);
+        res._all_range->at(i).first = p1.get_lb(v_id_inst);
+        res._all_range->at(i).second = p1.get_ub(v_id_inst);
+    }
+    res._expr->_range->first = res._range->first;
+    res._expr->_range->second = res._range->second;
+    res._expr->_all_convexity = res._all_convexity;
+    res._expr->_all_sign = res._all_sign;
+    return res;
+}
 
     template<class T1>
     func<T1> gurobi_relu(const param<T1>& p1){
@@ -9830,6 +10641,62 @@ func<T2> operator-(const var<T1>& p1, const var<T2>& p2){
         res._indices = p1._indices;
         return res;
     }
+
+template<class T>
+func<T> pow(const var<T>& p1, int exp){
+    if(exp<0){
+        func<T> res;
+        if(!p1.is_negative() && !p1.is_positive()){
+            throw invalid_argument("Calling pow() with a negative exponent on an argument that  can be zero");
+        }
+        res.insert(p1,exp);
+        return res;
+    }
+    if(exp==0){
+        return func<T>();
+    }
+    if(exp==1){
+        return func<T>(p1);
+    }
+    if(exp==2){
+        return p1*p1;
+    }
+    else {
+        func<T> res;
+        res.insert(p1,exp);
+        res.set_max_dim(p1);
+        res._range->first = gravity::min(std::pow(p1._range->first,exp),std::pow(p1._range->second,exp));
+        res._range->second = gravity::max(std::pow(p1._range->first,exp),std::pow(p1._range->second,exp));
+        if(exp%2==0) {
+            res._all_sign = non_neg_;
+            if(p1.is_positive()){
+                res._all_sign = pos_;
+            }
+            if(p1._range->first <0 && p1._range->second >0){
+                res._range->first = 0;
+            }
+        }
+        else {
+            res._all_sign = p1.get_all_sign();
+        }
+        if (p1.is_var()) {
+            if(exp%2==0) {
+                res._all_convexity = convex_;
+            }
+            else if(p1.is_non_negative()){
+                res._all_convexity = convex_;
+            }
+            else if(p1.is_non_positive()){
+                res._all_convexity = concave_;
+            }
+            else {
+                res._all_convexity = undet_;
+            }
+        }
+        res._indices = p1._indices;
+        return res;
+    }
+}
     
     template<class T>
     func<T> pow(const param<T>& p1, int exp){

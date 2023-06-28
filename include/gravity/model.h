@@ -8014,10 +8014,29 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
     template<class T>
     func<T> min(const vector<var<T>>& vec){
         func<T> res(mexpr<T>(min_, vec));
-        res._range->first = numeric_limits<T>::lowest();
-        res._range->second = numeric_limits<T>::max();
+        T v_max = numeric_limits<T>::lowest();
+        T v_min = numeric_limits<T>::max();
+        for(auto &vp: vec){
+            v_max = std::max(v_max, vp._range->second);
+            v_min = std::min(v_min, vp._range->first);
+        }
+        auto dim = vec.begin()->get_dim();
+        res._all_range->resize(dim);
+        for(auto i=0;i<dim;i++){
+            T v_max_i = numeric_limits<T>::lowest();
+            T v_min_i = numeric_limits<T>::max();
+            for(auto &vp: vec){
+                v_max_i = std::max(v_max_i, vp.get_ub(i));
+                v_min_i = std::min(v_min_i, vp.get_lb(i));
+            }
+            res._all_range->at(i).first = v_min_i;
+            res._all_range->at(i).second = v_max_i;
+        }
+        res._range->first = v_min;
+        res._range->second = v_max;
         res._expr->_range->first = res._range->first;
         res._expr->_range->second = res._range->second;
+        *res._expr->_all_range = *res._all_range;
         res._all_sign = unknown_;
         res._all_convexity = undet_;
         res._expr->_all_convexity = res._all_convexity;
@@ -8028,10 +8047,29 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
     template<class T>
     func<T> max(const vector<var<T>>& vec){
         func<T> res(mexpr<T>(max_, vec));
-        res._range->first = numeric_limits<T>::lowest();
-        res._range->second = numeric_limits<T>::max();
+        T v_max = numeric_limits<T>::lowest();
+        T v_min = numeric_limits<T>::max();
+        for(auto &vp: vec){
+            v_max = std::max(v_max, vp._range->second);
+            v_min = std::min(v_min, vp._range->first);
+        }
+        auto dim = vec.begin()->get_dim();
+        res._all_range->resize(dim);
+        for(auto i=0;i<dim;i++){
+            T v_max_i = numeric_limits<T>::lowest();
+            T v_min_i = numeric_limits<T>::max();
+            for(auto &vp: vec){
+                v_max_i = std::max(v_max_i, vp.get_ub(i));
+                v_min_i = std::min(v_min_i, vp.get_lb(i));
+            }
+            res._all_range->at(i).first = v_min_i;
+            res._all_range->at(i).second = v_max_i;
+        }
+        res._range->first = v_min;
+        res._range->second = v_max;
         res._expr->_range->first = res._range->first;
         res._expr->_range->second = res._range->second;
+        *res._expr->_all_range = *res._all_range;
         res._all_sign = unknown_;
         res._all_convexity = undet_;
         res._expr->_all_convexity = res._all_convexity;
