@@ -28,10 +28,10 @@ int main(int argc, const char * argv[]) {
     if(argc>3)
         run_MIP = true;
     myModel m = myModel();
-    auto par = m.readHD5(fname);
-//    vector<param<double>> par = m.readData(argc, argv, 1, 2);
+//    auto par = m.readHD5(fname);
+    vector<param<double>> par = m.readData(argc, argv, 1, 2);
     auto start = high_resolution_clock::now();
-    m.InitBilevel2(par[0], par[1], par[2], 0.001);
+    m.InitBilevel(par[0], par[1], par[2], 0.001);
 //    m.GreedyStart(par[0], par[1], par[2]); //comment if no greedy start not needed
 //    cout << "Writing solution file." << endl;
 //    m.writeGreedySol(); //writing greedy sol to a file to load it to sensor_assign2
@@ -244,10 +244,10 @@ vector<param<double>> myModel::readData(int argc, const char * argv[], int n1, i
     /* Indexing sets */
     arcs.add(graph.arcs);
     for (int i = 0; i < N; i++) {
-        sensors.add("sensor" + to_string(i));
+        sensors.add("Sensor_" + to_string(i));
     }
     for (int i = N; i < N + M; i++) {
-        objects.add("object" + to_string(i));
+        objects.add("Object_" + to_string(i - N));
         objects2.add("object" + to_string(i - N));
     }
     //arcs = indices("arcs");
@@ -280,32 +280,32 @@ vector<param<double>> myModel::readData(int argc, const char * argv[], int n1, i
             owner.push_back(stoi(tmp2));
         }
         for (int k = 0; k < K; k++) {
-            agents.add("agent" + to_string(k));
+            agents.add("Agent_" + to_string(k));
         }
         
         /*define index sets for weights, then read weights (need owner to sepsrate own and bought weights)*/
         for (int k = 0; k < K; k++) {
             for (int i = 0; i < N; i++) {
                 if (owner[i] == k) {
-                    own_sens.add("sensor" + to_string(i) + ",agent" + to_string(k));
-                    for (Arc* a: graph.get_node("sensor" + to_string(i))->get_out()) {
-                        own_arcs.add("sensor" + to_string(i) + "," + a->_dest->_name +  ",agent" +  to_string(k));
+                    own_sens.add("Sensor_" + to_string(i) + ",Agent_" + to_string(k));
+                    for (Arc* a: graph.get_node("Sensor_" + to_string(i))->get_out()) {
+                        own_arcs.add("Sensor_" + to_string(i) + "," + a->_dest->_name +  ",Agent_" +  to_string(k));
                         for (Arc* b: graph.get_node(a->_dest->_name)->get_in()) {
-                            if (owner[stoi(b->_src->_name.substr(6, b->_src->_name.find(",")))] == k) {
-                                if (stoi(b->_src->_name.substr(6, b->_src->_name.find(","))) != i) {
-                                own_rplc.add(a->_src->_name + "," + b->_src->_name + "," + a->_dest->_name +  ",agent" +  to_string(k));
+                            if (owner[stoi(b->_src->_name.substr(7, b->_src->_name.find(",")))] == k) {
+                                if (stoi(b->_src->_name.substr(7, b->_src->_name.find(","))) != i) {
+                                own_rplc.add(a->_src->_name + "," + b->_src->_name + "," + a->_dest->_name +  ",Agent_" +  to_string(k));
                                 }
                             }
                             else {
-                                oths_rplc.add("sensor" + to_string(i) + "," + b->_src->_name + "," + a->_dest->_name +  ",agent" +  to_string(k));
+                                oths_rplc.add("Sensor_" + to_string(i) + "," + b->_src->_name + "," + a->_dest->_name +  ",Agent_" +  to_string(k));
                             }
                         }
                     }
                 }
                 else {
-                    bought_sens.add("sensor" + to_string(i) + ",agent" + to_string(k));
-                    for (Arc* a: graph.get_node("sensor" + to_string(i))->get_out()) {
-                        bought_arcs.add(a->_src->_name + "," + a->_dest->_name +  ",agent" +  to_string(k));
+                    bought_sens.add("Sensor_" + to_string(i) + ",Agent_" + to_string(k));
+                    for (Arc* a: graph.get_node("Sensor_" + to_string(i))->get_out()) {
+                        bought_arcs.add(a->_src->_name + "," + a->_dest->_name +  ",Agent_" +  to_string(k));
                     }
                 }
             }
@@ -315,15 +315,15 @@ vector<param<double>> myModel::readData(int argc, const char * argv[], int n1, i
         w_own.in(own_arcs);
         w_bought.in(bought_arcs);
         for (Arc* a: graph.arcs) {
-            for (int k = 0; k < owner[stoi(a->_src->_name.substr(6, a->_src->_name.find(",")))]; k++) {
+            for (int k = 0; k < owner[stoi(a->_src->_name.substr(7, a->_src->_name.find(",")))]; k++) {
                 file >> tmp;
-                w_bought(a->_src->_name + "," + a->_dest->_name + ",agent" + to_string(k)) = stod(tmp);
+                w_bought(a->_src->_name + "," + a->_dest->_name + ",Agent_" + to_string(k)) = stod(tmp);
             }
             file >> tmp;
-            w_own(a->_src->_name + "," + a->_dest->_name + ",agent" + to_string(owner[stoi(a->_src->_name.substr(6, a->_src->_name.find(",")))])) = stod(tmp);
-            for (int k = owner[stoi(a->_src->_name.substr(6, a->_src->_name.find(",")))] + 1; k < K; k++) {
+            w_own(a->_src->_name + "," + a->_dest->_name + ",Agent_" + to_string(owner[stoi(a->_src->_name.substr(7, a->_src->_name.find(",")))])) = stod(tmp);
+            for (int k = owner[stoi(a->_src->_name.substr(7, a->_src->_name.find(",")))] + 1; k < K; k++) {
                 file >> tmp;
-                w_bought(a->_src->_name + "," + a->_dest->_name + ",agent" + to_string(k)) = stod(tmp);
+                w_bought(a->_src->_name + "," + a->_dest->_name + ",Agent_" + to_string(k)) = stod(tmp);
             }
         }
         file.close();
@@ -607,6 +607,7 @@ void myModel::mSolve(bool run_mip) {
 //    model.write_solution();
     if(run_mip){
         solver<> sol(model, gurobi);
+//        sol.set_option("Heuristics", 0);
         sol.run();
 //        model.write_solution();
     }

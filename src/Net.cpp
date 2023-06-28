@@ -446,8 +446,8 @@ pair<int,int> Net::read_pairwise_list(const string& fname) {
     Arc* arc = NULL;
     string src, dest;
     for (int i = 0; i <(n); i++){
-        src = "sensor"+to_string(matrix[i][0]);
-        dest = "object"+to_string(matrix[i][1]);
+        src = "Sensor_"+to_string(matrix[i][0]);
+        dest = "Object_"+to_string(matrix[i][1]);
         if(nodeID.count(src)==0){
             node = new Node(src,nodes.size());
             add_node(node);
