@@ -151,7 +151,12 @@ TEST_CASE("testing bound propagation") {
     CHECK(f_lin6._all_range->at(2).first==-5);
     CHECK(f_lin6._all_range->at(2).second==-5);
     
+    var<> x_out("x_out");
+    x_out.in(R(3));
+    x_out.copy_bounds(*f_lin6._all_range);
     
+    x_out.print();
+    CHECK(x_out.get_lb(0)==f_lin6._all_range->at(0).first);
     
 }
 
