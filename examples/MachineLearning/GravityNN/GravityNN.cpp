@@ -4,7 +4,7 @@
 #include <vector>
 #include <network/NeuralNet.hpp>
 #include <gravity/solver.h>
-#include <CLI11/CLI11.hpp>
+#include <CLI/CLI.hpp>
 
 using namespace gravity;
 

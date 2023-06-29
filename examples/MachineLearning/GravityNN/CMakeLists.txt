@@ -19,15 +19,17 @@ FetchContent_Declare(
 )
 
 FetchContent_MakeAvailable(cli11)
-
+message(${cli11_SOURCE_DIR})
 add_executable(
   GravityNN
 	MachineLearning/GravityNN/GravityNN.cpp
 	${ONNX_PROTO_SRCS}	
 	${ONNX_PROTO_HDRS}
 )
+
 add_dependencies(GravityNN proto_dep)
-target_include_directories(GravityNN PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/MachineLearning/GravityNN ${ONNX_PROTO_HDRS})
+
+target_include_directories(GravityNN PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/MachineLearning/GravityNN ${ONNX_PROTO_HDRS} ${cli11_SOURCE_DIR}/include)
 target_link_libraries(GravityNN ${PROTOBUF_LIBRARIES} gravity CLI11)
 
 find_package(OpenMP)
