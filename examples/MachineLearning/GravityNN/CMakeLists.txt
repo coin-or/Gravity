@@ -18,6 +18,7 @@ FetchContent_Declare(
   GIT_TAG        v2.3.2
 )
 
+file(GLOB NN_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/MachineLearning/GravityNN/network/*.hpp ${CMAKE_CURRENT_SOURCE_DIR}/MachineLearning/GravityNN/network/Layers/*.hpp)
 FetchContent_MakeAvailable(cli11)
 message(${cli11_SOURCE_DIR})
 add_executable(
@@ -25,11 +26,13 @@ add_executable(
 	MachineLearning/GravityNN/GravityNN.cpp
 	${ONNX_PROTO_SRCS}	
 	${ONNX_PROTO_HDRS}
+	${NN_SOURCES}
 )
 
 add_dependencies(GravityNN proto_dep)
 
-target_include_directories(GravityNN PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/MachineLearning/GravityNN ${ONNX_PROTO_HDRS} ${cli11_SOURCE_DIR}/include)
+
+target_include_directories(GravityNN PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/MachineLearning/GravityNN ${CMAKE_CURRENT_SOURCE_DIR}/MachineLearning/GravityNN/network  ${CMAKE_CURRENT_SOURCE_DIR}/MachineLearning/GravityNN/network/Layers ${ONNX_PROTO_HDRS} ${cli11_SOURCE_DIR}/include)
 target_link_libraries(GravityNN ${PROTOBUF_LIBRARIES} gravity CLI11)
 
 find_package(OpenMP)

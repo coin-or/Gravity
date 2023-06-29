@@ -19,7 +19,7 @@ public:
         this->_indices = indices(name);
     }
 
-    SetWrapper& operator=(indices& other) {
+    SetWrapper& operator=(const indices& other) {
         this->_indices = other;
         return *this;
     }
@@ -74,17 +74,17 @@ public:
 
         for (const auto& name : names.at(0)) {
             this->_indices[name] = SetWrapper(name, noop_remap);
-            this->_indices[name] = hidden_states;
+            this->_indices[name] = hidden_states.subset();
         }
 
         for (const auto& name : names.at(1)) {
             this->_indices[name] = SetWrapper(name, noop_remap);
-            this->_indices[name] = w_ids;
+            this->_indices[name] = w_ids.subset();
         }
 
         for (const auto& name : names.at(2)) {
             this->_indices[name] = SetWrapper(name, noop_remap);
-            this->_indices[name] = y_ids;
+            this->_indices[name] = y_ids.subset();
         }
     }
 
