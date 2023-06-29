@@ -110,7 +110,48 @@ TEST_CASE("testing bound propagation") {
     indices sub_ids("sub_ids");
     sub_ids.add({"0","3"});
     
-    auto f_lin5 = p.in(sub_ids)*y.in(sub_ids);
+    param<> c("c");
+    c.in(R(4));
+    for (int i = 0; i < 4; i++) {
+        c.set_val(i, -3*i + 1);
+    }
+    
+    auto f_lin5 = p.in(sub_ids)*y.in(sub_ids) - c.in(sub_ids);
+    f_lin5.print();
+    CHECK(f_lin5._all_range->at(0).first==-1);
+    CHECK(f_lin5._all_range->at(0).second==-1);
+    CHECK(f_lin5._all_range->at(1).first==14);
+    CHECK(f_lin5._all_range->at(1).second==14);
+    
+    indices mat_mul_A("mat_mul_A"), mat_mul_y("mat_mul_y");
+    mat_mul_A = A._indices->subset();
+    mat_mul_y = y._indices->subset();
+    mat_mul_A.add_in_row(0, "0,1");
+    mat_mul_A.add_in_row(0, "0,3");
+    mat_mul_y.add_in_row(0, "3");
+    mat_mul_y.add_in_row(0, "0");
+    mat_mul_A.add_in_row(1, "1,1");
+    mat_mul_A.add_in_row(1, "1,2");
+    mat_mul_y.add_in_row(1, "0");
+    mat_mul_y.add_in_row(1, "3");
+    mat_mul_A.add_in_row(2, "2,0");
+    mat_mul_A.add_in_row(2, "2,3");
+    mat_mul_y.add_in_row(2, "3");
+    mat_mul_y.add_in_row(2, "1");
+    y.set_lb("3", -2);
+    y.set_ub("3", -2);
+    y.set_lb("1", 40./23);
+    y.set_ub("1", 40./23);
+    auto f_lin6 = A.in(mat_mul_A)*y.in(mat_mul_y) + c.in(range(0,2));
+    f_lin6.print();
+    CHECK(f_lin6._all_range->at(0).first==11);
+    CHECK(f_lin6._all_range->at(0).second==14);
+    CHECK(f_lin6._all_range->at(1).first==18);
+    CHECK(f_lin6._all_range->at(1).second==29);
+    CHECK(f_lin6._all_range->at(2).first==-5);
+    CHECK(f_lin6._all_range->at(2).second==-5);
+    
+    
     
 }
 
