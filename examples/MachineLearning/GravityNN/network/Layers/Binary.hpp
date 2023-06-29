@@ -74,6 +74,7 @@ public:
             }
 
             if (this->B->is_initializer) {
+                std::cout << "PARAM ADD!" << std::endl;
                 inds["ConstrB"].add(this->Y->strkey(aind));
                 inds["pA"].add_ref(this->A->strkey(aind));
                 inds["UnaryVar"].add_ref(this->B->strkey(bind));
@@ -97,12 +98,12 @@ public:
 
     void add_constraints(gravity::Model<>& NN, IndexSet& inds, gravity::param<>& w, gravity::var<>& x, gravity::var<int>& y) override {
         // Constraint for addition of hidden states
-        Constraint<> Add_("Add");
+        Constraint<> Add_(this->lname() + "_Add");
         Add_ = x.in(inds["hOut"]) - (x.in(inds["A"]) + x.in(inds["B"]));
         NN.add(Add_.in(inds["Constr"]) == 0);
 
         // Constraint where B is a parameter
-        Constraint<> Add_Param_("Add_Param");
+        Constraint<> Add_Param_(this->lname() + "_Add_Param");
         Add_Param_ = x.in(inds["pOut"]) - (x.in(inds["pA"]) + w.in(inds["UnaryVar"]));
         NN.add(Add_Param_.in(inds["ConstrB"]) == 0);
     }
@@ -114,12 +115,12 @@ public:
 
     void add_constraints(gravity::Model<>& NN, IndexSet& inds, gravity::param<>& w, gravity::var<>& x, gravity::var<int>& y) override {
         // Constraint for addition of hidden states
-        Constraint<> Sub_("Sub");
+        Constraint<> Sub_(this->lname() + "_Sub");
         Sub_ = x.in(inds["hOut"]) - (x.in(inds["A"]) - x.in(inds["B"]));
         NN.add(Sub_.in(inds["Constr"]) == 0);
 
         // Constraint where B is a parameter
-        Constraint<> Sub_Param_("Sub_Param");
+        Constraint<> Sub_Param_(this->lname() + "_Sub_Param");
         Sub_Param_ = x.in(inds["pOut"]) - (x.in(inds["pA"]) - w.in(inds["UnaryVar"]));
         NN.add(Sub_Param_.in(inds["ConstrB"]) == 0);
     }
@@ -131,12 +132,12 @@ public:
 
     void add_constraints(gravity::Model<>& NN, IndexSet& inds, gravity::param<>& w, gravity::var<>& x, gravity::var<int>& y) override {
         // Constraint for mul of hidden states
-        Constraint<> Mul_("Mul");
+        Constraint<> Mul_(this->lname() + "_Mul");
         Mul_ = x.in(inds["hOut"]) - (x.in(inds["A"]) * x.in(inds["B"]));
         NN.add(Mul_.in(inds["Constr"]) == 0);
 
         // Constraint where B is a parameter
-        Constraint<> Mul_Param_("Mul_Param");
+        Constraint<> Mul_Param_(this->lname() + "_Mul_Param");
         Mul_Param_ = x.in(inds["pOut"]) - (x.in(inds["pA"]) * w.in(inds["UnaryVar"]));
         NN.add(Mul_Param_.in(inds["ConstrB"]) == 0);
     }
@@ -148,12 +149,12 @@ public:
 
     void add_constraints(gravity::Model<>& NN, IndexSet& inds, gravity::param<>& w, gravity::var<>& x, gravity::var<int>& y) override {
         // Constraint for division of hidden states
-        Constraint<> Div_("Div");
+        Constraint<> Div_(this->lname() + "_Div");
         Div_ = x.in(inds["hOut"])*x.in(inds["B"]) - x.in(inds["A"]);
         NN.add(Div_.in(inds["Constr"]) == 0);
 
         // Constraint where B is a parameter
-        Constraint<> Div_Param_("Div_Param");
+        Constraint<> Div_Param_(this->lname() + "_Div_Param");
         Div_Param_ = x.in(inds["pOut"])*w.in(inds["UnaryVar"]) - x.in(inds["pA"]);
         NN.add(Div_Param_.in(inds["ConstrB"]) == 0);
     }

@@ -104,7 +104,7 @@ public:
     }
 
     void add_constraints(gravity::Model<>& NN, IndexSet& inds, gravity::param<>& w, gravity::var<>& x, gravity::var<int>& y) override {
-        Constraint<> Gemm("Gemm");
+        Constraint<> Gemm(this->lname() + "_Gemm");
         Gemm = x.in(inds["Out"]) - (x.in(inds["In"])*w.in(inds["B"]) + w.in(inds["C"]));
         NN.add(Gemm.in(inds["Constr"]) == 0);
     }
@@ -205,11 +205,11 @@ public:
     }
 
     void add_constraints(gravity::Model<>& NN, IndexSet& inds, gravity::param<>& w, gravity::var<>& x, gravity::var<int>& y) override {
-        Constraint<> MatMul_P("MatMul_Param");
+        Constraint<> MatMul_P(this->lname() + "_MatMul_Param");
         MatMul_P = x.in(inds["pOut"]) - (w.in(inds["Param"])*x.in(inds["pIn"]));
         NN.add(MatMul_P.in(inds["Constr"]) == 0);
 
-        Constraint<> MatMul_H("MatMul_Hidden");
+        Constraint<> MatMul_H(this->lname() + "_MatMul_Hidden");
         MatMul_H = x.in(inds["hOut"]) - (x.in(inds["hLeft"])*x.in(inds["hRight"]));
         NN.add(MatMul_H.in(inds["ConstrB"]) == 0);
     }
@@ -395,7 +395,7 @@ public:
     }
 
     void add_constraints(gravity::Model<>& NN, IndexSet& inds, gravity::param<>& w, gravity::var<>& x, gravity::var<int>& y) override {
-        Constraint<> Conv_("Conv");
+        Constraint<> Conv_(this->lname() + "_Conv");
         Conv_ = x.in(inds["Out"]) - (x.in(inds["In"])*w.in(inds["W"]) + w.in(inds["B"]));
         NN.add(Conv_.in(inds["Constr"]) == 0);
     }
@@ -480,8 +480,8 @@ public:
         auto B = w.in(inds["B"]);
         auto scale = w.in(inds["scale"]);
 
-        Constraint<> BatchNorm("BatchNorm");
-        BatchNorm = (Y-B)*(1.0/scale)*sqrt(var + this->epsilon) + mean - X;
+        Constraint<> BatchNorm(this->lname() + "_BatchNorm");
+        BatchNorm = (Y-B)*(1.0/scale)*gravity::sqrt(var + this->epsilon) + mean - X;
         NN.add(BatchNorm.in(inds["Constr"]) == 0);
     }
 

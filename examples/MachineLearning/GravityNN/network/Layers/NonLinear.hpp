@@ -28,7 +28,7 @@ public:
     }
 
     void add_constraints(gravity::Model<>& NN, IndexSet& inds, gravity::param<>& w, gravity::var<>& x, gravity::var<int>& y) override {
-        Constraint<> Cos_("Cos");
+        Constraint<> Cos_(this->lname() + "_Cos");
         Cos_ = x.in(inds["Out"]) - cos(x.in(inds["In"]));
         NN.add(Cos_.in(inds["Constr"]) == 0);
     }
@@ -60,7 +60,7 @@ public:
     }
 
     void add_constraints(gravity::Model<>& NN, IndexSet& inds, gravity::param<>& w, gravity::var<>& x, gravity::var<int>& y) override {
-        Constraint<> Sin_("Sin");
+        Constraint<> Sin_(this->lname() + "_Sin");
         Sin_ = x.in(inds["Out"]) - sin(x.in(inds["In"]));
         NN.add(Sin_.in(inds["Constr"]) == 0);
     }
@@ -100,7 +100,7 @@ public:
     }
 
     void add_constraints(gravity::Model<>& NN, IndexSet& inds, gravity::param<>& w, gravity::var<>& x, gravity::var<int>& y) override {
-        Constraint<> Pow_("Pow");
+        Constraint<> Pow_(this->lname() + "_Pow");
         Pow_ = x.in(inds["Out"]) - pow(x.in(inds["In"]), 2.0);
         NN.add(Pow_.in(inds["Constr"]) == 0);
     }
@@ -132,7 +132,7 @@ public:
     }
 
     void add_constraints(gravity::Model<>& NN, IndexSet& inds, gravity::param<>& w, gravity::var<>& x, gravity::var<int>& y) override {
-        Constraint<> Exp_("Exp");
+        Constraint<> Exp_(this->lname() + "_Exp");
         Exp_ = x.in(inds["Out"]) - gravity::exp(x.in(inds["In"]));
         NN.add(Exp_.in(inds["Constr"]) == 0);
     }
@@ -177,17 +177,17 @@ public:
 
     void add_constraints(gravity::Model<>& NN, IndexSet& inds, gravity::param<>& w, gravity::var<>& x, gravity::var<int>& y) override {
         // Negate x
-        Constraint<> Neg_("Sigmoid_Neg_Aux");
+        Constraint<> Neg_(this->lname() + "_Sigmoid_Neg_Aux");
         Neg_ = x.in(inds["NegAux"]) + x.in(inds["In"]);
         NN.add(Neg_.in(inds["Constr"]) == 0);
 
         // Exp constraint
-        Constraint<> Exp_("Sigmoid_Aux");
+        Constraint<> Exp_(this->lname() + "_Sigmoid_Aux");
         Exp_ = x.in(inds["ExpAux"]) - gravity::exp(x.in(inds["NegAux"]));
         NN.add(Exp_.in(inds["Constr"]) == 0);
 
         // Rest of sigmoid
-        Constraint<> Sigmoid_("Sigmoid");
+        Constraint<> Sigmoid_(this->lname() + "_Sigmoid");
         Sigmoid_ = x.in(inds["Out"])*(1.0 + x.in(inds["ExpAux"])) - 1.0;
         NN.add(Sigmoid_.in(inds["Constr"]) == 0);
     }
@@ -263,18 +263,18 @@ public:
 
     void add_constraints(gravity::Model<>& NN, IndexSet& inds, gravity::param<>& w, gravity::var<>& x, gravity::var<int>& y) override {
         // Exp constraint
-        Constraint<> Exp_("Softmax_Exp");
+        Constraint<> Exp_(this->lname() + "_Softmax_Exp");
         Exp_ = x.in(inds["ExpAux"]) - gravity::exp(x.in(inds["In"]));
         NN.add(Exp_.in(inds["Constr"]) == 0);
 
         // Sum constraint
-        Constraint<> Sum_("Softmax_Sum");
+        Constraint<> Sum_(this->lname() + "_Softmax_Sum");
         Sum_ = x.in(inds["SumAux"]) - x.in(inds["ExpSum"]);
         Sum_.print();
         NN.add(Sum_.in(inds["ConstrB"]) == 0);
 
         // Out constraint
-        Constraint<> Out_("Softmax_Out");
+        Constraint<> Out_(this->lname() + "_Softmax_Out");
         Out_ = x.in(inds["Out"])*x.in(inds["SumProd"]) - x.in(inds["ExpAux"]);
         NN.add(Out_.in(inds["Constr"]) == 0);
     }

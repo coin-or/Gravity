@@ -62,35 +62,35 @@ public:
     }
 
     void add_constraints(gravity::Model<>& NN, IndexSet& inds, gravity::param<>& w, gravity::var<>& x, gravity::var<int>& y) override {
-        Constraint<> ClipU("Upper");
+        Constraint<> ClipU(this->lname() + "_Upper");
         ClipU = x.in(inds["Out"]) - w.in(inds["MaxP"]);
         NN.add_on_off(ClipU.in(inds["Constr"]) == 0, y.in(inds["MaxB"]), true);
 
-        Constraint<> ClipL("Lower");
+        Constraint<> ClipL(this->lname() + "_Lower");
         ClipL = x.in(inds["Out"]) - w.in(inds["MinP"]);
         NN.add_on_off(ClipL.in(inds["Constr"]) == 0, y.in(inds["MinB"]), true);
 
-        Constraint<> ClipEQ("Equal");
+        Constraint<> ClipEQ(this->lname() + "_Equal");
         ClipEQ = x.in(inds["Out"]) - x.in(inds["In"]);
         NN.add_on_off(ClipEQ.in(inds["Constr"]) == 0, y.in(inds["Eq"]), true);
 
-        Constraint<> ClipBin("Bin");
+        Constraint<> ClipBin(this->lname() + "_Bin");
         ClipBin = y.in(inds["MaxB"]) + y.in(inds["MinB"]) + y.in(inds["Eq"]);
         NN.add(ClipBin.in(inds["Constr"]) == 1);
 
-        Constraint<> ClipInU("InU");
+        Constraint<> ClipInU(this->lname() + "_InU");
         ClipInU = x.in(inds["In"]);
         NN.add_on_off(ClipInU.in(inds["Constr"]) <= w.in(inds["MaxP"]), y.in(inds["Eq"]), true);
 
-        Constraint<> ClipInL("InL");
+        Constraint<> ClipInL(this->lname() + "_InL");
         ClipInL = x.in(inds["In"]);
         NN.add_on_off(ClipInL.in(inds["Constr"]) >= w.in(inds["MinP"]), y.in(inds["Eq"]), true);
 
-        Constraint<> ClipInMax("InMax");
+        Constraint<> ClipInMax(this->lname() + "_InMax");
         ClipInMax = x.in(inds["In"]);
         NN.add_on_off(ClipInMax.in(inds["Constr"]) >= w.in(inds["MaxP"]), y.in(inds["MaxB"]), true);
 
-        Constraint<> ClipInMin("InMin");
+        Constraint<> ClipInMin(this->lname() + "_InMin");
         ClipInMin = x.in(inds["In"]);
         NN.add_on_off(ClipInMin.in(inds["Constr"]) <= w.in(inds["MinP"]), y.in(inds["MinB"]), true);
     }
@@ -134,16 +134,16 @@ public:
 
     void add_constraints(gravity::Model<>& NN, IndexSet& inds, gravity::param<>& w, gravity::var<>& x, gravity::var<int>& y) override {
         /* Constraints */
-        Constraint<> ReLU("ReLU");
+        Constraint<> ReLU(this->lname() + "_ReLU");
         ReLU = x.in(inds["Out"]) - x.in(inds["In"]);
         NN.add(ReLU.in(inds["Constr"]) >= 0);
 
         // Using == 0 instead of <= 0 on these constraints seems better
-        Constraint<> ReLU_on("ReLU_on");
+        Constraint<> ReLU_on(this->lname() + "_ReLU_on");
         ReLU_on = x.in(inds["Out"]) - x.in(inds["In"]);
         NN.add_on_off(ReLU_on.in(inds["Constr"]) == 0, y.in(inds["y_ids"]), true);
 
-        Constraint<> ReLU_y_off("ReLU_y_off");
+        Constraint<> ReLU_y_off(this->lname() + "_ReLU_y_off");
         ReLU_y_off = x.in(inds["Out"]);
         NN.add_on_off(ReLU_y_off.in(inds["Constr"]) == 0, y.in(inds["y_ids"]), false);
     }
@@ -198,19 +198,19 @@ public:
 
     void add_constraints(gravity::Model<>& NN, IndexSet& inds, gravity::param<>& w, gravity::var<>& x, gravity::var<int>& y) override {
         /* Constraints */
-        Constraint<> LeakyReLU("LeakyReLU");
+        Constraint<> LeakyReLU(this->lname() + "_LeakyReLU");
         LeakyReLU = x.in(inds["Out"]) - w.in(inds["alpha"])*x.in(inds["In"]);
         NN.add(LeakyReLU.in(inds["Constr"]) >= 0);
 
-        Constraint<> LeakyReLU2("LeakyReLU2");
+        Constraint<> LeakyReLU2(this->lname() + "_LeakyReLU2");
         LeakyReLU2 = x.in(inds["Out"]) - x.in(inds["In"]);
         NN.add(LeakyReLU2.in(inds["Constr"]) >= 0);
 
-        Constraint<> LeakyReLU_on("LeakyReLU_on");
+        Constraint<> LeakyReLU_on(this->lname() + "_LeakyReLU_on");
         LeakyReLU_on = x.in(inds["Out"]) - x.in(inds["In"]);
         NN.add_on_off(LeakyReLU_on.in(inds["Constr"]) == 0, y.in(inds["Constr"]), true);
 
-        Constraint<> LeakyReLU_off("LeakyReLU_off");
+        Constraint<> LeakyReLU_off(this->lname() + "_LeakyReLU_off");
         LeakyReLU_off = x.in(inds["Out"]) - w.in(inds["alpha"]) * x.in(inds["In"]);
         NN.add_on_off(LeakyReLU_off.in(inds["Constr"]) == 0, y.in(inds["Constr"]), false);
     }
@@ -242,7 +242,7 @@ public:
     }
 
     void add_constraints(gravity::Model<>& NN, IndexSet& inds, gravity::param<>& w, gravity::var<>& x, gravity::var<int>& y) override {
-        Constraint<> Neg_("Neg");
+        Constraint<> Neg_(this->lname() + "_Neg");
         Neg_ = x.in(inds["Out"]) + x.in(inds["In"]);
         NN.add(Neg_.in(inds["Constr"]) == 0);
     }
@@ -300,7 +300,7 @@ public:
     }
 
     void add_constraints(gravity::Model<>& NN, IndexSet& inds, gravity::param<>& w, gravity::var<>& x, gravity::var<int>& y) override {
-        Constraint<> RDSum("ReduceSum");
+        Constraint<> RDSum(this->lname() + "_ReduceSum");
         RDSum = x.in(inds["Out"]) - x.in(inds["In"]);
         NN.add(RDSum.in(inds["Constr"]) == 0);
     }
@@ -387,7 +387,7 @@ public:
     }
 
     void add_constraints(gravity::Model<>& NN, IndexSet& inds, gravity::param<>& w, gravity::var<>& x, gravity::var<int>& y) override {
-        Constraint<> AveragePool_("AveragePool");
+        Constraint<> AveragePool_(this->lname() + "_AveragePool");
         AveragePool_ = x.in(inds["Out"]) - (x.in(inds["In"]) * w.in(inds["scale"]));
         NN.add(AveragePool_.in(inds["Constr"]) == 0);
     }
@@ -442,31 +442,31 @@ public:
     }
 
     void add_constraints(gravity::Model<>& NN, IndexSet& inds, gravity::param<>& w, gravity::var<>& x, gravity::var<int>& y) override {
-        Constraint<> SignSum("Sign_Sum");
+        Constraint<> SignSum(this->lname() + "_Sign_Sum");
         SignSum = y.in(inds["z0"]) + y.in(inds["z1"]) + y.in(inds["z2"]);
         NN.add(SignSum.in(inds["Constr"]) == 1);
 
-        Constraint<> Sign1("Sign_Z0");
+        Constraint<> Sign1(this->lname() + "_Sign_Z0");
         Sign1 = x.in(inds["In"]);
         NN.add_on_off(Sign1.in(inds["Constr"]) == 0, y.in(inds["z0"]), true);
 
-        Constraint<> Sign2("Sign_Z1_on");
+        Constraint<> Sign2(this->lname() + "_Sign_Z1_on");
         Sign2 = x.in(inds["In"]);
         NN.add_on_off(Sign2.in(inds["Constr"]) >= 0, y.in(inds["z1"]), true);
 
-        Constraint<> Sign3("Sign_Z1_off");
+        Constraint<> Sign3(this->lname() + "_Sign_Z1_off");
         Sign3 = x.in(inds["In"]);
         NN.add_on_off(Sign3.in(inds["Constr"]) <= 0, y.in(inds["z1"]), false);
 
-        Constraint<> Sign4("Sign_Z2_on");
+        Constraint<> Sign4(this->lname() + "_Sign_Z2_on");
         Sign4 = x.in(inds["In"]);
         NN.add_on_off(Sign4.in(inds["Constr"]) <= 0, y.in(inds["z2"]), true);
 
-        Constraint<> Sign5("Sign_Z2_off");
+        Constraint<> Sign5(this->lname() + "_Sign_Z2_off");
         Sign5 = x.in(inds["In"]);
         NN.add_on_off(Sign5.in(inds["Constr"]) >= 0, y.in(inds["z2"]), false);
 
-        Constraint<> Sign6("Sign_out");
+        Constraint<> Sign6(this->lname() + "_Sign_out");
         Sign6 = x.in(inds["Out"]) - ((1 - y.in(inds["z0"])) + y.in(inds["z1"]) - 2 * y.in(inds["z2"]));
         NN.add(Sign6.in(inds["Constr"]) == 0);
     }

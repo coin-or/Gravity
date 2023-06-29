@@ -83,7 +83,7 @@ int main(int argc, char * argv[]) {
 
     std::cout << "Optimizing layers:" << std::endl;
     for (auto l: layers_to_optimize) {
-        std::cout << l->name << std::endl;
+        std::cout << l->lname() << std::endl;
     }
 
     std::vector<Bound> global_bounds;
@@ -96,7 +96,7 @@ int main(int argc, char * argv[]) {
     for (auto lidx = 0; lidx < layers_to_optimize.size(); lidx++) {
         auto l = layers_to_optimize[lidx];
         std::cout << "################################################" << std::endl;
-        std::cout << "Optimizing layer: " << l->name << std::endl;
+        std::cout << "Optimizing layer: " << l->lname() << std::endl;
         std::cout << "Layer " << lidx+1 << "/" << layers_to_optimize.size() << std::endl;
         std::vector<Bound> local_bounds;
         for (auto o: l->outputs) {
@@ -110,8 +110,8 @@ int main(int argc, char * argv[]) {
                     continue;
                 }
 
-                local_bounds.push_back(Bound(l->name, name, lb, LOWER));
-                local_bounds.push_back(Bound(l->name, name, ub, UPPER));
+                local_bounds.push_back(Bound(l->lname(), name, lb, LOWER));
+                local_bounds.push_back(Bound(l->lname(), name, ub, UPPER));
             }
         }
 

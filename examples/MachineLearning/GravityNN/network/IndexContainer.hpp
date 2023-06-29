@@ -114,13 +114,13 @@ public:
         this->noop_remap = std::make_shared<NoOpRemap>();
     }
     
-    void add(OType op, std::vector<std::vector<std::string>> names) {
-        if (this->_indices.find(op) != this->_indices.end()) {
+    void add(std::string layer_name, std::vector<std::vector<std::string>> names) {
+        if (this->_indices.find(layer_name) != this->_indices.end()) {
             return;
         }
 
         names.resize(3);
-        this->_indices[op] = IndexSet(
+        this->_indices[layer_name] = IndexSet(
             names,
             this->hidden_states,
             this->w_ids,
@@ -129,8 +129,8 @@ public:
         );
     }
 
-    IndexSet& operator()(OType op) {
-        return this->_indices.at(op);
+    IndexSet& operator()(std::string layer_name) {
+        return this->_indices.at(layer_name);
     }
 
     void add_remap(std::string true_key, std::string aux_key) {
@@ -151,7 +151,7 @@ public:
     indices hidden_states, y_ids;
 
     // Map from operator type to index set
-    std::unordered_map<OType, IndexSet> _indices;
+    std::unordered_map<std::string, IndexSet> _indices;
 
     /*
         Some operators like Reshape do nothing. When we reference a variable from the output of reshape

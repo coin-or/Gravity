@@ -60,6 +60,7 @@ int main(int argc, char * argv[]){
         NN.write();
     }
     if (config.w_gurobi) {
+        grb_prog->prepare_model();
         grb_mod->write("gurobiprint.lp");
     }
 

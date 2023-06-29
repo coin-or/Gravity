@@ -118,6 +118,13 @@ public:
         return nullptr;
     }
 
+    std::string lname() const {
+        if (this->name.empty()) {
+            throw std::runtime_error("Layer has no name");
+        }
+        return this->name;
+    }
+
 
     // Name of the layer
     std::string name;

@@ -148,12 +148,12 @@ public:
         this->NN.add(this->y);
         this->add_constraints();
 
-        this->set_objective(obj_index);
+        this->set_objective(obj_index, start_node, final_node);
 
         return this->NN;
     }
 
-    void set_objective(int obj_index) {
+    void set_objective(int obj_index, std::string start_node, std::string final_node) {
         if (obj_index < 0) {
             auto tensor = this->subgraph.back()->outputs.at(0);
             gravity::func<> expr = 0.0;
@@ -172,7 +172,7 @@ public:
             throw std::runtime_error("Objective index out of bounds. This model has " + std::to_string(this->obj_spec->shape[0]) + " objectives.");
         }
 
-        if (this->_all_layers.size() != this->subgraph.size()) {
+        if (start_node != "" || final_node != "") {
             throw std::runtime_error("Cannot use objective with subgraph. Please use the full model.");
         }
 
@@ -202,20 +202,20 @@ public:
         std::cout << "##################################" << std::endl;
         std::cout << "Adding index sets for each layer" << std::endl;
         for (auto l: this->subgraph) {
-            this->indices.add(l->operator_type, l->get_indices());
+            this->indices.add(l->lname(), l->get_indices());
         }
 
         // First, index all hidden states
         std::cout << "Indexing hidden layers" << std::endl;
         for (auto l: this->subgraph) {
-            std::cout << " - " << l->name << std::endl;
+            std::cout << " - " << l->lname() << std::endl;
             l->index_hidden_states(this->indices.hidden_states, this->indices.y_ids);
         }
 
         // Index parameters
         std::cout << "Adding parameters" << std::endl;
         for (auto l: this->subgraph) {
-            std::cout << " - " << l->name << std::endl;
+            std::cout << " - " << l->lname() << std::endl;
             l->add_parameters(this->indices.w);
         }
     }
@@ -227,11 +227,11 @@ public:
         for (auto l: this->subgraph) {
             // Horizon start layers do not have inputs
             if (!this->_inputs_in_subgraph(l)) {
-                std::cout << " - " << l->name << " SKIPPED (horizon_start)" << std::endl;
+                std::cout << " - " << l->lname() << " SKIPPED (horizon_start)" << std::endl;
                 continue;
             } else {
-                std::cout << " - " << l->name << std::endl;
-                l->index_constraint(this->indices(l->operator_type));
+                std::cout << " - " << l->lname() << std::endl;
+                l->index_constraint(this->indices(l->lname()));
             }
         }
     }
@@ -243,7 +243,7 @@ public:
         auto ub = this->x.get_ub();
 
         for (auto l: this->subgraph) {
-            std::cout << " - " << l->name << std::endl;
+            std::cout << " - " << l->lname() << std::endl;
             l->set_bounds(lb, ub);
         }
     }
@@ -266,7 +266,7 @@ public:
         std::cout << "##################################" << std::endl;
         std::cout << "Initializing state" << std::endl;
         for (auto l: this->subgraph) {
-            std::cout << " - " << l->name << std::endl;
+            std::cout << " - " << l->lname() << std::endl;
             for (auto o: l->outputs) {
                 for(auto j = 0; j < o->numel; j++){
                     auto fv = o->forward.at(j);
@@ -298,15 +298,9 @@ public:
     void add_constraints() {
         std::cout << "##################################" << std::endl;
         std::cout << "Adding constraints" << std::endl;
-        // Add constraints. Only add constraints for each operator type once.
-        std::set<OType> visited;
         for (auto l: this->subgraph) {
-            if (visited.insert(l->operator_type).second == false) {
-                continue;
-            }
-
             std::cout << " - " << l->opname << std::endl;
-            l->add_constraints(this->NN, this->indices(l->operator_type), this->indices.w, this->x, this->y);
+            l->add_constraints(this->NN, this->indices(l->lname()), this->indices.w, this->x, this->y);
         }
     }
 
@@ -339,7 +333,7 @@ public:
         for (auto l: this->subgraph) {
             // Pure noops just need to have their constraints indexed
             if (PURE_NOOPS.count(l->operator_type) > 0) {
-                std::cout << " - " << l->name << " (Deleted)" << std::endl;
+                std::cout << " - " << l->lname() << " (Deleted)" << std::endl;
                 auto noop = dynamic_cast<NoOp*>(l);
                 if (!noop) {
                     throw std::runtime_error("Could not cast to NoOp");
@@ -347,7 +341,7 @@ public:
                 noop->remap_indices(this->indices);
                 todelete.insert(l);
             } else if (IMPURE_NOOPS.count(l->operator_type) > 0) {
-                std::cout << " - " << l->name << " (Partial fold)" << std::endl;
+                std::cout << " - " << l->lname() << " (Partial fold)" << std::endl;
                 auto noop = dynamic_cast<NoOp*>(l);
                 if (!noop) {
                     throw std::runtime_error("Could not cast to NoOp");

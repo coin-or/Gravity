@@ -185,7 +185,7 @@ public:
     }
 
     void add_constraints(gravity::Model<>& NN, IndexSet& inds, gravity::param<>& w, gravity::var<>& x, gravity::var<int>& y) override {
-        Constraint<> Concat_P("Concat_Param");
+        Constraint<> Concat_P(this->lname() + "_Concat_Param");
         Concat_P = x.in(inds["pOut"]) - w.in(inds["pIn"]);
         NN.add(Concat_P.in(inds["Constr"]) == 0);
     }
