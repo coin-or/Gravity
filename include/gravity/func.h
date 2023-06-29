@@ -9841,6 +9841,52 @@ func<T2> operator-(const var<T1>& p1, const var<T2>& p2){
 ////        *res._all_range = get_plus_range(*p1._all_range, *p2._all_range);
     return res;
 }
+
+template<class T1,class T2, typename enable_if<is_convertible<T1, T2>::value && sizeof(T2) >= sizeof(T1)>::type* = nullptr>
+func<T2> operator-(const var<T1>& p1, const param<T2>& p2){
+    func<T2> res (p1);
+    func<T2> newp(p2);
+    *res._range = get_minus_range(*p1._range, *p2._range);
+    *res._all_range = get_minus_range(*res._all_range, *newp._all_range);
+    newp.reverse_sign();
+    res.add_cst(newp);
+    res._all_sign = sign_add(p1.get_all_sign(), reverse(p2.get_all_sign()));
+    return res;
+}
+
+template<class T1,class T2, typename enable_if<is_convertible<T1, T2>::value && sizeof(T2) >= sizeof(T1)>::type* = nullptr>
+func<T2> operator-(const param<T1>& p1, const var<T2>& p2){
+    func<T2> res (p2);
+    func<T2> newp(p1);
+    res.reverse_sign();
+    *res._range = get_minus_range(*p1._range, *p2._range);
+    *res._all_range = get_plus_range(*res._all_range, *newp._all_range);
+    res.add_cst(newp);
+    res._all_sign = sign_add(p1.get_all_sign(), reverse(p2.get_all_sign()));
+    return res;
+}
+
+template<class T1,class T2, typename enable_if<is_convertible<T1, T2>::value && sizeof(T2) >= sizeof(T1)>::type* = nullptr>
+func<T2> operator+(const var<T1>& p1, const param<T2>& p2){
+    func<T2> res (p1);
+    func<T2> newp(p2);
+    *res._range = get_plus_range(*p1._range, *p2._range);
+    *res._all_range = get_plus_range(*res._all_range, *newp._all_range);
+    res.add_cst(newp);
+    res._all_sign = sign_add(p1.get_all_sign(), p2.get_all_sign());
+    return res;
+}
+
+template<class T1,class T2, typename enable_if<is_convertible<T1, T2>::value && sizeof(T2) >= sizeof(T1)>::type* = nullptr>
+func<T2> operator+(const param<T1>& p1, const var<T2>& p2){
+    func<T2> res (p1);
+    func<T2> newp(p2);
+    *res._range = get_plus_range(*p1._range, *p2._range);
+    *res._all_range = get_plus_range(*res._all_range, *newp._all_range);
+    res.add_cst(newp);
+    res._all_sign = sign_add(p1.get_all_sign(), p2.get_all_sign());
+    return res;
+}
     
     template<class T1,class T2, typename enable_if<is_convertible<T2, T1>::value && sizeof(T2) <= sizeof(T1)>::type* = nullptr>
     constant<T1> operator+(const constant<T1>& p1, const constant<T2>& p2){
