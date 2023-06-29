@@ -22,6 +22,15 @@
 using namespace std;
 using namespace gravity;
 
+TEST_CASE("testing subset") {
+    indices ids("index_set");
+    ids.add({"id1", "id2", "key3"});
+    indices sub_ids = ids.subset();
+    CHECK(sub_ids.size()==0);
+    sub_ids.add_ref("id2");
+    CHECK(sub_ids.size()==1);
+}
+    
 TEST_CASE("testing bound propagation") {
     param<> A("A");
     // Make identity matrix
@@ -98,8 +107,10 @@ TEST_CASE("testing bound propagation") {
     CHECK(f_lin4._all_range->at(2).second==20);
     CHECK(f_lin4._all_range->at(3).first==6);
     CHECK(f_lin4._all_range->at(3).second==6);
+    indices sub_ids("sub_ids");
+    sub_ids.add({"0","3"});
     
-    
+    auto f_lin5 = p.in(sub_ids)*y.in(sub_ids);
     
 }
 

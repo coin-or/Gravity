@@ -939,7 +939,19 @@ public:
 //        }
 //    }
     
-    
+    /* create a index set that is a subset of the current one */
+    indices subset() const{
+        indices cpy;
+        cpy._type = _type;
+        cpy._keys_map = _keys_map;
+        cpy._keys = _keys;
+        cpy._dim = _dim;
+        cpy._excluded_keys = _excluded_keys;
+        cpy._ids = make_shared<vector<vector<size_t>>>(1);
+        cpy._time_extended = _time_extended;
+        cpy._time_pos = _time_pos;
+        return cpy;
+    }
     
     /* Returns true if current index set is a subset of ids */
     bool is_subset(const indices & ids) const{
@@ -1119,6 +1131,8 @@ public:
         }
         _name += ".time_expanded";
     }
+    
+    
     
     indices& operator=(const indices& cpy){
         if(_name.empty())
