@@ -8980,7 +8980,8 @@ func<T2> operator*(const var<T1>& p1, const var<T2>& p2){
         res.insert(true,unit<T2>(),p1,p2);
     }
     res.update_dot_dim(p1,p2);
-    
+    auto dim = res.get_dim();
+    res._all_range->resize(dim, {zero<T2>().eval(),zero<T2>().eval()});
     if(res.has_square()){
         auto signp = p1.get_all_sign();
         if(signp==neg_ || signp==pos_){
@@ -8989,8 +8990,6 @@ func<T2> operator*(const var<T1>& p1, const var<T2>& p2){
         else {
             res._all_sign = non_neg_;
         }
-        auto dim = res.get_dim();
-        res._all_range->resize(dim, {zero<T2>().eval(),zero<T2>().eval()});
         res._range->first=zero<T2>().eval();
         if(p1.is_positive() || p1.is_negative()){
             res._range->first=extended_mult(p1._range->first,p1._range->first);
@@ -9000,7 +8999,6 @@ func<T2> operator*(const var<T1>& p1, const var<T2>& p2){
                 }
             }
         }
-    auto dim = res.get_dim();
         res._range->second=extended_mult(std::max(std::abs(p1._range->second),std::abs(p1._range->first)),std::max(std::abs(p1._range->second),std::abs(p1._range->first)));
 #pragma omp parallel for num_threads(get_num_threads() / 2)
                 for(auto i = 0; i<dim; i++){
@@ -11511,6 +11509,8 @@ func<T2> operator+(const var<T1>& v, const constant<T2>& p){
     
     template<class T1,class T2, typename enable_if<is_convertible<T2, T1>::value && sizeof(T2) < sizeof(T1)>::type* = nullptr>
     func<T1> operator+(const param<T1>& v, const func<T2>& f){
+        if(v.is_zero())
+            return f;
         func<T1> res(v);
         res += f;
         return res;
@@ -11518,6 +11518,8 @@ func<T2> operator+(const var<T1>& v, const constant<T2>& p){
     
     template<class T1,class T2, typename enable_if<is_convertible<T1, T2>::value && sizeof(T2) >= sizeof(T1)>::type* = nullptr>
     func<T2> operator+(const param<T1>& v, const func<T2>& f){
+        if(v.is_zero())
+            return f;
         func<T2> res(v);
         res += f;
         return res;
@@ -11525,6 +11527,8 @@ func<T2> operator+(const var<T1>& v, const constant<T2>& p){
     
     template<class T1,class T2, typename enable_if<is_convertible<T2, T1>::value && sizeof(T2) < sizeof(T1)>::type* = nullptr>
     func<T1> operator+(const func<T1>& f, const param<T2>& v){
+        if(v.is_zero())
+            return f;
         func<T1> res(v);
         res += f;
         return res;
@@ -11532,6 +11536,8 @@ func<T2> operator+(const var<T1>& v, const constant<T2>& p){
     
     template<class T1,class T2, typename enable_if<is_convertible<T1, T2>::value && sizeof(T2) >= sizeof(T1)>::type* = nullptr>
     func<T2> operator+(const func<T1>& f, const param<T2>& v){
+        if(v.is_zero())
+            return func<T2>(f);
         func<T2> res(v);
         res += f;
         return res;
@@ -11713,6 +11719,8 @@ func<T2> operator-(const var<T1>& p, const func<T2>& f){
     
     template<class T1,class T2, typename enable_if<is_convertible<T2, T1>::value && sizeof(T2) < sizeof(T1)>::type* = nullptr>
     func<T1> operator-(const func<T1>& f, const param<T2>& v){
+        if(v.is_zero())
+            return f;
         func<T1> res(v);
         res.reverse_sign();
         res += f;
@@ -11721,6 +11729,8 @@ func<T2> operator-(const var<T1>& p, const func<T2>& f){
     
     template<class T1,class T2, typename enable_if<is_convertible<T1, T2>::value && sizeof(T2) >= sizeof(T1)>::type* = nullptr>
     func<T2> operator-(const func<T1>& f, const param<T2>& v){
+        if(v.is_zero())
+            return f;
         func<T2> res(v);
         res.reverse_sign();
         res += f;
@@ -11729,6 +11739,11 @@ func<T2> operator-(const var<T1>& p, const func<T2>& f){
     
     template<class T1,class T2, typename enable_if<is_convertible<T2, T1>::value && sizeof(T2) < sizeof(T1)>::type* = nullptr>
     func<T1> operator-(const param<T1>& p, const func<T2>& f){
+        if(p.is_zero()){
+            func<T1> res(f);
+            res.reverse_sign();
+            return res;
+        }
         func<T1> res(f);
         res.reverse_sign();
         res += p;
@@ -11737,6 +11752,11 @@ func<T2> operator-(const var<T1>& p, const func<T2>& f){
     
     template<class T1,class T2, typename enable_if<is_convertible<T1, T2>::value && sizeof(T2) >= sizeof(T1)>::type* = nullptr>
     func<T2> operator-(const param<T1>& p, const func<T2>& f){
+        if(p.is_zero()){
+            func<T2> res(f);
+            res.reverse_sign();
+            return res;
+        }
         func<T2> res(f);
         res.reverse_sign();
         res += p;
