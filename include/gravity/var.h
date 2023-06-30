@@ -1099,17 +1099,18 @@ namespace gravity {
             if(!_lift && _ub->_params->size()>0)
                 ub_param = static_pointer_cast<param<type>>(_ub->_params->begin()->second.first);
             for (size_t i = 0; i < dim; i++) {
-                _lb->_val->at(i) = p.at(i).first;
-                _lb->update_range(_lb->_val->at(i));
-                _ub->_val->at(i) = p.at(i).second;
-                _ub->update_range(_ub->_val->at(i));
+                auto id_inst = this->get_id_inst(i);
+                _lb->_val->at(id_inst) = p.at(i).first;
+                _lb->update_range(_lb->_val->at(id_inst));
+                _ub->_val->at(id_inst) = p.at(i).second;
+                _ub->update_range(_ub->_val->at(id_inst));
                 if(lb_param){
-                    lb_param->_val->at(i) = p.at(i).first;
-                    lb_param->update_range(_lb->_val->at(i));
+                    lb_param->_val->at(id_inst) = p.at(i).first;
+                    lb_param->update_range(_lb->_val->at(id_inst));
                 }
                 if(ub_param){
-                    ub_param->_val->at(i) = p.at(i).second;
-                    ub_param->update_range(_ub->_val->at(i));
+                    ub_param->_val->at(id_inst) = p.at(i).second;
+                    ub_param->update_range(_ub->_val->at(id_inst));
                 }
             }
             this->_range->first = _lb->_range->first;
