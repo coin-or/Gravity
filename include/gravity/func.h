@@ -10572,6 +10572,13 @@ func<T1> exp(const var<T1>& p1){
         if(((p1._range->first <-pi) && (p1._range->second >-pi)) || (p1._range->first <pi && p1._range->second >pi)){
             res._range->first = -1;
         }
+        auto dim = p1.get_nb_inst();
+        res._all_range->resize(dim);
+        for(auto i = 0; i< dim; i++){
+            auto id_inst = p1.get_id_inst(i);
+            res._all_range->at(i).first = std::cos(p1._val->at(id_inst));
+            res._all_range->at(i).second = std::cos(p1._val->at(id_inst));
+        }
         res._expr->_range->first = res._range->first;
         res._expr->_range->second = res._range->second;
         res._expr->_all_convexity = res._all_convexity;
@@ -10579,6 +10586,86 @@ func<T1> exp(const var<T1>& p1){
         res._indices = p1._indices;
         return res;
     }
+
+template<class T, typename enable_if<is_arithmetic<T>::value>::type* = nullptr>
+func<T> cos(const var<T>& p1){
+    func<T> res(uexpr<T>(cos_, p1.copy()));
+    auto conv_sign = cos_sign_curvature(*p1._range);
+    res._all_convexity = conv_sign.first;
+    res._all_sign = conv_sign.second;
+    res._range->first = gravity::min(std::cos(p1._range->first),std::cos(p1._range->second));
+    res._range->second = gravity::max(std::cos(p1._range->first),std::cos(p1._range->second));
+    if(p1._range->first <0 && p1._range->second >0){
+        res._range->second = 1;
+    }
+    if(((p1._range->first <-pi) && (p1._range->second >-pi)) || (p1._range->first <pi && p1._range->second >pi)){
+        res._range->first = -1;
+    }
+    auto dim = p1.get_nb_inst();
+    res._all_range->resize(dim);
+    for(auto i = 0; i< dim; i++){
+        auto id_inst = p1.get_id_inst(i);
+        if(p1.get_lb(id_inst)==numeric_limits<T>::lowest() || p1.get_ub(id_inst)==numeric_limits<T>::max()){
+            res._all_range->at(i).first = -1;
+            res._all_range->at(i).second = 1;
+        }
+        else {
+            res._all_range->at(i).first = gravity::min(std::cos(p1.get_lb(id_inst)),std::cos(p1.get_ub(id_inst)));
+            res._all_range->at(i).second = gravity::max(std::cos(p1.get_lb(id_inst)),std::cos(p1.get_ub(id_inst)));
+        }
+        if(p1.get_lb(id_inst) <0 && p1.get_ub(id_inst) >0){
+            res._all_range->at(i).second = 1;
+        }
+        if(((p1.get_lb(id_inst) <-pi) && (p1.get_ub(id_inst) >-pi)) || (p1.get_lb(id_inst) <pi && p1.get_ub(id_inst) >pi)){
+            res._all_range->at(i).first = -1;
+        }
+    }
+    res._expr->_range->first = res._range->first;
+    res._expr->_range->second = res._range->second;
+    res._expr->_all_convexity = res._all_convexity;
+    res._expr->_all_sign = res._all_sign;
+    res._indices = p1._indices;
+    return res;
+}
+
+template<class T, typename enable_if<is_arithmetic<T>::value>::type* = nullptr>
+func<T> sin(const var<T>& p1){
+    func<T> res(uexpr<T>(sin_, p1.copy()));
+    auto shifted_range = *p1._range;
+    shifted_range.first += pi/2.;
+    shifted_range.second += pi/2.;
+    auto conv_sign = cos_sign_curvature(shifted_range);
+    res._all_convexity = conv_sign.first;
+    res._all_sign = conv_sign.second;
+    res._range->first = gravity::min(std::sin(p1._range->first),std::sin(p1._range->second));
+    res._range->second = gravity::max(std::sin(p1._range->first),std::sin(p1._range->second));
+    if(shifted_range.first <0 && shifted_range.second >0){
+        res._range->second = 1;
+    }
+    if(((shifted_range.first < -pi) && (shifted_range.second >-pi)) || (shifted_range.first <pi && shifted_range.second >pi)){
+        res._range->first = -1;
+    }
+    auto dim = p1.get_nb_inst();
+    res._all_range->resize(dim);
+    for(auto i = 0; i< dim; i++){
+        auto id_inst = p1.get_id_inst(i);
+        res._all_range->at(i).first = gravity::min(std::sin(p1.get_lb(id_inst)),std::sin(p1.get_ub(id_inst)));
+        res._all_range->at(i).second = gravity::max(std::sin(p1.get_lb(id_inst)),std::sin(p1.get_ub(id_inst)));
+        auto shifted_range = {p1.get_lb(id_inst)+pi/2.,p1.get_ub(id_inst)+pi/2.};
+        if(shifted_range.first <0 && shifted_range.second >0){
+            res._all_range->at(i).second = 1;
+        }
+        if(((shifted_range.first < -pi) && (shifted_range.second >-pi)) || (shifted_range.first <pi && shifted_range.second >pi)){
+            res._all_range->at(i).first = -1;
+        }
+    }
+    res._expr->_range->first = res._range->first;
+    res._expr->_range->second = res._range->second;
+    res._expr->_all_convexity = res._all_convexity;
+    res._expr->_all_sign = res._all_sign;
+    res._indices = p1._indices;
+    return res;
+}
     
     template<class T, typename enable_if<is_arithmetic<T>::value>::type* = nullptr>
     func<T> sin(const param<T>& p1){
@@ -10587,9 +10674,6 @@ func<T1> exp(const var<T1>& p1){
         shifted_range.first += pi/2.;
         shifted_range.second += pi/2.;
         auto conv_sign = cos_sign_curvature(shifted_range);
-        if (p1.is_var()) {
-            res._all_convexity = conv_sign.first;
-        }
         res._all_sign = conv_sign.second;
         res._range->first = gravity::min(std::sin(p1._range->first),std::sin(p1._range->second));
         res._range->second = gravity::max(std::sin(p1._range->first),std::sin(p1._range->second));
@@ -10598,6 +10682,13 @@ func<T1> exp(const var<T1>& p1){
         }
         if(((shifted_range.first < -pi) && (shifted_range.second >-pi)) || (shifted_range.first <pi && shifted_range.second >pi)){
             res._range->first = -1;
+        }
+        auto dim = p1.get_nb_inst();
+        res._all_range->resize(dim);
+        for(auto i = 0; i< dim; i++){
+            auto id_inst = p1.get_id_inst(i);
+            res._all_range->at(i).first = std::sin(p1._val->at(id_inst));
+            res._all_range->at(i).second = std::sin(p1._val->at(id_inst));
         }
         res._expr->_range->first = res._range->first;
         res._expr->_range->second = res._range->second;
@@ -10996,6 +11087,24 @@ func<T> pow(const var<T>& p1, int exp){
         if(((f._range->first <-pi) && (f._range->second >-pi)) || (f._range->first <pi && f._range->second >pi)){
             res._range->first = -1;
         }
+        auto dim = f._all_range->size();
+        res._all_range->resize(dim);
+        for(auto i = 0; i< dim; i++){
+            if(f._all_range->at(i).first==numeric_limits<T>::lowest() || f._all_range->at(i).second==numeric_limits<T>::max()){
+                res._all_range->at(i).first = -1;
+                res._all_range->at(i).second = 1;
+            }
+            else {
+                res._all_range->at(i).first = gravity::min(std::cos(f._all_range->at(i).first),std::cos(f._all_range->at(i).second));
+                res._all_range->at(i).second = gravity::max(std::cos(f._all_range->at(i).first),std::cos(f._all_range->at(i).second));
+            }
+            if(f._all_range->at(i).first <0 && f._all_range->at(i).second >0){
+                res._all_range->at(i).second = 1;
+            }
+            if(((f._all_range->at(i).first <-pi) && (f._all_range->at(i).second >-pi)) || (f._all_range->at(i).first <pi && f._all_range->at(i).second >pi)){
+                res._all_range->at(i).first = -1;
+            }
+        }
         res._expr->_range->first = res._range->first;
         res._expr->_range->second = res._range->second;
         res._expr->_all_convexity = res._all_convexity;
@@ -11066,6 +11175,25 @@ func<T> pow(const var<T>& p1, int exp){
             }
             if(((shifted_range.first < -pi) && (shifted_range.second >-pi)) || (shifted_range.first <pi && shifted_range.second >pi)){
                 res._range->first = -1;
+            }
+        }
+        auto dim = f._all_range->size();
+        res._all_range->resize(dim);
+        for(auto i = 0; i< dim; i++){
+            if(f._all_range->at(i).first==numeric_limits<T>::lowest() || f._all_range->at(i).second==numeric_limits<T>::max()){
+                res._all_range->at(i).first = -1;
+                res._all_range->at(i).second = 1;
+            }
+            else {
+                res._all_range->at(i).first = gravity::min(std::sin(f._all_range->at(i).first),std::sin(f._all_range->at(i).second));
+                res._all_range->at(i).second = gravity::max(std::sin(f._all_range->at(i).first),std::sin(f._all_range->at(i).second));
+            }
+            auto shifted_range = {f._all_range->at(i).first+pi/2.,f._all_range->at(i).second+pi/2.};
+            if(shifted_range.first <0 && shifted_range.second >0){
+                res._all_range->at(i).second = 1;
+            }
+            if(((shifted_range.first < -pi) && (shifted_range.second >-pi)) || (shifted_range.first <pi && shifted_range.second >pi)){
+                res._all_range->at(i).first = -1;
             }
         }
         res._expr->_range->first = res._range->first;
