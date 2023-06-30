@@ -150,6 +150,9 @@ namespace gravity {
         indices get_indices() const{return *_indices;};
         
         size_t get_nb_rows() const {
+            if(is_matrix()){
+                return _dim[0];
+            }
             if(!_indices){
                 throw invalid_argument("cannot call get_nb_rows() on a non-indexed set");
             }
@@ -1034,6 +1037,9 @@ namespace gravity {
             this->_range->first.imag(pi._range->first);
             this->_range->second.real(pr._range->second);
             this->_range->second.imag(pi._range->second);
+            this->set_size(pr._dim[0], pr._dim[1]);
+            this->_val->resize(pr.get_nb_inst());
+            /* TODO: fix _all_range too */
         }
         
         template<class T=type, class = typename enable_if<is_same<T, Cpx>::value>::type>
@@ -1043,6 +1049,9 @@ namespace gravity {
             this->_range->first.imag(0);
             this->_range->second.real(p._range->second);
             this->_range->second.imag(0);
+            this->set_size(p._dim[0], p._dim[1]);
+            this->_val->resize(p.get_nb_inst());
+            /* TODO: fix _all_range too */
         }
         
         template<class T=type, class = typename enable_if<is_same<T, Cpx>::value>::type>
@@ -1052,6 +1061,9 @@ namespace gravity {
             this->_range->first.imag(p._range->first);
             this->_range->second.real(0);
             this->_range->second.imag(p._range->second);
+            this->set_size(p._dim[0], p._dim[1]);
+            this->_val->resize(p.get_nb_inst());
+            /* TODO: fix _all_range too */
         }
         
 

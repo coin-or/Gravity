@@ -1331,7 +1331,8 @@ shared_ptr<Model<>> build_ACOPF(PowerNet& grid, PowerModelType pmt, int output, 
     
     /** Construct the objective function */
     /**  Objective */
-    auto obj = (product(c1,Pg) + product(c2,pow(Pg,2)) + sum(c0))*1e-3;
+//    auto obj = (product(c1,Pg) + product(c2,pow(Pg,2)) + sum(c0))*1e-3;
+    auto obj = product(c2,pow(Pg,2));
 //    auto obj = sum(c0)*1e-5;
 //    for (auto pg_id: *Pg.get_indices()._keys) {
 //        obj += c1(pg_id)*Pg(pg_id)*1e-5;
@@ -1354,6 +1355,7 @@ shared_ptr<Model<>> build_ACOPF(PowerNet& grid, PowerModelType pmt, int output, 
     /** KCL Flow conservation */
     Constraint<> KCL_P("KCL_P");
     Constraint<> KCL_Q("KCL_Q");
+    /* TODO: fix _all_range propagation here */
     KCL_P  = sum(Pf_from, out_arcs) + sum(Pf_to, in_arcs) + pl - sum(Pg, gen_nodes);
     KCL_Q  = sum(Qf_from, out_arcs) + sum(Qf_to, in_arcs) + ql - sum(Qg, gen_nodes);
     /* Shunts */

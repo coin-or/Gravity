@@ -7717,12 +7717,12 @@ vector<pair<T1,T1>> get_minus_range(const vector<pair<T2,T2>>& y, T1 x){
             }
             _evaluated = false;
             set_max_dim(f);
-            if (is_constant() && !f.is_constant()) {
+            if ((func_is_number() && !f.func_is_number()) || (is_constant() && !f.is_constant())) {
                 func res(f);
                 res += *this;
                 return *this = res;
             }
-            if (!is_constant() && f.is_constant()) {
+            if (f.func_is_number() || (!is_constant() && f.is_constant())) {
                 this->add_cst(f);
                 update_sign_add(f);
                 *_range = get_plus_range(*_range, *f._range);
@@ -9293,7 +9293,7 @@ func<T2> operator*(const param<T1>& p, const var<T2>& v){
     res.update_dot_dim(p,v);
     *res._range = get_product_range(*p._range,*v._range);
     res._all_sign = sign_product(p.get_all_sign(), v.get_all_sign());
-    if (p.is_matrix_indexed()) {
+    if (p.is_matrix() || p.is_matrix_indexed()) {
         auto nb_rows = p.get_nb_rows();
         res._all_range->resize(nb_rows);
 #pragma omp parallel for num_threads(get_num_threads() / 2)
@@ -10389,8 +10389,8 @@ func<T2> operator+(const param<T1>& p1, const var<T2>& p2){
         auto nb_rows = p1.get_nb_inst();
         res._all_range->resize(nb_rows);
         for (size_t i = 0; i<nb_rows; i++) {
-            res._all_range->at(i).first = p1.eval(i);
-            res._all_range->at(i).second = p1.eval(i);
+            res._all_range->at(i).first = std::exp(p1.eval(i));
+            res._all_range->at(i).second = std::exp(p1.eval(i));
         }
         res._expr->_range->first = res._range->first;
         res._expr->_range->second = res._range->second;
@@ -11188,7 +11188,7 @@ func<T> pow(const var<T>& p1, int exp){
                 res._all_range->at(i).first = gravity::min(std::sin(f._all_range->at(i).first),std::sin(f._all_range->at(i).second));
                 res._all_range->at(i).second = gravity::max(std::sin(f._all_range->at(i).first),std::sin(f._all_range->at(i).second));
             }
-            auto shifted_range = {f._all_range->at(i).first+pi/2.,f._all_range->at(i).second+pi/2.};
+            pair<T,T> shifted_range = {f._all_range->at(i).first+pi/2.,f._all_range->at(i).second+pi/2.};
             if(shifted_range.first <0 && shifted_range.second >0){
                 res._all_range->at(i).second = 1;
             }
@@ -11792,8 +11792,7 @@ func<T2> operator+(const func<T1>& f, const var<T2>& v){
     template<class T1,class T2, typename enable_if<is_convertible<T2, T1>::value && sizeof(T2) < sizeof(T1)>::type* = nullptr>
     func<T1> operator+(const func<T1>& f, T2 v){
         func<T1> res(v);
-        res += f;
-        return res;
+        return res += f;
     }
     
     template<class T1,class T2, typename enable_if<is_convertible<T1, T2>::value && sizeof(T2) >= sizeof(T1)>::type* = nullptr>
@@ -12487,23 +12486,23 @@ func<T2> operator*(const var<T1>& v, T2 p){
     
     
     template<class T1,class T2, typename enable_if<is_convertible<T1, T2>::value && sizeof(T2) >= sizeof(T1)>::type* = nullptr>
-    func<T2> product(const param<T1>& f1, const func<T2>& f2){
-        if(f1.is_column_vector() && f2.is_column_vector()){/* This is a dot product */
-            return f1.tr()*f2.vec();
+    func<T2> product(const param<T1>& p1, const func<T2>& f2){
+        if(p1.is_column_vector() && f2.is_column_vector()){/* This is a dot product */
+            return func<T2>(p1).tr()*f2.vec();
         }
-        if(f1.is_matrix() && f2.is_column_vector())
-            return f1*f2.vec();
-        return f1*f2;
+        if(p1.is_matrix() && f2.is_column_vector())
+            return p1*f2.vec();
+        return p1*f2;
     }
     
     template<class T1,class T2, typename enable_if<is_convertible<T2, T1>::value && sizeof(T2) < sizeof(T1)>::type* = nullptr>
-    func<T1> product(const param<T1>& f1, const func<T2>& f2){
-        if(f1.is_column_vector() && f2.is_column_vector()){/* This is a dot product */
-            return f1.tr()*f2.vec();
+    func<T1> product(const param<T1>& p1, const func<T2>& f2){
+        if(p1.is_column_vector() && f2.is_column_vector()){/* This is a dot product */
+            return func<T1>(p1).tr()*f2.vec();
         }
-        if(f1.is_matrix() && f2.is_column_vector())
-            return f1*f2.vec();
-        return f1*f2;
+        if(p1.is_matrix() && f2.is_column_vector())
+            return p1*f2.vec();
+        return p1*f2;
     }
     
     template<class T1,class T2, typename enable_if<is_convertible<T1, T2>::value && sizeof(T2) >= sizeof(T1)>::type* = nullptr>

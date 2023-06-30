@@ -360,6 +360,7 @@ namespace gravity {
             this->_range->first.imag(pi._range->first);
             this->_range->second.real(pr._range->second);
             this->_range->second.imag(pi._range->second);
+            /* TODO: fix _all_range too */
         }
         
         
