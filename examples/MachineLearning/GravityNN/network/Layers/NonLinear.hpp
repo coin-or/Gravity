@@ -308,9 +308,42 @@ public:
     }
 
     void add_constraints(gravity::Model<>& NN, IndexSet& inds, gravity::param<>& w, gravity::var<>& x, gravity::var<int>& y) override {
-        Constraint<> Exp_(this->lname() + "_Exp");
-        Exp_ = x.in(inds["Out"]) - gravity::exp(x.in(inds["In"]));
-        NN.add(Exp_.in(inds["Constr"]) == 0);
+        gravity::param<double> l(this->lname() + "l"), u(this->lname() + "u"), f_l(this->lname() + "f_l"), f_u(this->lname() + "f_u"), df_l(this->lname() + "df_l"), df_u(this->lname() + "df_u");
+        gravity::param<double> k(this->lname() + "k");
+        gravity::param<double> m(this->lname() + "m"), f_m(this->lname() + "f_m"), df_m(this->lname() + "df_m");
+        
+        for (int i = 0; i < this->X->numel; ++i) {
+            l.add_val(std::max(-M_PI, this->X->lb[i]));
+            u.add_val(std::min(M_PI, this->X->ub[i]));
+            m.add_val((l.eval(i) + u.eval(i))/2);
+            f_l.add_val(exp(l.eval(i)));
+            f_u.add_val(exp(u.eval(i)));
+            f_m.add_val(exp(m.eval(i)));
+            df_l.add_val(exp(l.eval(i)));
+            df_u.add_val(exp(u.eval(i)));
+            df_m.add_val(exp(m.eval(i)));
+            k.add_val((f_u.eval(i) - f_l.eval(i))/(u.eval(i)-l.eval(i)));
+        }
+        
+        // upper bound
+        Constraint<> Exp_Upper(this->lname() + "_Exp_Upper");
+        Exp_Upper = x.in(inds["Out"]) - (k * (x.in(inds["In"]) - l) + f_l);
+        NN.add(Exp_Upper.in(inds["Constr"]) <= 0);
+        
+        // lower bound at l
+        Constraint<> Exp_OA1(this->lname() + "_OA1");
+        Exp_OA1 = x.in(inds["Out"]) - (df_l * (x.in(inds["In"]) - l) + f_l);
+        NN.add(Exp_OA1.in(inds["Constr"]) >= 0);
+        
+        // lower bound at u
+        Constraint<> Exp_OA2(this->lname() + "_OA2");
+        Exp_OA2 = x.in(inds["Out"]) - (df_u * (x.in(inds["In"]) - u) + f_u);
+        NN.add(Exp_OA2.in(inds["Constr"]) >= 0);
+
+        // lower bound at (l+u)/2
+        Constraint<> Exp_OA3(this->lname() + "_OA3");
+        Exp_OA3 = x.in(inds["Out"]) - (df_m * (x.in(inds["In"]) - m) + f_m);
+        NN.add(Exp_OA3.in(inds["Constr"]) >= 0);
     }
 
     Tensor *X, *Y; // Input and output
