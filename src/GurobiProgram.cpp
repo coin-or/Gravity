@@ -184,7 +184,7 @@ void GurobiProgram::prepare_model(){
     create_grb_constraints();
 //    DebugOn("going to fill in omap"<<endl);
     set_grb_objective();
-//    grb_mod->write("gurobiprint.lp");
+    grb_mod->write("gurobiprint.lp");
 
 //    print_constraints();
 }

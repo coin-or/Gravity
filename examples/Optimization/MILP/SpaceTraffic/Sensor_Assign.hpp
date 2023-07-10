@@ -42,11 +42,13 @@ public:
     myModel(){ };
     vector<param<double>> readData(int argc, const char * argv[], int n1, int n2);
     vector<param<double>> readHD5(const string& file_name);
-    void InitBilevel(param<double> &w0, param<double> &w_own, param<double> &w_bought, double eps);
+    void InitBilevel(param<double> &w0, param<double> &w_own, param<double> &w_bought, double eps, bool initConstrs);
     void mSolve(bool run_mip=false);
     void saveSolStats();
     void GreedyStart(const param<double> &w0, const param<double> &w_own, const param<double> &w_bought);
     void writeGreedySol();
+    void writeGreedySol2(string fname, param<double> &w0, param<double> &w_own, param<double> &w_bought);
+    void readGreedySol(string fname);
     void assignLeader(string &idx, param<double> &wt0, param<double> &wt_own, param<double> &wt_bought);
     void assignOwn(string &idx, param<double> &wt0, param<double> &wt_own, param<double> &wt_bought);
     void assignBought(string &idx, param<double> &wt0, param<double> &wt_own, param<double> &wt_bought, int ownr, string owner_name);
