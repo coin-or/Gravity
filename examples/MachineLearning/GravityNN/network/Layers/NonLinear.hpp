@@ -313,8 +313,8 @@ public:
         gravity::param<double> m(this->lname() + "m"), f_m(this->lname() + "f_m"), df_m(this->lname() + "df_m");
         
         for (int i = 0; i < this->X->numel; ++i) {
-            l.add_val(std::max(-M_PI, this->X->lb[i]));
-            u.add_val(std::min(M_PI, this->X->ub[i]));
+            l.add_val(std::max(HMIN, this->X->lb[i]));
+            u.add_val(std::min(HMAX, this->X->ub[i]));
             m.add_val((l.eval(i) + u.eval(i))/2);
             f_l.add_val(exp(l.eval(i)));
             f_u.add_val(exp(u.eval(i)));
