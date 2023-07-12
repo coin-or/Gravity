@@ -490,7 +490,7 @@ public:
     }
 
     std::vector<std::vector<std::string>> get_indices() const override {
-        return {{"Out", "In", "ExpAux", "ExpSum", "SumAux", "SumProd"}, {}};
+        return {{"Out", "In", "ExpAux", "ExpSum", "SumAux", "SumProd", "OutRow"}, {}};
     }
 
     void index_hidden_states(indices& hidden_states, indices& y_ids) override {
@@ -523,6 +523,7 @@ public:
 
                 inds["Constr"].add(this->Y->strkey(inner_ind));
                 inds["Out"].add_ref(this->Y->strkey(inner_ind));
+                inds["OutRow"].add_in_row(inds.row_id, this->Y->strkey(inner_ind));
 
                 inds["In"].add_ref(this->X->strkey(inner_ind));
                 inds["ExpAux"].add_ref(this->Y->strkey(inner_ind) + "_exp_aux");
@@ -550,6 +551,12 @@ public:
         Constraint<> Out_(this->lname() + "_Softmax_Out");
         Out_ = x.in(inds["Out"])*x.in(inds["SumProd"]) - x.in(inds["ExpAux"]);
         NN.add(Out_.in(inds["Constr"]) == 0);
+        
+        // Sum to 1 constraint
+        Constraint<> SumTo1_(this->lname() + "_Softmax_SumTo1");
+        SumTo1_ = x.in(inds["OutRow"]) - 1;
+        SumTo1_.print();
+        NN.add(SumTo1_.in(inds["ConstrB"]) == 0);
     }
 
     void set_bounds(gravity::param<>& x_lb, gravity::param<>& x_ub) override {
