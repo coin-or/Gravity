@@ -557,6 +557,11 @@ public:
         SumTo1_ = x.in(inds["OutRow"]) - 1;
         SumTo1_.print();
         NN.add(SumTo1_.in(inds["ConstrB"]) == 0);
+        
+        // Ouput non-negative
+        Constraint<> OutNonNeg_(this->lname() + "_Softmax_OutNonNeg");
+        OutNonNeg_ = x.in(inds["Out"]);
+        NN.add(OutNonNeg_.in(inds["Constr"]) >= 0);
     }
 
     void set_bounds(gravity::param<>& x_lb, gravity::param<>& x_ub) override {
