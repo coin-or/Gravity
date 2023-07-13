@@ -19,7 +19,7 @@ using namespace hdf5;
 int main(int argc, const char * argv[]) {
     bool run_MIP = true;//false;
     bool initConstrs = false;
-    string fname = "/Users/svetlanariabova/Projects/Sensor/Data/hdf5/new_weights_0.h5";//string(prj_dir)+"/data_sets/sensor/test.h5";
+    string fname = "/Users/svetlanariabova/Projects/Sensor/Data/hdf5/new_weights_0.h5";//"/Users/svetlanariabova/Projects/Sensor/sim_output/sim_output_60s/weights_0.h5";//string(prj_dir)+"/data_sets/sensor/test.h5";//
 //    if(argc<2){
 //        DebugOn("Please enter the input file path as first argument, using the default file test.h5 found under Gravity/datasets/sensor\n");
 //    }
@@ -33,6 +33,7 @@ int main(int argc, const char * argv[]) {
 //    vector<param<double>> par = m.readData(argc, argv, 1, 2);
     auto start = high_resolution_clock::now();
     m.InitBilevel(par[0], par[1], par[2], 0.0001, initConstrs);
+    bool bilevel = false;
     m.GreedyStart(par[0], par[1], par[2]); //comment if no greedy start not needed
 //    cout << "Writing solution file." << endl;
 //    m.writeGreedySol(); //writing greedy sol to a file to load it to sensor_assign2
@@ -42,9 +43,10 @@ int main(int argc, const char * argv[]) {
     cout << "Init + greedy time: " << duration1.count() << " seconds." << endl;
 //    bool run_MIP = true;
 //    m.mSolve(run_MIP);
-//    m.writeGreedySol2("/Users/svetlanariabova/Projects/Sensor/Data/sol_tmp/sol20bl_maxp.dat", par[0], par[1], par[2]); //writing opt sol to a file to load it to sensor_assign2
     auto stop2 = high_resolution_clock::now();
     auto duration2 = duration_cast<seconds>(stop2 - stop);
+    cout << "Solver: " << duration2.count() << " seconds." << endl;
+    m.writeGreedySol2("/Users/svetlanariabova/Projects/Sensor/Data/sol_tmp/solNew_greedy.dat", par[0], par[1], par[2], bilevel); //writing opt sol to a file to load it to sensor_assign2
 //    cout << "Done." << endl;
 //    cout << m.N << " " << m.M << " " << m.K << " " << duration1.count() + duration2.count() << endl; //prints num sensors; num objetcs; num agents; total time after reading input (init + greedy + solver)
     return 0;
@@ -285,6 +287,10 @@ vector<param<double>> myModel::readData(int argc, const char * argv[], int n1, i
             agents.add("Agent_" + to_string(k));
         }
         
+        for (int i = 0; i < N; i++) {
+            graph.get_node("Sensor_" + to_string(i))->owner_id = owner[i];
+        }
+        
         /*define index sets for weights, then read weights (need owner to sepsrate own and bought weights)*/
         for (int k = 0; k < K; k++) {
             for (int i = 0; i < N; i++) {
@@ -376,17 +382,17 @@ void myModel::InitBilevel(param<double> &w0, param<double> &w_own, param<double>
     var<int> z("z", 0, 1); //agebts buy sens (observation)
     model.add(z.in(bought_arcs));
     
+    /*multiplication vars*/
+    var<double> p_sn("p_sn", 0, std::max(w_own._range->second,w_bought._range->second));
+    model.add(p_sn.in(sensors));
+    var<double> p_z("p_z", 0, std::max(w_own._range->second,w_bought._range->second));
+    model.add(p_z.in(bought_arcs));
+    /* experiimental */
+    var<double> p_z0("p_z0", 0, std::max(w_own._range->second,w0._range->second));
+    model.add(p_z0.in(arcs));
+    
     
     if (initConstrs) {
-        
-        /*multiplication vars*/
-        var<double> p_sn("p_sn", 0, std::max(w_own._range->second,w_bought._range->second));
-        model.add(p_sn.in(sensors));
-        var<double> p_z("p_z", 0, std::max(w_own._range->second,w_bought._range->second));
-        model.add(p_z.in(bought_arcs));
-        /* experiimental */
-        var<double> p_z0("p_z0", 0, std::max(w_own._range->second,w0._range->second));
-        model.add(p_z0.in(arcs));
         
         /*tmp var to see difference in price terms*/
         var<double> p_diff("p_diff", 0, 1000);
@@ -446,13 +452,9 @@ void myModel::InitBilevel(param<double> &w0, param<double> &w_own, param<double>
         
         /*--------Constraints---------*/
         
-        Constraint<> pTest("pTest");
-        pTest = p_diff - obj2;
-        model.add(pTest == 0);
-        
-        //    Constraint<> pTest2("pTest2");
-        //    pTest2 = p_diff - obj2;
-        //    model.add(pTest2 == 1);
+//        Constraint<> pTest("pTest");
+//        pTest = p_diff - obj2;
+//        model.add(pTest == 0);
         
         /*matching index sets for z0 and z in Unique_Bought_Obsrvn*/
         indices z0_ids("z0_ids"), z_ids("z_ids"), ub_idx("ub_idx"), ub_idx2("ub_idx2");
@@ -565,7 +567,7 @@ void myModel::InitBilevel(param<double> &w0, param<double> &w_own, param<double>
         Constraint<> fp("FairPrice"); //set price to the mid-point btw buyer and seller
         fp = p.in_ignore_ith(1, 2, bought_arcs) - (w_bought.in(bought_arcs) * z.in(bought_arcs) + y.in_ignore_ith(1, 2, bought_arcs))/2;
         model.add(fp.in(bought_arcs) >= 0);
-        
+
         indices c_lb1("c_lb1"), y_lb1("y_lb1"), w_own_lb1("w_own_lb1"), w_own_z_lb1("w_own_z_lb1"), w_own_s_lb1("w_own_s_lb1"), z_lb1("z_lb1"), s_lb1("s_lb1");
         y_lb1 = sensors;
         z_lb1 = bought_arcs;
@@ -598,16 +600,16 @@ void myModel::InitBilevel(param<double> &w0, param<double> &w_own, param<double>
                 row_id++;
             }
         }
-        
+
         /*Price proxies (marginal utility of using own sensor)*/
         Constraint<> sl1("Seller_lb1"); //utility of adding this observation (if possible)
         sl1 = y.in(y_lb1) + w_own.in(w_own_s_lb1)*s.in(s_lb1) + w_own.in(w_own_z_lb1)*z.in(z_lb1) - w_own.in(w_own_lb1);
         model.add(sl1.in(c_lb1) >= 0);
-        
+
         Constraint<> sl2("Seller_lb2"); //utility of replacing observation done by another sensor of their own by this one
         sl2 = y.in_ignore_ith(1, 3, own_rplc) - (w_own.in_ignore_ith(1, 1, own_rplc) - w_own.in_ignore_ith(0, 1, own_rplc)) * s.in_ignore_ith(0, 1, own_rplc);
         model.add(sl2.in(own_rplc) >= 0);
-        
+
         Constraint<> sl3("Seller_lb3"); //utility of replacing observation done by a bought sensor by this one
         sl3 = y.in_ignore_ith(1, 3, oths_rplc) - (w_own.in_ignore_ith(1, 1, oths_rplc) - w_bought.in_ignore_ith(0, 1, oths_rplc))*z.in_ignore_ith(0, 1, oths_rplc) - p_z.in_ignore_ith(0, 1, oths_rplc);
         model.add(sl3.in(oths_rplc) >= 0);
@@ -624,16 +626,16 @@ void myModel::InitBilevel(param<double> &w0, param<double> &w_own, param<double>
 void myModel::mSolve(bool run_mip) {
 
     model.set_name("Sensor_assign");
-    cout << model.is_feasible(1e-6) << endl;
+//    cout << model.is_feasible(1e-6) << endl;
 //    model.print();
 //    model.print_constraints_stats(1e-6);
 //    model.write();
 //    model.write_solution();
     if(run_mip){
         solver<> sol(model, gurobi);
-//        sol.set_option("Heuristics", 0);
 //        model.print_solution();
-//        sol.run();
+        sol.run();
+        objVal = model.get_obj_val();
 //        cout << model.get_var<double>("p_diff").eval() << endl;
 //       model.print_solution();
 //        model.write_solution();
@@ -754,7 +756,7 @@ class TCompare
 public:
     bool operator() (const tuple<double, int, string>& w1, const tuple<double, int, string>& w2)
     {
-        return get<0>(w1)>get<0>(w2);
+        return get<0>(w1) < get<0>(w2);
     }
 };
 
@@ -799,8 +801,8 @@ void myModel::GreedyStart(const param<double> &w0, const param<double> &w_own, c
     auto z0 = model.get_var<int>("z0");
     auto z = model.get_var<int>("z");
     auto p = model.get_var<double>("p");
-//    auto p_sn = model.get_var<double>("p_sn");
-//    auto p_z = model.get_var<double>("p_z");
+    auto p_sn = model.get_var<double>("p_sn");
+    auto p_z = model.get_var<double>("p_z");
     auto y = model.get_var<double>("y");
     
     /*index and value of max weights*/
@@ -812,7 +814,7 @@ void myModel::GreedyStart(const param<double> &w0, const param<double> &w_own, c
     double w;
     int idx;
 
-    //double obj = 0; //used to eval greedy objective
+    double obj = 0; //used to eval greedy objective
     map<string,double> p_ub; //price upper bound (for fair price)
     for (const auto &sensor_name:*sensors._keys) {
         p_ub[sensor_name] = std::max(w_own._range->second,w_bought._range->second);
@@ -838,12 +840,14 @@ void myModel::GreedyStart(const param<double> &w0, const param<double> &w_own, c
                 auto sub_idx = idx_str.substr(idx_str.find(",") + 1);
                 string object_name = sub_idx.substr(0, sub_idx.find(","));
                 string agent_name  = sub_idx.substr(sub_idx.find(",") + 1);
-                int ownr = owner_map[sensor_name];
+                //int ownr = owner_map[sensor_name];
+                int ownr = owner[stoi(sensor_name.substr(sensor_name.find("_") + 1))];
                 string owner_name = agents.get_key(ownr);
                 /*budget check might be too strict as it checks for (w_bought + w_own)/2, the actual price is likely to be lower (but cannot tell at this point)*/
                 if (bdgt_map.at(agents.get_key(0)) >= (w + w_own.eval(sensor_name + "," + object_name + "," + owner_name))/2) {
                     /*assign to central authority*/
                     DebugOn("Sensor " + sensor_name + " assigned to Central Authority!\n");
+                    obj += wt0.eval(idx);
                     assignLeader(idx_str, wt0, wt_own, wt_bought);
                     p_ub.at(sensor_name) = w; //price upper bound (for fair price)
                     bdgt_map.at(agents.get_key(0)) -= (w + wt_own.eval(sensor_name + "," + object_name + "," + owner_name))/2;
@@ -857,6 +861,9 @@ void myModel::GreedyStart(const param<double> &w0, const param<double> &w_own, c
             if (wt_own.eval(idx) > 0) {
                 /*assign own*/
                 idx_str = wt_own.get_key(idx);
+                //double tmp = wt_own.eval(idx);
+                obj += wt_own.eval(idx);
+                obj += wt0.eval(idx_str.substr(0, idx_str.find(",A")));
                 assignOwn(idx_str, wt0, wt_own, wt_bought);
             }
         }
@@ -872,6 +879,8 @@ void myModel::GreedyStart(const param<double> &w0, const param<double> &w_own, c
                 string owner_name = agents.get_key(ownr);
                 if (bdgt_map.at(agent_name) >= (w + wt_own.eval(sensor_name + "," + object_name + "," + owner_name))/2) {
                     /*assign bought*/
+                    obj += wt_bought.eval(idx);
+                    obj += wt0.eval(idx_str.substr(0, idx_str.find(",A")));
                     assignBought(idx_str, wt0, wt_own, wt_bought, ownr, owner_name);
                     p_ub.at(sensor_name) = w; //price upper bound (for fair price)
                     bdgt_map.at(agent_name) -= (w + wt_own.eval(sensor_name + "," + object_name + "," + owner_name))/2;
@@ -935,24 +944,27 @@ void myModel::GreedyStart(const param<double> &w0, const param<double> &w_own, c
         y.set_val(sensor_name,std::max(std::max(y1, y2), y3));
         p.set_val(sensor_name,(p_ub.at(sensor_name) + std::max(std::max(y1, y2), y3))/2.);
         /*update p_sn and p_z*/
-//        p_sn.set_val(sensor_name,sn.eval(sensor_name) * (p_ub.at(sensor_name) + std::max(std::max(y1, y2), y3))/2.);
-//        for (auto a : sensor_node->get_out()) {
-//            for (int k = 0; k < K; k++) {
-//                if(k==owner[i])
-//                    continue;
-//                string agent_k_name = agents.get_key(k);
-//                p_z.set_val(sensor_name + "," + a->_dest->_name + "," + agent_k_name, z.eval(sensor_name + "," + a->_dest->_name + "," + agent_k_name) * (p_ub.at(sensor_name) + std::max(std::max(y1, y2), y3))/2.);
-//            }
-//        }
+        p_sn.set_val(sensor_name,sn.eval(sensor_name) * (p_ub.at(sensor_name) + std::max(std::max(y1, y2), y3))/2.);
+        //obj += p_sn.eval(sensor_name);
+        for (auto a : sensor_node->get_out()) {
+            for (int k = 0; k < K; k++) {
+                if(k==owner[i])
+                    continue;
+                string agent_k_name = agents.get_key(k);
+                p_z.set_val(sensor_name + "," + a->_dest->_name + "," + agent_k_name, z.eval(sensor_name + "," + a->_dest->_name + "," + agent_k_name) * (p_ub.at(sensor_name) + std::max(std::max(y1, y2), y3))/2.);
+                //obj -= p_z.eval(sensor_name + "," + a->_dest->_name + "," + agent_k_name);
+            }
+        }
         //obj -= e * p_sn.eval("Sensor_" + to_string(i));
         y1 = 0;
         y2 = 0;
         y3 = 0;
     }
-    //cout << "Greedy objective: " << obj << endl;
+    cout << "Greedy objective: " << obj << endl;
+    objVal = obj;
 }
 
-void myModel::writeGreedySol() {
+void myModel::writeGreedySol(string fname) {
     
     /*getting vars to eval them*/
     auto p = model.get_var<double>("p");
@@ -966,7 +978,7 @@ void myModel::writeGreedySol() {
     
     ofstream solFile;
     //solFile.open("sol.dat");
-    solFile.open("/Users/svetlanariabova/Projects/Sensor/Data/sol_tmp/sol20bl_test.dat"); //hardcoded file name; might need to change later
+    solFile.open(fname);
     for (int i = 0; i < N; i++) {
         /*greedy solution might have vars at -inf when sensor is not used; replacing it with 0 in else statement*/
         if (p.eval("Sensor_" + to_string(i)) >= 0) {
@@ -1049,7 +1061,7 @@ void myModel::writeGreedySol() {
     solFile.close();
 }
 
-void myModel::writeGreedySol2(string fname, param<double> &w0, param<double> &w_own, param<double> &w_bought) {
+void myModel::writeGreedySol2(string fname, param<double> &w0, param<double> &w_own, param<double> &w_bought, bool bilevel) {
     
     /*getting vars to eval them*/
     auto p = model.get_var<double>("p");
@@ -1058,14 +1070,12 @@ void myModel::writeGreedySol2(string fname, param<double> &w0, param<double> &w_
     auto z0 = model.get_var<int>("z0");
     auto s = model.get_var<int>("s");
     auto z = model.get_var<int>("z");
-    auto a = model.get_var<double>("a");
-    auto g = model.get_var<double>("g");
-    
-    //format: p y; id s; id z
+
+    //format: p y sn; id wt
     
     ofstream solFile;
-    //solFile.open("sol.dat");
-    solFile.open(fname); //hardcoded file name; might need to change later
+    solFile.open(fname);
+    solFile << objVal << endl;
     string idx;
     for (int i = 0; i < N; i++) {
         solFile << p.eval("Sensor_" + to_string(i)) << " " << y.eval("Sensor_" + to_string(i)) << " " << sn.eval("Sensor_" + to_string(i)) << endl;
@@ -1104,12 +1114,17 @@ void myModel::writeGreedySol2(string fname, param<double> &w0, param<double> &w_
             }
         }
     }
-    for (int i = 0; i < N; i++) {
-            solFile << "Sensor_" + to_string(i) + ",Agent_" + to_string(owner[i]) + " " << a.eval("Sensor_" + to_string(i) + ",Agent_" + to_string(owner[i])) << endl;
+    if (bilevel) {
+        auto a = model.get_var<double>("a");
+        auto g = model.get_var<double>("g");
+        for (int i = 0; i < N; i++) {
+                solFile << "Sensor_" + to_string(i) + ",Agent_" + to_string(owner[i]) + " " << a.eval("Sensor_" + to_string(i) + ",Agent_" + to_string(owner[i])) << endl;
+        }
+        for (int j = 0; j < M; j++) {
+                solFile << "Object_" + to_string(j) + " " << g.eval("Object_" + to_string(j)) << endl;
+        }
     }
-    for (int j = 0; j < M; j++) {
-            solFile << "Object_" + to_string(j) + " " << g.eval("Object_" + to_string(j)) << endl;
-    }
+    
     solFile.close();
 }
 
@@ -1188,7 +1203,7 @@ void myModel::assignLeader(string &idx, param<double> &wt0, param<double> &wt_ow
     //sensor not used for other objs leader + owner
     for (Arc* b: graph.get_node("Sensor_" + to_string(sensor))->get_out()) {
         j = b->_dest->_name;
-        wt_own("Sensor_" + to_string(sensor) + "," + "Object_" + j + "," + "agent" + to_string(ownr)).set_val(0);
+        wt_own("Sensor_" + to_string(sensor) + "," + "Object_" + j + ",Agent_" + to_string(ownr)).set_val(0);
         wt0("Sensor_" + to_string(sensor) + "," + "Object_" + j).set_val(0);
     }
     //object not observed twice
@@ -1202,13 +1217,13 @@ void myModel::assignLeader(string &idx, param<double> &wt0, param<double> &wt_ow
     for (int k = 0; k < ownr; k++) {
         for (Arc* b: graph.get_node("Sensor_" + to_string(sensor))->get_out()) {
             j = b->_dest->_name;
-            wt_bought("Sensor_" + to_string(sensor) + "," + "Object_" + j + "," + "agent" + to_string(k)).set_val(0);
+            wt_bought("Sensor_" + to_string(sensor) + "," + "Object_" + j + ",Agent_" + to_string(k)).set_val(0);
         }
     }
     for (int k = ownr + 1; k < K; k++) {
         for (Arc* b: graph.get_node("Sensor_" + to_string(sensor))->get_out()) {
             j = b->_dest->_name;
-            wt_bought("Sensor_" + to_string(sensor) + "," + "Object_" + j + "," + "agent" + to_string(k)).set_val(0);
+            wt_bought("Sensor_" + to_string(sensor) + "," + "Object_" + j + ",Agent_" + to_string(k)).set_val(0);
         }
     }
     //sold
@@ -1228,8 +1243,9 @@ void myModel::assignOwn(string &idx, param<double> &wt0, param<double> &wt_own, 
     auto sub_idx = idx.substr(idx.find(",")+1);
     string object_name = sub_idx.substr(0, sub_idx.find(","));
     string agent_name  = sub_idx.substr(sub_idx.find(",")+1);
-    int ownr = owner_map[sensor_name];
-    string owner_name = agents.get_key(ownr);
+    //int ownr = owner_map[sensor_name];
+    int ownr = owner[stoi(sensor_name.substr(sensor_name.find("_") + 1))];
+    string owner_name = "Agent_" + to_string(ownr);//agents.get_key();
 
     
     //assign to owner

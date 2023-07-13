@@ -37,6 +37,7 @@ public:
     vector<int> owner;/*< vector storing ownership of each sensor */
     vector<double> budget;
     map<string,int> owner_map;/*< map storing ownership of each sensor */
+    double objVal = 0;
     
 public:
     myModel(){ };
@@ -46,8 +47,8 @@ public:
     void mSolve(bool run_mip=false);
     void saveSolStats();
     void GreedyStart(const param<double> &w0, const param<double> &w_own, const param<double> &w_bought);
-    void writeGreedySol();
-    void writeGreedySol2(string fname, param<double> &w0, param<double> &w_own, param<double> &w_bought);
+    void writeGreedySol(string fname);
+    void writeGreedySol2(string fname, param<double> &w0, param<double> &w_own, param<double> &w_bought, bool bilevel);
     void readGreedySol(string fname);
     void assignLeader(string &idx, param<double> &wt0, param<double> &wt_own, param<double> &wt_bought);
     void assignOwn(string &idx, param<double> &wt0, param<double> &wt_own, param<double> &wt_bought);
