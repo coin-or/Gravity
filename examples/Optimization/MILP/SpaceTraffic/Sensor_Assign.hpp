@@ -42,7 +42,7 @@ public:
 public:
     myModel(){ };
     vector<param<double>> readData(int argc, const char * argv[], int n1, int n2);
-    vector<param<double>> readHD5(const string& file_name);
+    vector<param<double>> readHD5(const string& file_name, double wThrsh);
     void InitBilevel(param<double> &w0, param<double> &w_own, param<double> &w_bought, double eps, bool initConstrs);
     void mSolve(bool run_mip=false);
     void saveSolStats();
