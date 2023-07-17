@@ -80,6 +80,9 @@ int main(int argc, char * argv[]) {
 
         layers_to_optimize.push_back(nn._all_layers[i]);
     }
+    
+    // include last layer
+    layers_to_optimize.push_back(nn._all_layers[nn._all_layers.size()-1]);
 
     std::cout << "Optimizing layers:" << std::endl;
     for (auto l: layers_to_optimize) {
