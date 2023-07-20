@@ -469,6 +469,18 @@ public:
 };
 
 class Softmax: public Layer {
+private:
+    template <typename T>
+    std::vector<T> exclude_index(const std::vector<T>& vec, int idx) {
+        std::vector<T> result;
+        for (int i = 0; i < vec.size(); ++i) {
+            if (i != idx) {
+                result.push_back(vec[i]);
+            }
+        }
+        return result;
+    }
+    
 public:
     Softmax(const onnx::NodeProto& node, Tensors& tensors): Layer(node, tensors) {
         operator_type = _softmax;
@@ -536,6 +548,68 @@ public:
     }
 
     void add_constraints(gravity::Model<>& NN, IndexSet& inds, gravity::param<>& w, gravity::var<>& x, gravity::var<int>& y) override {
+        int d = this->X->shape.at(this->axis);
+        auto outer_shape = this->X->shape;
+        outer_shape.at(this->axis) = 1;
+        
+        int num_outer_iterations = 1; // The number of iterations in the outer loop, initialized to 1
+        for (int dim : outer_shape) {
+            num_outer_iterations *= dim;
+        }
+
+        int stride = 1; // The stride length when accessing the desired axis
+        for (int i = this->X->shape.size() - 1; i > this->axis; --i) {
+            stride *= this->X->shape[i];
+        }
+
+        for (int i = 0; i < num_outer_iterations; ++i) {
+            std::vector<double> l(d, 0.0), u(d, 0.0);
+            for (int j = 0; j < d; ++j) {
+                int flat_index = (i * d + j) * stride;
+                l[j] = this->X->lb[flat_index];
+                u[j] = this->X->ub[flat_index];
+            }
+            for (int j = 0; j < d; ++j) {
+                std::vector<double> l_excluded = exclude_index(l, j);
+                std::vector<double> u_excluded = exclude_index(u, j);
+
+                std::vector<double> diffs_l(d-1, 0.0), diffs_u(d-1, 0.0);
+                std::transform(l_excluded.begin(), l_excluded.end(), diffs_l.begin(), [&](double val){return val - u[j];});
+                std::transform(u_excluded.begin(), u_excluded.end(), diffs_u.begin(), [&](double val){return val - l[j];});
+                
+                // Tangent points for bounding exponentials from below
+                std::vector<double> diffs_t(diffs_u.size());
+                std::transform(diffs_u.begin(), diffs_u.end(), diffs_l.begin(), diffs_t.begin(), [](double u_val, double l_val){
+                    return std::min(std::log((std::exp(u_val) - std::exp(l_val)) / (u_val - l_val)), l_val + 1);
+                });
+                
+                // Lower and upper bounds on denominator of softmax
+                double den_l = 1 + std::inner_product(diffs_t.begin(), diffs_t.end(), diffs_l.begin(), 0.0, std::plus<>(), [](double t_val, double l_val){return std::exp(t_val) * (l_val - t_val + 1);});
+                double den_u = 1 + std::accumulate(diffs_u.begin(), diffs_u.end(), 0.0, [](double sum, double u_val){return sum + std::exp(u_val);});
+                
+                // Tangent point for bounding reciprocal from below
+                double den_t = std::max(std::sqrt(den_l * den_u), den_u / 2);
+                
+                // Coefficients of linear upper bound
+                std::vector<double> a_lin_u(d, 0.0);
+                std::transform(diffs_t.begin(), diffs_t.end(), a_lin_u.begin()+1, [&](double t_val){return -std::exp(t_val) / (den_l * den_u);});
+                a_lin_u[0] = -std::accumulate(a_lin_u.begin()+1, a_lin_u.end(), 0.0);
+                double b_lin_u = 1 / den_l + 1 / den_u - (1 + std::inner_product(diffs_t.begin(), diffs_t.end(), diffs_l.begin(), 0.0, std::plus<>(), [](double t_val, double l_val){return std::exp(t_val) * (1 - t_val);})) / (den_l * den_u);
+                
+                std::vector<double> a_lin_l(d, 0.0);
+                std::transform(diffs_u.begin(), diffs_u.end(), diffs_l.begin(), a_lin_l.begin()+1, [&](double u_val, double l_val){
+                    return -(std::exp(u_val) - std::exp(l_val)) / (u_val - l_val) / std::pow(den_t, 2);
+                });
+                a_lin_l[0] = -std::accumulate(a_lin_l.begin()+1, a_lin_l.end(), 0.0);
+                double b_lin_l = std::inner_product(diffs_u.begin(), diffs_u.end(), diffs_l.begin(), 0.0, std::plus<>(), [](double u_val, double l_val){
+                    return (u_val * std::exp(l_val) - l_val * std::exp(u_val)) / (u_val - l_val);
+                });
+                b_lin_l = 1 / den_t * (2 - 1 / den_t * (1 + b_lin_l));
+                
+                //TODO: add linear bounds for output j
+            }
+        }
+
         // Exp constraint
         Constraint<> Exp_(this->lname() + "_Softmax_Exp");
         Exp_ = x.in(inds["ExpAux"]) - gravity::exp(x.in(inds["In"]));
