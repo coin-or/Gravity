@@ -591,16 +591,19 @@ public:
                 double den_t = std::max(std::sqrt(den_l * den_u), den_u / 2);
                 
                 // Coefficients of linear upper bound
-                std::vector<double> a_lin_u(d, 0.0);
-                std::transform(diffs_t.begin(), diffs_t.end(), a_lin_u.begin()+1, [&](double t_val){return -std::exp(t_val) / (den_l * den_u);});
-                a_lin_u[0] = -std::accumulate(a_lin_u.begin()+1, a_lin_u.end(), 0.0);
+                std::vector<double> a_lin_u(d, 0.0), a_lin_l(d, 0.0);
+
+                for (int i = 0; i < d; ++i) {
+                    if (i != j) {
+                        a_lin_u[i] = -std::exp(diffs_t[i - (i > j)]) / (den_l * den_u);
+                        a_lin_l[i] = -(std::exp(diffs_u[i - (i > j)]) - std::exp(diffs_l[i - (i > j)])) / (diffs_u[i - (i > j)] - diffs_l[i - (i > j)]) / std::pow(den_t, 2);
+                    }
+                }
+                a_lin_u[j] = -std::accumulate(a_lin_u.begin(), a_lin_u.end(), 0.0);
+                a_lin_l[j] = -std::accumulate(a_lin_l.begin(), a_lin_l.end(), 0.0);
+
                 double b_lin_u = 1 / den_l + 1 / den_u - (1 + std::inner_product(diffs_t.begin(), diffs_t.end(), diffs_l.begin(), 0.0, std::plus<>(), [](double t_val, double l_val){return std::exp(t_val) * (1 - t_val);})) / (den_l * den_u);
                 
-                std::vector<double> a_lin_l(d, 0.0);
-                std::transform(diffs_u.begin(), diffs_u.end(), diffs_l.begin(), a_lin_l.begin()+1, [&](double u_val, double l_val){
-                    return -(std::exp(u_val) - std::exp(l_val)) / (u_val - l_val) / std::pow(den_t, 2);
-                });
-                a_lin_l[0] = -std::accumulate(a_lin_l.begin()+1, a_lin_l.end(), 0.0);
                 double b_lin_l = std::inner_product(diffs_u.begin(), diffs_u.end(), diffs_l.begin(), 0.0, std::plus<>(), [](double u_val, double l_val){
                     return (u_val * std::exp(l_val) - l_val * std::exp(u_val)) / (u_val - l_val);
                 });
