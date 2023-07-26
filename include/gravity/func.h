@@ -630,6 +630,19 @@ namespace gravity {
         return res;
     }
 
+template<class T1>
+vector<pair<T1,T1>> get_ReLU_range(const vector<pair<T1,T1>>& x){
+    vector<pair<T1,T1>> res;
+    res.resize(x.size());
+    assert(x.size()==y.size());
+#pragma omp parallel for num_threads(get_num_threads() / 2)
+    for(auto i = 0; i<x.size(); i++){
+        res[i].first = std::max(zero<T1>().eval(),x[i].first);
+        res[i].second = std::max(zero<T1>().eval(),x[i].second);
+    }
+    return res;
+}
+
 
 template<class T1, class T2, typename enable_if<is_convertible<T2, T1>::value && sizeof(T2) <= sizeof(T1)>::type* = nullptr>
 vector<pair<T1,T1>> get_product_range(const vector<T1>& x, const vector<T2>& y){
@@ -11402,6 +11415,7 @@ func<T> pow(const var<T>& p1, int exp){
             res._range->first = f._range->first;
         }
         res._range->second = gravity::max(zero<T1>().eval(),f._range->second);
+        *res._all_range = get_ReLU_range(*f._all_range);
         res._expr->_range->first = res._range->first;
         res._expr->_range->second = res._range->second;
         res._expr->_all_convexity = res._all_convexity;
