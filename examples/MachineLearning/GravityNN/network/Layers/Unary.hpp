@@ -134,9 +134,9 @@ public:
 
     void add_constraints(gravity::Model<>& NN, IndexSet& inds, gravity::param<>& w, gravity::var<>& x, gravity::var<int>& y) override {
         /* Constraints */
-        Constraint<> ReLU(this->lname() + "_ReLU");
-        ReLU = x.in(inds["Out"]) - x.in(inds["In"]);
-        NN.add(ReLU.in(inds["Constr"]) >= 0);
+        Constraint<> ReLU_lower(this->lname() + "_ReLU_lower");
+        ReLU_lower = x.in(inds["Out"]) - x.in(inds["In"]);
+        NN.add(ReLU_lower.in(inds["Constr"]) >= 0);
 
         // Using == 0 instead of <= 0 on these constraints seems better
         Constraint<> ReLU_on(this->lname() + "_ReLU_on");
@@ -146,6 +146,10 @@ public:
         Constraint<> ReLU_y_off(this->lname() + "_ReLU_y_off");
         ReLU_y_off = x.in(inds["Out"]);
         NN.add_on_off(ReLU_y_off.in(inds["Constr"]) == 0, y.in(inds["y_ids"]), false);
+        
+        // add IBP bounds
+        auto f = ReLU(x.in(inds["In"]));
+        x.in(inds["Out"]).copy_bounds(*f._all_range);
     }
 
     Tensor* X; // Input
