@@ -80,6 +80,9 @@ int main(int argc, char * argv[]) {
 
         layers_to_optimize.push_back(nn._all_layers[i]);
     }
+    
+    // include last layer
+    layers_to_optimize.push_back(nn._all_layers[nn._all_layers.size()-1]);
 
     std::cout << "Optimizing layers:" << std::endl;
     for (auto l: layers_to_optimize) {
@@ -116,6 +119,12 @@ int main(int argc, char * argv[]) {
         }
 
         std::cout << "Number of neurons to optimize: " << local_bounds.size()/2 << std::endl;
+        
+        // skip the rest of this loop iteration if local_bounds is of size 0
+        if (local_bounds.size() == 0) {
+            continue;
+        }
+        
         int bak, new_;
         fflush(stdout);
         bak = dup(1);

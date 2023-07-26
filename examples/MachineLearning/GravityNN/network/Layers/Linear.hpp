@@ -107,6 +107,9 @@ public:
         Constraint<> Gemm(this->lname() + "_Gemm");
         Gemm = x.in(inds["Out"]) - (x.in(inds["In"])*w.in(inds["B"]) + w.in(inds["C"]));
         NN.add(Gemm.in(inds["Constr"]) == 0);
+        // add IBP bounds
+        auto f = x.in(inds["In"])*w.in(inds["B"]) + w.in(inds["C"]);
+        x.in(inds["Out"]).copy_bounds(*f._all_range);
     }
 
     Tensor *A, *B, *C = nullptr; // Inputs
