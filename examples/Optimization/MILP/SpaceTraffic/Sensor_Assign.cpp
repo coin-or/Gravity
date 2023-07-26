@@ -17,37 +17,55 @@ using namespace hdf5;
 
 
 int main(int argc, const char * argv[]) {
-    bool run_MIP = true;//false;
-    bool initConstrs = true;//false;
-    string fname = "/Users/svetlanariabova/Projects/Sensor/sim_output/sim_output_60s/weights_0.h5";//string(prj_dir)+"/data_sets/sensor/test.h5";//"/Users/svetlanariabova/Projects/Sensor/Data/hdf5/new_weights_0.h5";//
-//    if(argc<2){
-//        DebugOn("Please enter the input file path as first argument, using the default file test.h5 found under Gravity/datasets/sensor\n");
-//    }
-//    else{
-//        fname = argv[1];
-//    }
-    if(argc>3)
-        run_MIP = true;
+    bool run_MIP = false;//true;
+    bool initConstrs = false;//true;
+    string fname = "/Users/svetlanariabova/Projects/Sensor/sim_output/sim_output_60s2/weights_12.h5";//string(prj_dir)+"/data_sets/sensor/test.h5";//"/Users/svetlanariabova/Projects/Sensor/sim_output/sim_output_60s/weights_0.h5";//"/Users/svetlanariabova/Projects/Sensor/Data/hdf5/new_weights_0.h5";//
+    if(argc<2){
+        DebugOn("Please enter the input file path as first argument, using the default file test.h5 found under Gravity/datasets/sensor\n");
+    }
+    else{
+        fname = argv[1];
+    }
+//    if(argc>3)
+//        run_MIP = true;
     myModel m = myModel();
     auto par = m.readHD5(fname, 1e-8);
 //    vector<param<double>> par = m.readData(argc, argv, 1, 2);
     auto start = high_resolution_clock::now();
-    m.InitBilevel(par[0], par[1], par[2], 0.0001, initConstrs);
+    m.InitBilevel(par[0], par[1], par[2], 0.00001, initConstrs);
+//    m.InitBilevel2(par[0], par[1], par[2], 0.00001);
     bool bilevel = false;
-//    m.GreedyStart(par[0], par[1], par[2]); //comment if no greedy start not needed
+    m.GreedyStart(par[0], par[1], par[2]); //comment if no greedy start not needed
 //    cout << "Writing solution file." << endl;
 //    m.writeGreedySol(); //writing greedy sol to a file to load it to sensor_assign2
 //    m.readGreedySol("/Users/svetlanariabova/Projects/Sensor/Data/sol_tmp/sol20bl_nosd.dat");
-    auto stop = high_resolution_clock::now();
-    auto duration1 = duration_cast<seconds>(stop - start);
-    cout << "Init + greedy time: " << duration1.count() << " seconds." << endl;
+//    auto stop = high_resolution_clock::now();
+//    auto duration1 = duration_cast<seconds>(stop - start);
+//    cout << "Init + greedy time: " << duration1.count() << " seconds." << endl;
     m.mSolve(run_MIP);
-    auto stop2 = high_resolution_clock::now();
-    auto duration2 = duration_cast<seconds>(stop2 - stop);
-    cout << "Solver: " << duration2.count() << " seconds." << endl;
-    m.writeGreedySol2("/Users/svetlanariabova/Projects/Sensor/Data/sol_tmp/solNew_sl.dat", par[0], par[1], par[2], bilevel); //writing opt sol to a file to load it to sensor_assign2
+//    auto stop2 = high_resolution_clock::now();
+//    auto duration2 = duration_cast<seconds>(stop2 - stop);
+//    cout << "Solver: " << duration2.count() << " seconds." << endl;
+//    m.writeGreedySol2("/Users/svetlanariabova/Projects/Sensor/Data/sol_tmp/sol1000_bl.dat", par[0], par[1], par[2], bilevel); //writing opt sol to a file to load it to sensor_assign2
 //    cout << "Done." << endl;
 //    cout << m.N << " " << m.M << " " << m.K << " " << duration1.count() + duration2.count() << endl; //prints num sensors; num objetcs; num agents; total time after reading input (init + greedy + solver)
+    
+//    /* writing old sols in a loop*/
+//    for (int i = 1; i < argc; i++) {
+//        myModel m = myModel();
+//        vector<param<double>> par = m.readData(argc, argv, 2*i - 1, 2*i);
+//        auto start = high_resolution_clock::now();
+//        m.InitBilevel(par[0], par[1], par[2], 0.0001, initConstrs);
+//        bool bilevel = false;
+//        auto stop = high_resolution_clock::now();
+//        auto duration1 = duration_cast<seconds>(stop - start);
+//        cout << "Init + greedy time: " << duration1.count() << " seconds." << endl;
+//        m.mSolve(run_MIP);
+//        auto stop2 = high_resolution_clock::now();
+//        auto duration2 = duration_cast<seconds>(stop2 - stop);
+//        cout << "Solver: " << duration2.count() << " seconds." << endl;
+//        m.writeGreedySol2("/Users/svetlanariabova/Projects/Sensor/Data/sol_tmp/sol" + to_string(m.arcs.size()) + "_sl.dat", par[0], par[1], par[2], bilevel);
+//    }
     return 0;
 }
 
@@ -212,7 +230,8 @@ vector<param<double>> myModel::readHD5(const string& fname, double wThrsh){
                 bought_sens.add(sensor_name + "," + agent_name);
                 for (const Arc* a: sensor_node->get_out()) {
                     bought_arcs.add(a->_src->_name + "," + a->_dest->_name +  "," + agent_name);
-                    double wTmp = a->weight*priority[a->_dest->_id+nb_objects*k];
+                    int tmp = a->_dest->_id + nb_objects * k;
+                    double wTmp = a->weight * priority[tmp];
                     if (wTmp > wThrsh) {
                         w_bought.add_val(wTmp);
                     }
@@ -376,6 +395,19 @@ void myModel::InitBilevel(param<double> &w0, param<double> &w_own, param<double>
     w_bought.reset_range();
     w0.reset_range();
     
+    /*weights for obj (own + leader, bought + leader); leader receives utility when an object is observed, no matter by whom*/
+    func<> f = w_own + w0.in_ignore_ith(2, 1, own_arcs);
+    f.eval_all();
+    param<> w_own0("w_own0");
+    w_own0.in(own_arcs);
+    w_own0.copy_vals(f);
+    
+    func<> f2 = w_bought + w0.in_ignore_ith(2, 1, bought_arcs);
+    f2.eval_all();
+    param<> w_bought0("w_bought0");
+    w_bought0.in(bought_arcs);
+    w_bought0.copy_vals(f2);
+    
     /*---------Variables----------*/
     /*price + aux for price*/
     var<double> p("p", 0, std::max(w_own._range->second,w_bought._range->second));
@@ -402,6 +434,17 @@ void myModel::InitBilevel(param<double> &w0, param<double> &w_own, param<double>
     var<double> p_z0("p_z0", 0, std::max(w_own._range->second,w0._range->second));
     model.add(p_z0.in(arcs));
     
+    /*--------Objective---------*/
+    func<> obj;
+    obj += product(w_own0, s); //use own sens
+    obj += sum(p_sn); //sell sens
+    obj += product(w_bought0, z); //buy sens pt.1
+    obj += product(w0, z0);
+    obj -= sum(p_z); //buy sens pt.2
+    obj -= sum(p_z0);
+    //obj += e * sum(p_sn); //regularization term; sets prices to their lb from Fair_price constraints (can't use equality there)
+    model.max(obj);
+    
     
     if (initConstrs) {
         
@@ -427,30 +470,7 @@ void myModel::InitBilevel(param<double> &w0, param<double> &w_own, param<double>
     //    Constraint<> p_diff_def("p_diff_def");
     //    p_diff_def = p_diff - sum(p_sn) + sum(p_z) + sum(p_z0);
     //    model.add(p_diff_def == 0);
-        
-        /*weights for obj (own + leader, bought + leader); leader receives utility when an object is observed, no matter by whom*/
-        func<> f = w_own + w0.in_ignore_ith(2, 1, own_arcs);
-        f.eval_all();
-        param<> w_own0("w_own0");
-        w_own0.in(own_arcs);
-        w_own0.copy_vals(f);
-        
-        func<> f2 = w_bought + w0.in_ignore_ith(2, 1, bought_arcs);
-        f2.eval_all();
-        param<> w_bought0("w_bought0");
-        w_bought0.in(bought_arcs);
-        w_bought0.copy_vals(f2);
-        
-        /*--------Objective---------*/
-        func<> obj;
-        obj += product(w_own0, s); //use own sens
-        obj += sum(p_sn); //sell sens
-        obj += product(w_bought0, z); //buy sens pt.1
-        obj += product(w0, z0);
-        obj -= sum(p_z); //buy sens pt.2
-        obj -= sum(p_z0);
-        obj -= e * sum(p_sn); //regularization term; sets prices to their lb from Fair_price constraints (can't use equality there)
-        model.max(obj);
+    
         
         func<> obj2;
         obj2 += product(w_own0, s); //use own sens
@@ -499,8 +519,8 @@ void myModel::InitBilevel(param<double> &w0, param<double> &w_own, param<double>
         Constraint<> ub2("Unique_Bought_Obsrvn2"); //if sensor has no arcs, it cannot be sold
         ub2 = sn.in(ub_idx2);
         model.add(ub2.in(ub_idx2) == 0);
-
-
+        
+        
         indices z0_luo("z0_luo"), luo_idx("luo_idx");
         z0_luo = objects;
         luo_idx = objects;
@@ -626,9 +646,9 @@ void myModel::InitBilevel(param<double> &w0, param<double> &w_own, param<double>
         model.add(sl3.in(oths_rplc) >= 0);
         
         //For comparison: case with no collaboration (only using own sensors)
-        /*Constraint<> no_colab("nc");
-         no_colab = sn;
-         model.add(no_colab.in(sensors) == 0);*/
+//        Constraint<> no_colab("nc");
+//        no_colab = sn;
+//        model.add(no_colab.in(sensors) == 0);
         
     }
 }
@@ -641,7 +661,6 @@ void myModel::mSolve(bool run_mip) {
 //    model.print();
 //    model.print_constraints_stats(1e-6);
 //    model.write();
-//    model.write_solution();
     if(run_mip){
         solver<> sol(model, gurobi);
 //        model.print_solution();
@@ -651,115 +670,115 @@ void myModel::mSolve(bool run_mip) {
 //       model.print_solution();
 //        model.write_solution();
     }
-//#ifdef USE_H5CPP
-////    auto hd5file = file::open(string(prj_dir)+"/data_sets/sensor/horizon10deg_0.hd5");
-////    auto RootGroup = hd5file.root();
-////    auto Dataset = RootGroup.get_dataset("masn");
-////    dataspace::Simple Dataspace(Dataset.dataspace());
-////    auto Dimensions = Dataspace.current_dimensions();
-////    auto MaxDimensions = Dataspace.maximum_dimensions();
-////    std::cout << "Dataset dimensions\n";
-////    std::cout << "   Current | Max\n";
-////    for (int i = 0; i < Dimensions.size(); i++) {
-////        std::cout << "i:" << i << "      " << Dimensions[i] << " | "
-////        << MaxDimensions[i] << "\n";
-////    }
-////
-////    auto CreationProperties = Dataset.creation_list();
-////    auto ChunkDims = CreationProperties.chunk();
-////    std::cout << "\nChunk size\n";
-////    for (int i = 0; i < ChunkDims.size(); i++) {
-////        std::cout << "i:" << i << "     " << ChunkDims[i] << "\n";
-////    }
-////
-////    std::cout << "\nData type\n";
-////    auto Int32Type = datatype::create<std::int32_t>();
-////    auto UInt32Type = datatype::create<std::uint32_t>();
-////    auto FloatType = datatype::create<float>();
-////    auto DataTypeClass = Dataset.datatype().get_class();
-////    auto CurrentType = Dataset.datatype();
-////    std::cout << "Is:        " << DataTypeClass << std::endl;
-////    std::cout << "Is  int32: " << (Int32Type == CurrentType) << std::endl;
-////    std::cout << "Is uint32: " << (UInt32Type == CurrentType) << std::endl;
-////    std::cout << "Is  float: " << (FloatType == CurrentType) << std::endl;
-////
-////    std::cout << "\nAll elements\n";
-////    std::vector<int> AllElements(Dataspace.size());
-////    Dataset.read(AllElements);
-////    for (auto Value : AllElements) {
-////        std::cout << Value << " ";
-////    }
-////    std::cout << "\n\nRow access\n";
-////    std::vector<int> RowData(static_cast<size_t>(Dimensions[1]));
-////    for (size_t i = 0; i < Dimensions[0]; i++) {
-////        dataspace::Hyperslab RowSelection{{i, 0}, {1, 3}};
-////        Dataset.read(RowData, RowSelection);
-////        std::cout << "i: " << i << " | ";
-////        for (auto Value : RowData) {
-////            std::cout << Value << " ";
-////        }
-////        std::cout << "\n";
-////    }
-////    std::cout << "\nElement access\n     j:0  j:1 j:2\n";
-////    for (size_t i = 0; i < Dimensions[0]; i++) {
-////        std::cout << "i:" << i << "    ";
-////        for (size_t j = 0; j < Dimensions[1]; j++) {
-////            int Value;
-////            dataspace::Hyperslab ElementSelection{{i, j}, {1, 1}};
-////            Dataset.read(Value, ElementSelection);
-////            std::cout << Value << "    ";
-////        }
-////        std::cout << "\n";
-////    }
-//    // create a file
-//    file::File f = file::create("sol.h5",file::AccessFlags::Truncate);
-//
-//    // create a group
-//    node::Group root_group = f.root();
-//    node::Group my_group = root_group.create_group("prices");
-//
-//    auto p = model.get_var<double>("p");
-//    auto sn = model.get_var<int>("sn");
-//    auto p_vals = *p.get_vals();
-//    for (auto i = 0; i<p_vals.size(); i++) {
-//        if(sn.eval(i)!=1)
-//            p_vals[i] = 0;
+#ifdef USE_H5CPP
+//    auto hd5file = file::open(string(prj_dir)+"/data_sets/sensor/horizon10deg_0.hd5");
+//    auto RootGroup = hd5file.root();
+//    auto Dataset = RootGroup.get_dataset("masn");
+//    dataspace::Simple Dataspace(Dataset.dataspace());
+//    auto Dimensions = Dataspace.current_dimensions();
+//    auto MaxDimensions = Dataspace.maximum_dimensions();
+//    std::cout << "Dataset dimensions\n";
+//    std::cout << "   Current | Max\n";
+//    for (int i = 0; i < Dimensions.size(); i++) {
+//        std::cout << "i:" << i << "      " << Dimensions[i] << " | "
+//        << MaxDimensions[i] << "\n";
 //    }
-//    // create a dataset
-//    node::Dataset dataset = my_group.create_dataset("p",
-//                                                    datatype::create<vector<double>>(),
-//                                                    dataspace::create(p_vals));
 //
-//    // write to dataset
-//    dataset.write(p_vals);
-//    node::Group binary_group = root_group.create_group("assignment");
+//    auto CreationProperties = Dataset.creation_list();
+//    auto ChunkDims = CreationProperties.chunk();
+//    std::cout << "\nChunk size\n";
+//    for (int i = 0; i < ChunkDims.size(); i++) {
+//        std::cout << "i:" << i << "     " << ChunkDims[i] << "\n";
+//    }
 //
-//    vector<string> binaries;
-//    auto z = model.get_var<int>("z");
-//    auto z_vals = *z.get_vals();
-//    for (int i = 0; i<z_vals.size(); i++) {
-//        if(z_vals[i]==1){
-//            binaries.push_back(z._indices->get_key(i));
+//    std::cout << "\nData type\n";
+//    auto Int32Type = datatype::create<std::int32_t>();
+//    auto UInt32Type = datatype::create<std::uint32_t>();
+//    auto FloatType = datatype::create<float>();
+//    auto DataTypeClass = Dataset.datatype().get_class();
+//    auto CurrentType = Dataset.datatype();
+//    std::cout << "Is:        " << DataTypeClass << std::endl;
+//    std::cout << "Is  int32: " << (Int32Type == CurrentType) << std::endl;
+//    std::cout << "Is uint32: " << (UInt32Type == CurrentType) << std::endl;
+//    std::cout << "Is  float: " << (FloatType == CurrentType) << std::endl;
+//
+//    std::cout << "\nAll elements\n";
+//    std::vector<int> AllElements(Dataspace.size());
+//    Dataset.read(AllElements);
+//    for (auto Value : AllElements) {
+//        std::cout << Value << " ";
+//    }
+//    std::cout << "\n\nRow access\n";
+//    std::vector<int> RowData(static_cast<size_t>(Dimensions[1]));
+//    for (size_t i = 0; i < Dimensions[0]; i++) {
+//        dataspace::Hyperslab RowSelection{{i, 0}, {1, 3}};
+//        Dataset.read(RowData, RowSelection);
+//        std::cout << "i: " << i << " | ";
+//        for (auto Value : RowData) {
+//            std::cout << Value << " ";
 //        }
-//
+//        std::cout << "\n";
 //    }
-//    auto s = model.get_var<int>("s");
-//    auto s_vals = *s.get_vals();
-//    for (int i = 0; i<s_vals.size(); i++) {
-//        if(s_vals[i]==1){
-//            binaries.push_back(s._indices->get_key(i));
+//    std::cout << "\nElement access\n     j:0  j:1 j:2\n";
+//    for (size_t i = 0; i < Dimensions[0]; i++) {
+//        std::cout << "i:" << i << "    ";
+//        for (size_t j = 0; j < Dimensions[1]; j++) {
+//            int Value;
+//            dataspace::Hyperslab ElementSelection{{i, j}, {1, 1}};
+//            Dataset.read(Value, ElementSelection);
+//            std::cout << Value << "    ";
 //        }
-//
+//        std::cout << "\n";
 //    }
-//
-//    // create a dataset
-//    dataset = binary_group.create_dataset("binaries: (sensor id, object id, agent id)",
-//                                                    datatype::create<vector<string>>(),
-//                                                    dataspace::create(binaries));
-//
-//    // write to dataset
-//    dataset.write(binaries);
-//#endif
+    // create a file
+    file::File f = file::create("sol.h5",file::AccessFlags::Truncate);
+
+    // create a group
+    node::Group root_group = f.root();
+    node::Group my_group = root_group.create_group("prices");
+
+    auto p = model.get_var<double>("p");
+    auto sn = model.get_var<int>("sn");
+    auto p_vals = *p.get_vals();
+    for (auto i = 0; i<p_vals.size(); i++) {
+        if(sn.eval(i)!=1)
+            p_vals[i] = 0;
+    }
+    // create a dataset
+    node::Dataset dataset = my_group.create_dataset("p",
+                                                    datatype::create<vector<double>>(),
+                                                    dataspace::create(p_vals));
+
+    // write to dataset
+    dataset.write(p_vals);
+    node::Group binary_group = root_group.create_group("assignment");
+
+    vector<string> binaries;
+    auto z = model.get_var<int>("z");
+    auto z_vals = *z.get_vals();
+    for (int i = 0; i<z_vals.size(); i++) {
+        if(z_vals[i]==1){
+            binaries.push_back(z._indices->get_key(i));
+        }
+
+    }
+    auto s = model.get_var<int>("s");
+    auto s_vals = *s.get_vals();
+    for (int i = 0; i<s_vals.size(); i++) {
+        if(s_vals[i]==1){
+            binaries.push_back(s._indices->get_key(i));
+        }
+
+    }
+
+    // create a dataset
+    dataset = binary_group.create_dataset("binaries: (sensor id, object id, agent id)",
+                                                    datatype::create<vector<string>>(),
+                                                    dataspace::create(binaries));
+
+    // write to dataset
+    dataset.write(binaries);
+#endif
 }
 
 class TCompare
@@ -1399,11 +1418,11 @@ void myModel::InitBilevel2(param<double> &w0, param<double> &w_own, param<double
     model.add(z.in(bought_arcs));
     
     /*duals*/
-    var<double> a("a", 0, 100); //CHANGE UB!!!
+    var<double> a("a", 0, 1000); //CHANGE UB!!!
     model.add(a.in(own_sens));
 //    var<double> b("b", 0, 100);
 //    model.add(b.in(bought_sens));
-    var<double> g("g", 0, 100);
+    var<double> g("g", 0, 1000);
     model.add(g.in(objects));
     
     /*multiplication vars*/
@@ -1451,7 +1470,7 @@ void myModel::InitBilevel2(param<double> &w0, param<double> &w_own, param<double
     obj += product(w0, z0);
     obj -= sum(p_z); //buy sens pt.2
     obj -= sum(p_z0);
-    obj += e * sum(p_sn); //regularization term; sets prices to their lb from Fair_price constraints (can't use equality there)
+    obj -= e * sum(p_sn); //regularization term; sets prices to their lb from Fair_price constraints (can't use equality there)
     model.max(obj);
     
     /*--------Constraints---------*/
@@ -1460,10 +1479,10 @@ void myModel::InitBilevel2(param<double> &w0, param<double> &w_own, param<double
     indices z0_ids("z0_ids"), z_ids("z_ids"), ub_idx("ub_idx"), ub_idx2("ub_idx2");
     z0_ids = arcs;
     z_ids = bought_arcs;
-    //ub_idx = sensors;
+    ub_idx = sensors;
     //ub_idx2 = sensors;
 
-    for (int i = 0; i<N; i++) {
+    for (int i = 0; i < N; i++) {
         for (Arc* b: graph.get_node("Sensor_" + to_string(i))->get_out()) {
             string j = b->_dest->_name;
             z0_ids.add_in_row(i, "Sensor_" + to_string(i) + "," + b->_dest->_name);
@@ -1477,14 +1496,14 @@ void myModel::InitBilevel2(param<double> &w0, param<double> &w_own, param<double
             ub_idx.add_in_row(i, "Sensor_" + to_string(i));
         }
         else {
-            ub_idx2.add_in_row(i, "Sensor_" + to_string(i));
+            ub_idx2.add("Sensor_" + to_string(i));
         }
     }
-    
+
     Constraint<> ub("Unique_Bought_Obsrvn"); //if sensor is sold, it is sold to exactly one agent; not sold - no agent uses it except owner
     ub = z0.in(z0_ids) + z.in(z_ids) - sn.in(ub_idx);
     model.add(ub.in(ub_idx) == 0);
-    
+
     Constraint<> ub2("Unique_Bought_Obsrvn2"); //if sensor has no arcs, it cannot be sold
     ub2 = sn.in(ub_idx2);
     model.add(ub2.in(ub_idx2) == 0);
@@ -1518,8 +1537,8 @@ void myModel::InitBilevel2(param<double> &w0, param<double> &w_own, param<double
     a_sd = own_sens;
     b_sd = bought_sens;
     g_sd = objects;
-    //sd_idx = agents;
-    //sd_idx2 = agents;
+    sd_idx = agents;
+    sd_idx2 = agents;
     string idx, sensor_name, sub_idx, object_name, agent_name;
     
     for (int k = 0; k < K; k++) {
@@ -1590,8 +1609,9 @@ void myModel::InitBilevel2(param<double> &w0, param<double> &w_own, param<double
     }
     
     Constraint<> sd1("Strong_Duality_wOwnArcs"); //primal obj = dual obj
-    sd1 = product(w_own.in(s_sd), s.in(s_sd)) + p_sn.in(sn_sd) + product(w_bought.in(z_sd), z.in(z_sd)) - p_z.in(z_ids) - a.in(a_sd) - sum(g.in(g_sd));
+    sd1 = product(w_own.in(s_sd), s.in(s_sd)) + p_sn.in(sn_sd) + product(w_bought.in(z_sd), z.in(z_sd)) - p_z.in(z_sd) - a.in(a_sd) - sum(g.in(g_sd));
     model.add(sd1.in(sd_idx) == 0);
+    sd_idx2.print();
 
     Constraint<> sd2("Strong_Duality_woOwnArcs"); //primal obj = dual obj
     sd2 = product(w_bought.in(z_sd2), z.in(z_sd2)) - p_z.in(z_sd2) - a.in(a_sd2) - sum(g.in(g_sd2));
@@ -1680,32 +1700,45 @@ void myModel::InitBilevel2(param<double> &w0, param<double> &w_own, param<double
     df3 = g.in(g_df3) - w_bought.in(bought_arcs) + p.in_ignore_ith(1, 2, bought_arcs);
     model.add(df3.in(bought_arcs) >= 0);
     
-    indices test_idx("test_idx");
+    indices test_idx("test_idx"), test_idx1("test_idx1");
+    test_idx.add("Sensor_0,Object_18,Agent_3");
+    test_idx.add("Sensor_1,Object_2,Agent_9");
     test_idx.add("Sensor_2,Object_10,Agent_0");
-    indices test_idx1("test_idx1");
+    test_idx.add("Sensor_3,Object_0,Agent_8");
     test_idx1.add("Sensor_4,Object_11,Agent_1");
-    indices test_idx2("test_idx2");
-    test_idx2.add("Sensor_7,Object_9,Agent_13");
-    indices test_idx3("test_idx3");
-    test_idx3.add("Sensor_8,Object_3,Agent_13");
-    indices test_idx4("test_idx4");
-    test_idx4.add("Sensor_13,Object_15,Agent_0");
-    
-    Constraint<> test("test");
-    test = z.in(test_idx);
-    model.add(test == 1);
-    Constraint<> test1("test1");
-    test1 = s.in(test_idx1);
-    model.add(test1 == 1);
-    Constraint<> test2("test2");
-    test2 = z.in(test_idx2);
-    model.add(test2 == 1);
-    Constraint<> test3("test3");
-    test3 = z.in(test_idx3);
-    model.add(test3 == 1);
-    Constraint<> test4("test4");
-    test4 = z.in(test_idx4);
-    model.add(test4 == 1);
+    test_idx.add("Sensor_5,Object_7,Agent_3");
+    test_idx.add("Sensor_6,Object_19,Agent_5");
+    test_idx.add("Sensor_7,Object_9,Agent_5");
+    test_idx.add("Sensor_8,Object_3,Agent_13");
+    test_idx1.add("Sensor_9,Object_12,Agent_0");
+    test_idx.add("Sensor_10,Object_8,Agent_0");
+    test_idx.add("Sensor_11,Object_1,Agent_3");
+    test_idx.add("Sensor_12,Object_16,Agent_9");
+    test_idx.add("Sensor_13,Object_15,Agent_1");
+    test_idx.add("Sensor_14,Object_14,Agent_1");
+    test_idx.add("Sensor_15,Object_5,Agent_6");
+    test_idx.add("Sensor_16,Object_17,Agent_5");
+    test_idx.add("Sensor_17,Object_13,Agent_0");
+    test_idx.add("Sensor_18,Object_6,Agent_11");
+
+//    Constraint<> test("test");
+//    test = z.in(test_idx);
+//    model.add(test.in(test_idx) == 1);
+//    Constraint<> test1("test1");
+//    test1 = s.in(test_idx1);
+//    model.add(test1.in(test_idx1) == 1);
+//    Constraint<> test1("test1");
+//    test1 = s.in(test_idx1);
+//    model.add(test1 == 1);
+//    Constraint<> test2("test2");
+//    test2 = z.in(test_idx2);
+//    model.add(test2 == 1);
+//    Constraint<> test3("test3");
+//    test3 = z.in(test_idx3);
+//    model.add(test3 == 1);
+//    Constraint<> test4("test4");
+//    test4 = z.in(test_idx4);
+//    model.add(test4 == 1);
 //    Constraint<> fulb("Followers_Utility_lb"); //agents don't pay more than they get
 //    fulb = w_bought - p_z;
 //    model.add(fulb.in(bought_arcs) >= 0);
