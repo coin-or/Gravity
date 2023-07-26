@@ -634,7 +634,6 @@ template<class T1>
 vector<pair<T1,T1>> get_ReLU_range(const vector<pair<T1,T1>>& x){
     vector<pair<T1,T1>> res;
     res.resize(x.size());
-    assert(x.size()==y.size());
 #pragma omp parallel for num_threads(get_num_threads() / 2)
     for(auto i = 0; i<x.size(); i++){
         res[i].first = std::max(zero<T1>().eval(),x[i].first);
@@ -10747,7 +10746,36 @@ func<T> sin(const var<T>& p1){
         res._indices = p1._indices;
         return res;
     }
-    
+
+
+template<class T1>
+func<T1> ReLU(const var<T1>& p1){
+    func<T1> res(uexpr<T1>(relu_, p1.copy()));
+    if (p1.is_var()) {
+        res._all_convexity = convex_;
+    }
+    res._all_sign = non_neg_;
+    res._range->first = zero<T1>().eval();
+    if(p1.is_positive()){
+        res._all_sign = pos_;
+        res._range->first = p1._range->first;
+    }
+#pragma omp parallel for num_threads(get_num_threads() / 2)
+    auto dim = p1.get_dim();
+    res._all_range->resize(dim);
+    for(auto i = 0; i<dim; i++){
+        res._all_range->at(i).first=std::max(zero<T1>().eval(), p1.get_lb(i));
+        res._all_range->at(i).second=std::max(zero<T1>().eval(), p1.get_ub(i));
+    }
+    res._range->second = gravity::max(zero<T1>().eval(),p1._range->second);
+    res._expr->_range->first = res._range->first;
+    res._expr->_range->second = res._range->second;
+    res._expr->_all_convexity = res._all_convexity;
+    res._expr->_all_sign = res._all_sign;
+    res._indices = p1._indices;
+    return res;
+}
+
     template<class T1>
     func<T1> ReLU(const param<T1>& p1){
         func<T1> res(uexpr<T1>(relu_, p1.copy()));
@@ -10760,6 +10788,7 @@ func<T> sin(const var<T>& p1){
             res._all_sign = pos_;
             res._range->first = p1._range->first;
         }
+        *res._all_range = get_ReLU_range(*p1._val);
         res._range->second = gravity::max(zero<T1>().eval(),p1._range->second);
         res._expr->_range->first = res._range->first;
         res._expr->_range->second = res._range->second;

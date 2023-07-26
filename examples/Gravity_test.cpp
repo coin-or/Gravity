@@ -152,14 +152,25 @@ TEST_CASE("testing bound propagation") {
     CHECK(f_lin6._all_range->at(2).first==-5);
     CHECK(f_lin6._all_range->at(2).second==-5);
     
-    auto f_nlin1 = ReLU(f_lin6);
+    auto f_nlin1 = ReLU(y);
     f_nlin1.print();
-    CHECK(f_nlin1._all_range->at(0).first==11);
-    CHECK(f_nlin1._all_range->at(0).second==14);
-    CHECK(f_nlin1._all_range->at(1).first==0);
-    CHECK(f_nlin1._all_range->at(1).second==29);
-    CHECK(f_nlin1._all_range->at(2).first==0);
-    CHECK(f_nlin1._all_range->at(2).second==0);
+    CHECK(f_nlin1._all_range->at(0).first==4);
+    CHECK(f_nlin1._all_range->at(0).second==5);
+    CHECK(f_nlin1._all_range->at(1).first==40./23);
+    CHECK(f_nlin1._all_range->at(1).second==40./23);
+    CHECK(f_nlin1._all_range->at(2).first==1);
+    CHECK(f_nlin1._all_range->at(2).second==5);
+    CHECK(f_nlin1._all_range->at(3).first==0);
+    CHECK(f_nlin1._all_range->at(3).second==0);
+
+    auto f_nlin2 = ReLU(f_lin6);
+    f_nlin2.print();
+    CHECK(f_nlin2._all_range->at(0).first==11);
+    CHECK(f_nlin2._all_range->at(0).second==14);
+    CHECK(f_nlin2._all_range->at(1).first==0);
+    CHECK(f_nlin2._all_range->at(1).second==29);
+    CHECK(f_nlin2._all_range->at(2).first==0);
+    CHECK(f_nlin2._all_range->at(2).second==0);
     
     indices x_sub_ids("x_sub_ids");
     x_sub_ids.add({"0","3", "4"});
