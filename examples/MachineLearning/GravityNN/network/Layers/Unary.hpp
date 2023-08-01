@@ -148,8 +148,10 @@ public:
         NN.add_on_off(ReLU_y_off.in(inds["Constr"]) == 0, y.in(inds["y_ids"]), false);
         
         // add IBP bounds
-        auto f = ReLU(x.in(inds["In"]));
+        gravity::func<double> g = x.in(inds["In"]);
+        auto f = ReLU(g);
         x.in(inds["Out"]).copy_bounds(*f._all_range);
+        
     }
 
     Tensor* X; // Input
