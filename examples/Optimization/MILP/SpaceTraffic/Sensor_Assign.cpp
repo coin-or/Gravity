@@ -8,6 +8,7 @@
 #include <iostream>
 #include "Sensor_Assign.hpp"
 #include <chrono>
+#include <unistd.h>
 using namespace std::chrono;
 
 #ifdef USE_H5CPP
@@ -17,9 +18,9 @@ using namespace hdf5;
 
 
 int main(int argc, const char * argv[]) {
-    bool run_MIP = false;//true;
-    bool initConstrs = false;//true;
-    string fname = "/Users/svetlanariabova/Projects/Sensor/sim_output/sim_output_60s2/weights_12.h5";//string(prj_dir)+"/data_sets/sensor/test.h5";//"/Users/svetlanariabova/Projects/Sensor/sim_output/sim_output_60s/weights_0.h5";//"/Users/svetlanariabova/Projects/Sensor/Data/hdf5/new_weights_0.h5";//
+    bool run_MIP = true;
+    bool initConstrs = true;
+    string fname = "/Users/svetlanariabova/Projects/Sensor/sim_output/sim_output_60s2/weights_12err.h5";//string(prj_dir)+"/data_sets/sensor/test.h5";//"/Users/svetlanariabova/Projects/Sensor/Data/hdf5/new_weights_0.h5";//
     if(argc<2){
         DebugOn("Please enter the input file path as first argument, using the default file test.h5 found under Gravity/datasets/sensor\n");
     }
@@ -29,13 +30,14 @@ int main(int argc, const char * argv[]) {
 //    if(argc>3)
 //        run_MIP = true;
     myModel m = myModel();
-    auto par = m.readHD5(fname, 1e-8);
-//    vector<param<double>> par = m.readData(argc, argv, 1, 2);
+//    auto par = m.readHD5(fname, 1e-8);
+    vector<param<double>> par = m.readData(argc, argv, 1, 2);
     auto start = high_resolution_clock::now();
     m.InitBilevel(par[0], par[1], par[2], 0.00001, initConstrs);
 //    m.InitBilevel2(par[0], par[1], par[2], 0.00001);
     bool bilevel = false;
     m.GreedyStart(par[0], par[1], par[2]); //comment if no greedy start not needed
+//    m.writeGreedySol2("/Users/svetlanariabova/Projects/Sensor/Data/sol_tmp/sol20_bdgt_gr.dat", par[0], par[1], par[2], bilevel);
 //    cout << "Writing solution file." << endl;
 //    m.writeGreedySol(); //writing greedy sol to a file to load it to sensor_assign2
 //    m.readGreedySol("/Users/svetlanariabova/Projects/Sensor/Data/sol_tmp/sol20bl_nosd.dat");
@@ -46,14 +48,16 @@ int main(int argc, const char * argv[]) {
 //    auto stop2 = high_resolution_clock::now();
 //    auto duration2 = duration_cast<seconds>(stop2 - stop);
 //    cout << "Solver: " << duration2.count() << " seconds." << endl;
-//    m.writeGreedySol2("/Users/svetlanariabova/Projects/Sensor/Data/sol_tmp/sol1000_bl.dat", par[0], par[1], par[2], bilevel); //writing opt sol to a file to load it to sensor_assign2
+//    m.writeGreedySol2("/Users/svetlanariabova/Projects/Sensor/Data/sol_tmp/sol20_bdgt.dat", par[0], par[1], par[2], bilevel);
 //    cout << "Done." << endl;
 //    cout << m.N << " " << m.M << " " << m.K << " " << duration1.count() + duration2.count() << endl; //prints num sensors; num objetcs; num agents; total time after reading input (init + greedy + solver)
     
 //    /* writing old sols in a loop*/
-//    for (int i = 1; i < argc; i++) {
+//    for (int i = 0; i < 97; i++) {
 //        myModel m = myModel();
-//        vector<param<double>> par = m.readData(argc, argv, 2*i - 1, 2*i);
+//        fname = "/Users/svetlanariabova/Projects/Sensor/sim_output/sim_output_60s97/weights_" + to_string(i) + ".h5";
+//        auto par = m.readHD5(fname, 1e-8);
+//        //vector<param<double>> par = m.readData(argc, argv, 2*i - 1, 2*i);
 //        auto start = high_resolution_clock::now();
 //        m.InitBilevel(par[0], par[1], par[2], 0.0001, initConstrs);
 //        bool bilevel = false;
@@ -64,7 +68,7 @@ int main(int argc, const char * argv[]) {
 //        auto stop2 = high_resolution_clock::now();
 //        auto duration2 = duration_cast<seconds>(stop2 - stop);
 //        cout << "Solver: " << duration2.count() << " seconds." << endl;
-//        m.writeGreedySol2("/Users/svetlanariabova/Projects/Sensor/Data/sol_tmp/sol" + to_string(m.arcs.size()) + "_sl.dat", par[0], par[1], par[2], bilevel);
+//        m.writeGreedySol2("/Users/svetlanariabova/Projects/Sensor/Data/sol_tmp/sol_sim_" + to_string(i) + "_nocolab.dat", par[0], par[1], par[2], bilevel);
 //    }
     return 0;
 }
@@ -105,7 +109,11 @@ vector<param<double>> myModel::readHD5(const string& fname, double wThrsh){
     auto pr_size = priority_set.dataspace().size();
     assert(pr_size==nb_objects*nb_agents);
     vector<double> priority(pr_size);
+    sleep(1);
     priority_set.read(priority);
+    if(priority.size() != pr_size){
+        throw invalid_argument("priority size should be " + to_string(pr_size) + ". After reading h5 file, it is being set to " + to_string(priority.size()));
+    }
     /* Read sensors */
     auto sensors_group = RootGroup.get_group("sensors");
     auto sensors_names_set = sensors_group.get_dataset("sensor_name");
@@ -149,15 +157,17 @@ vector<param<double>> myModel::readHD5(const string& fname, double wThrsh){
     Arc* arc = NULL;
     string src, dest;
 
+    
+    for (int i = 0; i <nb_objects; i++){
+        node = new Node(objects.get_key(i),graph.nodes.size());
+        graph.add_node(node);
+    }
     for (int i = 0; i <nb_sensors; i++){
         node = new Node(sensors.get_key(i),graph.nodes.size());
         node->owner_id = owner[i];
         graph.add_node(node);
     }
-    for (int i = 0; i <nb_objects; i++){
-        node = new Node(objects.get_key(i),graph.nodes.size());
-        graph.add_node(node);
-    }
+    
 
     for (int i = 0; i < nb_arcs; i++) {
         src = sensors.get_key(sensor_ids[i]);
@@ -231,6 +241,9 @@ vector<param<double>> myModel::readHD5(const string& fname, double wThrsh){
                 for (const Arc* a: sensor_node->get_out()) {
                     bought_arcs.add(a->_src->_name + "," + a->_dest->_name +  "," + agent_name);
                     int tmp = a->_dest->_id + nb_objects * k;
+                    if (tmp >= priority.size()) {
+                        cout << "Priority out of range " << tmp << " " << priority.size() << endl;
+                    }
                     double wTmp = a->weight * priority[tmp];
                     if (wTmp > wThrsh) {
                         w_bought.add_val(wTmp);
@@ -645,7 +658,24 @@ void myModel::InitBilevel(param<double> &w0, param<double> &w_own, param<double>
         sl3 = y.in_ignore_ith(1, 3, oths_rplc) - (w_own.in_ignore_ith(1, 1, oths_rplc) - w_bought.in_ignore_ith(0, 1, oths_rplc))*z.in_ignore_ith(0, 1, oths_rplc) - p_z.in_ignore_ith(0, 1, oths_rplc);
         model.add(sl3.in(oths_rplc) >= 0);
         
-        //For comparison: case with no collaboration (only using own sensors)
+        indices bdgt_idx("bdgt_idx");
+        bdgt_idx = bought_arcs;
+        for (int k = 0; k < K; k++) {
+            for (int i = 0; i < N; i++) {
+                if (owner[i] != k) {
+                    for (auto a: graph.get_node("Sensor_" + to_string(i))->get_out()) {
+                        bdgt_idx.add_in_row(k, a->_name + ",Agent_" + to_string(k));
+                    }
+                }
+            }
+        }
+        
+        /*budget constraints*/
+        Constraint<> bdgt("bdgt");
+        bdgt = p_z.in(bdgt_idx) - 0.5;
+        model.add(bdgt.in(agents) <= 0); //hadcoded budget!
+        
+//        //For comparison: case with no collaboration (only using own sensors)
 //        Constraint<> no_colab("nc");
 //        no_colab = sn;
 //        model.add(no_colab.in(sensors) == 0);
@@ -822,7 +852,7 @@ void myModel::GreedyStart(const param<double> &w0, const param<double> &w_own, c
     /*tmp; when no hdf5 and no bdgt*/
     map<string,double> bdgt_map;
     for (int k = 0; k < K; k++) {
-        bdgt_map["Agent_" + to_string(k)] = 1000;
+        bdgt_map["Agent_" + to_string(k)] = 0.5;
     }
     
     /*getting vars from model to set values*/
@@ -909,11 +939,12 @@ void myModel::GreedyStart(const param<double> &w0, const param<double> &w_own, c
                 string owner_name = agents.get_key(ownr);
                 if (bdgt_map.at(agent_name) >= (w + wt_own.eval(sensor_name + "," + object_name + "," + owner_name))/2) {
                     /*assign bought*/
+                    double tmp_w = (w + wt_own.eval(sensor_name + "," + object_name + "," + owner_name))/2; //needed bc it tends to change in the budget adjustment (not sure why)
                     obj += wt_bought.eval(idx);
                     obj += wt0.eval(idx_str.substr(0, idx_str.find(",A")));
                     assignBought(idx_str, wt0, wt_own, wt_bought, ownr, owner_name);
                     p_ub.at(sensor_name) = w; //price upper bound (for fair price)
-                    bdgt_map.at(agent_name) -= (w + wt_own.eval(sensor_name + "," + object_name + "," + owner_name))/2;
+                    bdgt_map.at(agent_name) -= tmp_w;//(w + wt_own.eval(sensor_name + "," + object_name + "," + owner_name))/2;
                 }
                 else{
                     wt_bought(idx_str).set_val(0);
