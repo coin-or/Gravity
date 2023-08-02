@@ -51,7 +51,7 @@ int main(int argc, char * argv[]){
     solver<> S(NN,gurobi);
     auto grb_prog = (GurobiProgram*)(S._prog.get());
     auto grb_mod = grb_prog->grb_mod;
-    grb_mod->set(GRB_IntParam_Threads, get_num_threads() / 2);
+    grb_mod->set(GRB_IntParam_Threads, thread::hardware_concurrency() / 2);
     grb_mod->set(GRB_IntParam_NonConvex,2);
     grb_mod->set(GRB_IntParam_Presolve,2);
     // grb_mod->set(GRB_DoubleParam_BestBdStop, -1e-4);

@@ -22,6 +22,7 @@
 #include <list>
 #include <limits>
 #include <set>
+#include <thread>
 //
 using namespace std;
 
@@ -614,7 +615,9 @@ namespace gravity {
         vector<pair<T1,T1>> res;
         res.resize(x.size());
         assert(x.size()==y.size());
-#pragma omp parallel for num_threads(get_num_threads() / 2)
+auto num_threads = std::thread::hardware_concurrency();
+
+#pragma omp parallel for num_threads(thread::hardware_concurrency() / 2)
         for(auto i = 0; i<x.size(); i++){
             T1 x1 = x[i].first;
             T1 x2 = x[i].second;
@@ -634,7 +637,9 @@ template<class T1>
 vector<pair<T1,T1>> get_ReLU_range(const vector<pair<T1,T1>>& x){
     vector<pair<T1,T1>> res;
     res.resize(x.size());
-#pragma omp parallel for num_threads(get_num_threads() / 2)
+auto num_threads = std::thread::hardware_concurrency();
+
+#pragma omp parallel for num_threads(thread::hardware_concurrency() / 2)
     for(auto i = 0; i<x.size(); i++){
         res[i].first = std::max(zero<T1>().eval(),x[i].first);
         res[i].second = std::max(zero<T1>().eval(),x[i].second);
@@ -648,7 +653,9 @@ vector<pair<T1,T1>> get_product_range(const vector<T1>& x, const vector<T2>& y){
     vector<pair<T1,T1>> res;
     res.resize(x.size());
     assert(x.size()==y.size());
-#pragma omp parallel for num_threads(get_num_threads() / 2)
+auto num_threads = std::thread::hardware_concurrency();
+
+#pragma omp parallel for num_threads(thread::hardware_concurrency() / 2)
     for(auto i = 0; i<x.size(); i++){
         res[i].first = x[i]*y[i];
         res[i].second = x[i]*y[i];
@@ -661,14 +668,18 @@ vector<pair<T1,T1>> get_product_range(T1 x, const vector<pair<T2,T2>>& y){
     vector<pair<T1,T1>> res;
     res.resize(y.size());
     if(x<0){
-    #pragma omp parallel for num_threads(get_num_threads() / 2)
+    auto num_threads = std::thread::hardware_concurrency();
+
+#pragma omp parallel for num_threads(thread::hardware_concurrency() / 2)
         for(auto i = 0; i<y.size(); i++){
             res[i].first = x*y[i].second;
             res[i].second = x*y[i].first;
         }
     }
     else{
-    #pragma omp parallel for num_threads(get_num_threads() / 2)
+    auto num_threads = std::thread::hardware_concurrency();
+
+#pragma omp parallel for num_threads(thread::hardware_concurrency() / 2)
         for(auto i = 0; i<y.size(); i++){
             res[i].first = x*y[i].first;
             res[i].second = x*y[i].second;
@@ -683,7 +694,9 @@ vector<pair<T2,T2>> get_product_range(const vector<T1>& x, const vector<T2>& y){
     vector<pair<T2,T2>> res;
     res.resize(x.size());
     assert(x.size()==y.size());
-#pragma omp parallel for num_threads(get_num_threads() / 2)
+auto num_threads = std::thread::hardware_concurrency();
+
+#pragma omp parallel for num_threads(thread::hardware_concurrency() / 2)
     for(auto i = 0; i<x.size(); i++){
         res[i].first = x[i]*y[i];
         res[i].second = x[i]*y[i];
@@ -696,7 +709,9 @@ vector<pair<T2,T2>> get_product_range(const vector<T1>& x, const vector<T2>& y){
         vector<pair<T2,T2>> res;
         res.resize(x.size());
         assert(x.size()==y.size());
-#pragma omp parallel for num_threads(get_num_threads() / 2)
+auto num_threads = std::thread::hardware_concurrency();
+
+#pragma omp parallel for num_threads(thread::hardware_concurrency() / 2)
         for(auto i = 0; i<x.size(); i++){
             T2 x1 = x[i].first;
             T2 x2 = x[i].second;
@@ -748,7 +763,9 @@ vector<pair<T2,T2>> get_product_range(const vector<T1>& x, const vector<T2>& y){
         assert(range1.size()==range2.size());
         vector<pair<T1,T1>> res;
         res.resize(range1.size());
-        #pragma omp parallel for num_threads(get_num_threads() / 2)
+        auto num_threads = std::thread::hardware_concurrency();
+
+#pragma omp parallel for num_threads(thread::hardware_concurrency() / 2)
         for(auto i = 0; i<range1.size(); i++){
             if(range2[i].first==numeric_limits<T2>::lowest() || range2[i].second==numeric_limits<T2>::max()
                || range1[i].first==numeric_limits<T1>::lowest()|| range1[i].second==numeric_limits<T1>::max()){
@@ -770,7 +787,9 @@ vector<pair<T2,T2>> get_product_range(const vector<T1>& x, const vector<T2>& y){
         assert(range1.size()==range2.size());
         vector<pair<T2,T2>> res;
         res.resize(range1.size());
-        #pragma omp parallel for num_threads(get_num_threads() / 2)
+        auto num_threads = std::thread::hardware_concurrency();
+
+#pragma omp parallel for num_threads(thread::hardware_concurrency() / 2)
         for(auto i = 0; i<range1.size(); i++){
             if(range2[i].first==numeric_limits<T2>::lowest() || range2[i].second==numeric_limits<T2>::max()
                || range1[i].first==numeric_limits<T1>::lowest()|| range1[i].second==numeric_limits<T1>::max()){
@@ -820,7 +839,9 @@ vector<pair<T2,T2>> get_product_range(const vector<T1>& x, const vector<T2>& y){
         vector<pair<T1,T1>> res;
         res.resize(x.size());
         assert(x.size()==y.size());
-        #pragma omp parallel for num_threads(get_num_threads() / 2)
+        auto num_threads = std::thread::hardware_concurrency();
+
+#pragma omp parallel for num_threads(thread::hardware_concurrency() / 2)
         for(auto i = 0; i<x.size(); i++){
             T1 x1 = x[i].first;
             T1 x2 = x[i].second;
@@ -836,7 +857,9 @@ template<class T1, class T2, typename enable_if<is_convertible<T2, T1>::value &&
 vector<pair<T1,T1>> get_plus_range(T1 x, const vector<pair<T2,T2>>& y){
     vector<pair<T1,T1>> res;
     res.resize(y.size());
-    #pragma omp parallel for num_threads(get_num_threads() / 2)
+    auto num_threads = std::thread::hardware_concurrency();
+
+#pragma omp parallel for num_threads(thread::hardware_concurrency() / 2)
     for(auto i = 0; i<y.size(); i++){
         res[i].first = extended_plus(x,y[i].first);
         res[i].second = extended_plus(x,y[i].second);
@@ -848,7 +871,9 @@ template<class T1, class T2, typename enable_if<is_convertible<T1, T2>::value &&
 vector<pair<T2,T2>> get_plus_range(T1 x, const vector<pair<T2,T2>>& y){
     vector<pair<T2,T2>> res;
     res.resize(y.size());
-    #pragma omp parallel for num_threads(get_num_threads() / 2)
+    auto num_threads = std::thread::hardware_concurrency();
+
+#pragma omp parallel for num_threads(thread::hardware_concurrency() / 2)
     for(auto i = 0; i<y.size(); i++){
         res[i].first = extended_plus((T2)x,y[i].first);
         res[i].second = extended_plus((T2)x,y[i].second);
@@ -861,7 +886,9 @@ template<class T1, class T2, typename enable_if<is_convertible<T2, T1>::value &&
 vector<pair<T1,T1>> get_plus_range(const vector<pair<T2,T2>>& y, T1 x){
     vector<pair<T1,T1>> res;
     res.resize(y.size());
-    #pragma omp parallel for num_threads(get_num_threads() / 2)
+    auto num_threads = std::thread::hardware_concurrency();
+
+#pragma omp parallel for num_threads(thread::hardware_concurrency() / 2)
     for(auto i = 0; i<y.size(); i++){
         res[i].first = extended_plus(x,y[i].first);
         res[i].second = extended_plus(x,y[i].second);
@@ -873,7 +900,9 @@ template<class T1, class T2, typename enable_if<is_convertible<T1, T2>::value &&
 vector<pair<T2,T2>> get_plus_range(const vector<pair<T2,T2>>& y, T1 x){
     vector<pair<T2,T2>> res;
     res.resize(y.size());
-    #pragma omp parallel for num_threads(get_num_threads() / 2)
+    auto num_threads = std::thread::hardware_concurrency();
+
+#pragma omp parallel for num_threads(thread::hardware_concurrency() / 2)
     for(auto i = 0; i<y.size(); i++){
         res[i].first = extended_plus(x,y[i].first);
         res[i].second = extended_plus(x,y[i].second);
@@ -886,7 +915,9 @@ vector<pair<T2,T2>> get_plus_range(const vector<pair<T2,T2>>& y, T1 x){
         vector<pair<T2,T2>> res;
         res.resize(x.size());
         assert(x.size()==y.size());
-        #pragma omp parallel for num_threads(get_num_threads() / 2)
+        auto num_threads = std::thread::hardware_concurrency();
+
+#pragma omp parallel for num_threads(thread::hardware_concurrency() / 2)
         for(auto i = 0; i<x.size(); i++){
             T2 x1 = x[i].first;
             T2 x2 = x[i].second;
@@ -903,7 +934,9 @@ vector<pair<T2,T2>> get_plus_range(const vector<pair<T2,T2>>& y, T1 x){
 //    vector<pair<T1,T1>> res;
 //    res.resize(x.size());
 //    assert(x.size()==y.size());
-//    #pragma omp parallel for num_threads(get_num_threads() / 2)
+//    auto num_threads = std::thread::hardware_concurrency();
+
+//#pragma omp parallel for num_threads(thread::hardware_concurrency() / 2)
 //    for(auto i = 0; i<x.size(); i++){
 //        T1 x1 = x[i].first;
 //        T1 x2 = x[i].second;
@@ -932,7 +965,9 @@ vector<pair<T2,T2>> get_plus_range(const vector<pair<T2,T2>>& y, T1 x){
         vector<pair<T1,T1>> res;
         res.resize(x.size());
         assert(x.size()==y.size());
-        #pragma omp parallel for num_threads(get_num_threads() / 2)
+        auto num_threads = std::thread::hardware_concurrency();
+
+#pragma omp parallel for num_threads(thread::hardware_concurrency() / 2)
         for(auto i = 0; i<x.size(); i++){
             T1 x1 = x[i].first;
             T1 x2 = x[i].second;
@@ -948,7 +983,9 @@ template<class T1, class T2, typename enable_if<is_convertible<T2, T1>::value &&
 vector<pair<T1,T1>> get_minus_range(T1 x, const vector<pair<T2,T2>>& y){
     vector<pair<T1,T1>> res;
     res.resize(y.size());
-    #pragma omp parallel for num_threads(get_num_threads() / 2)
+    auto num_threads = std::thread::hardware_concurrency();
+
+#pragma omp parallel for num_threads(thread::hardware_concurrency() / 2)
     for(auto i = 0; i<y.size(); i++){
         res[i].first = extended_minus(x,y[i].second);
         res[i].second = extended_minus(x,y[i].first);
@@ -960,7 +997,9 @@ template<class T1, class T2, typename enable_if<is_convertible<T2, T1>::value &&
 vector<pair<T1,T1>> get_minus_range(const vector<pair<T2,T2>>& y, T1 x){
     vector<pair<T1,T1>> res;
     res.resize(y.size());
-    #pragma omp parallel for num_threads(get_num_threads() / 2)
+    auto num_threads = std::thread::hardware_concurrency();
+
+#pragma omp parallel for num_threads(thread::hardware_concurrency() / 2)
     for(auto i = 0; i<y.size(); i++){
         res[i].first = extended_minus(y[i].first, x);
         res[i].second = extended_minus(y[i].second, x);
@@ -973,7 +1012,9 @@ vector<pair<T1,T1>> get_minus_range(const vector<pair<T2,T2>>& y, T1 x){
         vector<pair<T2,T2>> res;
         res.resize(x.size());
         assert(x.size()==y.size());
-        #pragma omp parallel for num_threads(get_num_threads() / 2)
+        auto num_threads = std::thread::hardware_concurrency();
+
+#pragma omp parallel for num_threads(thread::hardware_concurrency() / 2)
         for(auto i = 0; i<x.size(); i++){
             T2 x1 = x[i].first;
             T2 x2 = x[i].second;
@@ -3138,7 +3179,9 @@ vector<pair<T1,T1>> get_minus_range(const vector<pair<T2,T2>>& y, T1 x){
             auto temp = _range->first;
             _range->first = -1.*_range->second;
             _range->second = -1.*temp;
-#pragma omp parallel for num_threads(get_num_threads() / 2)
+auto num_threads = std::thread::hardware_concurrency();
+
+#pragma omp parallel for num_threads(thread::hardware_concurrency() / 2)
             for(int i = 0; i<_all_range->size();i++){
                 auto temp = _all_range->at(i).first;
                 _all_range->at(i).first = -1.*_all_range->at(i).second;
@@ -4729,7 +4772,9 @@ vector<pair<T1,T1>> get_minus_range(const vector<pair<T2,T2>>& y, T1 x){
         template<class T2, typename enable_if<is_convertible<T2, type>::value && sizeof(T2) <= sizeof(type)>::type* = nullptr>
         void set_all_range(const vector<T2>& vals) {
             _all_range->resize(vals.size());
-#pragma omp parallel for num_threads(get_num_threads() / 2)
+auto num_threads = std::thread::hardware_concurrency();
+
+#pragma omp parallel for num_threads(thread::hardware_concurrency() / 2)
             for(int i = 0; i<vals.size();i++){
                 _all_range->at(i).first = vals[i];
                 _all_range->at(i).second = vals[i];
@@ -4739,7 +4784,9 @@ vector<pair<T1,T1>> get_minus_range(const vector<pair<T2,T2>>& y, T1 x){
         template<class T2, typename enable_if<is_convertible<T2, type>::value && sizeof(T2) <= sizeof(type)>::type* = nullptr>
         void set_all_range(const vector<T2>& lbs, const vector<T2>& ubs) {
             _all_range->resize(lbs.size());
-#pragma omp parallel for num_threads(get_num_threads() / 2)
+auto num_threads = std::thread::hardware_concurrency();
+
+#pragma omp parallel for num_threads(thread::hardware_concurrency() / 2)
             for(int i = 0; i<lbs.size();i++){
                 _all_range->at(i).first = lbs[i];
                 _all_range->at(i).second = ubs[i];
@@ -8910,7 +8957,9 @@ vector<pair<T1,T1>> get_minus_range(const vector<pair<T2,T2>>& y, T1 x){
         else {
 //            res._all_range->resize(dim, zero<T1>().eval());
             *res._range = get_product_range(*p1._range,*p2._range);
-//#pragma omp parallel for num_threads(get_num_threads() / 2)
+//auto num_threads = std::thread::hardware_concurrency();
+
+//#pragma omp parallel for num_threads(thread::hardware_concurrency() / 2)
 //                for(auto i = 0; i<dim; i++){
 //                    T1 pval1 = p1.eval(i);
 //                    T1 pval2 = p2.eval(i);
@@ -8948,7 +8997,9 @@ vector<pair<T1,T1>> get_minus_range(const vector<pair<T2,T2>>& y, T1 x){
         if (p1.is_matrix_indexed()) {
             auto nb_rows = p1.get_nb_rows();
             res._all_range->resize(nb_rows);
-    #pragma omp parallel for num_threads(get_num_threads() / 2)
+    auto num_threads = std::thread::hardware_concurrency();
+
+#pragma omp parallel for num_threads(thread::hardware_concurrency() / 2)
             for (size_t i = 0; i<nb_rows; i++) {
                 auto nb_cols = p1.get_dim(i);
                 T2 pval = 0;
@@ -8963,7 +9014,9 @@ vector<pair<T1,T1>> get_minus_range(const vector<pair<T2,T2>>& y, T1 x){
             res._all_range->resize(1);
             auto nb_cols = p1.get_dim();
             T2 pval = 0;
-    #pragma omp parallel for num_threads(get_num_threads() / 2)
+    auto num_threads = std::thread::hardware_concurrency();
+
+#pragma omp parallel for num_threads(thread::hardware_concurrency() / 2)
             for (size_t i = 0; i<nb_cols; i++) {
                 pval += p1.eval(i)*p2.eval(i);
             }
@@ -8973,7 +9026,9 @@ vector<pair<T1,T1>> get_minus_range(const vector<pair<T2,T2>>& y, T1 x){
         else{
             auto nb_rows = p1.get_nb_inst();
             res._all_range->resize(nb_rows);
-    #pragma omp parallel for num_threads(get_num_threads() / 2)
+    auto num_threads = std::thread::hardware_concurrency();
+
+#pragma omp parallel for num_threads(thread::hardware_concurrency() / 2)
             for (size_t i = 0; i<nb_rows; i++) {
                 res._all_range->at(i).first = p1.eval(i)*p2.eval(i);
                 res._all_range->at(i).second = res._all_range->at(i).first;
@@ -9005,14 +9060,18 @@ func<T2> operator*(const var<T1>& p1, const var<T2>& p2){
         res._range->first=zero<T2>().eval();
         if(p1.is_positive() || p1.is_negative()){
             res._range->first=extended_mult(p1._range->first,p1._range->first);
-#pragma omp parallel for num_threads(get_num_threads() / 2)
+auto num_threads = std::thread::hardware_concurrency();
+
+#pragma omp parallel for num_threads(thread::hardware_concurrency() / 2)
                 for(auto i = 0; i<dim; i++){
                     res._all_range->at(i).first=extended_mult(p1.get_lb(i),p1.get_lb(i));
                 }
             }
         }
         res._range->second=extended_mult(std::max(std::abs(p1._range->second),std::abs(p1._range->first)),std::max(std::abs(p1._range->second),std::abs(p1._range->first)));
-#pragma omp parallel for num_threads(get_num_threads() / 2)
+auto num_threads = std::thread::hardware_concurrency();
+
+#pragma omp parallel for num_threads(thread::hardware_concurrency() / 2)
                 for(auto i = 0; i<dim; i++){
                     res._all_range->at(i).second=extended_mult(std::max(std::abs(p1.get_ub(i)),std::abs(p1.get_lb(i))),std::max(std::abs(p1.get_ub(i)),std::abs(p1.get_lb(i))));
                 }
@@ -9059,7 +9118,9 @@ func<T1> operator*(const var<T1>& v, const param<T2>& p){
     if (p.is_matrix_indexed()) {
         auto nb_rows = p.get_nb_rows();
         res._all_range->resize(nb_rows);
-#pragma omp parallel for num_threads(get_num_threads() / 2)
+auto num_threads = std::thread::hardware_concurrency();
+
+#pragma omp parallel for num_threads(thread::hardware_concurrency() / 2)
         for (size_t i = 0; i<nb_rows; i++) {
             auto nb_cols = p.get_dim(i);
             T1 range_lb = 0, range_ub = 0, p_val = 0;
@@ -9085,7 +9146,9 @@ func<T1> operator*(const var<T1>& v, const param<T2>& p){
         res._all_range->resize(1);
         auto nb_cols = p.get_dim();
         T1 range_lb = 0, range_ub = 0, p_val = 0;
-#pragma omp parallel for num_threads(get_num_threads() / 2)
+auto num_threads = std::thread::hardware_concurrency();
+
+#pragma omp parallel for num_threads(thread::hardware_concurrency() / 2)
         for (size_t i = 0; i<nb_cols; i++) {
             size_t v_id_inst = v.get_id_inst(i);
             p_val = p.eval(i);
@@ -9104,7 +9167,9 @@ func<T1> operator*(const var<T1>& v, const param<T2>& p){
     else{
         auto nb_rows = new_p.get_nb_inst();
         res._all_range->resize(nb_rows);
-#pragma omp parallel for num_threads(get_num_threads() / 2)
+auto num_threads = std::thread::hardware_concurrency();
+
+#pragma omp parallel for num_threads(thread::hardware_concurrency() / 2)
         for (size_t i = 0; i<nb_rows; i++) {
             auto v_id_inst = v.get_id_inst(i);
             T1 p_val = p.eval(i);
@@ -9146,7 +9211,9 @@ func<T2> operator*(const var<T1>& v, const param<T2>& p){
     if (p.is_matrix_indexed()) {
         auto nb_rows = p.get_nb_rows();
         res._all_range->resize(nb_rows);
-#pragma omp parallel for num_threads(get_num_threads() / 2)
+auto num_threads = std::thread::hardware_concurrency();
+
+#pragma omp parallel for num_threads(thread::hardware_concurrency() / 2)
         for (size_t i = 0; i<nb_rows; i++) {
             auto nb_cols = p.get_dim(i);
             T2 range_lb = 0, range_ub = 0, p_val = 0;
@@ -9172,7 +9239,9 @@ func<T2> operator*(const var<T1>& v, const param<T2>& p){
         res._all_range->resize(1);
         auto nb_cols = p.get_dim();
         T2 range_lb = 0, range_ub = 0, p_val = 0;
-#pragma omp parallel for num_threads(get_num_threads() / 2)
+auto num_threads = std::thread::hardware_concurrency();
+
+#pragma omp parallel for num_threads(thread::hardware_concurrency() / 2)
         for (size_t i = 0; i<nb_cols; i++) {
             size_t v_id_inst = v.get_id_inst(i);
             p_val = p.eval(i);
@@ -9191,7 +9260,9 @@ func<T2> operator*(const var<T1>& v, const param<T2>& p){
     else{
         auto nb_rows = new_p.get_nb_inst();
         res._all_range->resize(nb_rows);
-#pragma omp parallel for num_threads(get_num_threads() / 2)
+auto num_threads = std::thread::hardware_concurrency();
+
+#pragma omp parallel for num_threads(thread::hardware_concurrency() / 2)
         for (size_t i = 0; i<nb_rows; i++) {
             auto v_id_inst = v.get_id_inst(i);
             T2 p_val = p.eval(i);
@@ -9227,7 +9298,9 @@ func<T1> operator*(const param<T1>& p, const var<T2>& v){
     if (p.is_matrix_indexed()) {
         auto nb_rows = p.get_nb_rows();
         res._all_range->resize(nb_rows);
-#pragma omp parallel for num_threads(get_num_threads() / 2)
+auto num_threads = std::thread::hardware_concurrency();
+
+#pragma omp parallel for num_threads(thread::hardware_concurrency() / 2)
         for (size_t i = 0; i<nb_rows; i++) {
             auto nb_cols = p.get_dim(i);
             T1 range_lb = 0, range_ub = 0, p_val = 0;
@@ -9253,7 +9326,9 @@ func<T1> operator*(const param<T1>& p, const var<T2>& v){
         res._all_range->resize(1);
         auto nb_cols = p.get_dim();
         T1 range_lb = 0, range_ub = 0, p_val = 0;
-#pragma omp parallel for num_threads(get_num_threads() / 2)
+auto num_threads = std::thread::hardware_concurrency();
+
+#pragma omp parallel for num_threads(thread::hardware_concurrency() / 2)
         for (size_t i = 0; i<nb_cols; i++) {
             size_t v_id_inst = v.get_id_inst(i);
             p_val = p.eval(i);
@@ -9272,7 +9347,9 @@ func<T1> operator*(const param<T1>& p, const var<T2>& v){
     else{
         auto nb_rows = p.get_nb_inst();
         res._all_range->resize(nb_rows);
-#pragma omp parallel for num_threads(get_num_threads() / 2)
+auto num_threads = std::thread::hardware_concurrency();
+
+#pragma omp parallel for num_threads(thread::hardware_concurrency() / 2)
         for (size_t i = 0; i<nb_rows; i++) {
             auto v_id_inst = v.get_id_inst(i);
             T1 p_val = p.eval(i);
@@ -9308,7 +9385,9 @@ func<T2> operator*(const param<T1>& p, const var<T2>& v){
     if (p.is_matrix() || p.is_matrix_indexed()) {
         auto nb_rows = p.get_nb_rows();
         res._all_range->resize(nb_rows);
-#pragma omp parallel for num_threads(get_num_threads() / 2)
+auto num_threads = std::thread::hardware_concurrency();
+
+#pragma omp parallel for num_threads(thread::hardware_concurrency() / 2)
         for (size_t i = 0; i<nb_rows; i++) {
             auto nb_cols = p.get_dim(i);
             T2 range_lb = 0, range_ub = 0, p_val = 0;
@@ -9334,7 +9413,9 @@ func<T2> operator*(const param<T1>& p, const var<T2>& v){
         res._all_range->resize(1);
         auto nb_cols = p.get_dim();
         T2 range_lb = 0, range_ub = 0, p_val = 0;
-#pragma omp parallel for num_threads(get_num_threads() / 2)
+auto num_threads = std::thread::hardware_concurrency();
+
+#pragma omp parallel for num_threads(thread::hardware_concurrency() / 2)
         for (size_t i = 0; i<nb_cols; i++) {
             size_t v_id_inst = v.get_id_inst(i);
             p_val = p.eval(i);
@@ -9353,7 +9434,9 @@ func<T2> operator*(const param<T1>& p, const var<T2>& v){
     else{
         auto nb_rows = p.get_nb_inst();
         res._all_range->resize(nb_rows);
-#pragma omp parallel for num_threads(get_num_threads() / 2)
+auto num_threads = std::thread::hardware_concurrency();
+
+#pragma omp parallel for num_threads(thread::hardware_concurrency() / 2)
         for (size_t i = 0; i<nb_rows; i++) {
             auto v_id_inst = v.get_id_inst(i);
             T2 p_val = p.eval(i);
@@ -9392,7 +9475,9 @@ func<T2> operator*(const param<T1>& p, const var<T2>& v){
         if (p1.is_matrix_indexed()) {
             auto nb_rows = p1.get_nb_rows();
             res._all_range->resize(nb_rows,{0,0});
-    #pragma omp parallel for num_threads(get_num_threads() / 2)
+    auto num_threads = std::thread::hardware_concurrency();
+
+#pragma omp parallel for num_threads(thread::hardware_concurrency() / 2)
             for (size_t i = 0; i<nb_rows; i++) {
                 auto nb_cols = p1.get_dim(i);
                 for (size_t j = 0; j<nb_cols; j++) {
@@ -9404,7 +9489,9 @@ func<T2> operator*(const param<T1>& p, const var<T2>& v){
         else{
             auto nb_rows = p1.get_nb_inst();
             res._all_range->resize(nb_rows,{0,0});
-    #pragma omp parallel for num_threads(get_num_threads() / 2)
+    auto num_threads = std::thread::hardware_concurrency();
+
+#pragma omp parallel for num_threads(thread::hardware_concurrency() / 2)
             for (size_t i = 0; i<nb_rows; i++) {
                 auto pval = p1.eval(i);
                 res._all_range->at(i).first += pval;
@@ -9413,7 +9500,9 @@ func<T2> operator*(const param<T1>& p, const var<T2>& v){
         }
         if (p2.is_matrix_indexed()) {
             auto nb_rows = p2.get_nb_rows();
-    #pragma omp parallel for num_threads(get_num_threads() / 2)
+    auto num_threads = std::thread::hardware_concurrency();
+
+#pragma omp parallel for num_threads(thread::hardware_concurrency() / 2)
             for (size_t i = 0; i<nb_rows; i++) {
                 auto nb_cols = p2.get_dim(i);
                 for (size_t j = 0; j<nb_cols; j++) {
@@ -9424,7 +9513,9 @@ func<T2> operator*(const param<T1>& p, const var<T2>& v){
         }
         else{
             auto nb_rows = p2.get_nb_inst();
-    #pragma omp parallel for num_threads(get_num_threads() / 2)
+    auto num_threads = std::thread::hardware_concurrency();
+
+#pragma omp parallel for num_threads(thread::hardware_concurrency() / 2)
             for (size_t i = 0; i<nb_rows; i++) {
                 auto pval = p2.eval(i);
                 res._all_range->at(i).first += pval;
@@ -9446,7 +9537,9 @@ func<T1> operator+(const var<T1>& p1, const var<T2>& p2){
     if (p1.is_matrix_indexed()) {
         auto nb_rows = p1.get_nb_rows();
         res._all_range->resize(nb_rows,{0,0});
-#pragma omp parallel for num_threads(get_num_threads() / 2)
+auto num_threads = std::thread::hardware_concurrency();
+
+#pragma omp parallel for num_threads(thread::hardware_concurrency() / 2)
         for (size_t i = 0; i<nb_rows; i++) {
             auto nb_cols = p1.get_dim(i);
             for (size_t j = 0; j<nb_cols; j++) {
@@ -9459,7 +9552,9 @@ func<T1> operator+(const var<T1>& p1, const var<T2>& p2){
     else{
         auto nb_rows = p1.get_nb_inst();
         res._all_range->resize(nb_rows,{0,0});
-#pragma omp parallel for num_threads(get_num_threads() / 2)
+auto num_threads = std::thread::hardware_concurrency();
+
+#pragma omp parallel for num_threads(thread::hardware_concurrency() / 2)
         for (size_t i = 0; i<nb_rows; i++) {
             size_t v_id_inst = p1.get_id_inst(i);
             res._all_range->at(i).first += p1.get_lb(v_id_inst);
@@ -9468,7 +9563,9 @@ func<T1> operator+(const var<T1>& p1, const var<T2>& p2){
     }
     if (p2.is_matrix_indexed()) {
         auto nb_rows = p2.get_nb_rows();
-#pragma omp parallel for num_threads(get_num_threads() / 2)
+auto num_threads = std::thread::hardware_concurrency();
+
+#pragma omp parallel for num_threads(thread::hardware_concurrency() / 2)
         for (size_t i = 0; i<nb_rows; i++) {
             auto nb_cols = p2.get_dim(i);
             for (size_t j = 0; j<nb_cols; j++) {
@@ -9480,7 +9577,9 @@ func<T1> operator+(const var<T1>& p1, const var<T2>& p2){
     }
     else{
         auto nb_rows = p2.get_nb_inst();
-#pragma omp parallel for num_threads(get_num_threads() / 2)
+auto num_threads = std::thread::hardware_concurrency();
+
+#pragma omp parallel for num_threads(thread::hardware_concurrency() / 2)
         for (size_t i = 0; i<nb_rows; i++) {
             size_t v_id_inst = p2.get_id_inst(i);
             res._all_range->at(i).first += p2.get_lb(v_id_inst);
@@ -9513,7 +9612,9 @@ func<T1> operator+(const var<T1>& p1, const var<T2>& p2){
         if (p1.is_matrix_indexed()) {
             auto nb_rows = p1.get_nb_rows();
             res._all_range->resize(nb_rows,{0,0});
-    #pragma omp parallel for num_threads(get_num_threads() / 2)
+    auto num_threads = std::thread::hardware_concurrency();
+
+#pragma omp parallel for num_threads(thread::hardware_concurrency() / 2)
             for (size_t i = 0; i<nb_rows; i++) {
                 auto nb_cols = p1.get_dim(i);
                 for (size_t j = 0; j<nb_cols; j++) {
@@ -9525,7 +9626,9 @@ func<T1> operator+(const var<T1>& p1, const var<T2>& p2){
         else{
             auto nb_rows = p1.get_nb_inst();
             res._all_range->resize(nb_rows,{0,0});
-    #pragma omp parallel for num_threads(get_num_threads() / 2)
+    auto num_threads = std::thread::hardware_concurrency();
+
+#pragma omp parallel for num_threads(thread::hardware_concurrency() / 2)
             for (size_t i = 0; i<nb_rows; i++) {
                 auto pval = p1.eval(i);
                 res._all_range->at(i).first += pval;
@@ -9534,7 +9637,9 @@ func<T1> operator+(const var<T1>& p1, const var<T2>& p2){
         }
         if (p2.is_matrix_indexed()) {
             auto nb_rows = p2.get_nb_rows();
-    #pragma omp parallel for num_threads(get_num_threads() / 2)
+    auto num_threads = std::thread::hardware_concurrency();
+
+#pragma omp parallel for num_threads(thread::hardware_concurrency() / 2)
             for (size_t i = 0; i<nb_rows; i++) {
                 auto nb_cols = p2.get_dim(i);
                 for (size_t j = 0; j<nb_cols; j++) {
@@ -9545,7 +9650,9 @@ func<T1> operator+(const var<T1>& p1, const var<T2>& p2){
         }
         else{
             auto nb_rows = p2.get_nb_inst();
-    #pragma omp parallel for num_threads(get_num_threads() / 2)
+    auto num_threads = std::thread::hardware_concurrency();
+
+#pragma omp parallel for num_threads(thread::hardware_concurrency() / 2)
             for (size_t i = 0; i<nb_rows; i++) {
                 auto pval = p2.eval(i);
                 res._all_range->at(i).first += pval;
@@ -9568,7 +9675,9 @@ func<T2> operator+(const var<T1>& p1, const var<T2>& p2){
     if (p1.is_matrix_indexed()) {
         auto nb_rows = p1.get_nb_rows();
         res._all_range->resize(nb_rows,{0,0});
-#pragma omp parallel for num_threads(get_num_threads() / 2)
+auto num_threads = std::thread::hardware_concurrency();
+
+#pragma omp parallel for num_threads(thread::hardware_concurrency() / 2)
         for (size_t i = 0; i<nb_rows; i++) {
             auto nb_cols = p1.get_dim(i);
             for (size_t j = 0; j<nb_cols; j++) {
@@ -9581,7 +9690,9 @@ func<T2> operator+(const var<T1>& p1, const var<T2>& p2){
     else{
         auto nb_rows = p1.get_nb_inst();
         res._all_range->resize(nb_rows,{0,0});
-#pragma omp parallel for num_threads(get_num_threads() / 2)
+auto num_threads = std::thread::hardware_concurrency();
+
+#pragma omp parallel for num_threads(thread::hardware_concurrency() / 2)
         for (size_t i = 0; i<nb_rows; i++) {
             size_t v_id_inst = p1.get_id_inst(i);
             res._all_range->at(i).first += p1.get_lb(v_id_inst);
@@ -9590,7 +9701,9 @@ func<T2> operator+(const var<T1>& p1, const var<T2>& p2){
     }
     if (p2.is_matrix_indexed()) {
         auto nb_rows = p2.get_nb_rows();
-#pragma omp parallel for num_threads(get_num_threads() / 2)
+auto num_threads = std::thread::hardware_concurrency();
+
+#pragma omp parallel for num_threads(thread::hardware_concurrency() / 2)
         for (size_t i = 0; i<nb_rows; i++) {
             auto nb_cols = p2.get_dim(i);
             for (size_t j = 0; j<nb_cols; j++) {
@@ -9602,7 +9715,9 @@ func<T2> operator+(const var<T1>& p1, const var<T2>& p2){
     }
     else{
         auto nb_rows = p2.get_nb_inst();
-#pragma omp parallel for num_threads(get_num_threads() / 2)
+auto num_threads = std::thread::hardware_concurrency();
+
+#pragma omp parallel for num_threads(thread::hardware_concurrency() / 2)
         for (size_t i = 0; i<nb_rows; i++) {
             size_t v_id_inst = p2.get_id_inst(i);
             res._all_range->at(i).first += p2.get_lb(v_id_inst);
@@ -9634,7 +9749,9 @@ func<T2> operator+(const var<T1>& p1, const var<T2>& p2){
         if (p1.is_matrix_indexed()) {
             auto nb_rows = p1.get_nb_rows();
             res._all_range->resize(nb_rows,0);
-    #pragma omp parallel for num_threads(get_num_threads() / 2)
+    auto num_threads = std::thread::hardware_concurrency();
+
+#pragma omp parallel for num_threads(thread::hardware_concurrency() / 2)
             for (size_t i = 0; i<nb_rows; i++) {
                 auto nb_cols = p1.get_dim(i);
                 for (size_t j = 0; j<nb_cols; j++) {
@@ -9646,7 +9763,9 @@ func<T2> operator+(const var<T1>& p1, const var<T2>& p2){
         else{
             auto nb_rows = p1.get_nb_inst();
             res._all_range->resize(nb_rows,0);
-    #pragma omp parallel for num_threads(get_num_threads() / 2)
+    auto num_threads = std::thread::hardware_concurrency();
+
+#pragma omp parallel for num_threads(thread::hardware_concurrency() / 2)
             for (size_t i = 0; i<nb_rows; i++) {
                 auto pval = p1.eval(i);
                 res._all_range->at(i).first += pval;
@@ -9655,7 +9774,9 @@ func<T2> operator+(const var<T1>& p1, const var<T2>& p2){
         }
         if (p2.is_matrix_indexed()) {
             auto nb_rows = p2.get_nb_rows();
-    #pragma omp parallel for num_threads(get_num_threads() / 2)
+    auto num_threads = std::thread::hardware_concurrency();
+
+#pragma omp parallel for num_threads(thread::hardware_concurrency() / 2)
             for (size_t i = 0; i<nb_rows; i++) {
                 auto nb_cols = p2.get_dim(i);
                 for (size_t j = 0; j<nb_cols; j++) {
@@ -9666,7 +9787,9 @@ func<T2> operator+(const var<T1>& p1, const var<T2>& p2){
         }
         else{
             auto nb_rows = p2.get_nb_inst();
-    #pragma omp parallel for num_threads(get_num_threads() / 2)
+    auto num_threads = std::thread::hardware_concurrency();
+
+#pragma omp parallel for num_threads(thread::hardware_concurrency() / 2)
             for (size_t i = 0; i<nb_rows; i++) {
                 auto pval = p2.eval(i);
                 res._all_range->at(i).first -= pval;
@@ -9688,7 +9811,9 @@ func<T1> operator-(const var<T1>& p1, const var<T2>& p2){
     if (p1.is_matrix_indexed()) {
         auto nb_rows = p1.get_nb_rows();
         res._all_range->resize(nb_rows,{0,0});
-#pragma omp parallel for num_threads(get_num_threads() / 2)
+auto num_threads = std::thread::hardware_concurrency();
+
+#pragma omp parallel for num_threads(thread::hardware_concurrency() / 2)
         for (size_t i = 0; i<nb_rows; i++) {
             auto nb_cols = p1.get_dim(i);
             for (size_t j = 0; j<nb_cols; j++) {
@@ -9701,7 +9826,9 @@ func<T1> operator-(const var<T1>& p1, const var<T2>& p2){
     else{
         auto nb_rows = p1.get_nb_inst();
         res._all_range->resize(nb_rows,{0,0});
-#pragma omp parallel for num_threads(get_num_threads() / 2)
+auto num_threads = std::thread::hardware_concurrency();
+
+#pragma omp parallel for num_threads(thread::hardware_concurrency() / 2)
         for (size_t i = 0; i<nb_rows; i++) {
             size_t v_id_inst = p1.get_id_inst(i);
             res._all_range->at(i).first += p1.get_lb(v_id_inst);
@@ -9710,7 +9837,9 @@ func<T1> operator-(const var<T1>& p1, const var<T2>& p2){
     }
     if (p2.is_matrix_indexed()) {
         auto nb_rows = p2.get_nb_rows();
-#pragma omp parallel for num_threads(get_num_threads() / 2)
+auto num_threads = std::thread::hardware_concurrency();
+
+#pragma omp parallel for num_threads(thread::hardware_concurrency() / 2)
         for (size_t i = 0; i<nb_rows; i++) {
             auto nb_cols = p2.get_dim(i);
             for (size_t j = 0; j<nb_cols; j++) {
@@ -9722,7 +9851,9 @@ func<T1> operator-(const var<T1>& p1, const var<T2>& p2){
     }
     else{
         auto nb_rows = p2.get_nb_inst();
-#pragma omp parallel for num_threads(get_num_threads() / 2)
+auto num_threads = std::thread::hardware_concurrency();
+
+#pragma omp parallel for num_threads(thread::hardware_concurrency() / 2)
         for (size_t i = 0; i<nb_rows; i++) {
             size_t v_id_inst = p2.get_id_inst(i);
             res._all_range->at(i).first -= p2.get_ub(v_id_inst);
@@ -9755,7 +9886,9 @@ func<T1> operator-(const var<T1>& p1, const var<T2>& p2){
         if (p1.is_matrix_indexed()) {
             auto nb_rows = p1.get_nb_rows();
             res._all_range->resize(nb_rows,{0,0});
-    #pragma omp parallel for num_threads(get_num_threads() / 2)
+    auto num_threads = std::thread::hardware_concurrency();
+
+#pragma omp parallel for num_threads(thread::hardware_concurrency() / 2)
             for (size_t i = 0; i<nb_rows; i++) {
                 auto nb_cols = p1.get_dim(i);
                 for (size_t j = 0; j<nb_cols; j++) {
@@ -9767,7 +9900,9 @@ func<T1> operator-(const var<T1>& p1, const var<T2>& p2){
         else{
             auto nb_rows = p1.get_nb_inst();
             res._all_range->resize(nb_rows,{0,0});
-    #pragma omp parallel for num_threads(get_num_threads() / 2)
+    auto num_threads = std::thread::hardware_concurrency();
+
+#pragma omp parallel for num_threads(thread::hardware_concurrency() / 2)
             for (size_t i = 0; i<nb_rows; i++) {
                 auto pval = p1.eval(i);
                 res._all_range->at(i).first += pval;
@@ -9776,7 +9911,9 @@ func<T1> operator-(const var<T1>& p1, const var<T2>& p2){
         }
         if (p2.is_matrix_indexed()) {
             auto nb_rows = p2.get_nb_rows();
-    #pragma omp parallel for num_threads(get_num_threads() / 2)
+    auto num_threads = std::thread::hardware_concurrency();
+
+#pragma omp parallel for num_threads(thread::hardware_concurrency() / 2)
             for (size_t i = 0; i<nb_rows; i++) {
                 auto nb_cols = p2.get_dim(i);
                 for (size_t j = 0; j<nb_cols; j++) {
@@ -9787,7 +9924,9 @@ func<T1> operator-(const var<T1>& p1, const var<T2>& p2){
         }
         else{
             auto nb_rows = p2.get_nb_inst();
-    #pragma omp parallel for num_threads(get_num_threads() / 2)
+    auto num_threads = std::thread::hardware_concurrency();
+
+#pragma omp parallel for num_threads(thread::hardware_concurrency() / 2)
             for (size_t i = 0; i<nb_rows; i++) {
                 auto pval = p2.eval(i);
                 res._all_range->at(i).first -= pval;
@@ -9809,7 +9948,9 @@ func<T2> operator-(const var<T1>& p1, const var<T2>& p2){
     if (p1.is_matrix_indexed()) {
         auto nb_rows = p1.get_nb_rows();
         res._all_range->resize(nb_rows,{0,0});
-#pragma omp parallel for num_threads(get_num_threads() / 2)
+auto num_threads = std::thread::hardware_concurrency();
+
+#pragma omp parallel for num_threads(thread::hardware_concurrency() / 2)
         for (size_t i = 0; i<nb_rows; i++) {
             auto nb_cols = p1.get_dim(i);
             for (size_t j = 0; j<nb_cols; j++) {
@@ -9822,7 +9963,9 @@ func<T2> operator-(const var<T1>& p1, const var<T2>& p2){
     else{
         auto nb_rows = p1.get_nb_inst();
         res._all_range->resize(nb_rows,{0,0});
-#pragma omp parallel for num_threads(get_num_threads() / 2)
+auto num_threads = std::thread::hardware_concurrency();
+
+#pragma omp parallel for num_threads(thread::hardware_concurrency() / 2)
         for (size_t i = 0; i<nb_rows; i++) {
             size_t v_id_inst = p1.get_id_inst(i);
             res._all_range->at(i).first += p1.get_lb(v_id_inst);
@@ -9831,7 +9974,9 @@ func<T2> operator-(const var<T1>& p1, const var<T2>& p2){
     }
     if (p2.is_matrix_indexed()) {
         auto nb_rows = p2.get_nb_rows();
-#pragma omp parallel for num_threads(get_num_threads() / 2)
+auto num_threads = std::thread::hardware_concurrency();
+
+#pragma omp parallel for num_threads(thread::hardware_concurrency() / 2)
         for (size_t i = 0; i<nb_rows; i++) {
             auto nb_cols = p2.get_dim(i);
             for (size_t j = 0; j<nb_cols; j++) {
@@ -9843,7 +9988,9 @@ func<T2> operator-(const var<T1>& p1, const var<T2>& p2){
     }
     else{
         auto nb_rows = p2.get_nb_inst();
-#pragma omp parallel for num_threads(get_num_threads() / 2)
+auto num_threads = std::thread::hardware_concurrency();
+
+#pragma omp parallel for num_threads(thread::hardware_concurrency() / 2)
         for (size_t i = 0; i<nb_rows; i++) {
             size_t v_id_inst = p2.get_id_inst(i);
             res._all_range->at(i).first -= p2.get_ub(v_id_inst);
@@ -10760,9 +10907,12 @@ func<T1> ReLU(const var<T1>& p1){
         res._all_sign = pos_;
         res._range->first = p1._range->first;
     }
-#pragma omp parallel for num_threads(get_num_threads() / 2)
+auto num_threads = std::thread::hardware_concurrency();
+
+
     auto dim = p1.get_dim();
     res._all_range->resize(dim);
+#pragma omp parallel for num_threads(thread::hardware_concurrency() / 2)
     for(auto i = 0; i<dim; i++){
         res._all_range->at(i).first=std::max(zero<T1>().eval(), p1.get_lb(i));
         res._all_range->at(i).second=std::max(zero<T1>().eval(), p1.get_ub(i));

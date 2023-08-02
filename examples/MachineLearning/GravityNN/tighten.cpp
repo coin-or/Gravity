@@ -20,7 +20,7 @@ void final_run(std::string fname, const std::vector<Bound>& global_bounds, size_
     solver<> S(NN,gurobi);
     auto grb_prog = (GurobiProgram*)(S._prog.get());
     auto grb_mod = grb_prog->grb_mod;
-    grb_mod->set(GRB_IntParam_Threads, get_num_threads() / 2);
+    grb_mod->set(GRB_IntParam_Threads, thread::hardware_concurrency() / 2);
     grb_mod->set(GRB_IntParam_OutputFlag, 1);
     grb_mod->set(GRB_IntParam_NonConvex, 2);
 
@@ -139,7 +139,9 @@ int main(int argc, char * argv[]) {
             start_node = layers_to_optimize[lidx - (rolling_horizon - 1)]->name;
         }
 
-        #pragma omp parallel for num_threads(get_num_threads() / 2)
+        auto num_threads = std::thread::hardware_concurrency();
+
+#pragma omp parallel for num_threads(num_threads / 2)
         for (auto& neuron: local_bounds) {
             auto new_bound = bound_neuron(fname, start_node, neuron, global_bounds);
             auto prev_bound = neuron.value;
