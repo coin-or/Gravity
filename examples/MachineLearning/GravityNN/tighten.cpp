@@ -36,7 +36,7 @@ double bound_neuron(std::string fname, std::string start_node, Bound neuron, con
     Model<>& NN = nn.build_model(-1, start_node, neuron.layer_name);
 
     double mult = (neuron.side == LOWER) ? -1.0 : 1.0;
-    NN.max(nn.x(neuron.neuron_name) * mult);
+    NN.max(mult*nn.x(neuron.neuron_name));
 
     solver<> S(NN,gurobi);
     auto grb_prog = (GurobiProgram*)(S._prog.get());

@@ -41,7 +41,8 @@ add_executable(
 	MachineLearning/GravityNN/tighten.cpp
         ${ONNX_PROTO_SRCS}
         ${ONNX_PROTO_HDRS}
+        ${NN_SOURCES}
 )
 add_dependencies(tighten proto_dep)
-target_include_directories(tighten PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/MachineLearning/GravityNN ${ONNX_PROTO_HDRS})
-target_link_libraries(tighten ${PROTOBUF_LIBRARIES} gravity OpenMP::OpenMP_CXX)
+target_include_directories(tighten PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/MachineLearning/GravityNN ${CMAKE_CURRENT_SOURCE_DIR}/MachineLearning/GravityNN/network  ${CMAKE_CURRENT_SOURCE_DIR}/MachineLearning/GravityNN/network/Layers ${ONNX_PROTO_HDRS} ${cli11_SOURCE_DIR}/include)
+target_link_libraries(tighten ${PROTOBUF_LIBRARIES} gravity CLI11)
