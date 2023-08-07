@@ -61,6 +61,51 @@ double bound_neuron(std::string fname, std::string start_node, Bound neuron, con
     return mult * NN._rel_obj_val;
 }
 
+void run_MPI_bound_neuron(std::vector<Bound>& local_bounds, const std::string& fname, const std::string& start_node, const std::vector<Bound>& global_bounds) {
+    int rank, size;
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    MPI_Comm_size(MPI_COMM_WORLD, &size);
+
+//    std::cout << "Rank " << rank << " of " << size << " started." << std::endl;
+
+    // Determine the range of neurons this rank should handle.
+    size_t neurons_per_rank = local_bounds.size() / size;
+    size_t start_idx = rank * neurons_per_rank;
+    size_t end_idx = (rank == size - 1) ? local_bounds.size() : start_idx + neurons_per_rank;
+
+//    std::cout << "Rank " << rank << " is handling neurons from " << start_idx << " to " << end_idx << std::endl;
+
+    // Each rank computes bounds for its subset of neurons.
+    for (size_t i = start_idx; i < end_idx; i++) {
+        Bound& neuron = local_bounds[i];
+        auto new_bound = bound_neuron(fname, start_node, neuron, global_bounds);
+        if (neuron.side == LOWER) {
+            neuron.value = std::max(neuron.value, new_bound);
+        } else {
+            neuron.value = std::min(neuron.value, new_bound);
+        }
+
+//        std::cout << "Rank " << rank << " updated bound for neuron " << i << " with value " << neuron.value << std::endl;
+    }
+
+    // Gather the results at rank 0.
+    if (rank == 0) {
+        for (int src_rank = 1; src_rank < size; src_rank++) {
+            size_t src_start_idx = src_rank * neurons_per_rank;
+            size_t src_end_idx = (src_rank == size - 1) ? local_bounds.size() : src_start_idx + neurons_per_rank;
+            MPI_Recv(&local_bounds[src_start_idx], (src_end_idx - src_start_idx) * sizeof(Bound), MPI_BYTE, src_rank, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+//            std::cout << "Rank 0 received data from rank " << src_rank << std::endl;
+        }
+    } else {
+        MPI_Send(&local_bounds[start_idx], (end_idx - start_idx) * sizeof(Bound), MPI_BYTE, 0, 0, MPI_COMM_WORLD);
+//        std::cout << "Rank " << rank << " sent data to rank 0." << std::endl;
+    }
+
+    // If necessary, rank 0 can then broadcast the complete results back to all other ranks.
+    MPI_Bcast(&local_bounds[0], local_bounds.size() * sizeof(Bound), MPI_BYTE, 0, MPI_COMM_WORLD);
+//    std::cout << "Rank " << rank << " completed broadcasting." << std::endl;
+}
+
 int main(int argc, char * argv[]) {
     string fname = string(prj_dir)+"/data_sets/VNN/tll_new_old.onnx";
     if(argc >= 2) {
@@ -95,6 +140,10 @@ int main(int argc, char * argv[]) {
     if (rolling_horizon > layers_to_optimize.size()){
         rolling_horizon = layers_to_optimize.size();
     }
+    
+    auto start_time_all = std::chrono::high_resolution_clock::now();
+    
+    MPI_Init(nullptr, nullptr);
 
     for (auto lidx = 0; lidx < layers_to_optimize.size(); lidx++) {
         auto l = layers_to_optimize[lidx];
@@ -140,17 +189,9 @@ int main(int argc, char * argv[]) {
         }
 
         auto num_threads = std::thread::hardware_concurrency();
-
-#pragma omp parallel for num_threads(num_threads / 2)
-        for (auto& neuron: local_bounds) {
-            auto new_bound = bound_neuron(fname, start_node, neuron, global_bounds);
-            auto prev_bound = neuron.value;
-            if (neuron.side == LOWER) {
-                neuron.value = std::max(neuron.value, new_bound);
-            } else {
-                neuron.value = std::min(neuron.value, new_bound);
-            }
-        }
+        
+        // Use the run_MPI_bound_neuron function for parallel neuron bound calculation
+        run_MPI_bound_neuron(local_bounds, fname, start_node, global_bounds);
         auto end_time = std::chrono::high_resolution_clock::now();
         fflush(stdout);
         dup2(bak, 1);
@@ -169,6 +210,7 @@ int main(int argc, char * argv[]) {
         std::cout << "Time: " << time_taken << "ms" << std::endl;
         global_bounds.insert(global_bounds.end(), local_bounds.begin(), local_bounds.end());
     }
+    MPI_Finalize();
 
     std::cout << "Starting final runs" << std::endl;
 
@@ -176,6 +218,10 @@ int main(int argc, char * argv[]) {
         std::cout << "########################################" << std::endl;
         final_run(fname, global_bounds, obj_idx);
     }
+    
+    auto end_time_all = std::chrono::high_resolution_clock::now();
+    auto time_taken_all = std::chrono::duration_cast<std::chrono::milliseconds>(end_time_all - start_time_all).count();
+    std::cout << "Time in total: " << time_taken_all << "ms" << std::endl;
 
     return 0;
 }
