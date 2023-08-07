@@ -141,8 +141,6 @@ int main(int argc, char * argv[]) {
         rolling_horizon = layers_to_optimize.size();
     }
     
-    auto start_time_all = std::chrono::high_resolution_clock::now();
-    
     MPI_Init(nullptr, nullptr);
 
     for (auto lidx = 0; lidx < layers_to_optimize.size(); lidx++) {
@@ -218,10 +216,6 @@ int main(int argc, char * argv[]) {
         std::cout << "########################################" << std::endl;
         final_run(fname, global_bounds, obj_idx);
     }
-    
-    auto end_time_all = std::chrono::high_resolution_clock::now();
-    auto time_taken_all = std::chrono::duration_cast<std::chrono::milliseconds>(end_time_all - start_time_all).count();
-    std::cout << "Time in total: " << time_taken_all << "ms" << std::endl;
 
     return 0;
 }
