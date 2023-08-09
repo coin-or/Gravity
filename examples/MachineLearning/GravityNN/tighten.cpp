@@ -175,8 +175,9 @@ int main(int argc, char * argv[]) {
     }
 
     MPI_Init(nullptr, nullptr);
-    int rank;
+    int rank, size;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    MPI_Comm_size(MPI_COMM_WORLD, &size);
 
     NeuralNet nn(fname);
     std::vector<Layer*> layers_to_optimize;
@@ -290,11 +291,21 @@ int main(int argc, char * argv[]) {
 
     if (rank == 0) {
         std::cout << "Starting final runs" << std::endl;
-        for (size_t obj_idx = 0; obj_idx < nn.obj_spec->shape[0]; obj_idx++) {
-            std::cout << "########################################" << std::endl;
-            final_run(fname, global_bounds, obj_idx);
-        }
     }
+
+    size_t total_objs = nn.obj_spec->shape[0];
+    size_t objs_per_rank = total_objs / size;
+    size_t extra_objs = total_objs % size;
+
+    size_t start_obj_idx = rank * objs_per_rank + std::min(static_cast<size_t>(rank), extra_objs);
+    size_t end_obj_idx = start_obj_idx + objs_per_rank + (rank < extra_objs);
+
+    for (size_t obj_idx = start_obj_idx; obj_idx < end_obj_idx; obj_idx++) {
+        std::cout << "########################################" << std::endl;
+        final_run(fname, global_bounds, obj_idx);
+    }
+
+    // FIXME: gather final_run results
 
     MPI_Finalize();
     return 0;
