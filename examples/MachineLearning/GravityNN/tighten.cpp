@@ -35,7 +35,7 @@ void final_run(std::string fname, const std::vector<Bound>& global_bounds, size_
 double bound_neuron(std::string fname, std::string start_node, Bound neuron, const std::vector<Bound>& global_bounds) {
     // char hostname[128];
     // gethostname(hostname, sizeof(hostname));
-    // std::cout << "Running bound_neuron on host: " << hostname << " with process ID: " << getpid() << " bounding neuron" << neuron.neuron_name << std::endl;
+    // std::cout << "Running bound_neuron on host: " << hostname << " with process ID: " << getpid() << " bounding " << neuron.side << " of neuron " << neuron.neuron_name << std::endl;
 
     NeuralNet nn(fname);
     nn.set_aux_bounds(global_bounds);
@@ -191,7 +191,7 @@ int main(int argc, char * argv[]) {
 
     std::vector<Bound> global_bounds;
 
-    int rolling_horizon = 3;
+    int rolling_horizon = 2;
     if (rolling_horizon > layers_to_optimize.size()){
         rolling_horizon = layers_to_optimize.size();
     }
@@ -244,7 +244,6 @@ int main(int argc, char * argv[]) {
         }
 
         // Use the run_MPI_bound_neuron function for parallel neuron bound calculation
-
         offsets[0] = offsetof(ProxyBound, layer_name);
         offsets[1] = offsetof(ProxyBound, neuron_name);
         offsets[2] = offsetof(ProxyBound, value);
