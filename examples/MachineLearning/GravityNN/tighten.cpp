@@ -28,6 +28,18 @@ void final_run(std::string fname, const std::vector<Bound>& global_bounds, size_
     grb_mod->set(GRB_IntParam_Threads, thread::hardware_concurrency() / 2);
     grb_mod->set(GRB_IntParam_OutputFlag, 1);
     grb_mod->set(GRB_IntParam_NonConvex, 2);
+    
+//    grb_mod->set(GRB_DoubleParam_Heuristics, 0);
+//    grb_mod->set(GRB_IntParam_CutPasses, 5);
+//    grb_mod->set(GRB_IntParam_VarBranch, 0);
+//
+//    double tolerance = grb_mod->get(GRB_DoubleParam_MIPGap);
+//
+//    // Stop the program if the lower bound exceeds 0
+//    grb_mod->set(GRB_DoubleParam_BestBdStop, tolerance);
+//
+//    // Stop the program if a feasible solution with objective less than 0 is found
+//    grb_mod->set(GRB_DoubleParam_BestObjStop, -tolerance);
 
     int retval = S.run();
 }
