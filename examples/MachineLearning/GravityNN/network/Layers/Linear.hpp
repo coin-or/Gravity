@@ -109,7 +109,8 @@ public:
         NN.add(Gemm.in(inds["Constr"]) == 0);
         // add IBP bounds
         auto f = x.in(inds["In"])*w.in(inds["B"]) + w.in(inds["C"]);
-        x.in(inds["Out"]).copy_bounds(*f._all_range);
+        // FIXME: add tighter bounds between existing one and the IBP one.
+        // x.in(inds["Out"]).copy_bounds(*f._all_range);
     }
 
     Tensor *A, *B, *C = nullptr; // Inputs
