@@ -1,7 +1,7 @@
 #pragma once
 
 #include <fstream>
-#include <onnx322.pb.h>
+#include <onnx.pb.h>
 #include <vector>
 #include <utils/utils.hpp>
 #include <gravity/param.h>

@@ -1,4 +1,10 @@
+
+find_package(PkgConfig QUIET REQUIRED)
+pkg_check_modules(PC_Protobuf Protobuf)
 find_package(Protobuf REQUIRED HINTS /opt/homebrew/Cellar)
+message(${PC_Protobuf_INCLUDEDIR})
+message(${PC_Protobuf_LIBRARIES})
+
 
 file(DOWNLOAD "https://raw.githubusercontent.com/onnx/onnx/master/onnx/onnx.proto3" "${CMAKE_CURRENT_BINARY_DIR}/onnx.proto")
 
@@ -15,10 +21,6 @@ file(DOWNLOAD "https://raw.githubusercontent.com/onnx/onnx/master/onnx/onnx.prot
 add_custom_target(proto_dep DEPENDS ${ONNX_PROTO_SRCS} ${ONNX_PROTO_HDRS})
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
-find_package(PkgConfig QUIET REQUIRED)
-pkg_check_modules(PC_Protobuf protobuf)
-message(${PC_Protobuf_INCLUDEDIR})
-message(${PC_Protobuf_LIBRARIES})
 
 include_directories(${PC_Protobuf_INCLUDEDIR} ${ONNX_PROTO_HDRS} ${ONNX_PROTO_SRCS})
 
@@ -40,11 +42,23 @@ add_executable(
 	${NN_SOURCES}
 )
 
+find_library(ONNX_LIB
+            libonnx.a
+            HINTS /usr/local/lib
+            HINTS $ENV{HOME}/Utils/onnx/build
+    )
+
+find_library(ONNX_PROTO_LIB
+            libonnx_proto.a
+            HINTS /usr/local/lib
+            HINTS $ENV{HOME}/Utils/onnx/build
+    )
+
 add_dependencies(GravityNN proto_dep)
 
 
 target_include_directories(GravityNN PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/MachineLearning/GravityNN ${CMAKE_CURRENT_SOURCE_DIR}/MachineLearning/GravityNN/network  ${CMAKE_CURRENT_SOURCE_DIR}/MachineLearning/GravityNN/network/Layers ${ONNX_PROTO_HDRS} ${cli11_SOURCE_DIR}/include)
-target_link_libraries(GravityNN ${PROTOBUF_LIBRARIES} gravity CLI11)
+target_link_libraries(GravityNN ${PROTOBUF_LIBRARIES} ${PC_Protobuf_LIBRARIES} gravity CLI11 ${ONNX_LIB} ${ONNX_PROTO_LIB})
 
 find_package(OpenMP)
 add_executable(
@@ -59,5 +73,5 @@ add_executable(
 
 add_dependencies(tighten proto_dep)
 target_include_directories(tighten PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/MachineLearning/GravityNN ${CMAKE_CURRENT_SOURCE_DIR}/MachineLearning/GravityNN/network  ${CMAKE_CURRENT_SOURCE_DIR}/MachineLearning/GravityNN/network/Layers ${ONNX_PROTO_HDRS} ${cli11_SOURCE_DIR}/include)
-target_link_libraries(tighten ${PROTOBUF_LIBRARIES} ${PC_Protobuf_LIBRARIES} gravity OpenMP::OpenMP_CXX CLI11)
+target_link_libraries(tighten ${PROTOBUF_LIBRARIES} ${PC_Protobuf_LIBRARIES} gravity CLI11 ${ONNX_LIB}  ${ONNX_PROTO_LIB})
 #target_link_libraries(tighten mpi)
