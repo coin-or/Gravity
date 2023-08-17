@@ -3,7 +3,7 @@
 #include <vector>
 #include <queue>
 #include <stack>
-#include <onnx/onnx.proto3.pb.h>
+#include <onnx/onnx_pb.h>
 #include <network/NeuralNet.hpp>
 #include <network/types.hpp>
 

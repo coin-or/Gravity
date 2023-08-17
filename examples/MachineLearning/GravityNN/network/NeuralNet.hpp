@@ -1,7 +1,7 @@
 #pragma once
 
 #include <string>
-#include <onnx.pb.h>
+#include <onnx/onnx_pb.h>
 #include <vector>
 #include <network/Layers/LayerBase.hpp>
 #include <network/Layers/Linear.hpp>

@@ -1,7 +1,7 @@
 #pragma once
 
 #include <fstream>
-#include <onnx.pb.h>
+#include <onnx/onnx_pb.h>
 #include <vector>
 #include <network/Tensor.hpp>
 #include <network/IndexContainer.hpp>
