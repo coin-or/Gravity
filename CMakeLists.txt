@@ -15,6 +15,8 @@ set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+add_library(gravity STATIC)
+
 FetchContent_Declare(json
   GIT_REPOSITORY https://github.com/ArthurSonzogni/nlohmann_json_cmake_fetchcontent
   GIT_TAG v3.7.3)
@@ -79,6 +81,7 @@ option(OpenMPI "Link to OpenMPI libraries" OFF)
 
 # Find OPT_PARSER (optional)
 option(OPT_PARSER "Link to OPT_PARSER libraries" OFF)
+option(BuildExamples "Build examples" OFF)
 
 if (OpenMPI)
     SET(CMAKE_CXX_COMPILER mpicxx)
@@ -139,9 +142,10 @@ endif(Mosek)
 # Find gurobi?
 if (Gurobi)
     message(STATUS "Enable GUROBI")
-    add_definitions(-DUSE_GUROBI)
+    target_compile_definitions(gravity PUBLIC USE_GUROBI)
+
     find_package(GUROBI)
-    include_directories(${GUROBI_INCLUDE_DIRS})
+    target_include_directories(gravity PUBLIC ${GUROBI_INCLUDE_DIRS})
     set(LIBS ${LIBS} ${GUROBI_LIBRARIES})
 endif(Gurobi)
 
@@ -326,7 +330,7 @@ else(EIGEN_FOUND)
  set(ADD_EIGEN TRUE)
 endif (EIGEN_FOUND)
 
-include_directories(${EIGEN_INCLUDE_DIR})
+target_include_directories(gravity PUBLIC ${EIGEN_INCLUDE_DIR})
 # cpp_option_parser
 if (OPT_PARSER)
 	set(OPT_PARSER_VERSION v1.0)
@@ -354,13 +358,6 @@ execute_process(
 endif(Qpp AND NOT UNZIPPED)
 
 set(UNZIPPED ON CACHE BOOL "Already unzipped" FORCE)
-
-# Include Power dirs
-include_directories(${PROJECT_SOURCE_DIR}/examples/Optimization/NonLinear/Power)
-# include_directories(${PROJECT_SOURCE_DIR}/solvers)
-
-# Include ML dirs
-include_directories(${PROJECT_SOURCE_DIR}/examples/MachineLearning)
 
 set(LIBS ${LIBS} ${PROJECT_SOURCE_DIR}/lib ${PROJECT_SOURCE_DIR}/lib/Release ${PROJECT_SOURCE_DIR}/lib/Debug)
 # Compiler options
@@ -402,7 +399,12 @@ endif()
 
 
 add_subdirectory(src)
-add_subdirectory(examples)
+
+if (BuildExamples)
+    add_subdirectory(examples)
+    include_directories(${PROJECT_SOURCE_DIR}/examples/Optimization/NonLinear/Power)
+    include_directories(${PROJECT_SOURCE_DIR}/examples/MachineLearning)
+endif()
 # add_subdirectory(solvers)
 
 #Get user defined configuration including passing project source directory into c++ code

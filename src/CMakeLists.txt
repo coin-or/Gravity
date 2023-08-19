@@ -1,6 +1,5 @@
 #include(ExternalProject)
 
-include_directories(${PROJECT_INCLUDE_DIR})
 
 
   #message(STATUS "Adding Option Parser")
@@ -59,7 +58,7 @@ if (NOT Mosek)
 endif()
 
 
-add_library(gravity STATIC ${SOURCES} ${HEADERS})
+target_sources(gravity PRIVATE ${SOURCES} ${HEADERS})
 if(ADD_SMTLIB)
  add_dependencies(gravity SMTLIB)
 endif(ADD_SMTLIB)
@@ -78,11 +77,11 @@ endif()
 if(OPT_PARSER)
 add_dependencies(gravity opt_parser)
 add_dependencies(gravity Protobuf)
-target_link_libraries(gravity ${CPLEX_LIBRARIES} ${GUROBI_LIBRARIES} ${LASlib_LIBRARIES} ${IPOPT_LIBRARIES} ${BONMIN_LIBRARIES} ${SDPA_LIBRARIES} ${MOSEK_LIBRARIES} ${XLNT_LIBRARIES} ${OpenMPI_LIBRARIES} ${QHULL_LIBRARIES} ${SDPLIB_LIBRARIES} liboption_parser.a nlohmann_json::nlohmann_json)
+target_link_libraries(gravity PUBLIC ${CPLEX_LIBRARIES} ${GUROBI_LIBRARIES} ${LASlib_LIBRARIES} ${IPOPT_LIBRARIES} ${BONMIN_LIBRARIES} ${SDPA_LIBRARIES} ${MOSEK_LIBRARIES} ${XLNT_LIBRARIES} ${OpenMPI_LIBRARIES} ${QHULL_LIBRARIES} ${SDPLIB_LIBRARIES} liboption_parser.a nlohmann_json::nlohmann_json)
 endif()
 
 if(NOT OPT_PARSER)
-target_link_libraries(gravity ${CPLEX_LIBRARIES} ${GUROBI_LIBRARIES} ${LASlib_LIBRARIES} ${IPOPT_LIBRARIES} ${BONMIN_LIBRARIES} ${SDPA_LIBRARIES} ${MOSEK_LIBRARIES} ${XLNT_LIBRARIES} ${OpenMPI_LIBRARIES} ${QHULL_LIBRARIES} ${SDPLIB_LIBRARIES} nlohmann_json::nlohmann_json)
+target_link_libraries(gravity PUBLIC ${CPLEX_LIBRARIES} ${GUROBI_LIBRARIES} ${LASlib_LIBRARIES} ${IPOPT_LIBRARIES} ${BONMIN_LIBRARIES} ${SDPA_LIBRARIES} ${MOSEK_LIBRARIES} ${XLNT_LIBRARIES} ${OpenMPI_LIBRARIES} ${QHULL_LIBRARIES} ${SDPLIB_LIBRARIES} nlohmann_json::nlohmann_json)
 endif()
 
 if(Matplot)
@@ -102,3 +101,5 @@ SET(CMAKE_SKIP_BUILD_RPATH  FALSE)
 SET(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE) 
 SET(CMAKE_INSTALL_RPATH "${PROJ_LIB_DIR}")
 SET(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
+
+target_include_directories(gravity PUBLIC ${PROJECT_INCLUDE_DIR} ${INCLUDE_DIRECTORIES})
