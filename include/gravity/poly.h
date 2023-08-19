@@ -34,7 +34,7 @@ namespace gravity {
         lterm(){};
         
         lterm(lterm&& t){
-            *this = move(t);
+            *this = std::move(t);
         };
         
         lterm(const lterm& t){
@@ -109,7 +109,7 @@ namespace gravity {
         };
         
         qterm(qterm&& t){
-            *this = move(t);
+            *this = std::move(t);
         };
         
         
@@ -235,7 +235,7 @@ namespace gravity {
         };
         
         pterm(pterm&& t){
-            *this = move(t);
+            *this = std::move(t);
         };
         
         pterm(bool sign, shared_ptr<constant_> coef, shared_ptr<list<pair<shared_ptr<param_>, int>>> l){

@@ -905,10 +905,10 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
                 if (!v._indices) {
                     Warning("WARNING adding unindexed variable to model: " << name << endl);
                     Warning("Treating it as a one dimensional Real.\n");
-                    newv = make_shared<var<T>>(move((v.in(R(1)))));
+                    newv = make_shared<var<T>>(std::move((v.in(R(1)))));
                 }
                 else {
-                    newv = make_shared<var<T>>(move(v));
+                    newv = make_shared<var<T>>(std::move(v));
                 }
                 _vars_name[name] = newv;
                 _vars[v.get_vec_id()] = newv;
@@ -927,9 +927,9 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
         void add(var<T>&& v, Args&&... args){
             list<var<T>> vars;
             vars = {forward<var<T>>(args)...};
-            vars.push_front(move(v));
+            vars.push_front(std::move(v));
             for (auto &v:vars) {
-                add_var(move(v));
+                add_var(std::move(v));
             }
         }
         
@@ -7986,7 +7986,7 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
     //    template<typename T>
     //    pair<shared_ptr<func_>, ObjectiveType> min(func<T>&& f){
     //        f->_val->resize(1);
-    //        auto fcpy = move(f.copy());
+    //        auto fcpy = std::move(f.copy());
     //        return make_pair<>(fcpy,minimize);
     //    };
     

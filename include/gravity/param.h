@@ -641,7 +641,7 @@ namespace gravity {
         }
         
         param (param&& p):param() {
-            *this = move(p);
+            *this = std::move(p);
         }
         
         /** let this share the values, indices and range of p */
@@ -845,8 +845,8 @@ namespace gravity {
             _intype = p._intype;
             _id = p._id;
             _vec_id = p._vec_id;
-            _val = move(p._val);
-            _range = move(p._range);
+            _val = std::move(p._val);
+            _range = std::move(p._range);
             _name = p._name;
             _is_transposed = p._is_transposed;
             _is_vector = p._is_vector;
@@ -859,11 +859,11 @@ namespace gravity {
             _is_imag = p._is_imag;
             _real = p._real;
             _imag = p._imag; _mag = p._mag; _ang = p._ang;
-            _indices = move(p._indices);
+            _indices = std::move(p._indices);
             _dim[0] = p._dim[0];
             _dim[1] = p._dim[1];
-            _off=move(p._off);
-            _in=move(p._in);
+            _off=std::move(p._off);
+            _in=std::move(p._in);
             return *this;
         }
 

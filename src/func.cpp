@@ -1068,7 +1068,7 @@ namespace gravity{
 //        f._qterms = nullptr;
 //        _pterms = f._pterms;
 //        f._pterms = nullptr;
-//        _expr = move(f._expr);
+//        _expr = std::move(f._expr);
 //        _DAG = f._DAG;
 //        f._DAG = nullptr;
 //        _queue = f._queue;
@@ -1098,9 +1098,9 @@ namespace gravity{
 //        _hess_link = f._hess_link;
 //        //        _nb_instances = f._nb_instances;
 //        _nb_vars = f._nb_vars;
-//        _dfdx = move(f._dfdx);
-//        _val = move(f._val);
-//        _indices = move(f._indices);
+//        _dfdx = std::move(f._dfdx);
+//        _val = std::move(f._val);
+//        _indices = std::move(f._indices);
 //        if (is_constant()) {
 //            _evaluated = f._evaluated;
 //        }
@@ -1630,7 +1630,7 @@ namespace gravity{
 //                f._dim[0] = _dim[0];
 //                f._dim[1] = _dim[1];
 //            }
-//            return *this = move(f);
+//            return *this = std::move(f);
 //        }
 //        if (c.is_param() || c.is_var()) {
 ////            if (c.is_matrix() || is_matrix()) {
@@ -1898,7 +1898,7 @@ namespace gravity{
 //                }
 //            }
 //            res.update_dot_dim(*this, c);
-//            *this = move(res);
+//            *this = std::move(res);
 //        }
 //        _evaluated = false;
 //        return *this;
@@ -2216,7 +2216,7 @@ namespace gravity{
 //        else {
 //            res._evaluated = false;
 //        }
-//        res._expr = make_shared<uexpr>(uexpr(cos_, make_shared<func_>((move(c)))));
+//        res._expr = make_shared<uexpr>(uexpr(cos_, make_shared<func_>((std::move(c)))));
 //        res.embed(res._expr);
 //        //        res._DAG->insert(make_pair<>(res._expr->get_str(), res._expr));
 //        res._queue->push_back(res._expr);
@@ -2257,7 +2257,7 @@ namespace gravity{
 //        else {
 //            res._evaluated = false;
 //        }
-//        res._expr = make_shared<uexpr>(uexpr(sin_, make_shared<func_>((move(c)))));
+//        res._expr = make_shared<uexpr>(uexpr(sin_, make_shared<func_>((std::move(c)))));
 //        res.embed(res._expr);
 //        //        res._DAG->insert(make_pair<>(res._expr->get_str(), res._expr));
 //        res._queue->push_back(res._expr);
@@ -2305,7 +2305,7 @@ namespace gravity{
 //        else {
 //            res._evaluated = false;
 //        }
-//        auto exp = make_shared<uexpr>(uexpr(sqrt_, make_shared<func_>((move(c)))));
+//        auto exp = make_shared<uexpr>(uexpr(sqrt_, make_shared<func_>((std::move(c)))));
 //        res._expr = exp;
 //        res.embed(res._expr);
 //        //        res._DAG->insert(make_pair<>(res._expr->get_str(), res._expr));
@@ -2369,7 +2369,7 @@ namespace gravity{
 //        res._is_transposed = c._is_transposed;
 //        res._dim[0] = c._dim[0];
 //        res._dim[1] = c._dim[1];
-//        auto exp = make_shared<uexpr>(uexpr(exp_, make_shared<func_>((move(c)))));
+//        auto exp = make_shared<uexpr>(uexpr(exp_, make_shared<func_>((std::move(c)))));
 //        res._expr = exp;
 //        res.embed(res._expr);
 //        //        res._DAG->insert(make_pair<>(res._expr->get_str(), res._expr));
@@ -2426,7 +2426,7 @@ namespace gravity{
 //        else {
 //            res._evaluated = false;
 //        }
-//        auto exp = make_shared<uexpr>(uexpr(log_, make_shared<func_>((move(c)))));
+//        auto exp = make_shared<uexpr>(uexpr(log_, make_shared<func_>((std::move(c)))));
 //        res._expr = exp;
 //        res.embed(res._expr);
 //        //        res._DAG->insert(make_pair<>(res._expr->get_str(), res._expr));
@@ -3039,7 +3039,7 @@ namespace gravity{
 //                new_c2->_is_vector = true;
 //                auto res = func_(c1);
 //                res._dim[1] = c2._dim[0];
-//                res *= move(*new_c2);
+//                res *= std::move(*new_c2);
 //                res._is_vector = false;
 //                res._is_transposed = false;
 //                delete new_c2;
@@ -3061,7 +3061,7 @@ namespace gravity{
 ////                new_c2->_is_vector = true;
 ////                auto res = func_(c1);
 ////                res._dim[1] = c2._dim[0];
-////                res *= move(*new_c2);
+////                res *= std::move(*new_c2);
 ////                res._is_vector = false;
 ////                res._is_transposed = false;
 ////                delete new_c2;
@@ -3075,7 +3075,7 @@ namespace gravity{
 //            //            if (c1._is_transposed) {
 //            ////                auto new_c2 = copy(c2);
 //            ////                new_c2->_is_vector = true;
-//            ////                auto res = func_(c1) *= move(*new_c2);
+//            ////                auto res = func_(c1) *= std::move(*new_c2);
 //            ////                auto res = ;
 //            ////                delete new_c2;
 //            //                return func_(c1) *= c2;
@@ -3822,7 +3822,7 @@ namespace gravity{
 //                if ((coef->_is_vector && coef->_is_transposed)) {
 //                    coef->transpose();
 //                }
-//                res = move(*coef);
+//                res = std::move(*coef);
 //                delete coef;
 //                if(!lt.second._sign){
 //                    res *= -1;

@@ -164,7 +164,7 @@ public:
     }
     
     Constraint(Constraint&& c){
-        *this = move(c);
+        *this = std::move(c);
     }
     
     void add_to_callback() {
@@ -247,11 +247,11 @@ public:
         _relaxed = c._relaxed;
         _on_off_bin = c._on_off_bin;
         _on_off = c._on_off;
-        this->func<type>::operator=(move(c));
+        this->func<type>::operator=(std::move(c));
         this->_name = c._name;
         this->_is_constraint = true;
-        _onCoef = move(c._onCoef);
-        _offCoef = move(c._offCoef);
+        _onCoef = std::move(c._onCoef);
+        _offCoef = std::move(c._offCoef);
         return *this;
     }
     

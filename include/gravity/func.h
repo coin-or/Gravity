@@ -2641,12 +2641,12 @@ vector<pair<T1,T1>> get_minus_range(const vector<pair<T2,T2>>& y, T1 x){
         
         void set_first_derivative(const param_& v, func&& f){
             DebugOff(f.to_str()<<endl);
-            (*_dfdx)[v._name] = make_shared<func>(move(f));
+            (*_dfdx)[v._name] = make_shared<func>(std::move(f));
         }
         
         void set_second_derivative(const param_& v1, const param_& v2, func&& f){
             DebugOff(f.to_str()<<endl);
-            (*_dfdx)[v1._name]->_dfdx->insert(make_pair<>(v2._name, make_shared<func>(move(f))));
+            (*_dfdx)[v1._name]->_dfdx->insert(make_pair<>(v2._name, make_shared<func>(std::move(f))));
         }
         
         pair<type,type> get_range(shared_ptr<list<pair<shared_ptr<param_>, int>>> pterm) const{
@@ -3885,14 +3885,14 @@ auto num_threads = std::thread::hardware_concurrency();
                 else {
                     f_cst += func<type>(f);
                     embed(f_cst);
-                    _cst = make_shared<func<type>>(move(f_cst));
+                    _cst = make_shared<func<type>>(std::move(f_cst));
                 }
             }
             else if(_cst->is_param()) {
                 auto p_cst = *static_pointer_cast<param<type>>(_cst);
                 auto new_cst = f + p_cst;
                 embed(new_cst);
-                _cst = make_shared<func<type>>(move(new_cst));
+                _cst = make_shared<func<type>>(std::move(new_cst));
             }
             else if(_cst->is_number()) {
                 auto p_cst = *static_pointer_cast<constant<type>>(_cst);
@@ -3907,19 +3907,19 @@ auto num_threads = std::thread::hardware_concurrency();
                 auto f_cst = *static_pointer_cast<func<type>>(_cst);
                 f_cst += func<type>(f);
                 embed(f_cst);
-                _cst = make_shared<func<type>>(move(f_cst));
+                _cst = make_shared<func<type>>(std::move(f_cst));
             }
             else if(_cst->is_param()) {
                 auto p_cst = *static_pointer_cast<param<type>>(_cst);
                 auto f_cst = f + p_cst;
                 embed(f_cst);
-                _cst = make_shared<func<type>>(move(f_cst));
+                _cst = make_shared<func<type>>(std::move(f_cst));
             }
             else if(_cst->is_number()) {
                 auto p_cst = *static_pointer_cast<constant<type>>(_cst);
                 auto f_cst = f + p_cst;
                 embed(f_cst);
-                _cst = make_shared<func<type>>(move(f_cst));
+                _cst = make_shared<func<type>>(std::move(f_cst));
             }
         }
         
@@ -3933,14 +3933,14 @@ auto num_threads = std::thread::hardware_concurrency();
                 else {
                     f_cst += f;
                     embed(f_cst);
-                    _cst = make_shared<func<type>>(move(f_cst));
+                    _cst = make_shared<func<type>>(std::move(f_cst));
                 }
             }
             else if(_cst->is_param()) {
                 auto p_cst = *static_pointer_cast<param<type>>(_cst);
                 auto f_cst = f + func<type>(p_cst);
                 embed(f_cst);
-                _cst = make_shared<func<type>>(move(f_cst));
+                _cst = make_shared<func<type>>(std::move(f_cst));
             }
             else if(_cst->is_number()) {
                 auto p_cst = *static_pointer_cast<constant<type>>(_cst);
@@ -3950,7 +3950,7 @@ auto num_threads = std::thread::hardware_concurrency();
                 else {
                     auto f_cst = f + func<type>(p_cst);
                     embed(f_cst);
-                    _cst = make_shared<func<type>>(move(f_cst));
+                    _cst = make_shared<func<type>>(std::move(f_cst));
                 }
             }
         }
@@ -4140,7 +4140,7 @@ auto num_threads = std::thread::hardware_concurrency();
         }
         
         func(func&& f){
-            *this = move(f);
+            *this = std::move(f);
         }
         
         func(const func& f){
@@ -4695,18 +4695,18 @@ auto num_threads = std::thread::hardware_concurrency();
             _return_type = f._return_type;
             _all_convexity = f._all_convexity;
             _all_sign = f._all_sign;
-            _lterms = move(f._lterms);
-            _qterms = move(f._qterms);
-            _pterms = move(f._pterms);
-            _expr = move(f._expr);
-            _vars = move(f._vars);
-            _params = move(f._params);
-            _cst = move(f._cst);
-            _indices = move(f._indices);
-            _range = move(f._range);
-            _all_range = move(f._all_range);
-            _val = move(f._val);
-            _convexity = move(f._convexity);
+            _lterms = std::move(f._lterms);
+            _qterms = std::move(f._qterms);
+            _pterms = std::move(f._pterms);
+            _expr = std::move(f._expr);
+            _vars = std::move(f._vars);
+            _params = std::move(f._params);
+            _cst = std::move(f._cst);
+            _indices = std::move(f._indices);
+            _range = std::move(f._range);
+            _all_range = std::move(f._all_range);
+            _val = std::move(f._val);
+            _convexity = std::move(f._convexity);
             _sign = f._sign;
             f._sign = nullptr;
             constant_::_is_transposed = f._is_transposed;
@@ -4717,7 +4717,7 @@ auto num_threads = std::thread::hardware_concurrency();
             constant_::_dim[0] = f._dim[0];
             constant_::_dim[1] = f._dim[1];
             _embedded = f._embedded;
-            _dfdx = move(f._dfdx);
+            _dfdx = std::move(f._dfdx);
             _nnz_j = f._nnz_j;
             _nnz_h = f._nnz_h;
             _hess_link = f._hess_link;
@@ -7281,7 +7281,7 @@ auto num_threads = std::thread::hardware_concurrency();
                     res._range->first = extended_mult(res._range->first,(type)_dim[0]);
                     res._range->second = extended_mult(res._range->second,(type)_dim[0]);
                 }
-                *this = move(res);
+                *this = std::move(res);
                 _evaluated = false;
                 _all_convexity = undet_;
                 return *this;
@@ -7741,7 +7741,7 @@ auto num_threads = std::thread::hardware_concurrency();
             if(res.is_quadratic()){res.update_quad_convexity();}
             else {_all_convexity = undet_;}
             res._all_sign = sign_product(_all_sign, f.get_all_sign());
-            *this = move(res);
+            *this = std::move(res);
             _evaluated = false;
             return *this;
         }
@@ -8594,7 +8594,7 @@ auto num_threads = std::thread::hardware_concurrency();
                 }
                 qterm q(sign, c_new, p_new1, p_new2);
                 q._coef_p1_tr = c_p1_transposed;
-                _qterms->insert(make_pair<>(qname, move(q)));
+                _qterms->insert(make_pair<>(qname, std::move(q)));
                 if(p_new1->is_var()){
                     _evaluated = false;
                 }
@@ -8771,7 +8771,7 @@ auto num_threads = std::thread::hardware_concurrency();
                     }
                 }
                 pterm p(sign, c_new, newl);
-                _pterms->insert(make_pair<>(name, move(p)));
+                _pterms->insert(make_pair<>(name, std::move(p)));
                 if(pnew->is_var()){
                     _evaluated = false;
                 }

@@ -133,8 +133,8 @@ namespace gravity {
             this->_name = name;
             constant_::set_type(var_c);
             _num_partns = make_shared<int>(1);
-            _lb = make_shared<func<type>>(move(lb));
-            _ub = make_shared<func<type>>(move(ub));
+            _lb = make_shared<func<type>>(std::move(lb));
+            _ub = make_shared<func<type>>(std::move(ub));
             if(_lb->get_dim()==0 ||_ub->get_dim()==0)
             {
                 this->_range->first = 0;

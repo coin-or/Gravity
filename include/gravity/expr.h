@@ -171,7 +171,7 @@ namespace gravity {
         
         template<class T2, typename enable_if<is_convertible<T2, type>::value && sizeof(T2) < sizeof(type)>::type* = nullptr>
         uexpr(uexpr<T2>&& exp){
-            *this = move(exp);
+            *this = std::move(exp);
         }
         
         uexpr(const uexpr& exp){
@@ -179,7 +179,7 @@ namespace gravity {
         }
         
         uexpr(uexpr&& exp){
-            *this = move(exp);
+            *this = std::move(exp);
         }
         
         uexpr(OperatorType ot, shared_ptr<constant_> son){
@@ -196,7 +196,7 @@ namespace gravity {
         template<class T2, typename enable_if<is_convertible<T2, type>::value && sizeof(T2) < sizeof(type)>::type* = nullptr>
         uexpr& operator=(uexpr<T2>&& exp){
             this->_type = uexp_c;
-            _son = move(exp._son);
+            _son = std::move(exp._son);
             _otype = exp._otype;
             this->_all_convexity = exp._all_convexity;
             this->_all_sign = exp._all_sign;
@@ -218,12 +218,12 @@ namespace gravity {
         
         uexpr& operator=(uexpr&& exp){
             this->_type = uexp_c;
-            _son = move(exp._son);
+            _son = std::move(exp._son);
             _otype = exp._otype;
             this->_all_convexity = exp._all_convexity;
             this->_all_sign = exp._all_sign;
-            this->_range = move(exp._range);
-            this->_all_range = move(exp._all_range);
+            this->_range = std::move(exp._range);
+            this->_all_range = std::move(exp._all_range);
             this->_to_str = exp._to_str;
             this->_coef = exp._coef;
             this->_is_vector = exp._is_vector;
@@ -369,18 +369,18 @@ namespace gravity {
         
         template<class T2, typename enable_if<is_convertible<T2, type>::value && sizeof(T2) < sizeof(type)>::type* = nullptr>
         bexpr(bexpr<T2>&& exp){ /**< Move constructor from binary expression tree */
-            *this = move(exp);
+            *this = std::move(exp);
         };
         
         bexpr(bexpr&& exp){ /**< Move constructor from binary expression tree */
-            *this = move(exp);
+            *this = std::move(exp);
         };
         
         template<class T2, typename enable_if<is_convertible<T2, type>::value && sizeof(T2) < sizeof(type)>::type* = nullptr>
         bexpr& operator=(bexpr<T2>&& exp){
             this->_type = bexp_c;
-            _lson = move(exp._lson);
-            _rson = move(exp._rson);
+            _lson = std::move(exp._lson);
+            _rson = std::move(exp._rson);
             _otype = exp._otype;
             this->_all_convexity = exp._all_convexity;
             this->_all_sign = exp._all_sign;
@@ -401,13 +401,13 @@ namespace gravity {
         
         bexpr& operator=(bexpr&& exp){
             this->_type = bexp_c;
-            _lson = move(exp._lson);
-            _rson = move(exp._rson);
+            _lson = std::move(exp._lson);
+            _rson = std::move(exp._rson);
             _otype = exp._otype;
             this->_all_convexity = exp._all_convexity;
             this->_all_sign = exp._all_sign;
-            this->_range = move(exp._range);
-            this->_all_range = move(exp._all_range);
+            this->_range = std::move(exp._range);
+            this->_all_range = std::move(exp._all_range);
             this->_to_str = exp._to_str;
             this->_coef = exp._coef;
             this->_is_vector = exp._is_vector;
@@ -837,7 +837,7 @@ namespace gravity {
         template<class T2, typename enable_if<is_convertible<T2, type>::value && sizeof(T2) < sizeof(type)>::type* = nullptr>
         mexpr& operator=(mexpr<T2>&& exp){
             this->_type = mexp_c;
-            _children = move(exp._children);
+            _children = std::move(exp._children);
             _otype = exp._otype;
             this->_all_convexity = exp._all_convexity;
             this->_all_sign = exp._all_sign;
@@ -858,12 +858,12 @@ namespace gravity {
         
         mexpr& operator=(mexpr&& exp){
             this->_type = mexp_c;
-            _children = move(exp._children);
+            _children = std::move(exp._children);
             _otype = exp._otype;
             this->_all_convexity = exp._all_convexity;
             this->_all_sign = exp._all_sign;
-            this->_range = move(exp._range);
-            this->_all_range = move(exp._all_range);
+            this->_range = std::move(exp._range);
+            this->_all_range = std::move(exp._all_range);
             this->_to_str = exp._to_str;
             this->_coef = exp._coef;
             this->_is_vector = exp._is_vector;
@@ -905,11 +905,11 @@ namespace gravity {
         
         template<class T2, typename enable_if<is_convertible<T2, type>::value && sizeof(T2) < sizeof(type)>::type* = nullptr>
         mexpr(mexpr<T2>&& exp){ /**< Move constructor from binary expression tree */
-            *this = move(exp);
+            *this = std::move(exp);
         };
         
         mexpr(mexpr&& exp){ /**< Move constructor from binary expression tree */
-            *this = move(exp);
+            *this = std::move(exp);
         };
         
         string to_str(size_t inst,int prec) {

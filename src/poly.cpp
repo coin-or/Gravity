@@ -33,8 +33,8 @@ namespace gravity{
     }
 
     lterm& lterm::operator=(lterm&& l){
-        _coef = move(l._coef);
-        _p = move(l._p);
+        _coef = std::move(l._coef);
+        _p = std::move(l._p);
         _sign = l._sign;
         return *this;
     }
@@ -49,8 +49,8 @@ namespace gravity{
 
 
     qterm& qterm::operator=(qterm&& q){
-        _coef = move(q._coef);
-        _p = move(q._p);
+        _coef = std::move(q._coef);
+        _p = std::move(q._p);
         _sign = q._sign;
         _coef_p1_tr = q._coef_p1_tr;
         return *this;
@@ -70,8 +70,8 @@ namespace gravity{
 
 
     pterm& pterm::operator=(pterm&& p){
-        _coef = move(p._coef);
-        _l = move(p._l);
+        _coef = std::move(p._coef);
+        _l = std::move(p._l);
         _sign = p._sign;
         return *this;
     }

@@ -34,7 +34,7 @@ template<typename type> var<type>::var(const var<type>& v){
 };
 
 template<typename type> var<type>::var(var<type>&& v){
-    *this = move(v);
+    *this = std::move(v);
 };
 
 template<typename type>
@@ -75,17 +75,17 @@ template<typename type> var<type>& var<type>::operator=(const var<type>& v) {
 };
 
 template<typename type> var<type>& var<type>::operator=(var<type>&& v) {
-    this->param<type>::operator=(move(v));
+    this->param<type>::operator=(std::move(v));
     constant_::set_type(var_c);
-    _lb = move(v._lb);
-    _ub = move(v._ub);
+    _lb = std::move(v._lb);
+    _ub = std::move(v._ub);
     _lift=v._lift;
     _lift_lb = v._lift_lb;
     _lift_ub = v._lift_ub;
     _in_SOC_partn=v._in_SOC_partn;
     _num_partns = v._num_partns;
     _cur_partn = v._cur_partn;
-    _original_vars = move(v._original_vars);
+    _original_vars = std::move(v._original_vars);
     _psd=v._psd;
     _psd_diag=v._psd_diag;
     _psd_off_diag=v._psd_off_diag;

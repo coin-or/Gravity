@@ -885,7 +885,7 @@ public:
         auto nb_rows = this->get_nb_rows();
         for (size_t i = 0; i<nb_rows; i++) {
             if(_ids->at(i).size()>0){
-                new_ids->push_back(move(_ids->at(i)));
+                new_ids->push_back(std::move(_ids->at(i)));
             }
         }
         _ids = new_ids;
@@ -1177,11 +1177,11 @@ public:
         if(_name.empty())
             _name = cpy._name;
         _type = cpy._type;
-        _keys_map = move(cpy._keys_map);
-        _excluded_keys = move(cpy._excluded_keys);
-        _keys = move(cpy._keys);
-        _dim = move(cpy._dim);
-        _ids = move(cpy._ids);
+        _keys_map = std::move(cpy._keys_map);
+        _excluded_keys = std::move(cpy._excluded_keys);
+        _keys = std::move(cpy._keys);
+        _dim = std::move(cpy._dim);
+        _ids = std::move(cpy._ids);
         _time_extended = cpy._time_extended;
         _time_pos = cpy._time_pos;
         return *this;
@@ -1192,7 +1192,7 @@ public:
     }
     
     indices(indices&& cpy){
-        *this=move(cpy);
+        *this=std::move(cpy);
     }
     
     //        template<typename Tobj>
