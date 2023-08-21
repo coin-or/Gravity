@@ -31,3 +31,7 @@ add_executable(
 
 target_include_directories(tighten PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/MachineLearning/GravityNN ${CMAKE_CURRENT_SOURCE_DIR}/MachineLearning/GravityNN/network  ${CMAKE_CURRENT_SOURCE_DIR}/MachineLearning/GravityNN/network/Layers ${ONNX_PROTO_HDRS} ${cli11_SOURCE_DIR}/include)
 target_link_libraries(tighten gravity CLI11 onnx)
+if (OpenMPI)
+	include_directories(${MPI_INCLUDE_PATH})
+	target_link_libraries(tighten ${MPI_LIBRARIES})
+endif(OpenMPI)
