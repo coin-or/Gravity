@@ -18,8 +18,8 @@ using namespace hdf5;
 
 
 int main(int argc, const char * argv[]) {
-    bool run_MIP = true;
-    bool initConstrs = true;
+    bool run_MIP = false;
+    bool initConstrs = false;
     string fname = "/Users/svetlanariabova/Projects/Sensor/sim_output/sim_output_60s2/weights_12err.h5";//string(prj_dir)+"/data_sets/sensor/test.h5";//"/Users/svetlanariabova/Projects/Sensor/Data/hdf5/new_weights_0.h5";//
     if(argc<2){
         DebugOn("Please enter the input file path as first argument, using the default file test.h5 found under Gravity/datasets/sensor\n");
