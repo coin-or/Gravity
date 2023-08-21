@@ -30,8 +30,8 @@ int main(int argc, const char * argv[]) {
 //    if(argc>3)
 //        run_MIP = true;
     myModel m = myModel();
-//    auto par = m.readHD5(fname, 1e-8);
-    vector<param<double>> par = m.readData(argc, argv, 1, 2);
+    auto par = m.readHD5(fname, 1e-8);
+//    vector<param<double>> par = m.readData(argc, argv, 1, 2);
     auto start = high_resolution_clock::now();
     m.InitBilevel(par[0], par[1], par[2], 0.00001, initConstrs);
 //    m.InitBilevel2(par[0], par[1], par[2], 0.00001);
