@@ -18,9 +18,9 @@ using namespace hdf5;
 
 
 int main(int argc, const char * argv[]) {
-    bool run_MIP = true;
-    bool initConstrs = true;
-    string fname = "/Users/svetlanariabova/Projects/Sensor/sim_output/sim_output_60s2/weights_12err.h5";//string(prj_dir)+"/data_sets/sensor/test.h5";//"/Users/svetlanariabova/Projects/Sensor/Data/hdf5/new_weights_0.h5";//
+    bool run_MIP = false;//true;
+    bool initConstrs = false;//true;
+    string fname = "/Users/svetlanariabova/Projects/Sensor/sim_output/sim_output_60s97/weights_0.h5";//string(prj_dir)+"/data_sets/sensor/test.h5";//"/Users/svetlanariabova/Projects/Sensor/Data/hdf5/new_weights_0.h5";//
     if(argc<2){
         DebugOn("Please enter the input file path as first argument, using the default file test.h5 found under Gravity/datasets/sensor\n");
     }
@@ -30,8 +30,9 @@ int main(int argc, const char * argv[]) {
 //    if(argc>3)
 //        run_MIP = true;
     myModel m = myModel();
-//    auto par = m.readHD5(fname, 1e-8);
-    vector<param<double>> par = m.readData(argc, argv, 1, 2);
+    auto par = m.readHD5(fname, 1e-8);
+//    vector<param<double>> par = m.readData(argc, argv, 1, 2);
+//    m.readH5SolStats(sol_fname, par[0], par[1], par[2]);
     auto start = high_resolution_clock::now();
     m.InitBilevel(par[0], par[1], par[2], 0.00001, initConstrs);
 //    m.InitBilevel2(par[0], par[1], par[2], 0.00001);
@@ -52,24 +53,29 @@ int main(int argc, const char * argv[]) {
 //    cout << "Done." << endl;
 //    cout << m.N << " " << m.M << " " << m.K << " " << duration1.count() + duration2.count() << endl; //prints num sensors; num objetcs; num agents; total time after reading input (init + greedy + solver)
     
-//    /* writing old sols in a loop*/
-//    for (int i = 0; i < 97; i++) {
+    /* writing old sols in a loop*/
+//    ofstream timeFile;
+//    timeFile.open("/Users/svetlanariabova/Projects/Sensor/Data/sol_tmp/slTime1.dat");
+//    for (int i = 1; i < 3; i++) {
 //        myModel m = myModel();
-//        fname = "/Users/svetlanariabova/Projects/Sensor/sim_output/sim_output_60s97/weights_" + to_string(i) + ".h5";
-//        auto par = m.readHD5(fname, 1e-8);
-//        //vector<param<double>> par = m.readData(argc, argv, 2*i - 1, 2*i);
+//        //fname = "/Users/svetlanariabova/Projects/Sensor/sim_output/sim_output_60s97/weights_" + to_string(i) + ".h5";
+//        //auto par = m.readHD5(fname, 1e-8);
+//        vector<param<double>> par = m.readData(argc, argv, 2*i - 1, 2*i);
 //        auto start = high_resolution_clock::now();
 //        m.InitBilevel(par[0], par[1], par[2], 0.0001, initConstrs);
+//        //m.GreedyStart(par[0], par[1], par[2]);
 //        bool bilevel = false;
-//        auto stop = high_resolution_clock::now();
-//        auto duration1 = duration_cast<seconds>(stop - start);
+//        auto stop1 = high_resolution_clock::now();
+//        auto duration1 = duration_cast<seconds>(stop1 - start);
 //        cout << "Init + greedy time: " << duration1.count() << " seconds." << endl;
 //        m.mSolve(run_MIP);
 //        auto stop2 = high_resolution_clock::now();
-//        auto duration2 = duration_cast<seconds>(stop2 - stop);
+//        auto duration2 = duration_cast<seconds>(stop2 - stop1);
 //        cout << "Solver: " << duration2.count() << " seconds." << endl;
-//        m.writeGreedySol2("/Users/svetlanariabova/Projects/Sensor/Data/sol_tmp/sol_sim_" + to_string(i) + "_nocolab.dat", par[0], par[1], par[2], bilevel);
+//        timeFile << m.arcs.size() << " " << duration1.count() + duration2.count() << endl;
+//        m.writeGreedySol2("/Users/svetlanariabova/Projects/Sensor/Data/sol_tmp/sol_" + to_string(m.arcs.size()) + "_sl.dat", par[0], par[1], par[2], bilevel);
 //    }
+//    timeFile.close();
     return 0;
 }
 
@@ -670,10 +676,10 @@ void myModel::InitBilevel(param<double> &w0, param<double> &w_own, param<double>
             }
         }
         
-        /*budget constraints*/
-        Constraint<> bdgt("bdgt");
-        bdgt = p_z.in(bdgt_idx) - 0.5;
-        model.add(bdgt.in(agents) <= 0); //hadcoded budget!
+//        /*budget constraints*/
+//        Constraint<> bdgt("bdgt");
+//        bdgt = p_z.in(bdgt_idx) - 1000;
+//        model.add(bdgt.in(agents) <= 0); //hadcoded budget!
         
 //        //For comparison: case with no collaboration (only using own sensors)
 //        Constraint<> no_colab("nc");
@@ -852,7 +858,7 @@ void myModel::GreedyStart(const param<double> &w0, const param<double> &w_own, c
     /*tmp; when no hdf5 and no bdgt*/
     map<string,double> bdgt_map;
     for (int k = 0; k < K; k++) {
-        bdgt_map["Agent_" + to_string(k)] = 0.5;
+        bdgt_map["Agent_" + to_string(k)] = 1000;
     }
     
     /*getting vars from model to set values*/
@@ -949,6 +955,175 @@ void myModel::GreedyStart(const param<double> &w0, const param<double> &w_own, c
                 else{
                     wt_bought(idx_str).set_val(0);
                 }
+            }
+        }
+//        psum_wt0 = parSum(wt0);
+//        psum_wt_own = parSum(wt_own);
+//        psum_wt_bought = parSum(wt_bought);
+    }
+   
+    DebugOff("parSum(wt0) = " << psum_wt0 << endl);
+    DebugOff("parSum(wt_own) = " << psum_wt_own << endl);
+    DebugOff("parSum(wt_bought) = " << psum_wt_bought << endl);
+//    DebugOn("----------------------------------------" << endl);
+//    DebugOn("Computing fair prices..." << endl);
+
+    /*set prices*/
+    double y1 = 0; //Seller_lb1
+    double y2 = 0; //Seller_lb2
+    double y3 = 0; //Seller_lb3
+    int s_sum = 0; //sum over own sens that this one could replace (for lb2)
+    int z_sum = 0; //sum over bought sens one could replace (for lb3)
+    string t; //var for replaced sensor
+    for (int i = 0; i < N; i++) {
+        auto sensor_name = sensors.get_key(i);
+        if(sn.eval(i)!=1){
+//            DebugOn(sensor_name << " was not sold\n");
+            continue;
+        }
+//        DebugOn("Computing fair price for " << sensor_name << endl);
+        auto sensor_node = graph.get_node(sensor_name);
+        auto agent_name = agents.get_key(owner[i]);
+        for (const Arc* a : sensor_node->get_out()) {
+            for (const Arc* b : a->_dest->get_in()) {
+                t = b->_src->_name;
+                int o_id = owner[stoi(t.substr(t.find("_") + 1))]; //b->_src->owner_id;
+                if (o_id == owner[i]) {
+                    /*Seller_lb2*/
+                    s_sum += s.eval(t + "," + a->_dest->_name + "," + agent_name);
+                    y2 = std::max(y2, (w_own.eval(sensor_name + "," + a->_dest->_name + "," + agent_name) - w_own.eval(t + "," + a->_dest->_name + "," + agent_name)) * s.eval(t + "," + a->_dest->_name + "," + agent_name));
+                }
+                else {
+                    /*Seller_lb3*/
+                    string id_tmp = t + "," + a->_dest->_name + "," + agent_name;
+                    z_sum += z.eval(id_tmp);
+                    y3 = std::max(y3, std::min(p_ub.at(sensor_name), (w_own.eval(sensor_name + "," + a->_dest->_name + "," + agent_name) - w_bought.eval(t + "," + a->_dest->_name + "," + agent_name) + p_ub.at(t)) * z.eval(t + "," + a->_dest->_name + "," + agent_name)));
+                }
+            }
+            if (y1 < w_own.eval(sensor_name + "," + a->_dest->_name + "," + agent_name) * (1 - s_sum - z_sum)) {
+                /*Seller_lb1*/
+                y1 = w_own.eval(sensor_name + "," + a->_dest->_name + "," + agent_name) * (1 - s_sum - z_sum);
+            }
+            s_sum = 0;
+            z_sum = 0;
+        }
+        /*Fair price*/
+        y.set_val(sensor_name,std::max(std::max(y1, y2), y3));
+        p.set_val(sensor_name,(p_ub.at(sensor_name) + std::max(std::max(y1, y2), y3))/2.);
+        /*update p_sn and p_z*/
+        p_sn.set_val(sensor_name,sn.eval(sensor_name) * (p_ub.at(sensor_name) + std::max(std::max(y1, y2), y3))/2.);
+        obj += p_sn.eval(sensor_name);
+        for (auto a : sensor_node->get_out()) {
+            for (int k = 0; k < K; k++) {
+                if(k==owner[i])
+                    continue;
+                string agent_k_name = agents.get_key(k);
+                p_z.set_val(sensor_name + "," + a->_dest->_name + "," + agent_k_name, z.eval(sensor_name + "," + a->_dest->_name + "," + agent_k_name) * (p_ub.at(sensor_name) + std::max(std::max(y1, y2), y3))/2.);
+                obj -= p_z.eval(sensor_name + "," + a->_dest->_name + "," + agent_k_name);
+            }
+        }
+        obj -= e * p_sn.eval("Sensor_" + to_string(i));
+        y1 = 0;
+        y2 = 0;
+        y3 = 0;
+    }
+    cout << "Greedy objective: " << obj << endl;
+    objVal = obj;
+}
+
+void myModel::GreedyStart_nocolab(const param<double> &w0, const param<double> &w_own, const param<double> &w_bought) {
+
+//    DebugOn("Running Greedy Algorithm..."<<endl);
+    /*copying params and putting them in a queue to change them in greedy*/
+    param<double> wt0 = w0.deep_copy();
+    param<double> wt_own = w_own.deep_copy();
+    param<double> wt_bought = w_bought.deep_copy();
+
+    priority_queue<tuple<double, int, string>, vector<tuple<double, int, string>>, TCompare> w_q; //tuples compared by first element
+    double wt_sum = 0; //while loop stopping criterion
+
+    for (int i = 0; i < w0.get_dim(); i++) {
+        w_q.push(make_tuple(w0.eval(i), i, "w0"));
+        wt_sum += w0.eval(i);
+    }
+    for (int i = 0; i < w_own.get_dim(); i++) {
+        w_q.push(make_tuple(w_own.eval(i), i, "w_own"));
+        wt_sum += w_own.eval(i);
+    }
+    for (int i = 0; i < w_bought.get_dim(); i++) {
+        w_q.push(make_tuple(w_bought.eval(i), i, "w_bought"));
+        wt_sum += w_bought.eval(i);
+    }
+//    DebugOn("Done building priority queue " << endl);
+    /*copying budget to change it in greedy*/
+//    map<string,double> bdgt_map;
+//    for (int i = 0; i<budget.size(); i++) {
+//        bdgt_map[agents.get_key(i)] = budget[i];
+//    }
+    /*tmp; when no hdf5 and no bdgt*/
+    map<string,double> bdgt_map;
+    for (int k = 0; k < K; k++) {
+        bdgt_map["Agent_" + to_string(k)] = 1000;
+    }
+    
+    /*getting vars from model to set values*/
+    auto s = model.get_var<int>("s");
+    auto sn = model.get_var<int>("sn");
+    auto z0 = model.get_var<int>("z0");
+    auto z = model.get_var<int>("z");
+    auto p = model.get_var<double>("p");
+    auto p_sn = model.get_var<double>("p_sn");
+    auto p_z = model.get_var<double>("p_z");
+    auto y = model.get_var<double>("y");
+    
+    /*index and value of max weights*/
+    string idx_str;
+    string sensor_name;
+    string object_name;
+    string agent_name;
+    tuple<double, int, string> max_wt;
+    double w;
+    int idx;
+
+    double obj = 0; //used to eval greedy objective
+    map<string,double> p_ub; //price upper bound (for fair price)
+    for (const auto &sensor_name:*sensors._keys) {
+        p_ub[sensor_name] = std::max(w_own._range->second,w_bought._range->second);
+    }
+
+    double psum_wt0 = parSum(wt0), psum_wt_own = parSum(wt_own), psum_wt_bought = parSum(wt_bought);
+    while(!w_q.empty()) {
+//        DebugOn("parSum(wt0) = " << psum_wt0 << endl);
+//        DebugOn("parSum(wt_own) = " << psum_wt_own << endl);
+//        DebugOn("parSum(wt_bought) = " << psum_wt_bought << endl);
+
+        /*finding max weights (idx) in 3 weight sets*/
+        max_wt = w_q.top();
+        w_q.pop();
+
+        w = get<0>(max_wt);
+        idx = get<1>(max_wt);
+
+        if (get<2>(max_wt) == "w0") {
+            if (wt0.eval(idx) > 0) {
+                idx_str = w0.get_key(idx);
+                wt0(idx_str).set_val(0);
+            }
+        }
+        else if (get<2>(max_wt) == "w_own") {
+            if (wt_own.eval(idx) > 0) {
+                /*assign own*/
+                idx_str = wt_own.get_key(idx);
+                //double tmp = wt_own.eval(idx);
+                obj += wt_own.eval(idx);
+                obj += wt0.eval(idx_str.substr(0, idx_str.find(",A")));
+                assignOwn(idx_str, wt0, wt_own, wt_bought);
+            }
+        }
+        else {
+            if (wt_bought.eval(idx) > 0) {
+                idx_str = wt_bought.get_key(idx);
+                wt_bought(idx_str).set_val(0);
             }
         }
 //        psum_wt0 = parSum(wt0);
@@ -1244,6 +1419,83 @@ void myModel::readGreedySol(string fname) {
         g(id).set_val(stod(tmpval));
     }
     file.close();
+}
+
+void myModel::readH5SolStats(string fname, param<double> &w0, param<double> &w_own, param<double> &w_bought) {
+#ifdef USE_H5CPP
+    /*weights for obj (own + leader, bought + leader); leader receives utility when an object is observed, no matter by whom*/
+    func<> f = w_own + w0.in_ignore_ith(2, 1, own_arcs);
+    f.eval_all();
+    param<> w_own0("w_own0");
+    w_own0.in(own_arcs);
+    w_own0.copy_vals(f);
+    
+    func<> f2 = w_bought + w0.in_ignore_ith(2, 1, bought_arcs);
+    f2.eval_all();
+    param<> w_bought0("w_bought0");
+    w_bought0.in(bought_arcs);
+    w_bought0.copy_vals(f2);
+    
+    indices assignment_p1("assignment_p1");
+    indices assignment_p2("assignment_p2");
+    indices assignment_p3("assignment_p3");
+    
+    auto hd5file = file::open(fname);
+    auto RootGroup = hd5file.root();
+    auto assignment_group = RootGroup.get_group("assignment");
+    auto tmp_group = assignment_group.get_dataset("binaries: (sensor id, object id, agent id)");
+//    auto sensor_id = assignment_group.get_dataset("sensor_id");
+//    auto object_id = assignment_group.get_dataset("object_id");
+//    auto agent_id = assignment_group.get_dataset("agent_id");
+    
+    dataspace::Simple Dataspace1(tmp_group.dataspace());
+    std::vector<string> AllElements1(Dataspace1.size());
+    tmp_group.read(AllElements1);
+    for (auto Value : AllElements1) {
+        assignment_p1.insert("Sensor_"+Value);
+    }
+    
+//    dataspace::Simple Dataspace1(sensor_id.dataspace());
+//    std::vector<string> AllElements1(Dataspace1.size());
+//    sensor_id.read(AllElements1);
+//    for (auto Value : AllElements1) {
+//        assignment_p1.insert("Sensor_"+Value);
+//    }
+//
+//    dataspace::Simple Dataspace2(object_id.dataspace());
+//    std::vector<string> AllElements2(Dataspace2.size());
+//    object_id.read(AllElements2);
+//    for (auto Value : AllElements2) {
+//        assignment_p2.insert("Object_"+Value);
+//    }
+//
+//    dataspace::Simple Dataspace3(agent_id.dataspace());
+//    std::vector<string> AllElements3(Dataspace3.size());
+//    agent_id.read(AllElements3);
+//    for (auto Value : AllElements3) {
+//        assignment_p3.insert("Agent_"+Value);
+//    }
+    
+    double obj = 0;
+    
+    for (int i = 0; i < assignment_p1.size(); i++) {
+        string sen = assignment_p1.get_key(i);
+        string obj = assignment_p2.get_key(i);
+        string agt = assignment_p3.get_key(i);
+        string idx = sen + "," + obj + "," + agt;
+        if (owner[stoi(sen.substr(7, sen.size()))] == stoi(agt.substr(6, agt.size()))) {
+            obj += w_own0.eval(idx);
+        }
+        else {
+            obj += w_bought0.eval(idx);
+        }
+        /* need to account for the leader in the future*/
+    }
+    cout << obj << endl;
+#else
+    cerr << "Can't read Hd5 as a solver: this version of Gravity was compiled without H5CPP. Rerun cmake with -DH5CPP=ON." << endl;
+    exit(1);
+#endif
 }
 
 void myModel::assignLeader(string &idx, param<double> &wt0, param<double> &wt_own, param<double> &wt_bought) {

@@ -45,11 +45,12 @@ public:
     vector<param<double>> readHD5(const string& file_name, double wThrsh);
     void InitBilevel(param<double> &w0, param<double> &w_own, param<double> &w_bought, double eps, bool initConstrs);
     void mSolve(bool run_mip=false);
-    void saveSolStats();
     void GreedyStart(const param<double> &w0, const param<double> &w_own, const param<double> &w_bought);
+    void GreedyStart_nocolab(const param<double> &w0, const param<double> &w_own, const param<double> &w_bought);
     void writeGreedySol(string fname);
     void writeGreedySol2(string fname, param<double> &w0, param<double> &w_own, param<double> &w_bought, bool bilevel);
     void readGreedySol(string fname);
+    void readH5SolStats(string fname, param<double> &w0, param<double> &w_own, param<double> &w_bought);
     void assignLeader(string &idx, param<double> &wt0, param<double> &wt_own, param<double> &wt_bought);
     void assignOwn(string &idx, param<double> &wt0, param<double> &wt_own, param<double> &wt_bought);
     void assignBought(string &idx, param<double> &wt0, param<double> &wt_own, param<double> &wt_bought, int ownr, string owner_name);
