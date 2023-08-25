@@ -246,11 +246,15 @@ vector<param<double>> myModel::readHD5(const string& fname, double wThrsh){
                 bought_sens.add(sensor_name + "," + agent_name);
                 for (const Arc* a: sensor_node->get_out()) {
                     bought_arcs.add(a->_src->_name + "," + a->_dest->_name +  "," + agent_name);
-                    int tmp = a->_dest->_id + nb_objects * k;
+                    int object = stoi(a->_dest->_name.substr(7, a->_dest->_name.size()));
+                    int tmp = k + object * K;//a->_dest->_id + nb_objects * k;
                     if (tmp >= priority.size()) {
                         cout << "Priority out of range " << tmp << " " << priority.size() << endl;
                     }
                     double wTmp = a->weight * priority[tmp];
+//                    if (a->_src->_name + "," + a->_dest->_name +  "," + agent_name == "Sensor_2,Object_14257,Agent_10") { cout << "Sensor_2,Object_14257,Agent_10 " << a->weight << " " << priority[tmp] << " " << k << endl; }
+//                    if (a->_src->_name + "," + a->_dest->_name +  "," + agent_name == "Sensor_7,Object_10348,Agent_7") { cout << "Sensor_7,Object_10348,Agent_7 " << a->weight << " " << priority[tmp] << " " << k <<  endl; }
+//                    if (a->_src->_name + "," + a->_dest->_name +  "," + agent_name == "Sensor_62,Object_6398,Agent_7") { cout << "Sensor_62,Object_6398,Agent_7 " << a->weight << " " << priority[tmp] << " " << k <<  endl; }
                     if (wTmp > wThrsh) {
                         w_bought.add_val(wTmp);
                     }
@@ -833,6 +837,10 @@ void myModel::GreedyStart(const param<double> &w0, const param<double> &w_own, c
     param<double> wt0 = w0.deep_copy();
     param<double> wt_own = w_own.deep_copy();
     param<double> wt_bought = w_bought.deep_copy();
+    
+    cout << wt_bought.eval("Sensor_2,Object_14257,Agent_2") << endl;
+    cout << wt_bought.eval("Sensor_4,Object_11627,Agent_2") << endl;
+    cout << wt_bought.eval("Sensor_223,Object_13702,Agent_8") << endl;
 
     priority_queue<tuple<double, int, string>, vector<tuple<double, int, string>>, TCompare> w_q; //tuples compared by first element
     double wt_sum = 0; //while loop stopping criterion

@@ -246,7 +246,8 @@ vector<param<double>> myModel::readHD5(const string& fname, double wThrsh){
                 bought_sens.add(sensor_name + "," + agent_name);
                 for (const Arc* a: sensor_node->get_out()) {
                     bought_arcs.add(a->_src->_name + "," + a->_dest->_name +  "," + agent_name);
-                    int tmp = a->_dest->_id + nb_objects * k;
+                    int object = stoi(a->_dest->_name.substr(7, a->_dest->_name.size()));
+                    int tmp = k + object * K;//a->_dest->_id + nb_objects * k;
                     if (tmp >= priority.size()) {
                         cout << "Priority out of range " << tmp << " " << priority.size() << endl;
                     }
