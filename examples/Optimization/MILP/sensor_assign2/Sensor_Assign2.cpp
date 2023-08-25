@@ -223,7 +223,9 @@ vector<param<double>> myModel::readHD5(const string& fname, double wThrsh){
             if (owner[i] == k) {
                 for (const Arc* a: sensor_node->get_out()) {
                     own_arcs.add(sensor_name + "," + a->_dest->_name + "," + agent_name);
-                    double wTmp = a->weight*priority[a->_dest->_id+nb_objects*k];
+                    int object = stoi(a->_dest->_name.substr(7, a->_dest->_name.size()));
+                    int tmp = k + object * K;//a->_dest->_id + nb_objects * k;
+                    double wTmp = a->weight*priority[tmp];
                     if (wTmp > wThrsh) {
                         w_own.add_val(wTmp);
                     }

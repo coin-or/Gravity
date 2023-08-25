@@ -223,7 +223,9 @@ vector<param<double>> myModel::readHD5(const string& fname, double wThrsh){
             if (owner[i] == k) {
                 for (const Arc* a: sensor_node->get_out()) {
                     own_arcs.add(sensor_name + "," + a->_dest->_name + "," + agent_name);
-                    double wTmp = a->weight*priority[a->_dest->_id+nb_objects*k];
+                    int object = stoi(a->_dest->_name.substr(7, a->_dest->_name.size()));
+                    int tmp = k + object * K;//a->_dest->_id + nb_objects * k;
+                    double wTmp = a->weight*priority[tmp];
                     if (wTmp > wThrsh) {
                         w_own.add_val(wTmp);
                     }
@@ -837,10 +839,7 @@ void myModel::GreedyStart(const param<double> &w0, const param<double> &w_own, c
     param<double> wt0 = w0.deep_copy();
     param<double> wt_own = w_own.deep_copy();
     param<double> wt_bought = w_bought.deep_copy();
-    
-    cout << wt_bought.eval("Sensor_2,Object_14257,Agent_2") << endl;
-    cout << wt_bought.eval("Sensor_4,Object_11627,Agent_2") << endl;
-    cout << wt_bought.eval("Sensor_223,Object_13702,Agent_8") << endl;
+
 
     priority_queue<tuple<double, int, string>, vector<tuple<double, int, string>>, TCompare> w_q; //tuples compared by first element
     double wt_sum = 0; //while loop stopping criterion
@@ -889,6 +888,7 @@ void myModel::GreedyStart(const param<double> &w0, const param<double> &w_own, c
     int idx;
 
     double obj = 0; //used to eval greedy objective
+    double u_own = 0;
     map<string,double> p_ub; //price upper bound (for fair price)
     for (const auto &sensor_name:*sensors._keys) {
         p_ub[sensor_name] = std::max(w_own._range->second,w_bought._range->second);
@@ -938,6 +938,7 @@ void myModel::GreedyStart(const param<double> &w0, const param<double> &w_own, c
                 //double tmp = wt_own.eval(idx);
                 obj += wt_own.eval(idx);
                 obj += wt0.eval(idx_str.substr(0, idx_str.find(",A")));
+                u_own += wt_own.eval(idx);
                 assignOwn(idx_str, wt0, wt_own, wt_bought);
             }
         }
@@ -1030,12 +1031,13 @@ void myModel::GreedyStart(const param<double> &w0, const param<double> &w_own, c
                 obj -= p_z.eval(sensor_name + "," + a->_dest->_name + "," + agent_k_name);
             }
         }
-        obj -= e * p_sn.eval("Sensor_" + to_string(i));
+        //obj -= e * p_sn.eval("Sensor_" + to_string(i));
         y1 = 0;
         y2 = 0;
         y3 = 0;
     }
     cout << "Greedy objective: " << obj << endl;
+    cout << "Own util: " << u_own << endl;
     objVal = obj;
 }
 
