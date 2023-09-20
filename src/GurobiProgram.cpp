@@ -13,6 +13,24 @@ public:
     vector<GRBLinExpr> vec_expi;
     int soc_viol=0, soc_found=0,soc_added=0,det_viol=0, det_found=0, det_added=0;
     int soc_viol_user=0, soc_found_user=0,soc_added_user=0,det_viol_user=0, det_found_user=0, det_added_user=0;
+    
+    void update_solution(){
+        size_t vid, vid_inst;
+        GRBVar gvar;
+        param_* v;
+        for(auto& v_p: m->_vars)
+        {
+            v = v_p.second.get();
+            auto idx = v->get_id();
+            auto dim = v->_dim[0];
+            for (auto i = 0; i < dim; i++) {
+                auto vid = idx + v->get_id_inst(i);
+                gvar = vars.at(vid);
+                v->set_double_val(i,getSolution(gvar));
+            }
+        }
+    }
+    
     //cuts(vector<GRBVar> _grb_vars, int xn, Model<>* mn, Model<> interiorn, vector<GRBLinExpr>& vec_exp) {
     cuts(vector<GRBVar> _grb_vars, int xn, Model<>* mn, Model<> interiorn) {
         vars = _grb_vars;
@@ -49,15 +67,16 @@ protected:
                     add_bag_iteration=add_bag;
                     add_full_iteration=add_full;
                     /* Found an integer feasible solution */
-                    double *x = new double[n];
-                    vector<double> vec_x;
-                    int i;
-                    x=getSolution(vars.data(),n);
-                    for(i=0;i<n;i++){
-                        vec_x.push_back(x[i]);
-                    }
+//                    double *x = new double[n];
+//                    vector<double> vec_x;
+//                    int i;
+//                    x=getSolution(vars.data(),n);
+//                    for(i=0;i<n;i++){
+//                        vec_x.push_back(x[i]);
+//                    }
+                    update_solution();
+                    m->compute_funcs();
                     if(add_soc){
-                        m->set_solution(vec_x);
                         auto res= m->cutting_planes_soc(1e-9, soc_found, soc_added);
                         if(res.size()>=1){
                             for(auto i=0;i<res.size();i++){
@@ -74,13 +93,8 @@ protected:
                                 m->num_cuts[0]++;
                             }
                         }
-                        //                        if(hierarc && res.size()>=1){
-                        //                            add_bag_iteration=false;
-                        //                            add_full_iteration=false;
-                        //                        }
                     }
                     if(add_threed){
-                        m->set_solution(vec_x);
                         auto res= m->cutting_planes_threed(1e-9, soc_found, soc_added);
                         if(res.size()>=1){
                             for(auto i=0;i<res.size();i++){
@@ -103,7 +117,6 @@ protected:
                         }
                     }
                     if(add_bag_iteration){
-                        m->set_solution(vec_x);
                         auto res1=m->cuts_eigen_bags(1e-9);
                         if(res1.size()>=1){
                             for(auto i=0;i<res1.size();i++){
@@ -124,7 +137,6 @@ protected:
                             add_full_iteration=false;
                     }
                     if(add_full_iteration){
-                        m->set_solution(vec_x);
                         auto res2=m->cuts_eigen_full(1e-9);
                         if(res2.size()>=1){
                             for(auto i=0;i<res2.size();i++){
@@ -151,16 +163,9 @@ protected:
                         if(nc%1==0){
                             add_bag_iteration=add_bag;
                             add_full_iteration=add_full;
-                            double *x = new double[n];
-                            vector<double> vec_x;
-                            int i;
-                            x=getNodeRel(vars.data(),n);
-                            for(i=0;i<n;i++){
-                                vec_x.push_back(x[i]);
-                            }
-                            m->set_solution(vec_x);
+                            update_solution();
+                            m->compute_funcs();
                             if(add_soc){
-                                m->set_solution(vec_x);
                                 auto res= m->cutting_planes_soc(1e-9, soc_found, soc_added);
                                 if(res.size()>=1){
                                     for(auto i=0;i<res.size();i++){
@@ -183,7 +188,6 @@ protected:
                                 //                                }
                             }
                             if(add_threed){
-                                m->set_solution(vec_x);
                                 auto res= m->cutting_planes_threed(1e-9, soc_found, soc_added);
                                 if(res.size()>=1){
                                     for(auto i=0;i<res.size();i++){
@@ -206,7 +210,6 @@ protected:
                                 }
                             }
                             if(add_bag_iteration){
-                                m->set_solution(vec_x);
                                 auto res1=m->cuts_eigen_bags(1e-9);
                                 if(res1.size()>=1){
                                     DebugOff("Added " << res1.size() << " bag cuts\n");
@@ -228,7 +231,6 @@ protected:
                                     add_full_iteration=false;
                             }
                             if(add_full_iteration){
-                                m->set_solution(vec_x);
                                 auto res2=m->cuts_eigen_full(1e-9);
                                 if(res2.size()>=1){
                                     DebugOff("Added " << res2.size() << " full cuts\n");
