@@ -75,7 +75,7 @@ protected:
 //                        vec_x.push_back(x[i]);
 //                    }
                     update_solution();
-                    m->compute_funcs();
+//                    m->compute_funcs();
                     if(add_soc){
                         auto res= m->cutting_planes_soc(1e-9, soc_found, soc_added);
                         if(res.size()>=1){
@@ -164,7 +164,7 @@ protected:
                             add_bag_iteration=add_bag;
                             add_full_iteration=add_full;
                             update_solution();
-                            m->compute_funcs();
+//                            m->compute_funcs();
                             if(add_soc){
                                 auto res= m->cutting_planes_soc(1e-9, soc_found, soc_added);
                                 if(res.size()>=1){
@@ -469,6 +469,7 @@ void GurobiProgram::reset_model(){
 bool GurobiProgram::solve(bool relax, double mipgap, double time_limit){
     //cout << "\n Presolve = " << grb_env->get(GRB_IntParam_Presolve) << endl;
     //    print_constraints();
+    grb_mod->update();
     if (relax) relax_model();
     else
         unrelax_model();
