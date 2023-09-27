@@ -94,6 +94,10 @@ int main(int argc, char * argv[]){
     m->add_hierarc=hierarc;
     
     auto g=CBF_read(fname.c_str(), m);
+    if(g.nodes.size()==0){
+        cerr << "graph with size 0\n";
+        return -1;
+    }
     m->print();
     DebugOn("Instance "<<fname<<endl);
 
