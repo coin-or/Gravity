@@ -14,6 +14,24 @@ public:
     int soc_viol=0, soc_found=0,soc_added=0,det_viol=0, det_found=0, det_added=0;
     int soc_viol_user=0, soc_found_user=0,soc_added_user=0,det_viol_user=0, det_found_user=0, det_added_user=0;
     
+    
+    void update_rel_solution(){
+        size_t vid, vid_inst;
+        GRBVar gvar;
+        param_* v;
+        for(auto& v_p: m->_vars)
+        {
+            v = v_p.second.get();
+            auto idx = v->get_id();
+            auto dim = v->_dim[0];
+            for (auto i = 0; i < dim; i++) {
+                auto vid = idx + v->get_id_inst(i);
+                gvar = vars.at(vid);
+                v->set_double_val(i,getNodeRel(gvar));
+            }
+        }
+    }
+    
     void update_solution(){
         size_t vid, vid_inst;
         GRBVar gvar;
@@ -163,7 +181,7 @@ protected:
                         if(nc%1==0){
                             add_bag_iteration=add_bag;
                             add_full_iteration=add_full;
-                            update_solution();
+                            update_rel_solution();
 //                            m->compute_funcs();
                             if(add_soc){
                                 auto res= m->cutting_planes_soc(1e-9, soc_found, soc_added);
@@ -584,7 +602,7 @@ bool GurobiProgram::solve(bool relax, double mipgap, double time_limit){
         
         if(add_soc){
             
-            auto res= _model->cutting_planes_soc(1e-6, soc_found, soc_added);
+            auto res= _model->cutting_planes_soc(1e-9, soc_found, soc_added);
             if(res.size()>=1){
                 add_cut=true;
                 for(auto i=0;i<res.size();i++){
@@ -608,7 +626,7 @@ bool GurobiProgram::solve(bool relax, double mipgap, double time_limit){
         }
         if(add_threed){
             
-            auto res= _model->cutting_planes_threed(1e-6, soc_found, soc_added);
+            auto res= _model->cutting_planes_threed(1e-9, soc_found, soc_added);
             if(res.size()>=1){
                 add_cut=true;
                 for(auto i=0;i<res.size();i++){
@@ -629,7 +647,7 @@ bool GurobiProgram::solve(bool relax, double mipgap, double time_limit){
         
         if(add_bag_iteration){
             
-            auto res=_model->cuts_eigen_bags(1e-6);
+            auto res=_model->cuts_eigen_bags(1e-9);
             if(res.size()>=1){
                 add_cut=true;
                 for(auto i=0;i<res.size();i++){
@@ -651,7 +669,7 @@ bool GurobiProgram::solve(bool relax, double mipgap, double time_limit){
         }
         
         if(add_full_iteration){
-            auto res2=_model->cuts_eigen_full(1e-6);
+            auto res2=_model->cuts_eigen_full(1e-9);
             if(res2.size()>=1){
                 add_cut=true;
                 for(auto i=0;i<res2.size();i++){
