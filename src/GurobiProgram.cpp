@@ -602,7 +602,7 @@ bool GurobiProgram::solve(bool relax, double mipgap, double time_limit){
         
         if(add_soc){
             
-            auto res= _model->cutting_planes_soc(1e-9, soc_found, soc_added);
+            auto res= _model->cutting_planes_soc(1e-6, soc_found, soc_added);
             if(res.size()>=1){
                 add_cut=true;
                 for(auto i=0;i<res.size();i++){
@@ -626,7 +626,7 @@ bool GurobiProgram::solve(bool relax, double mipgap, double time_limit){
         }
         if(add_threed){
             
-            auto res= _model->cutting_planes_threed(1e-9, soc_found, soc_added);
+            auto res= _model->cutting_planes_threed(1e-6, soc_found, soc_added);
             if(res.size()>=1){
                 add_cut=true;
                 for(auto i=0;i<res.size();i++){
@@ -647,7 +647,7 @@ bool GurobiProgram::solve(bool relax, double mipgap, double time_limit){
         
         if(add_bag_iteration){
             
-            auto res=_model->cuts_eigen_bags(1e-9);
+            auto res=_model->cuts_eigen_bags(1e-6);
             if(res.size()>=1){
                 add_cut=true;
                 for(auto i=0;i<res.size();i++){
@@ -669,7 +669,7 @@ bool GurobiProgram::solve(bool relax, double mipgap, double time_limit){
         }
         
         if(add_full_iteration){
-            auto res2=_model->cuts_eigen_full(1e-9);
+            auto res2=_model->cuts_eigen_full(1e-6);
             if(res2.size()>=1){
                 add_cut=true;
                 for(auto i=0;i<res2.size();i++){
