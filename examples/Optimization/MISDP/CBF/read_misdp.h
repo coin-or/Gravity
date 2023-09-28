@@ -114,7 +114,8 @@ Net CBF_read(const char *file, shared_ptr<Model<double>>& m, bool add_3d) {
     
     pFile = FOPEN(file, "rt");
     if (!pFile) {
-        throw invalid_argument("cannot open misdp data file");
+        cerr <<"Cannot open misdp data file " << file << endl;
+        return g;
     }
     CBFdata data = { 0, };
     // Keyword OBJ should exist!

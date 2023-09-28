@@ -56,7 +56,7 @@ using namespace std;
 int main(int argc, char * argv[]){
 
     //string fname=string(prj_dir)+"/data_sets/MISDP/2x7_3bars.cbf";
-    string fname=string(prj_dir)+"/data_sets/MISDP/band50_3.cbf";
+    string fname=string(prj_dir)+"/data_sets/MISDP/2x3_3bars.cbf";
     bool root_refine = false, add_soc=false, add_threed=false, add_bag=false, hierarc=false;
     string root_refine_s = "false", add_soc_s="false", add_threed_s="false", add_bag_s="false", hierarc_s="false";
     if(argc>=2){
@@ -94,6 +94,10 @@ int main(int argc, char * argv[]){
     m->add_hierarc=hierarc;
     
     auto g=CBF_read(fname.c_str(), m);
+    if(g.nodes.size()==0){
+        cerr << "graph with size 0\n";
+        return -1;
+    }
     m->print();
     DebugOn("Instance "<<fname<<endl);
 
