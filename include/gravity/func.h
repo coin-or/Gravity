@@ -10810,7 +10810,7 @@ func<T> sin(const var<T>& p1){
         auto id_inst = p1.get_id_inst(i);
         res._all_range->at(i).first = gravity::min(std::sin(p1.get_lb(id_inst)),std::sin(p1.get_ub(id_inst)));
         res._all_range->at(i).second = gravity::max(std::sin(p1.get_lb(id_inst)),std::sin(p1.get_ub(id_inst)));
-        auto shifted_range = {p1.get_lb(id_inst)+pi/2.,p1.get_ub(id_inst)+pi/2.};
+        auto shifted_range = make_pair<T, T>(p1.get_lb(id_inst)+pi/2.,p1.get_ub(id_inst)+pi/2.);
         if(shifted_range.first <0 && shifted_range.second >0){
             res._all_range->at(i).second = 1;
         }
@@ -10899,7 +10899,7 @@ template<class T1>
 func<T1> ReLU(const var<T1>& p1){
     func<T1> res(uexpr<T1>(relu_, p1.copy()));
     if (p1.is_var()) {
-        res._all_convexity = convex_;
+        res._all_convexity = undet_;
     }
     res._all_sign = non_neg_;
     res._range->first = zero<T1>().eval();
@@ -10930,6 +10930,9 @@ auto num_threads = std::thread::hardware_concurrency();
     func<T1> ReLU(const param<T1>& p1){
         func<T1> res(uexpr<T1>(relu_, p1.copy()));
         if (p1.is_var()) {
+            res._all_convexity = undet_;
+        }
+        else{
             res._all_convexity = convex_;
         }
         res._all_sign = non_neg_;
@@ -11581,10 +11584,10 @@ func<T> pow(const var<T>& p1, int exp){
     template<class T1>
     func<T1> ReLU(const func<T1>& f){
         func<T1> res(uexpr<T1>(relu_, f.copy()));
-        if (f.is_linear()) {
+        if (f.is_constant()) {
             res._all_convexity = convex_;
         }
-        else if(!f.is_constant()){
+        else {
             res._all_convexity = undet_;
         }
         res._all_sign = non_neg_;
@@ -11606,10 +11609,10 @@ func<T> pow(const var<T>& p1, int exp){
     template<class T1>
     func<T1> abs(const func<T1>& f){
         func<T1> res(uexpr<T1>(abs_, f.copy()));
-        if (f.is_linear()) {
+        if (f.is_constant()) {
             res._all_convexity = convex_;
         }
-        else if(!f.is_constant()){
+        else {
             res._all_convexity = undet_;
         }
         res._all_sign = non_neg_;

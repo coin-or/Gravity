@@ -143,6 +143,17 @@ TEST_CASE("testing bound propagation") {
     y.set_lb("1", 40./23);
     y.set_ub("1", 40./23);
     y.print();
+    auto f_sin = sin(y);
+    f_sin.print();
+    CHECK(f_sin._all_range->at(0).first==std::sin(5));
+    CHECK(f_sin._all_range->at(0).second==std::sin(4));
+    CHECK(f_sin._all_range->at(1).first==std::sin(40./23));
+    CHECK(f_sin._all_range->at(1).second==std::sin(40./23));
+    CHECK(f_sin._all_range->at(2).first==-1);
+    CHECK(f_sin._all_range->at(2).second==std::sin(1));
+    CHECK(f_sin._all_range->at(3).first==std::sin(-2));
+    CHECK(f_sin._all_range->at(3).second==std::sin(-2));
+
     auto f_lin6 = A.in(mat_mul_A)*y.in(mat_mul_y) + c.in(range(0,2));
     f_lin6.print();
     CHECK(f_lin6._all_range->at(0).first==11);
@@ -171,6 +182,8 @@ TEST_CASE("testing bound propagation") {
     CHECK(f_nlin2._all_range->at(1).second==29);
     CHECK(f_nlin2._all_range->at(2).first==0);
     CHECK(f_nlin2._all_range->at(2).second==0);
+    
+    
     
     indices x_sub_ids("x_sub_ids");
     x_sub_ids.add({"0","3", "4"});
