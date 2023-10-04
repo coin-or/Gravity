@@ -10625,6 +10625,8 @@ func<T1> exp(const var<T1>& p1){
             return {undet_,unknown_};
         }
         pair<Convexity,Sign> res = {undet_,zero_};
+        if(range.second - range.first > 2*pi)
+            return res;
         auto lb = fmod(range.first,(2*pi));
         auto ub = fmod(range.second,(2*pi));
         if(ub<= -3*pi/2){
