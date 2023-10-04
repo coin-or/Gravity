@@ -1,6 +1,6 @@
 #include <iostream>
 #include <fstream>
-#include <onnx.pb.h>
+#include <onnx/onnx_pb.h>
 #include <vector>
 #include <network/NeuralNet.hpp>
 #include <gravity/solver.h>

@@ -1,6 +1,6 @@
 #include <iostream>
 #include <fstream>
-#include <onnx.pb.h>
+#include <onnx/onnx_pb.h>
 #include <vector>
 #include <gravity/solver.h>
 #include <network/NeuralNet.hpp>
@@ -8,10 +8,15 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <cstdlib>
 
 using namespace gravity;
 
 void final_run(std::string fname, const std::vector<Bound>& global_bounds, size_t obj_idx) {
+    // char hostname[128];
+    // gethostname(hostname, sizeof(hostname));
+    // std::cout << "Running final_run on host: " << hostname << " with process ID: " << getpid() << std::endl;
+
     NeuralNet nn(fname);
     nn.set_aux_bounds(global_bounds);
 
@@ -23,11 +28,27 @@ void final_run(std::string fname, const std::vector<Bound>& global_bounds, size_
     grb_mod->set(GRB_IntParam_Threads, thread::hardware_concurrency() / 2);
     grb_mod->set(GRB_IntParam_OutputFlag, 1);
     grb_mod->set(GRB_IntParam_NonConvex, 2);
+    
+//    grb_mod->set(GRB_DoubleParam_Heuristics, 0);
+//    grb_mod->set(GRB_IntParam_CutPasses, 5);
+//    grb_mod->set(GRB_IntParam_VarBranch, 0);
+//
+//    double tolerance = grb_mod->get(GRB_DoubleParam_MIPGap);
+//
+//    // Stop the program if the lower bound exceeds 0
+//    grb_mod->set(GRB_DoubleParam_BestBdStop, tolerance);
+//
+//    // Stop the program if a feasible solution with objective less than 0 is found
+//    grb_mod->set(GRB_DoubleParam_BestObjStop, -tolerance);
 
     int retval = S.run();
 }
 
 double bound_neuron(std::string fname, std::string start_node, Bound neuron, const std::vector<Bound>& global_bounds) {
+//    char hostname[128];
+//    gethostname(hostname, sizeof(hostname));
+//    std::cout << "Running bound_neuron on host: " << hostname << " with process ID: " << getpid() << " bounding " << neuron.side << " of neuron " << neuron.neuron_name << std::endl;
+
     NeuralNet nn(fname);
     nn.set_aux_bounds(global_bounds);
 
@@ -61,12 +82,110 @@ double bound_neuron(std::string fname, std::string start_node, Bound neuron, con
     return mult * NN._rel_obj_val;
 }
 
+constexpr int MAX_LAYER_NAME_LEN = 100;
+constexpr int MAX_NEURON_NAME_LEN = 100;
+const int nitems = 5;
+int blocklengths[5] = {MAX_LAYER_NAME_LEN, MAX_LAYER_NAME_LEN, 1, 1, 1};
+
+#ifdef USE_MPI
+MPI_Datatype MPI_PROXY_BOUND_TYPE;
+MPI_Datatype types[5] = {MPI_CHAR, MPI_CHAR, MPI_DOUBLE, MPI_DOUBLE, MPI_INT};
+MPI_Aint offsets[5];
+class ProxyBound {
+public:
+    char layer_name[MAX_LAYER_NAME_LEN];
+    char neuron_name[MAX_NEURON_NAME_LEN];
+    double value;
+    double old_value;
+    Side side;
+
+    ProxyBound(const Bound& b) {
+        strncpy(layer_name, b.layer_name.c_str(), MAX_LAYER_NAME_LEN);
+        layer_name[MAX_LAYER_NAME_LEN - 1] = '\0';
+
+        strncpy(neuron_name, b.neuron_name.c_str(), MAX_NEURON_NAME_LEN);
+        neuron_name[MAX_NEURON_NAME_LEN - 1] = '\0';
+
+        value = b.value;
+        old_value = b.old_value;
+        side = b.side;
+    }
+
+    Bound toBound() const {
+        return Bound(std::string(layer_name), std::string(neuron_name), value, old_value, side);
+    }
+};
+#endif
+
+void run_MPI_bound_neuron(std::vector<Bound>& local_bounds, const std::string& fname, const std::string& start_node, const std::vector<Bound>& global_bounds) {
+    int rank = 0, size = 1; // Default values for non-MPI case
+    size_t start_idx = 0;   // Default start index
+    size_t end_idx = local_bounds.size(); // Default end index
+
+    #ifdef USE_MPI
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    MPI_Comm_size(MPI_COMM_WORLD, &size);
+    // Adjust how many neurons each rank handles
+    size_t total_bounds = local_bounds.size();
+    size_t neurons_per_rank = total_bounds / size;
+    size_t extra_neurons = total_bounds % size;
+
+    start_idx = rank * neurons_per_rank + std::min(static_cast<size_t>(rank), extra_neurons);
+    end_idx = start_idx + neurons_per_rank + (rank < extra_neurons);
+    #endif
+
+    // Compute bounds for local neurons
+    for (size_t i = start_idx; i < end_idx; i++) {
+        Bound& neuron = local_bounds[i];
+        auto new_bound = bound_neuron(fname, start_node, neuron, global_bounds);
+        if (neuron.side == LOWER) {
+            neuron.value = std::max(neuron.value, new_bound);
+        } else {
+            neuron.value = std::min(neuron.value, new_bound);
+        }
+    }
+
+
+    // Convert local_bounds to ProxyBound for MPI communication
+    #ifdef USE_MPI
+    std::vector<ProxyBound> proxyLocalBounds;
+    for (const auto& bound : local_bounds) {
+        proxyLocalBounds.emplace_back(bound);
+    }
+
+    // Gather the results at rank 0
+    if (rank == 0) {
+        for (int src_rank = 1; src_rank < size; src_rank++) {
+            size_t src_start_idx = src_rank * neurons_per_rank + std::min(static_cast<size_t>(src_rank), extra_neurons);
+            size_t src_end_idx = src_start_idx + neurons_per_rank + (src_rank < extra_neurons);
+            MPI_Recv(&proxyLocalBounds[src_start_idx], src_end_idx - src_start_idx, MPI_PROXY_BOUND_TYPE, src_rank, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        }
+    } else {
+        MPI_Send(&proxyLocalBounds[start_idx], end_idx - start_idx, MPI_PROXY_BOUND_TYPE, 0, 0, MPI_COMM_WORLD);
+    }
+    // Broadcast the updated bounds back to all ranks
+    MPI_Bcast(&proxyLocalBounds[0], proxyLocalBounds.size(), MPI_PROXY_BOUND_TYPE, 0, MPI_COMM_WORLD);
+
+
+    // Convert back the received ProxyBounds to Bounds
+    for (size_t i = 0; i < local_bounds.size(); ++i) {
+        local_bounds[i] = proxyLocalBounds[i].toBound();
+    }
+    #endif
+}
+
 int main(int argc, char * argv[]) {
     string fname = string(prj_dir)+"/data_sets/VNN/tll_new_old.onnx";
     if(argc >= 2) {
         fname = argv[1];
     }
 
+    int rank = 0, size = 1; // Default values for non-MPI case
+    #ifdef USE_MPI
+    MPI_Init(nullptr, nullptr);
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    MPI_Comm_size(MPI_COMM_WORLD, &size);
+    #endif
     NeuralNet nn(fname);
     std::vector<Layer*> layers_to_optimize;
 
@@ -83,10 +202,11 @@ int main(int argc, char * argv[]) {
     
     // include last layer
     layers_to_optimize.push_back(nn._all_layers[nn._all_layers.size()-1]);
-
-    std::cout << "Optimizing layers:" << std::endl;
-    for (auto l: layers_to_optimize) {
-        std::cout << l->lname() << std::endl;
+    if (rank == 0) {
+        std::cout << "Optimizing layers:" << std::endl;
+        for (auto l: layers_to_optimize) {
+            std::cout << l->lname() << std::endl;
+        }
     }
 
     std::vector<Bound> global_bounds;
@@ -98,9 +218,11 @@ int main(int argc, char * argv[]) {
 
     for (auto lidx = 0; lidx < layers_to_optimize.size(); lidx++) {
         auto l = layers_to_optimize[lidx];
-        std::cout << "################################################" << std::endl;
-        std::cout << "Optimizing layer: " << l->lname() << std::endl;
-        std::cout << "Layer " << lidx+1 << "/" << layers_to_optimize.size() << std::endl;
+        if (rank == 0) {
+            std::cout << "################################################" << std::endl;
+            std::cout << "Optimizing layer: " << l->lname() << std::endl;
+            std::cout << "Layer " << lidx+1 << "/" << layers_to_optimize.size() << std::endl;
+        }
         std::vector<Bound> local_bounds;
         for (auto o: l->outputs) {
             for (auto i = 0; i < o->numel; i++) {
@@ -118,8 +240,10 @@ int main(int argc, char * argv[]) {
             }
         }
 
-        std::cout << "Number of neurons to optimize: " << local_bounds.size()/2 << std::endl;
-        
+        if (rank == 0) {
+            std::cout << "Number of neurons to optimize: " << local_bounds.size()/2 << std::endl;
+        }
+
         // skip the rest of this loop iteration if local_bounds is of size 0
         if (local_bounds.size() == 0) {
             continue;
@@ -139,43 +263,60 @@ int main(int argc, char * argv[]) {
             start_node = layers_to_optimize[lidx - (rolling_horizon - 1)]->name;
         }
 
-        auto num_threads = std::thread::hardware_concurrency();
+        // Use the run_MPI_bound_neuron function for parallel neuron bound calculation
+        #ifdef USE_MPI
+        offsets[0] = offsetof(ProxyBound, layer_name);
+        offsets[1] = offsetof(ProxyBound, neuron_name);
+        offsets[2] = offsetof(ProxyBound, value);
+        offsets[3] = offsetof(ProxyBound, old_value);
+        offsets[4] = offsetof(ProxyBound, side);
 
-#pragma omp parallel for num_threads(num_threads / 2)
-        for (auto& neuron: local_bounds) {
-            auto new_bound = bound_neuron(fname, start_node, neuron, global_bounds);
-            auto prev_bound = neuron.value;
-            if (neuron.side == LOWER) {
-                neuron.value = std::max(neuron.value, new_bound);
-            } else {
-                neuron.value = std::min(neuron.value, new_bound);
-            }
-        }
+        MPI_Type_create_struct(nitems, blocklengths, offsets, types, &MPI_PROXY_BOUND_TYPE);
+        MPI_Type_commit(&MPI_PROXY_BOUND_TYPE);
+        #endif
+        run_MPI_bound_neuron(local_bounds, fname, start_node, global_bounds);
         auto end_time = std::chrono::high_resolution_clock::now();
         fflush(stdout);
         dup2(bak, 1);
         close(bak);
 
         // print out the final bounds
-        for (int i = 0; i < local_bounds.size()-1; i+=2) {
-            auto lb = local_bounds[i];
-            auto ub = local_bounds[i+1];
-            std::cout << lb.neuron_name << ": ";
-            std::cout << "[" << ftostr(lb.old_value) << ", " << ftostr(ub.old_value) << "] -> ";
-            std::cout << "[" << ftostr(lb.value) << ", " << ftostr(ub.value) << "]";
-            std::cout << std::endl;
+        if (rank == 0) {
+            for (int i = 0; i < local_bounds.size()-1; i+=2) {
+                auto lb = local_bounds[i];
+                auto ub = local_bounds[i+1];
+                std::cout << lb.neuron_name << ": ";
+                std::cout << "[" << ftostr(lb.old_value) << ", " << ftostr(ub.old_value) << "] -> ";
+                std::cout << "[" << ftostr(lb.value) << ", " << ftostr(ub.value) << "]";
+                std::cout << std::endl;
+            }
+            auto time_taken = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
+            std::cout << "Time: " << time_taken << "ms" << std::endl;
         }
-        auto time_taken = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
-        std::cout << "Time: " << time_taken << "ms" << std::endl;
         global_bounds.insert(global_bounds.end(), local_bounds.begin(), local_bounds.end());
     }
+#ifdef USE_MPI
+    MPI_Type_free(&MPI_PROXY_BOUND_TYPE);
+#endif
+    if (rank == 0) {
+        std::cout << "Starting final runs" << std::endl;
+    }
 
-    std::cout << "Starting final runs" << std::endl;
+    size_t total_objs = nn.obj_spec->shape[0];
+    size_t objs_per_rank = total_objs / size;
+    size_t extra_objs = total_objs % size;
 
-    for (size_t obj_idx = 0; obj_idx < nn.obj_spec->shape[0]; obj_idx++) {
+    size_t start_obj_idx = rank * objs_per_rank + std::min(static_cast<size_t>(rank), extra_objs);
+    size_t end_obj_idx = start_obj_idx + objs_per_rank + (rank < extra_objs);
+
+    for (size_t obj_idx = start_obj_idx; obj_idx < end_obj_idx; obj_idx++) {
         std::cout << "########################################" << std::endl;
         final_run(fname, global_bounds, obj_idx);
     }
 
+    // FIXME: gather final_run results
+#ifdef USE_MPI
+    MPI_Finalize();
+#endif
     return 0;
 }

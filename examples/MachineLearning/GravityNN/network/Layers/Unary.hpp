@@ -150,7 +150,8 @@ public:
         // add IBP bounds
         gravity::func<double> g = x.in(inds["In"]);
         auto f = ReLU(g);
-        x.in(inds["Out"]).copy_bounds(*f._all_range);
+        // FIXME: add tighter bounds between existing one and the IBP one.
+        // x.in(inds["Out"]).copy_bounds(*f._all_range);
         
     }
 
