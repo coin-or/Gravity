@@ -2,7 +2,7 @@ include(${CMAKE_CURRENT_SOURCE_DIR}/MachineLearning/GravityNN/cmake/CPM.cmake)
 
 include(FetchContent)
 CPMAddPackage("gh:CLIUtils/CLI11#v2.3.2")
-CPMAddPackage("gh:onnx/onnx#v1.14.0")
+CPMAddPackage("gh:onnx/onnx#v1.15.0")
 
 file(GLOB NN_SOURCES 
   ${CMAKE_CURRENT_SOURCE_DIR}/MachineLearning/GravityNN/network/*.hpp
