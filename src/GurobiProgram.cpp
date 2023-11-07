@@ -493,8 +493,8 @@ bool GurobiProgram::solve(bool relax, double mipgap, double time_limit){
         unrelax_model();
     //    relax_model();
     
-    grb_mod->set(GRB_DoubleParam_MIPGap, 1e-6);
-    grb_mod->set(GRB_DoubleParam_FeasibilityTol, 1e-9);
+    grb_mod->set(GRB_DoubleParam_MIPGap, mipgap);
+//    grb_mod->set(GRB_DoubleParam_FeasibilityTol, 1e-9);
 //    grb_mod->set(GRB_DoubleParam_OptimalityTol, 1e-9);
     // grb_mod->set(GRB_IntParam_StartNodeLimit, -3);
     //    grb_mod->getEnv().set(GRB_IntParam_DualReductions, 0);
@@ -502,8 +502,9 @@ bool GurobiProgram::solve(bool relax, double mipgap, double time_limit){
     //        grb_mod->getEnv().set(GRB_IntParam_Method, 1);
     //    grb_mod->getEnv().set(GRB_IntParam_NodeMethod, 1);
     grb_mod->getEnv().set(GRB_IntParam_LazyConstraints, 1);
-    grb_mod->set(GRB_IntParam_Threads, 8);
-    grb_mod->set(GRB_DoubleParam_IntFeasTol, 1e-9);
+//    grb_mod->set(GRB_IntParam_Threads, 8);
+//    grb_mod->set(GRB_IntParam_NonConvex,2);
+//    grb_mod->set(GRB_DoubleParam_IntFeasTol, 1e-9);
     //       grb_mod->set(GRB_IntParam_NumericFocus,3);
     //     grb_mod->set(GRB_IntParam_PreCrush,0);
     //     grb_mod->set(GRB_IntParam_MIPFocus,3);
@@ -513,7 +514,7 @@ bool GurobiProgram::solve(bool relax, double mipgap, double time_limit){
     //    grb_mod->set(GRB_IntParam_RINS,1000);
     //    grb_mod->set(GRB_IntParam_Cuts,0);
     
-    grb_mod->set(GRB_DoubleParam_TimeLimit,10800);
+    grb_mod->set(GRB_DoubleParam_TimeLimit,time_limit);
     grb_mod->set(GRB_IntParam_OutputFlag,1);
     //grb_mod->set(GRB_DoubleParam_Cutoff,5.33);
     //  grb_mod->set(GRB_IntParam_MinRelNodes,0);
