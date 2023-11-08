@@ -21,6 +21,7 @@ int main(int argc, char * argv[]){
     if(argc>=2){
         n=stoi(argv[1]);
     }
+    DebugOn("Optimizing with N = " << n << endl);
     Model<> M_obj("M_obj_LABS_"+to_string(n));
     Model<> M("LABS_"+to_string(n));
     var<> s("s", -1, 1);
