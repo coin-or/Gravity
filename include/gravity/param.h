@@ -84,6 +84,7 @@ namespace gravity {
             _name = p._name;
             _is_transposed = p._is_transposed;
             _is_vector = p._is_vector;
+            _exclude_zero = p._exclude_zero;
             _is_angle = p._is_angle;
             _is_sqrmag = p._is_sqrmag;
             _is_conjugate = p._is_conjugate;
@@ -732,6 +733,7 @@ namespace gravity {
             res._name = _name;
             res._is_transposed = _is_transposed;
             res._is_vector = _is_vector;
+            res._exclude_zero = _exclude_zero;
             res._new = _new;
             res._is_relaxed = _is_relaxed;
             res._is_angle = _is_angle;
@@ -763,6 +765,7 @@ namespace gravity {
             _name = p._name;
             _is_transposed = p._is_transposed;
             _is_vector = p._is_vector;
+            _exclude_zero = p._exclude_zero;
             _new = p._new;
             _is_relaxed = p._is_relaxed;
             _is_angle = p._is_angle;
@@ -806,6 +809,7 @@ namespace gravity {
             _name = p._name;
             _is_transposed = p._is_transposed;
             _is_vector = p._is_vector;
+            _exclude_zero = p._exclude_zero;
             _new = p._new;
             _is_relaxed = p._is_relaxed;
             _is_angle = p._is_angle;
@@ -842,6 +846,7 @@ namespace gravity {
             _name = p._name;
             _is_transposed = p._is_transposed;
             _is_vector = p._is_vector;
+            _exclude_zero = p._exclude_zero;
             _new = p._new;
             _is_relaxed = p._is_relaxed;
             _is_angle = p._is_angle;

@@ -22,9 +22,24 @@
 using namespace std;
 using namespace gravity;
 
-TEST_CASE("testing MISDP solvers"){
-    var<> x1("x1", -10, 150);
+TEST_CASE("testing simplification of polynomial terms with -1,1 integers squared"){
+    var<int> s("s", -1, 1);
+    s.in(range(0,3));
+    s.exclude_zero();
     
+    auto f1 = s[0]*s[0];
+    f1.print();
+    CHECK(f1.is_constant());
+    CHECK(f1==1);
+    auto f2 = s[1]*s[2]*s[1];
+    f2.print();
+    CHECK(f2.is_linear());
+    auto f3 = s[0]*s[1]*s[2]*s[1];
+    f3.print();
+    CHECK(f3.is_quadratic());
+    auto f4 = s[0]*s[0]*s[2]*s[1];
+    f4.print();
+    CHECK(f4.is_quadratic());
 }
 
 TEST_CASE("testing range update"){

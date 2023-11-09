@@ -71,6 +71,7 @@ namespace gravity {
 
         bool                            _is_transposed = false; /**< True if the constant is transposed */
         bool                            _is_vector = false; /**< True if the constant is a vector or matrix */
+        bool                            _exclude_zero = false; /**< True if the constant cannot assume a zero value */
         size_t                          _dim[2] = {1,1}; /*< dimension of current object */
         
         bool                            _polar = false; /**< True in case this is a complex number with a polar representation, rectangular representation if false */
@@ -371,7 +372,8 @@ namespace gravity {
         constant& operator=(const constant& c) {
             _type = c._type;
             _is_transposed = c._is_transposed;
-            _is_vector = c._is_vector;                        
+            _is_vector = c._is_vector;
+            _exclude_zero = c._exclude_zero;
             _val = c._val;
             return *this;
         }
@@ -381,6 +383,7 @@ namespace gravity {
             update_type();
             _is_transposed = c._is_transposed;
             _is_vector = c._is_vector;
+            _exclude_zero = c._exclude_zero;
             _val = c._val;
             return *this;
         }

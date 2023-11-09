@@ -579,7 +579,9 @@ namespace gravity {
             return res;
         }
         
-        
+        void exclude_zero() {
+            this->_exclude_zero = true;
+        }
         var excl(size_t index) {
             var<type> res(*this);
             res._indices->_type = excl_;

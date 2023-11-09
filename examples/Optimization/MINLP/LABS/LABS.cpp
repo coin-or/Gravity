@@ -21,28 +21,43 @@ int main(int argc, char * argv[]){
     if(argc>=2){
         n=stoi(argv[1]);
     }
-    DebugOn("Optimizing with N = " << n << endl);
+    DebugOn("Optimizing for N = " << n << endl);
+    bool new_algorithm = false;
+    if(new_algorithm){
+        vector<Model<>> models;
+        for (int i = 0; i<n-1; i++) {
+            Model<> M("LABS_"+to_string(n)+"_"+to_string(i));
+            
+            models.push_back(M);
+        }
+        return 0;
+    }
+    
+    
+    
     Model<> M_obj("M_obj_LABS_"+to_string(n));
     Model<> M("LABS_"+to_string(n));
-    var<> s("s", -1, 1);
+    var<int> s("s", -1, 1);
     var<> z("z", -1, 1);
     var<int> y("y", 0, 1);
     var<> cs("cs", pos_);
     var<> c("c");
     indices s_ids = range(0,n-1);
-
+    indices c_ids = range(1,n-1);
     bool unconstrained = false;
     if(unconstrained){
-        M_obj.add(y.in(s_ids));
-        func<> obj;        
+        M_obj.add(s.in(s_ids), y.in(s_ids));
+        M.add(c.in(c_ids));
         for (int k = 1; k<=n-1; k++) {
             func<> cterm;
             for (int i = 0; i<n-k; i++) {
-                cterm += (2*y(to_string(i))-1)*(2*y(to_string(i+k))-1);
+                cterm += (s(to_string(i)))*(s(to_string(i+k)));
             }
-            obj += pow(cterm,2);
+            Constraint<> C_sq_k("C_sq_k");
+            C_sq_k = c(k) - pow(cterm,2);
+            M_obj.add(C_sq_k.in(c_ids)>=0);
         }
-        M_obj.min(obj);
+        M_obj.min(sum(c));
         M_obj.print();
         solver<> g_sol(M_obj,ipopt);
         g_sol.run();
@@ -51,7 +66,6 @@ int main(int argc, char * argv[]){
         M_obj.print_solution();
     }
     else{
-        indices c_ids = range(1,n-1);
         indices z_ids("z_ids");
         string idx;
         for (int i = 0; i<n-1; i++) {
@@ -62,7 +76,8 @@ int main(int argc, char * argv[]){
         }
         M.add(s.in(s_ids), c.in(c_ids), z.in(z_ids));
         M.add(y.in(s_ids));
-        
+//        s.set_lb("0",1);
+//        y.set_lb("0",1);
         
     //    Constraint<> y_on_off("y_on_off");
     //    y_on_off = s - 2*y + 1;

@@ -7945,6 +7945,13 @@ namespace gravity {
             shared_ptr<param_> p_new1;
             shared_ptr<param_> p_new2;
             _evaluated=false;
+            if(p1.is_var() && p2.is_var() && p1.is_integer() &&  p2.is_integer() && p1._exclude_zero && ps1==ps2){/* If this is p1^2 and p1 is a -1,1 binary, simplify expression */
+                auto v = (var<int>*)(&p1);
+                if(v->_range->first==-1 && v->_range->second==1){
+                    this->add_cst(constant<type>(1));
+                    return false;
+                }
+            }
             if (_ftype <= lin_ && p1.is_var()) {
                 _ftype = quad_;
             }
@@ -8127,6 +8134,7 @@ namespace gravity {
             auto pair_it = _pterms->find(name);
             auto p = l.begin()->first;
             shared_ptr<param_> pnew;
+            auto initial_ftype =_ftype;
             if (_ftype <= quad_ && p->is_var()) {
                 _ftype = pol_;
             }
@@ -8159,6 +8167,32 @@ namespace gravity {
                     newv = true;
                     for (auto& p_it:*newl) {
                         if (p_it.first->get_name(false,false)==s) {
+                            if(p_it.first->is_var() && p_it.first->is_integer() &&  p_it.first->_exclude_zero && p_it.second%2==1){/* If this is p^2 and p is a -1,1 binary, simplify expression */
+                                auto v = static_pointer_cast<var<int>>(p_it.first);
+                                if(v->_range->first==-1 && v->_range->second==1){
+                                    auto simplified = make_shared<list<std::pair<shared_ptr<param_>, int>>>();
+                                    for (auto& p_it2:*newl) {
+                                        if(p_it2!=p_it)
+                                            simplified->push_back(p_it2);
+                                    }
+                                    if(simplified->size()==1){
+                                        auto pt = simplified->front();
+                                        if(pt.second==1){
+                                            _ftype = initial_ftype;
+                                            this->insert(sign, coef, *pt.first);
+                                            return false;
+                                        }
+                                        if(pt.second==2){
+                                            _ftype = initial_ftype;
+                                            this->insert(sign, coef, *pt.first, *pt.first);
+                                            return false;
+                                        }
+                                    }
+                                    newl = simplified;
+                                    newv = false;
+                                    break;
+                                }
+                            }
                             p_it.second++;
                             newv = false;
                             break;
