@@ -8179,16 +8179,28 @@ namespace gravity {
                                         auto pt = simplified->front();
                                         if(pt.second==1){
                                             _ftype = initial_ftype;
+                                            if(_pterms->size()==1 && !_qterms && !_expr)
+                                                _ftype = lin_;
                                             this->insert(sign, coef, *pt.first);
                                             return false;
                                         }
                                         if(pt.second==2){
                                             _ftype = initial_ftype;
+                                            if(_pterms->size()==1 && !_expr)
+                                                _ftype = quad_;
                                             this->insert(sign, coef, *pt.first, *pt.first);
                                             return false;
                                         }
                                     }
+                                    if(simplified->size()==2 && simplified->front().second==1 && simplified->back().second==1){
+                                        _ftype = initial_ftype;
+                                        if(_pterms->size()==1 && !_expr)
+                                            _ftype = quad_;
+                                        this->insert(sign, coef, *simplified->front().first, *simplified->back().first);
+                                        return false;
+                                    }
                                     newl = simplified;
+                                    
                                     newv = false;
                                     break;
                                 }
