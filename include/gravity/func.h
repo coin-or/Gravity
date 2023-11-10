@@ -6910,10 +6910,20 @@ namespace gravity {
 //                        return *this;
 //                    }
                     list<pair<shared_ptr<param_>, int>> newl;
-                    newl.push_back(make_pair<>(t1.second._p->first, 1));
-                    newl.push_back(make_pair<>(t1.second._p->second, 1));
-                    newl.push_back(make_pair<>(t2.second._p->first, 1));
-                    newl.push_back(make_pair<>(t2.second._p->second, 1));
+                    shared_ptr<param_> p1, p2, p3, p4;
+                    p1 = t1.second._p->first;
+                    p2 = t1.second._p->second;
+                    p3 = t2.second._p->first;
+                    p4 = t2.second._p->second;
+                    vector<pair<shared_ptr<param_>, int>> ordered_l;
+                    ordered_l = {{p1,p1->get_id_inst()},{p2,p2->get_id_inst()},{p3,p3->get_id_inst()},{p4,p4->get_id_inst()}};
+                    std::sort(ordered_l.begin(), ordered_l.end(), [](auto &left, auto &right) {
+                                   return left.second < right.second;
+                               });
+                    newl.push_back(make_pair<>(ordered_l[0].first, 1));
+                    newl.push_back(make_pair<>(ordered_l[1].first, 1));
+                    newl.push_back(make_pair<>(ordered_l[2].first, 1));
+                    newl.push_back(make_pair<>(ordered_l[3].first, 1));
                     if (t2.second._coef->is_function()) {
                         auto f_cst = *static_pointer_cast<func<T2>>(t2.second._coef);
                         auto coef = multiply(t1.second._coef, f_cst);
@@ -8167,44 +8177,6 @@ namespace gravity {
                     newv = true;
                     for (auto& p_it:*newl) {
                         if (p_it.first->get_name(false,false)==s) {
-                            if(p_it.first->is_var() && p_it.first->is_integer() &&  p_it.first->_exclude_zero && p_it.second%2==1){/* If this is p^2 and p is a -1,1 binary, simplify expression */
-                                auto v = static_pointer_cast<var<int>>(p_it.first);
-                                if(v->_range->first==-1 && v->_range->second==1){
-                                    auto simplified = make_shared<list<std::pair<shared_ptr<param_>, int>>>();
-                                    for (auto& p_it2:*newl) {
-                                        if(p_it2!=p_it)
-                                            simplified->push_back(p_it2);
-                                    }
-                                    if(simplified->size()==1){
-                                        auto pt = simplified->front();
-                                        if(pt.second==1){
-                                            _ftype = initial_ftype;
-                                            if(_pterms->size()==1 && !_qterms && !_expr)
-                                                _ftype = lin_;
-                                            this->insert(sign, coef, *pt.first);
-                                            return false;
-                                        }
-                                        if(pt.second==2){
-                                            _ftype = initial_ftype;
-                                            if(_pterms->size()==1 && !_expr)
-                                                _ftype = quad_;
-                                            this->insert(sign, coef, *pt.first, *pt.first);
-                                            return false;
-                                        }
-                                    }
-                                    if(simplified->size()==2 && simplified->front().second==1 && simplified->back().second==1){
-                                        _ftype = initial_ftype;
-                                        if(_pterms->size()==1 && !_expr)
-                                            _ftype = quad_;
-                                        this->insert(sign, coef, *simplified->front().first, *simplified->back().first);
-                                        return false;
-                                    }
-                                    newl = simplified;
-                                    
-                                    newv = false;
-                                    break;
-                                }
-                            }
                             p_it.second++;
                             newv = false;
                             break;
@@ -8229,6 +8201,52 @@ namespace gravity {
                         incr_occ_param(pname);
                     }
                 }
+                auto simplified = make_shared<list<std::pair<shared_ptr<param_>, int>>>();
+                for (auto& p_it:*newl) {
+                    if(p_it.first->is_var() && p_it.first->is_integer() &&  p_it.first->_exclude_zero && p_it.second%2==0){/* If this is p^2 and p is a -1,1 binary, simplify expression */
+                        auto v = static_pointer_cast<var<int>>(p_it.first);
+                        if(v->_range->first!=-1 || v->_range->second!=1){
+                            simplified->push_back(p_it);
+                        }
+                        else{
+                            decr_occ_var(v->get_name(false,false));
+                        }
+                    }
+                    else{
+                        simplified->push_back(p_it);
+                    }
+                }
+                if(simplified->size()==0){
+                    _ftype = initial_ftype;
+                    this->add_cst(constant<type>(1));
+                    this->eval_all();
+                    return false;
+                }
+                if(simplified->size()==1){
+                    auto pt = simplified->front();
+                    if(pt.second==1){
+                        _ftype = initial_ftype;
+                        if(_pterms->size()==1 && !_qterms && !_expr)
+                            _ftype = lin_;
+                        this->insert(sign, coef, *pt.first);
+                        return false;
+                    }
+                    if(pt.second==2){
+                        _ftype = initial_ftype;
+                        if(_pterms->size()==1 && !_expr)
+                            _ftype = quad_;
+                        this->insert(sign, coef, *pt.first, *pt.first);
+                        return false;
+                    }
+                }
+                if(simplified->size()==2 && simplified->front().second==1 && simplified->back().second==1){
+                    _ftype = initial_ftype;
+                    if(_pterms->size()==1 && !_expr)
+                        _ftype = quad_;
+                    this->insert(sign, coef, *simplified->front().first, *simplified->back().first);
+                    return false;
+                }
+                newl = simplified;
                 pterm p(sign, c_new, newl);
                 _pterms->insert(make_pair<>(name, move(p)));
                 if(pnew->is_var()){

@@ -34,7 +34,7 @@ TEST_CASE("testing simplification of polynomial terms with -1,1 integers squared
     auto f2 = s[1]*s[2]*s[1];
     f2.print();
     CHECK(f2.is_linear());
-    auto f3 = s[0]*s[1]*s[2]*s[1];
+    auto f3 = pow(s[0]*s[1]+s[1]*s[2],2);
     f3.print();
     CHECK(f3.is_quadratic());
     auto f4 = s[0]*s[0]*s[2]*s[1];

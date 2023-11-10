@@ -11,6 +11,9 @@ set(MACOSX_RPATH 1)
 
 include(FetchContent)
 
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
 FetchContent_Declare(json
   GIT_REPOSITORY https://github.com/ArthurSonzogni/nlohmann_json_cmake_fetchcontent
   GIT_TAG v3.7.3)

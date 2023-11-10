@@ -44,21 +44,28 @@ int main(int argc, char * argv[]){
     var<> c("c");
     indices s_ids = range(0,n-1);
     indices c_ids = range(1,n-1);
-    bool unconstrained = false;
+    bool unconstrained = true;
     if(unconstrained){
-        M_obj.add(s.in(s_ids), y.in(s_ids));
-        M.add(c.in(c_ids));
+        s.exclude_zero();
+        M_obj.add(s.in(s_ids));
+        M_obj.add(c.in(c_ids));
+        func<int> obj;
         for (int k = 1; k<=n-1; k++) {
-            func<> cterm;
+            func<int> cterm;
             for (int i = 0; i<n-k; i++) {
                 cterm += (s(to_string(i)))*(s(to_string(i+k)));
             }
-            Constraint<> C_sq_k("C_sq_k");
+            cterm.eval_all();
+            Constraint<> C_sq_k("C_sq_"+to_string(k));
             C_sq_k = c(k) - pow(cterm,2);
-            M_obj.add(C_sq_k.in(c_ids)>=0);
+            M_obj.add(C_sq_k>=0);
+//            obj += pow(cterm,2);
         }
+//        obj.print();
+        
         M_obj.min(sum(c));
         M_obj.print();
+        s.initialize_binary();
         solver<> g_sol(M_obj,ipopt);
         g_sol.run();
         M_obj.print_solution();
@@ -74,8 +81,8 @@ int main(int argc, char * argv[]){
                 z_ids.add(idx);
             }
         }
-        M.add(s.in(s_ids), c.in(c_ids), z.in(z_ids));
-        M.add(y.in(s_ids));
+        M.add(c.in(c_ids), z.in(z_ids));
+        M.add(s.in(s_ids), y.in(s_ids));
 //        s.set_lb("0",1);
 //        y.set_lb("0",1);
         
