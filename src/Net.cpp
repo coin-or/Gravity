@@ -545,16 +545,16 @@ void Net::get_tree_decomp_bags() {
         Debug(graph_clone->nodes.size() << endl);
         pair<string,vector<Node*>> bag_copy;
         pair<string,vector<Node*>> bag;
-        DebugOff("new bag = { ");
+        DebugOn("new bag = { ");
         for (auto nn: n->get_neighbours()) {
             if(!nn.second->_active) continue;
             bag_copy.second.push_back(nn.second);
             bag_copy.first += "," +nn.first;
             bag.second.push_back(get_node(nn.second->_name)); // Note it takes original node.
             bag.first += "," +nn.first;
-            DebugOff(nn.second->_name << ", ");
+            DebugOn(nn.second->_name << ", ");
         }
-        DebugOff(n->_name << "}\n");
+        DebugOn(n->_name << "}\n");
         graph_clone->remove_end_node();
         bag_copy.second.push_back(n);
         bag_copy.first += "," +n->_name;
@@ -610,9 +610,9 @@ void Net::get_tree_decomp_bags() {
     }
     
     delete graph_clone;
-    if(!sdp_3d_cuts){
+//    if(!sdp_3d_cuts){
         remove_redundant_bags();
-    }
+//    }
     
 }
 
