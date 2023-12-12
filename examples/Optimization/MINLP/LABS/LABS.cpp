@@ -39,7 +39,7 @@ int main(int argc, char * argv[]){
     
     if(new_algorithm){
         vector<Model<>> models;
-        for (int i = 0; i<n-1; i++) {
+        for (int i = 0; i<n; i++) {
             Model<> M("LABS_"+to_string(n)+"_"+to_string(i));
             
             models.push_back(M);
@@ -64,9 +64,9 @@ int main(int argc, char * argv[]){
         M_obj.add(s.in(s_ids));
         M_obj.add(c.in(c_ids));
         indices pairs("pairs"), quad_terms("quad_terms"), multi_terms("multi_terms"), multi_quad_terms("multi_quad_terms");
-        func<int> obj;
+        func<> obj;
         for (int k = 1; k<=n-1; k++) {
-            func<int> cterm;
+            func<> cterm;
             for (int i = 0; i<n-k; i++) {
                 cterm += (s(to_string(i)))*(s(to_string(i+k)));
             }
@@ -146,8 +146,10 @@ int main(int argc, char * argv[]){
                 z_ids.add(idx);
             }
         }
-        M.add(c.in(c_ids), z.in(z_ids));
-        M.add(s.in(s_ids), y.in(s_ids));
+        M.add(c.in(c_ids));
+//        M.add(z.in(z_ids));
+//        M.add(s.in(s_ids));
+        M.add(y.in(s_ids));
 //        s.set_lb("0",1);
 //        y.set_lb("0",1);
         
@@ -155,20 +157,31 @@ int main(int argc, char * argv[]){
     //    y_on_off = s - 2*y + 1;
     //    m.add(y_on_off.in(s_ids) == 0);
         
-        Constraint<> z_def("z_def");
-        z_def = z - (2*y.from(z_ids) - 1)*(2*y.to(z_ids) - 1);
-        M.add(z_def.in(z_ids) == 0);
+//        Constraint<> z_def("z_def");
+//        z_def = z - (2*y.from(z_ids) - 1)*(2*y.to(z_ids) - 1);
+//        M.add(z_def.in(z_ids) == 0);
         
         indices z_sum("z_sum");
+        indices y_sum_fr("y_sum_fr"), y_sum_to("y_sum_to");
+        param<> rhs("rhs");
+        rhs.in(c_ids);
         for (int k = 1; k<=n-1; k++) {
             for (int i = 0; i<n-k; i++) {
                 z_sum.add_in_row(k-1, to_string(i)+","+to_string(i+k));
+                y_sum_fr.add_in_row(k-1, to_string(i));
+                y_sum_to.add_in_row(k-1, to_string(i+k));
             }
+            rhs.set_val(k-1, n-1-k);
         }
         
         Constraint<> c_def("c_def");
-        c_def = c - z.in(z_sum);
+//        c_def = c - z.in(z_sum);
+        c_def = c - (2*y.in(y_sum_fr) - 1)*(2*y.in(y_sum_to) - 1) - rhs;
         M.add(c_def.in(c_ids) == 0);
+        
+        Constraint<> c_fix("c_fix");
+        c_fix = c[1];
+        M.add(c_fix == 1);
         
     //    Constraint<> cs_def("cs_def");
     //    cs_def = cs - c*c;
@@ -179,15 +192,16 @@ int main(int argc, char * argv[]){
         ones.in(c_ids);
         ones = 1;
         M.min(ones.tr()*c*c);
-        
+        M.print();
         solver<> mip_solver(M,gurobi);
 //        solver<> nlp_solver(M,ipopt);
-        mip_solver.run();
+        mip_solver.run(1e-6, 120);
 //        nlp_solver.run();
 //        M.print_solution();
 //        M.round_solution();
+        opt_obj = round(M.get_obj_val());
         M.print_solution();
-        opt_obj = M.get_obj_val();
+        
     }
     double total_time_end = get_wall_time();
     auto total_time = total_time_end - total_time_start;

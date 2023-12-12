@@ -211,7 +211,7 @@ public:
     }
     
     int run(type tol , double time_limit){
-        return run(5, tol, 10000, 1e-6, true, {false,""}, time_limit);
+        return run(5, tol, 10000, 1e-6, false, {false,""}, time_limit);
     }
     
     //OPF.run(tol,time_limit,"ma97");
