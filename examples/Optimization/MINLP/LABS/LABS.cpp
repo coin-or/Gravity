@@ -147,11 +147,12 @@ int main(int argc, char * argv[]){
             }
         }
         M.add(c.in(c_ids));
+//        M.add(cs.in(c_ids));
 //        M.add(z.in(z_ids));
 //        M.add(s.in(s_ids));
         M.add(y.in(s_ids));
 //        s.set_lb("0",1);
-//        y.set_lb("0",1);
+        y.set_lb("0",1);
         
     //    Constraint<> y_on_off("y_on_off");
     //    y_on_off = s - 2*y + 1;
@@ -179,23 +180,34 @@ int main(int argc, char * argv[]){
         c_def = c - (2*y.in(y_sum_fr) - 1)*(2*y.in(y_sum_to) - 1) - rhs;
         M.add(c_def.in(c_ids) == 0);
         
-        Constraint<> c_fix("c_fix");
-        c_fix = c[1];
-        M.add(c_fix == 1);
+//        Constraint<> c_fix("c_fix");
+//        c_fix = c[1];
+//        M.add(c_fix == 1);
         
-    //    Constraint<> cs_def("cs_def");
-    //    cs_def = cs - c*c;
-    //    m.add(cs_def.in(c_ids) >= 0);
+//        Constraint<> cs_def("cs_def");
+//        cs_def = cs - c*c;
+//        m.add(cs_def.in(c_ids) >= 0);
         
-    //    m.min(sum(cs));
+//        Constraint<> cs_abs_l("cs_abs_l");
+//        cs_abs_l = cs - c;
+//        M.add(cs_abs_l.in(c_ids) >= 0);
+//        
+//        Constraint<> cs_abs_u("cs_abs_u");
+//        cs_abs_u = cs + c;
+//        M.add(cs_abs_u.in(c_ids) >= 0);
+//        
+//        M.min(sum(cs));
         param<> ones("1");
         ones.in(c_ids);
         ones = 1;
+//        auto f = ones.tr()*c*c;
         M.min(ones.tr()*c*c);
-        M.print();
+//        M.print();
         solver<> mip_solver(M,gurobi);
 //        solver<> nlp_solver(M,ipopt);
-        mip_solver.run(1e-6, 120);
+        mip_solver.run(1e-6, 200);
+//        f.eval_all();
+//        DebugOn("Obj = " << f._val->at(0) << endl);
 //        nlp_solver.run();
 //        M.print_solution();
 //        M.round_solution();
