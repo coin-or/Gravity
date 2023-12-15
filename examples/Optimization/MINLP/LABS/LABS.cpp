@@ -54,15 +54,20 @@ int main(int argc, char * argv[]){
     var<int> s("s", -1, 1);
     var<> z("z", -1, 1);
     var<int> y("y", 0, 1);
-    var<> cs("cs", pos_);
+    var<int> cs("cs", pos_);
     var<> c("c");
     indices s_ids = range(0,n-1);
     indices c_ids = range(1,n-1);
     int opt_obj = 0;
     if(nlp){
         s.exclude_zero();
-        M_obj.add(s.in(s_ids));
-        M_obj.add(c.in(c_ids));
+        s.in(s_ids);
+//        M_obj.add(s.in(s_ids));
+        M_obj.add(y.in(s_ids));
+//        s.set_lb("0",1);
+        y.set_lb("0",1);
+
+//        M_obj.add(c.in(c_ids));
         indices pairs("pairs"), quad_terms("quad_terms"), multi_terms("multi_terms"), multi_quad_terms("multi_quad_terms");
         func<> obj;
         for (int k = 1; k<=n-1; k++) {
@@ -72,7 +77,7 @@ int main(int argc, char * argv[]){
             }
             obj += pow(cterm,2);
         }
-//        obj.print();
+        obj.print();
         int nb_quad = obj._qterms->size();
         DebugOn("Number of quadratic terms = " << nb_quad << endl);
         int nb_mult = obj._pterms->size();
@@ -84,16 +89,18 @@ int main(int argc, char * argv[]){
             auto idx2 = p.second._p->second->_indices->_ids->front().at(0);
             pairs.add(to_string(idx1)+","+to_string(idx2));
         }
-        quad_terms.is_subset(pairs);
-        multi_quad_terms.is_subset(pairs);
+        quad_terms = pairs.subset();
+        multi_quad_terms = pairs.subset();
         string pair_idx;
         int nb_row = 0;
         for(auto p: *obj._pterms)
         {
+            string mult_idx;
             set<int> tabu;
             for(auto it = p.second._l->begin(); it != p.second._l->end(); it++) {
                 bool existing_pair = false;
                 auto idx1 = it->first->_indices->_ids->front().at(0);
+                mult_idx += to_string(idx1);
                 if(tabu.count(idx1)>0)
                     continue;
                 for(auto it2 = next(it); it2 != p.second._l->end(); it2++) {
@@ -116,26 +123,53 @@ int main(int argc, char * argv[]){
                     pairs.add(pair_idx);
                 }
             }
+            multi_terms.add(mult_idx);
             nb_row++;
         }
-        DebugOn("Number of quadratic terms after decomposing quartic expressions = " << pairs.size() << endl);
-        pairs.print();
-
-        M_obj.min(obj);
-        M_obj.print();
+        indices multi_p1("multi_p1"),multi_p2("multi_p2");
+        multi_p1 = pairs.subset();
+        multi_p2 = pairs.subset();
+        for(auto i = 0; i < multi_quad_terms.get_nb_rows(); i++){
+            multi_p1._ids->at(0).push_back(multi_quad_terms._ids->at(i).at(0));
+            multi_p2._ids->at(0).push_back(multi_quad_terms._ids->at(i).at(1));
+        }
+        var<int> p("p", -1, 1);
+        var<int> pp("pp", -1, 1);
+        
+        M_obj.add(p.in(pairs));
+        M_obj.add(pp.in(multi_terms));
+        
+        Constraint<> p_def("p_def");
+        p_def = p - (2*y.from(pairs) - 1)*(2*y.to(pairs) - 1);
+        M_obj.add(p_def.in(pairs) == 0);
+        
+        Constraint<> pp_def("pp_def");
+        pp_def = pp - p.in(multi_p1)*p.in(multi_p2);
+        M_obj.add(pp_def.in(multi_terms) == 0);
+        
+//        var<> obj_var("obj_var", pos_);
+//        M_obj.add(obj_var.in(R(1)));
+//        
+//        Constraint<> obj_def("obj_def");
+//        obj_def = obj_var - (4*sum(pp)+ 2*sum(p) + obj.eval_cst(0));
+//        M_obj.add(obj_def == 0);
+//        
+//        M_obj.min(obj_var);
+        M_obj.min(4*sum(pp)+ 2*sum(p) + obj.eval_cst(0));
+//        M_obj.print();
 //        auto g = M_obj.get_interaction_graph();
 //        g.print();
 //        g.get_tree_decomp_bags();
 //        auto ConvM = M_obj.relax();
 //        ConvM->print();
-        s.initialize_binary();
+//        s.initialize_binary();
 //        s.initialize_all(1);
-        solver<> g_sol(M_obj,ipopt);
+        solver<> g_sol(M_obj,gurobi);
         g_sol.run();
         M_obj.print_solution();
         M_obj.round_solution();
         M_obj.print_solution();
-        opt_obj = M_obj.get_obj_val();
+        opt_obj = round(M_obj.get_obj_val());
     }
     else{
         indices z_ids("z_ids");
@@ -179,14 +213,17 @@ int main(int argc, char * argv[]){
 //        c_def = c - z.in(z_sum);
         c_def = c - (2*y.in(y_sum_fr) - 1)*(2*y.in(y_sum_to) - 1) - rhs;
         M.add(c_def.in(c_ids) == 0);
-        
+        for(auto i = 0; i < c_ids.size(); i++){
+            c.set_lb(c_ids._keys->at(i), -1.*y_sum_fr._ids->at(i).size());
+            c.set_ub(c_ids._keys->at(i), y_sum_fr._ids->at(i).size());
+        }
 //        Constraint<> c_fix("c_fix");
 //        c_fix = c[1];
 //        M.add(c_fix == 1);
         
 //        Constraint<> cs_def("cs_def");
 //        cs_def = cs - c*c;
-//        m.add(cs_def.in(c_ids) >= 0);
+//        M.add(cs_def.in(c_ids) >= 0);
         
 //        Constraint<> cs_abs_l("cs_abs_l");
 //        cs_abs_l = cs - c;
@@ -200,12 +237,13 @@ int main(int argc, char * argv[]){
         param<> ones("1");
         ones.in(c_ids);
         ones = 1;
-//        auto f = ones.tr()*c*c;
+        auto f = ones.tr()*c*c;
         M.min(ones.tr()*c*c);
+//        M.min(sum(cs));
 //        M.print();
         solver<> mip_solver(M,gurobi);
 //        solver<> nlp_solver(M,ipopt);
-        mip_solver.run(1e-6, 200);
+        mip_solver.run(1e-6, 7200);
 //        f.eval_all();
 //        DebugOn("Obj = " << f._val->at(0) << endl);
 //        nlp_solver.run();
