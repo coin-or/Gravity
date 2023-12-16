@@ -507,17 +507,18 @@ bool GurobiProgram::solve(bool relax, double mipgap, double time_limit){
 //    grb_mod->set(GRB_DoubleParam_IntFeasTol, 1e-9);
     //       grb_mod->set(GRB_IntParam_NumericFocus,3);
     //     grb_mod->set(GRB_IntParam_PreCrush,0);
-//         grb_mod->set(GRB_IntParam_MIPFocus,1);
+         grb_mod->set(GRB_IntParam_MIPFocus,1);
        // grb_mod->set(GRB_IntParam_IntegralityFocus,1);
 //    grb_mod->set(GRB_IntParam_MIPFocus,1);
 //    grb_mod->set(GRB_DoubleParam_Heuristics,0.1);
     //    grb_mod->set(GRB_IntParam_PumpPasses,50);
 //        grb_mod->set(GRB_IntParam_RINS,1);
-        grb_mod->set(GRB_IntParam_Cuts,0);
+//        grb_mod->set(GRB_IntParam_Cuts,1);
 //    grb_mod->set(GRB_IntParam_PreQLinearize,1);
     
     grb_mod->set(GRB_DoubleParam_TimeLimit,time_limit);
     grb_mod->set(GRB_IntParam_OutputFlag,1);
+//    grb_mod->set(GRB_IntParam_StartNodeLimit, -3);
 //    grb_mod->set(GRB_DoubleParam_Cutoff,0);
     //  grb_mod->set(GRB_IntParam_MinRelNodes,0);
 //        grb_mod->set(GRB_DoubleParam_Heuristics,  0);
@@ -966,13 +967,15 @@ void GurobiProgram::create_grb_constraints(){
     GRBVar gvar1, gvar2;
     double coeff;
     for(auto& p: _model->_cons){
+        bool lazy = false;
         auto c = p.second;
         if (!c->_new && c->_all_satisfied) {
             continue;
         }
-        if(c->_callback)
+        if(!c->is_linear() && c->is_ineq() && c->_callback)
         {
-            DebugOn(c->_name<<"  added as callback"<<endl);
+            DebugOn(c->_name<<" will be added in callback."<<endl);
+            lazy = true;            
             continue;
         }
         c->_new = false;
@@ -1020,10 +1023,19 @@ void GurobiProgram::create_grb_constraints(){
                     linlhs += lterm;
                 }
                 linlhs += c->eval(c->get_cst(), i);
-                if(c->_indices)
-                    grb_mod->addConstr(linlhs,sense,0,c->get_name()+"("+c->_indices->_keys->at(i)+")");
-                else
-                    grb_mod->addConstr(linlhs,sense,0,c->get_name());
+                string cname = c->get_name();
+                if(c->_indices){
+                    cname += "("+c->_indices->_keys->at(i)+")";
+                }
+                if(c->_on_off_bin){
+                    auto gvar = _grb_vars[c->_on_off_bin->get_id() + c->_on_off_bin->get_id_inst(i)];
+                    grb_mod->addGenConstrIndicator(gvar, c->_on_off, linlhs, sense, 0, cname);
+                }
+                else{
+                    auto gc = grb_mod->addConstr(linlhs,sense,0,cname);
+                    if(c->_callback)
+                        gc.set(GRB_IntAttr_Lazy, 3);
+                }
             }
             
             // }

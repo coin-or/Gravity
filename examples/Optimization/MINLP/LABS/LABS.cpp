@@ -68,7 +68,7 @@ int main(int argc, char * argv[]){
         y.set_lb("0",1);
 
 //        M_obj.add(c.in(c_ids));
-        indices pairs("pairs"), quad_terms("quad_terms"), multi_terms("multi_terms"), multi_quad_terms("multi_quad_terms");
+        indices pairs("pairs"), quad_terms("quad_terms"), multi_terms("multi_terms"), multi_lin_terms("multi_lin_terms"), multi_quad_terms("multi_quad_terms");
         func<> obj;
         for (int k = 1; k<=n-1; k++) {
             func<> cterm;
@@ -91,6 +91,7 @@ int main(int argc, char * argv[]){
         }
         quad_terms = pairs.subset();
         multi_quad_terms = pairs.subset();
+        multi_lin_terms = s_ids.subset();
         string pair_idx;
         int nb_row = 0;
         for(auto p: *obj._pterms)
@@ -101,6 +102,9 @@ int main(int argc, char * argv[]){
                 bool existing_pair = false;
                 auto idx1 = it->first->_indices->_ids->front().at(0);
                 mult_idx += to_string(idx1);
+                multi_lin_terms.add_in_row(nb_row, to_string(idx1));
+                if(next(it)!= p.second._l->end())
+                    mult_idx += ",";
                 if(tabu.count(idx1)>0)
                     continue;
                 for(auto it2 = next(it); it2 != p.second._l->end(); it2++) {
@@ -133,9 +137,11 @@ int main(int argc, char * argv[]){
             multi_p1._ids->at(0).push_back(multi_quad_terms._ids->at(i).at(0));
             multi_p2._ids->at(0).push_back(multi_quad_terms._ids->at(i).at(1));
         }
-        var<int> p("p", -1, 1);
-        var<int> pp("pp", -1, 1);
+        var<> p("p", -1, 1);
+        var<> pp("pp", -1, 1);
+        var<> nz("nz", pos_);
         
+        M_obj.add(nz.in(multi_terms));
         M_obj.add(p.in(pairs));
         M_obj.add(pp.in(multi_terms));
         
@@ -143,9 +149,66 @@ int main(int argc, char * argv[]){
         p_def = p - (2*y.from(pairs) - 1)*(2*y.to(pairs) - 1);
         M_obj.add(p_def.in(pairs) == 0);
         
-        Constraint<> pp_def("pp_def");
-        pp_def = pp - p.in(multi_p1)*p.in(multi_p2);
-        M_obj.add(pp_def.in(multi_terms) == 0);
+//        Constraint<> pp_def("pp_def");
+//        pp_def = pp - p.in(multi_p1)*p.in(multi_p2);
+//        M_obj.add(pp_def.in(multi_terms) == 0);
+        
+        
+        Constraint<> nz_def("nz_def");
+        nz_def = nz - (4 - y.in(multi_lin_terms));
+        M_obj.add(nz_def.in(multi_terms) == 0);
+        
+        var<int> nz0("nz0", 0,1);
+        var<int> nz1("nz1", 0,1);
+        var<int> nz2("nz2", 0,1);
+        var<int> nz3("nz3", 0,1);
+        var<int> nz4("nz4", 0,1);
+        M_obj.add(nz0.in(multi_terms), nz1.in(multi_terms), nz2.in(multi_terms), nz3.in(multi_terms), nz4.in(multi_terms));
+        
+        Constraint<> nz_one("nz_one");
+        nz_one = nz0 + nz1 + nz2 + nz3 + nz4 - 1;
+        M_obj.add(nz_one.in(multi_terms) == 0);
+        
+        Constraint<> nz0_def("nz0_def");
+        nz0_def = nz - 0;
+        M_obj.add_on_off(nz0_def.in(multi_terms) == 0, nz0, true);
+        
+        Constraint<> nz1_def("nz1_def");
+        nz1_def = nz - 1;
+        M_obj.add_on_off(nz1_def.in(multi_terms) == 0, nz1, true);
+        
+        Constraint<> nz2_def("nz2_def");
+        nz2_def = nz - 2;
+        M_obj.add_on_off(nz2_def.in(multi_terms) == 0, nz2, true);
+        
+        Constraint<> nz3_def("nz3_def");
+        nz3_def = nz - 3;
+        M_obj.add_on_off(nz3_def.in(multi_terms) == 0, nz3, true);
+        
+        Constraint<> nz4_def("nz4_def");
+        nz4_def = nz - 4;
+        M_obj.add_on_off(nz4_def.in(multi_terms) == 0, nz4, true);
+        
+        
+        Constraint<> pp_nz0("pp_nz0");
+        pp_nz0 = pp - 1;
+        M_obj.add_on_off(pp_nz0.in(multi_terms) == 0, nz0, true);
+        
+        Constraint<> pp_nz1("pp_nz1");
+        pp_nz1 = pp + 1;
+        M_obj.add_on_off(pp_nz1.in(multi_terms) == 0, nz1, true);
+        
+        Constraint<> pp_nz2("pp_nz2");
+        pp_nz2 = pp - 1;
+        M_obj.add_on_off(pp_nz2.in(multi_terms) == 0, nz2, true);
+                
+        Constraint<> pp_nz3("pp_nz3");
+        pp_nz3 = pp + 1;
+        M_obj.add_on_off(pp_nz3.in(multi_terms) == 0, nz3, true);
+        
+        Constraint<> pp_nz4("pp_nz4");
+        pp_nz4 = pp - 1;
+        M_obj.add_on_off(pp_nz4.in(multi_terms) == 0, nz4, true);
         
 //        var<> obj_var("obj_var", pos_);
 //        M_obj.add(obj_var.in(R(1)));
@@ -166,9 +229,9 @@ int main(int argc, char * argv[]){
 //        s.initialize_all(1);
         solver<> g_sol(M_obj,gurobi);
         g_sol.run();
-        M_obj.print_solution();
-        M_obj.round_solution();
-        M_obj.print_solution();
+//        M_obj.print_solution();
+//        M_obj.round_solution();
+//        M_obj.print_solution();
         opt_obj = round(M_obj.get_obj_val());
     }
     else{
@@ -240,7 +303,7 @@ int main(int argc, char * argv[]){
         auto f = ones.tr()*c*c;
         M.min(ones.tr()*c*c);
 //        M.min(sum(cs));
-//        M.print();
+        M.print();
         solver<> mip_solver(M,gurobi);
 //        solver<> nlp_solver(M,ipopt);
         mip_solver.run(1e-6, 7200);
