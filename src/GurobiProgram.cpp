@@ -510,10 +510,10 @@ bool GurobiProgram::solve(bool relax, double mipgap, double time_limit){
          grb_mod->set(GRB_IntParam_MIPFocus,1);
        // grb_mod->set(GRB_IntParam_IntegralityFocus,1);
 //    grb_mod->set(GRB_IntParam_MIPFocus,1);
-//    grb_mod->set(GRB_DoubleParam_Heuristics,0.1);
+    grb_mod->set(GRB_DoubleParam_Heuristics,0);
     //    grb_mod->set(GRB_IntParam_PumpPasses,50);
 //        grb_mod->set(GRB_IntParam_RINS,1);
-//        grb_mod->set(GRB_IntParam_Cuts,1);
+        grb_mod->set(GRB_IntParam_Cuts,0);
 //    grb_mod->set(GRB_IntParam_PreQLinearize,1);
     
     grb_mod->set(GRB_DoubleParam_TimeLimit,time_limit);
