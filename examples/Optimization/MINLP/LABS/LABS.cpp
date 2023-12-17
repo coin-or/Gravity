@@ -52,10 +52,10 @@ int main(int argc, char * argv[]){
     Model<> M_obj("M_obj_LABS_"+to_string(n));
     Model<> M("LABS_"+to_string(n));
     var<int> s("s", -1, 1);
-    var<> z("z", -1, 1);
+    var<int> z("z", -1, 1);
     var<int> y("y", 0, 1);
     var<int> cs("cs", pos_);
-    var<> c("c");
+    var<int> c("c");
     indices s_ids = range(0,n-1);
     indices c_ids = range(1,n-1);
     int opt_obj = 0;
@@ -151,12 +151,21 @@ int main(int argc, char * argv[]){
 //        p_def = p - (2*y.from(pairs) - 1)*(2*y.to(pairs) - 1);
 //        M_obj.add(p_def.in(pairs) == 0);
         
-        var<> y2("y2", 0, 1);
+        var<int> y2("y2", 0, 1);
         M_obj.add(y2.in(pairs));
         
+        var<int> yp("yp", 0, 1);
+        M_obj.add(yp.in(pairs));
+        
         Constraint<> y2_def("y2_def");
-        y2_def = y2 - (2*y.from(pairs)*y.to(pairs)  - y.from(pairs) - y.to(pairs) + 1);
+        y2_def = y2 - (2*yp.in(pairs)  - y.from(pairs) - y.to(pairs) + 1);
         M_obj.add(y2_def.in(pairs) == 0);
+        
+        
+        Constraint<> yp_def("yp_def");
+        yp_def = yp - y.from(pairs)*y.to(pairs);
+        M_obj.add(yp_def.in(pairs) == 0);
+        
         
 //        Constraint<> pp_def("pp_def");
 //        pp_def = pp - (2*y2.in(multi_p1) - 1)*(2*y2.in(multi_p2) - 1);
@@ -192,7 +201,7 @@ int main(int argc, char * argv[]){
         sixteen.in(multi_terms);
         sixteen = 16;
         
-        M_obj.min((sixteen.tr()*y2.in(multi_p1)*y2.in(multi_p2) - eight_p1.tr()*y2.in(multi_p1) - eight_p2.tr()*y2.in(multi_p2) + 4*nb_mult) + (eight.tr()*y.from(pairs)*y.to(pairs) - four_fr.tr()*y.in(pairs_fr) - four_to.tr()*y.in(pairs_to) + 2*nb_quad) + obj.eval_cst(0));//4*sum(pp)+
+        M_obj.min((sixteen.tr()*y2.in(multi_p1)*y2.in(multi_p2) - eight_p1.tr()*y2.in(multi_p1) - eight_p2.tr()*y2.in(multi_p2) + 4*nb_mult) + (eight.tr()*yp.in(pairs) - four_fr.tr()*y.in(pairs_fr) - four_to.tr()*y.in(pairs_to) + 2*nb_quad) + obj.eval_cst(0));//4*sum(pp)+
 //        M_obj.add(obj_def.in(range(1,1)) == 0);
 //        
 //        M_obj.min(obj_var);
@@ -255,10 +264,10 @@ int main(int argc, char * argv[]){
 //        c_def = c - z.in(z_sum);
         c_def = c - (2*y.in(y_sum_fr) - 1)*(2*y.in(y_sum_to) - 1) - rhs;
         M.add(c_def.in(c_ids) == 0);
-        for(auto i = 0; i < c_ids.size(); i++){
-            c.set_lb(c_ids._keys->at(i), -1.*y_sum_fr._ids->at(i).size());
-            c.set_ub(c_ids._keys->at(i), y_sum_fr._ids->at(i).size());
-        }
+//        for(auto i = 0; i < c_ids.size(); i++){
+//            c.set_lb(c_ids._keys->at(i), -1.*y_sum_fr._ids->at(i).size());
+//            c.set_ub(c_ids._keys->at(i), y_sum_fr._ids->at(i).size());
+//        }
 //        Constraint<> c_fix("c_fix");
 //        c_fix = c[1];
 //        M.add(c_fix == 1);
