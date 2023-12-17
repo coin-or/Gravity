@@ -68,7 +68,7 @@ int main(int argc, char * argv[]){
         y.set_lb("0",1);
 
 //        M_obj.add(c.in(c_ids));
-        indices pairs("pairs"), quad_terms("quad_terms"), multi_terms("multi_terms"), multi_lin_terms("multi_lin_terms"), multi_quad_terms("multi_quad_terms");
+        indices pairs("pairs"), pairs_fr("pairs_fr"), pairs_to("pairs_to"), quad_terms("quad_terms"), multi_terms("multi_terms"), multi_lin_terms("multi_lin_terms"), multi_quad_terms("multi_quad_terms");
         func<> obj;
         for (int k = 1; k<=n-1; k++) {
             func<> cterm;
@@ -82,12 +82,15 @@ int main(int argc, char * argv[]){
         DebugOn("Number of quadratic terms = " << nb_quad << endl);
         int nb_mult = obj._pterms->size();
         DebugOn("Number of multilinear terms = " << nb_mult << endl);
-
+        pairs_fr = s_ids.subset();
+        pairs_to = s_ids.subset();
         for(auto p: *obj._qterms)
         {
             auto idx1 = p.second._p->first->_indices->_ids->front().at(0);
             auto idx2 = p.second._p->second->_indices->_ids->front().at(0);
             pairs.add(to_string(idx1)+","+to_string(idx2));
+            pairs_fr.add_ref(to_string(idx1));
+            pairs_to.add_ref(to_string(idx2));
         }
         quad_terms = pairs.subset();
         multi_quad_terms = pairs.subset();
@@ -137,40 +140,64 @@ int main(int argc, char * argv[]){
             multi_p1._ids->at(0).push_back(multi_quad_terms._ids->at(i).at(0));
             multi_p2._ids->at(0).push_back(multi_quad_terms._ids->at(i).at(1));
         }
-        var<> p("p", -1, 1);
-        var<> pp("pp", -1, 1);
+//        var<> p("p", -1, 1);
+//        var<> pp("pp", -1, 1);
+//        
+////        M_obj.add(nz.in(multi_terms));
+//        M_obj.add(p.in(pairs));
+//        M_obj.add(pp.in(multi_terms));
         
-//        M_obj.add(nz.in(multi_terms));
-        M_obj.add(p.in(pairs));
-        M_obj.add(pp.in(multi_terms));
+//        Constraint<> p_def("p_def");
+//        p_def = p - (2*y.from(pairs) - 1)*(2*y.to(pairs) - 1);
+//        M_obj.add(p_def.in(pairs) == 0);
         
-        Constraint<> p_def("p_def");
-        p_def = p - (2*y.from(pairs) - 1)*(2*y.to(pairs) - 1);
-        M_obj.add(p_def.in(pairs) == 0);
-        
-        var<int> y2("y2", 0, 1);
+        var<> y2("y2", 0, 1);
         M_obj.add(y2.in(pairs));
         
         Constraint<> y2_def("y2_def");
         y2_def = y2 - (2*y.from(pairs)*y.to(pairs)  - y.from(pairs) - y.to(pairs) + 1);
         M_obj.add(y2_def.in(pairs) == 0);
         
-        Constraint<> pp_def("pp_def");
-        pp_def = pp - (2*y2.in(multi_p1) - 1)*(2*y2.in(multi_p2) - 1);
-        M_obj.add(pp_def.in(multi_terms) == 0);
+//        Constraint<> pp_def("pp_def");
+//        pp_def = pp - (2*y2.in(multi_p1) - 1)*(2*y2.in(multi_p2) - 1);
+//        M_obj.add(pp_def.in(multi_terms) == 0);
         
         
         
 //        var<> obj_var("obj_var", pos_);
 //        M_obj.add(obj_var.in(R(1)));
-//        
-//        Constraint<> obj_def("obj_def");
-//        obj_def = obj_var - (4*sum(pp)+ 2*sum(p) + obj.eval_cst(0));
-//        M_obj.add(obj_def == 0);
+        
+        param<> eight("8");
+        eight.in(pairs);
+        eight = 8;
+        
+        param<> four_fr("4_fr");
+        four_fr.in(pairs_fr);
+        four_fr = 4;
+        
+        param<> four_to("4_to");
+        four_to.in(pairs_to);
+        four_to = 4;
+        
+        param<> eight_p1("8_p1");
+        eight_p1.in(multi_p1);
+        eight_p1 = 8;
+        
+        param<> eight_p2("8_p2");
+        eight_p2.in(multi_p2);
+        eight_p2 = 8;
+        
+        
+        param<> sixteen("16");
+        sixteen.in(multi_terms);
+        sixteen = 16;
+        
+        M_obj.min((sixteen.tr()*y2.in(multi_p1)*y2.in(multi_p2) - eight_p1.tr()*y2.in(multi_p1) - eight_p2.tr()*y2.in(multi_p2) + 4*nb_mult) + (eight.tr()*y.from(pairs)*y.to(pairs) - four_fr.tr()*y.in(pairs_fr) - four_to.tr()*y.in(pairs_to) + 2*nb_quad) + obj.eval_cst(0));//4*sum(pp)+
+//        M_obj.add(obj_def.in(range(1,1)) == 0);
 //        
 //        M_obj.min(obj_var);
-        M_obj.min(4*sum(pp)+ 2*sum(p) + obj.eval_cst(0));
-        M_obj.print();
+
+//        M_obj.print();
 //        auto g = M_obj.get_interaction_graph();
 //        g.print();
 //        g.get_tree_decomp_bags();
