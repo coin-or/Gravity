@@ -55,7 +55,7 @@ int main(int argc, char * argv[]){
     var<int> z("z", -1, 1);
     var<int> y("y", 0, 1);
     var<int> cs("cs", pos_);
-    var<int> c("c");
+    var<int> c("c", -1*n, n);
     indices s_ids = range(0,n-1);
     indices c_ids = range(1,n-1);
     int opt_obj = 0;
@@ -268,9 +268,10 @@ int main(int argc, char * argv[]){
 //            c.set_lb(c_ids._keys->at(i), -1.*y_sum_fr._ids->at(i).size());
 //            c.set_ub(c_ids._keys->at(i), y_sum_fr._ids->at(i).size());
 //        }
+//        
 //        Constraint<> c_fix("c_fix");
 //        c_fix = c[1];
-//        M.add(c_fix == 1);
+//        M.add(c_fix == -1);
         
 //        Constraint<> cs_def("cs_def");
 //        cs_def = cs - c*c;
@@ -291,10 +292,10 @@ int main(int argc, char * argv[]){
         auto f = ones.tr()*c*c;
         M.min(ones.tr()*c*c);
 //        M.min(sum(cs));
-        M.print();
+//        M.print();
         solver<> mip_solver(M,gurobi);
 //        solver<> nlp_solver(M,ipopt);
-        mip_solver.run(1e-6, 7200);
+        mip_solver.run(1e-6, 120);
 //        f.eval_all();
 //        DebugOn("Obj = " << f._val->at(0) << endl);
 //        nlp_solver.run();
