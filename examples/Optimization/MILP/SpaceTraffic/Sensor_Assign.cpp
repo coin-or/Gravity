@@ -52,7 +52,7 @@ int main(int argc, const char * argv[]) {
     var<> x("x",-1e4, 1e4), y("y", -1e4, 1e4), z("z", 1e3, 1e4);/*< (x,y,z) object coordinates */
     var<> vx("vx", -1e2, 1e2), vy("vy", -1e2, 1e2), vz("vz", -1e2, 1e2);/*< (vx,vy,vz) object velocity */
     var<> ux("ux", -1e4, 1e4), uy("uy", -1e4, 1e4), uz("uz", -1e4, 1e4);/*< (ux,uy,uz) thrust applied at given coordinates */
-    var<int> z("z", 0, 1);/*< if z_t = 1, thrust is applied at time step t */
+    var<int> b("b", 0, 1);/*< if b_t = 1, thrust is applied at time step t */
 //    var<> ux("ux", 0, 0), uy("uy", 0, 0), uz("uz", -1e2, 1e2);/*< (ux,uy,uz) thrust applied at given coordinates */
     /* Runge-Kutta auxiliary variables */
     var<> k1_x("k1_x"), k2_x("k2_x"), k3_x("k3_x"), k4_x("k4_x");
@@ -69,34 +69,34 @@ int main(int argc, const char * argv[]) {
     bool add_impulse_max = false;
     if(add_impulse_max){
         
-        Mopt.add(z.in(T));
+        Mopt.add(b.in(T));
         
         Constraint<> thrust_on_off_ux("thrust_on_off_ux");
-        thrust_on_off_ux = ux - 1e4*z;
+        thrust_on_off_ux = ux - 1e4*b;
         Mopt.add(thrust_on_off_ux.in(T) <= 0);
         
         Constraint<> thrust_on_off_uy("thrust_on_off_uy");
-        thrust_on_off_uy = uy - 1e4*z;
+        thrust_on_off_uy = uy - 1e4*b;
         Mopt.add(thrust_on_off_uy.in(T) <= 0);
         
         Constraint<> thrust_on_off_uz("thrust_on_off_uz");
-        thrust_on_off_uz = uz - 1e4*z;
+        thrust_on_off_uz = uz - 1e4*b;
         Mopt.add(thrust_on_off_uz.in(T) <= 0);
         
         Constraint<> thrust_on_off_ux_neg("thrust_on_off_ux_neg");
-        thrust_on_off_ux_neg = ux + 1e4*z;
+        thrust_on_off_ux_neg = ux + 1e4*b;
         Mopt.add(thrust_on_off_ux_neg.in(T) >= 0);
         
         Constraint<> thrust_on_off_uy_neg("thrust_on_off_uy_neg");
-        thrust_on_off_uy_neg = uy + 1e4*z;
+        thrust_on_off_uy_neg = uy + 1e4*b;
         Mopt.add(thrust_on_off_uy_neg.in(T) >= 0);
         
         Constraint<> thrust_on_off_uz_neg("thrust_on_off_uz_neg");
-        thrust_on_off_uz_neg = uz + 1e4*z;
+        thrust_on_off_uz_neg = uz + 1e4*b;
         Mopt.add(thrust_on_off_uz_neg.in(T) >= 0);
         
         Constraint<> max_impulses("max_impulses");
-        max_impulses = sum(z) - 2;
+        max_impulses = sum(b) - 2;
         Mopt.add(max_impulses <= 0);
     }
     
