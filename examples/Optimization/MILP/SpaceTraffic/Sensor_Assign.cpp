@@ -68,7 +68,8 @@ int main(int argc, const char * argv[]) {
     
     bool add_impulse_max = false;
     if(add_impulse_max){
-        
+        int max_nb = 2; /*< max number of thrust impulses */
+        double min_thrust = 200; /*< minimum thrust applied if impulse binary is one (using L2 norm on (ux,uy,uz)*/
         Mopt.add(b.in(T));
         
         Constraint<> thrust_on_off_ux("thrust_on_off_ux");
@@ -96,8 +97,14 @@ int main(int argc, const char * argv[]) {
         Mopt.add(thrust_on_off_uz_neg.in(T) >= 0);
         
         Constraint<> max_impulses("max_impulses");
-        max_impulses = sum(b) - 2;
+        max_impulses = sum(b) - max_nb;
         Mopt.add(max_impulses <= 0);
+        
+        Constraint<> min_thrust("min_thrust");
+        min_thrust = ux*ux + uy*uy + uz*uz - min_thrust*min_thrust;
+        Mopt.add(min_thrust.in(T) >= 0);
+        
+        
     }
     
     
