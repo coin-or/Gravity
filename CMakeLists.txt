@@ -358,7 +358,7 @@ if(UNIX)
   set(CMAKE_LINKER_FLAGS "${CMAKE_LINKER_FLAGS} -pthread")
 endif()
 
-
+set(CMAKE_XCODE_ATTRIBUTE_LD_RUNPATH_SEARCH_PATHS "$ENV{DYLD_LIBRARY_PATH}")
 add_subdirectory(src)
 add_subdirectory(examples)
 # add_subdirectory(solvers)
