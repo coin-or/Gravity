@@ -17,7 +17,7 @@ using namespace gravity;
 int main (int argc, char * argv[])
 {
     int output = 0;
-    bool projected = false, use_cplex = false, use_gurobi = false;
+    bool projected = false, use_cplex = false, use_gurobi = true;
     double tol = 1e-6;
     double solver_time_end, total_time_end, solve_time, total_time;
     string mehrotra = "no", log_level="0";
@@ -207,15 +207,16 @@ int main (int argc, char * argv[])
         solve_time = solver_time_end - solver_time_start;
         total_time = total_time_end - total_time_start;
     }
-    //    else if (use_gurobi) {
-    //        solver DCOPF_GRB(DCOPF, gurobi);
-    //        auto solver_time_start = get_wall_time();
-    //        DCOPF_GRB.run(output, relax = false, tol = 1e-6);
-    //        solver_time_end = get_wall_time();
-    //        total_time_end = get_wall_time();
-    //        solve_time = solver_time_end - solver_time_start;
-    //        total_time = total_time_end - total_time_start;
-    //    }
+    else if (use_gurobi) {
+        solver<> DCOPF_GRB(DCOPF, gurobi);
+        auto solver_time_start = get_wall_time();
+        bool relax = false;
+        DCOPF_GRB.run(output, relax = false, tol = 1e-6);
+        solver_time_end = get_wall_time();
+        total_time_end = get_wall_time();
+        solve_time = solver_time_end - solver_time_start;
+        total_time = total_time_end - total_time_start;
+    }
     else {
         solver<> DCOPF_IPT(DCOPF,ipopt);
         auto solver_time_start = get_wall_time();
