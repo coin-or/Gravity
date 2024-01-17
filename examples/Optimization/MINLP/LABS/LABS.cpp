@@ -22,7 +22,7 @@ int main(int argc, char * argv[]){
     /* binary string dimension*/
     int n = 3;
     bool new_algorithm = false;
-    bool nlp = false;
+    bool nlp = false, compact = false, ones = false;
     string alg = "mip";
     if(argc>=2){
         n=stoi(argv[1]);
@@ -35,6 +35,10 @@ int main(int argc, char * argv[]){
         new_algorithm =true;
     if(alg=="nlp")
         nlp =true;
+    if(alg=="compact")
+        compact =true;
+    if(alg=="ones")
+        ones =true;
     DebugOn("Optimizing for N = " << n << endl);
     
     if(new_algorithm){
@@ -55,11 +59,35 @@ int main(int argc, char * argv[]){
     var<int> z("z", -1, 1);
     var<int> y("y", 0, 1);
     var<int> cs("cs", pos_);
-    var<int> c("c", -1*n, n);
+    var<> c("c", -1.*n, n);
     indices s_ids = range(0,n-1);
     indices c_ids = range(1,n-1);
     int opt_obj = 0;
     if(nlp){
+        s.exclude_zero();
+        s.in(s_ids);
+        M_obj.add(s.in(s_ids));
+        indices pairs("pairs"), pairs_fr("pairs_fr"), pairs_to("pairs_to"), quad_terms("quad_terms"), multi_terms("multi_terms"), multi_lin_terms("multi_lin_terms"), multi_quad_terms("multi_quad_terms");
+        func<> obj;
+        for (int k = 1; k<=n-1; k++) {
+            func<> cterm;
+            for (int i = 0; i<n-k; i++) {
+                cterm += (s(to_string(i)))*(s(to_string(i+k)));
+            }
+            obj += pow(cterm,2);
+        }
+        
+        
+        M_obj.min(obj);
+        M_obj.print();
+        s.initialize_binary();
+        solver<> g_sol(M_obj,ipopt);
+        g_sol.run();
+        M.round_solution();
+        opt_obj = round(M_obj.get_obj_val());
+        M_obj.print_solution();
+    }
+    else if(compact){
         s.exclude_zero();
         s.in(s_ids);
 //        M_obj.add(s.in(s_ids));
@@ -213,13 +241,114 @@ int main(int argc, char * argv[]){
 //        auto ConvM = M_obj.relax();
 //        ConvM->print();
 //        s.initialize_binary();
-//        s.initialize_all(1);
-        solver<> g_sol(M_obj,gurobi);
-        g_sol.run();
+        y.initialize_all(1);
+        y2.initialize_all(1);
+        yp.initialize_all(1);
+        solver<> g_sol(M_obj,ipopt);
+        g_sol.run(5,1e-6,10000);
+        M_obj.round_solution();
         opt_obj = round(M_obj.get_obj_val());
         M_obj.print_solution();
-//        M_obj.round_solution();
 //        M_obj.print_solution();
+        
+    }
+    else if(ones){
+        indices z_ids("z_ids");
+        string idx;
+        for (int i = 0; i<n-1; i++) {
+            for (int k = i+1; k<n; k++) {
+                idx = to_string(i)+","+to_string(k);
+                z_ids.add(idx);
+            }
+        }
+        M.add(c.in(c_ids));
+//        M.add(cs.in(c_ids));
+//        M.add(z.in(z_ids));
+//        M.add(s.in(s_ids));
+        M.add(s.in(s_ids));
+//        s.set_lb("0",1);
+//        y.set_lb("0",1);
+        
+    //    Constraint<> y_on_off("y_on_off");
+    //    y_on_off = s - 2*y + 1;
+    //    m.add(y_on_off.in(s_ids) == 0);
+        
+//        Constraint<> z_def("z_def");
+//        z_def = z - (2*y.from(z_ids) - 1)*(2*y.to(z_ids) - 1);
+//        M.add(z_def.in(z_ids) == 0);
+        
+        indices z_sum("z_sum");
+        indices y_sum_fr("y_sum_fr"), y_sum_to("y_sum_to");
+        param<> rhs("rhs");
+        rhs.in(c_ids);
+        for (int k = 1; k<=n-1; k++) {
+            for (int i = 0; i<n-k; i++) {
+                z_sum.add_in_row(k-1, to_string(i)+","+to_string(i+k));
+                y_sum_fr.add_in_row(k-1, to_string(i));
+                y_sum_to.add_in_row(k-1, to_string(i+k));
+            }
+            rhs.set_val(k-1, n-1-k);
+        }
+        
+        var<> sp("sp", -1, 1);
+        M.add(sp.in(z_ids));
+        
+        Constraint<> sp_def_ub1("sp_def_ub1");
+        sp_def_ub1 = sp - s.from(z_ids);
+        M.add(sp_def_ub1.in(z_ids) <= 0);
+        
+        Constraint<> sp_def_ub2("sp_def_ub2");
+        sp_def_ub2 = sp - s.to(z_ids);
+        M.add(sp_def_ub2.in(z_ids) <= 0);
+        
+        Constraint<> sp_def_lb("sp_def_lb");
+        sp_def_lb = sp - (s.from(z_ids) + s.to(z_ids) - 1);
+        M.add(sp_def_lb.in(z_ids) >= 0);
+        
+        Constraint<> c_def("c_def");
+//        c_def = c - z.in(z_sum);
+//        c_def = c - (2*y.in(y_sum_fr) - 1)*(2*y.in(y_sum_to) - 1) - rhs;
+        c_def = c - 2*sp.in(z_sum)  - s.in(y_sum_fr) - s.in(y_sum_to);
+        M.add(c_def.in(c_ids) == 0);
+//        for(auto i = 0; i < c_ids.size(); i++){
+//            c.set_lb(c_ids._keys->at(i), -1.*y_sum_fr._ids->at(i).size());
+//            c.set_ub(c_ids._keys->at(i), y_sum_fr._ids->at(i).size());
+//        }
+//
+//        Constraint<> c_fix("c_fix");
+//        c_fix = c[1];
+//        M.add(c_fix == -1);
+        
+//        Constraint<> cs_def("cs_def");
+//        cs_def = cs - c*c;
+//        M.add(cs_def.in(c_ids) >= 0);
+        
+//        Constraint<> cs_abs_l("cs_abs_l");
+//        cs_abs_l = cs - c;
+//        M.add(cs_abs_l.in(c_ids) >= 0);
+//
+//        Constraint<> cs_abs_u("cs_abs_u");
+//        cs_abs_u = cs + c;
+//        M.add(cs_abs_u.in(c_ids) >= 0);
+//
+//        M.min(sum(cs));
+        param<> ones("1");
+        ones.in(c_ids);
+        ones = 1;
+        auto f = ones.tr()*c*c;
+        M.min(ones.tr()*c*c);
+//        M.min(sum(cs));
+        M.print();
+        solver<> mip_solver(M,gurobi);
+//        solver<> nlp_solver(M,ipopt);
+        mip_solver.run(1e-6, 3600);
+//        f.eval_all();
+//        DebugOn("Obj = " << f._val->at(0) << endl);
+//        nlp_solver.run();
+//        M.print_solution();
+//        M.round_solution();
+        opt_obj = round(M.get_obj_val());
+        M.print_solution();
         
     }
     else{
@@ -260,9 +389,25 @@ int main(int argc, char * argv[]){
             rhs.set_val(k-1, n-1-k);
         }
         
+        var<> yp("yp", 0, 1);
+        M.add(yp.in(z_ids));
+        
+        Constraint<> yp_def_ub1("yp_def_ub1");
+        yp_def_ub1 = yp - y.from(z_ids);
+        M.add(yp_def_ub1.in(z_ids) <= 0);
+        
+        Constraint<> yp_def_ub2("yp_def_ub2");
+        yp_def_ub2 = yp - y.to(z_ids);
+        M.add(yp_def_ub2.in(z_ids) <= 0);
+        
+        Constraint<> yp_def_lb("yp_def_lb");
+        yp_def_lb = yp - (y.from(z_ids) + y.to(z_ids) - 1);
+        M.add(yp_def_lb.in(z_ids) >= 0);
+        
         Constraint<> c_def("c_def");
 //        c_def = c - z.in(z_sum);
-        c_def = c - (2*y.in(y_sum_fr) - 1)*(2*y.in(y_sum_to) - 1) - rhs;
+//        c_def = c - (2*y.in(y_sum_fr) - 1)*(2*y.in(y_sum_to) - 1) - rhs;
+        c_def = c - 4*yp.in(z_sum)  + 2*y.in(y_sum_fr) + 2*y.in(y_sum_to) - 1 - rhs;
         M.add(c_def.in(c_ids) == 0);
 //        for(auto i = 0; i < c_ids.size(); i++){
 //            c.set_lb(c_ids._keys->at(i), -1.*y_sum_fr._ids->at(i).size());
@@ -292,10 +437,10 @@ int main(int argc, char * argv[]){
         auto f = ones.tr()*c*c;
         M.min(ones.tr()*c*c);
 //        M.min(sum(cs));
-//        M.print();
+        M.print();
         solver<> mip_solver(M,gurobi);
 //        solver<> nlp_solver(M,ipopt);
-        mip_solver.run(1e-6, 120);
+        mip_solver.run(1e-6, 3600);
 //        f.eval_all();
 //        DebugOn("Obj = " << f._val->at(0) << endl);
 //        nlp_solver.run();
