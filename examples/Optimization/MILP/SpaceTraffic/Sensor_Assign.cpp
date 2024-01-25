@@ -69,7 +69,7 @@ int main(int argc, const char * argv[]) {
     var<> cost("cost", pos_);
     bool add_impulse_max = true;
     if(add_impulse_max){
-        int max_nb = 50; /*< max number of thrust impulses */
+        int max_nb = 100; /*< max number of thrust impulses */
         double min_th = 200; /*< minimum thrust applied if impulse binary is one (using L2 norm on (ux,uy,uz)*/
         Mopt.add(b.in(T));
         
@@ -347,12 +347,37 @@ int main(int argc, const char * argv[]) {
     rc2.initialize_all(1./(5e3));
     rc3.initialize_all(1./(5e3));
     rc4.initialize_all(1./(5e3));
-    Mopt.print();
+//    Mopt.print();
     
     solver<> S(Mopt, ipopt);
     double tol=1e-9, time_limit = 36000;
     S.run(tol=1e-6, time_limit=600);
     Mopt.print_solution();
+    bool is_int = false;
+    while(!is_int){
+        is_int = true;
+        for(auto i = 0; i<b.get_dim(); i++){
+            auto c_val = b.eval(i);
+            if (std::abs(c_val - round(c_val)) > 1e-2){
+                is_int = false;
+                if(1 - c_val < 0.3)
+                    b.set_lb(to_string(i+1), 1);
+                else if(c_val <0.3)
+                    b.set_ub(to_string(i+1), 0);
+            }
+            else{
+                b.set_lb(to_string(i+1), round(c_val));
+                b.set_ub(to_string(i+1), round(c_val));
+            }
+        }
+        if(!is_int){
+            Mopt.print();
+            solver<> S2(Mopt, ipopt);
+            double tol=1e-9, time_limit = 36000;
+            S2.run(tol=1e-6, time_limit=600);
+            Mopt.print_solution();
+        }
+    }
     return 0;
 }
 
