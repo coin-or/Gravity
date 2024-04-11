@@ -250,7 +250,7 @@ bool Net::add_arc(Arc* a) {
         if(arcID.find(key)!=arcID.end())
             s = arcID[key];
         (*s)[a->_name] = a;
-        Warning("\nWARNING: adding another Directed line between same nodes! \n Node ID: " << src << " and Node ID: " << dest << endl);
+        WarningOff("\nWARNING: adding another Directed line between same nodes! \n Node ID: " << src << " and Node ID: " << dest << endl);
         a->_parallel = true;
         parallel = true;
     }

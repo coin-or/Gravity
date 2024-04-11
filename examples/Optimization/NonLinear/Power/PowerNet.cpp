@@ -549,7 +549,7 @@ int PowerNet::readgrid(const string& fname, bool reverse_arcs) {
         
         this->Net::add_node(bus);
         if (status>=4) {
-            DebugOff("INACTIVE NODE!\n" << name << endl);
+            DebugOn("INACTIVE NODE!\n" << name << endl);
         }
         file >> word;
     }
@@ -681,8 +681,8 @@ int PowerNet::readgrid(const string& fname, bool reverse_arcs) {
         reversed = false;
         //        if(get_node(src)->_id > get_node(dest)->_id) {//Reverse arc direction
         if((reverse_arcs && get_node(src)->_id > get_node(dest)->_id) || arcID.find(key)!=arcID.end()) {//Reverse arc direction
-            Warning("Adding arc linking " +src+" and "+dest);
-            Warning(" with reversed direction, reversing source and destination.\n");
+            WarningOff("Adding arc linking " +src+" and "+dest);
+            WarningOff(" with reversed direction, reversing source and destination.\n");
             reversed = true;
             key = src;
             src = dest;
@@ -832,7 +832,11 @@ int PowerNet::readgrid(const string& fname, bool reverse_arcs) {
         
         if(arc->status != 1 || !bus_s->_active || !bus_d->_active) {
             arc->_active = false;
-            DebugOff("INACTIVE ARC!\n" << arc->_name << endl);
+            delete arc;
+            getline(file, word,'\n');
+            file >> word;
+            continue;
+            DebugOn("INACTIVE ARC!\n" << arc->_name << endl);
         }
         arc->connect();
         add_arc(arc);

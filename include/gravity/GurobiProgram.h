@@ -30,6 +30,7 @@ public:
     void unrelax_model();
     void fill_in_grb_vmap();
     void create_grb_constraints();
+    void write_NLCstr(const string &fname);
     void set_grb_objective();
     void print_constraints();
 };

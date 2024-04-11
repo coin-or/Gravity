@@ -275,6 +275,7 @@ public:
                 iapp->Options()->SetNumericValue("tol", tol);
                 iapp->Options()->SetIntegerValue("print_level", output);
                 iapp->Options()->SetStringValue("honor_original_bounds", "no");
+//                iapp->Options()->SetStringValue("nlp_scaling_method", "none");
                 /** Bonmin options */
                 //            iapp->Options()->SetStringValue("mu_strategy", "adaptive");
                 //            iapp->Options()->SetStringValue("mu_oracle", "probing");

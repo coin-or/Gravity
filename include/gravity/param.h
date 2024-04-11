@@ -267,18 +267,18 @@ namespace gravity {
                     name = name.substr(1, name.size()-1);
                 }
             }
-            if (is_indexed() && name.find("[")!=std::string::npos) {// Name  already has index
+            if (is_indexed() && name.find("(")!=std::string::npos) {// Name  already has index
                 return name;
             }
             if (is_indexed()) {
                 size_t rev_idx = _indices->_ids->at(0).at(inst);
-                name += "["+_indices->_keys->at(rev_idx)+"]";
+                name += "("+_indices->_keys->at(rev_idx)+")";
             }
             else if(_indices){
-                name += "["+_indices->_keys->at(get_id_inst(inst))+"]";
+                name += "("+_indices->_keys->at(get_id_inst(inst))+")";
             }
             else {
-                name += "["+to_string(inst)+"]";
+                name += "("+to_string(inst)+")";
             }
             return name;
         };
@@ -315,17 +315,17 @@ namespace gravity {
                     name = name.substr(1, name.size()-1);
                 }
             }
-            if (is_indexed() && name.find("[")!=std::string::npos) {// Name has index already
+            if (is_indexed() && name.find("(")!=std::string::npos) {// Name has index already
                 return name;
             }
             if (is_indexed()) {
-                name += "["+_indices->_keys->at(_indices->_ids->at(inst1).at(inst2))+"]";
+                name += "("+_indices->_keys->at(_indices->_ids->at(inst1).at(inst2))+")";
             }
             else if(_indices){
-                name += "["+_indices->_keys->at(inst1)+","+_indices->_keys->at(inst2)+"]";
+                name += "("+_indices->_keys->at(inst1)+","+_indices->_keys->at(inst2)+")";
             }
             else{
-                name += "["+to_string(inst1)+","+to_string(inst2)+"]";
+                name += "("+to_string(inst1)+","+to_string(inst2)+")";
             }
             return name;
         };
@@ -1204,7 +1204,7 @@ namespace gravity {
                 return index;
             }
             else {
-                Warning("WARNING: calling add_val(const string& key, T val) with an existing key, overriding existing value" << endl);
+                WarningOff("WARNING: calling add_val(const string& key, T val) with an existing key, overriding existing value" << endl);
                 set_val(key,val);
                 if(_indices->_ids){
                     _indices->_ids->at(0).push_back(pp.first->second);
@@ -1393,8 +1393,8 @@ namespace gravity {
               }
       
         template<class T=type, typename enable_if<is_arithmetic<T>::value>::type* = nullptr> bool is_zero_() const { /**< Returns true if all values of this paramter are 0 **/
-//            return (get_dim()==0 || (_range->first == 0 && _range->second == 0));
-            return (get_dim()==0);
+            return (get_dim()==0 || (_range->first == 0 && _range->second == 0));
+//            return (get_dim()==0);
         }
 
         template<class T=type, class = typename enable_if<is_same<T, Cpx>::value>::type> bool is_zero_() const{
@@ -2296,9 +2296,9 @@ namespace gravity {
         string to_str_vals(bool vals, int prec = 10) {
             string str = get_name(false,true);
             auto name = str.substr(0, str.find_last_of("."));
-            str = name;
+            str = "";
             if (vals) {
-                str += " = { \n";
+//                str += " = { \n";
                 auto space_size = str.size();
                 if (is_matrix_indexed()) {
                     auto max_cell_size = get_max_cell_size(true);
@@ -2344,7 +2344,7 @@ namespace gravity {
                     if (is_indexed()) {
                         for (size_t i = 0; i < _dim[0]; i++) {
                             if((!_is_relaxed && !is_integer())|| std::abs(eval(i)) > 1e-4){
-                                str += "[" + _indices->_keys->at(get_id_inst(i)) + "] = " + to_string_with_precision(eval(i), prec);
+                                str += name+"(" + _indices->_keys->at(get_id_inst(i)) + ") " + to_string_with_precision(eval(i), prec);
                                 str += " \n";
                             }
                         }
@@ -2352,7 +2352,7 @@ namespace gravity {
                     else {
                         for (size_t i = 0; i < _dim[0]; i++) {
                             if((!_is_relaxed && !is_integer()) || std::abs(eval(i)) > 1e-4){
-                                str += "[" + _indices->_keys->at(i) + "] = " + to_string_with_precision(eval(i), prec);
+                                str += name+"(" + _indices->_keys->at(i) + ") " + to_string_with_precision(eval(i), prec);
                                 str += " \n";
                             }
                         }
@@ -2364,7 +2364,7 @@ namespace gravity {
                         str += " \n";
                     }
                 }
-                str += "};\n";
+//                str += "};\n";
             }
             return str;
         }

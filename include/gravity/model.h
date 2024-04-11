@@ -5785,7 +5785,7 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
         }
         
         void print_solution(int prec=5) const{
-            print_obj_val(prec);
+//            print_obj_val(prec);
             for (auto &v_pair:_vars) {
                 auto v = v_pair.second;
                 v->print_vals(prec);

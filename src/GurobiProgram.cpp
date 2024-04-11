@@ -3,6 +3,8 @@
 #include <chrono>         // std::chrono::seconds
 #include <Eigen/Dense>
 #include <Eigen/Eigenvalues>
+#include <fstream>
+#include <iostream>
 class cuts: public GRBCallback
 {
 public:
@@ -493,8 +495,8 @@ bool GurobiProgram::solve(bool relax, double mipgap, double time_limit){
         unrelax_model();
     //    relax_model();
     
-    grb_mod->set(GRB_DoubleParam_MIPGap, 1e-6);
-    grb_mod->set(GRB_DoubleParam_FeasibilityTol, 1e-9);
+    grb_mod->set(GRB_DoubleParam_MIPGap, 1e-4);
+    grb_mod->set(GRB_DoubleParam_FeasibilityTol, 1e-6);
 //    grb_mod->set(GRB_DoubleParam_OptimalityTol, 1e-9);
     // grb_mod->set(GRB_IntParam_StartNodeLimit, -3);
     //    grb_mod->getEnv().set(GRB_IntParam_DualReductions, 0);
@@ -503,7 +505,11 @@ bool GurobiProgram::solve(bool relax, double mipgap, double time_limit){
     //    grb_mod->getEnv().set(GRB_IntParam_NodeMethod, 1);
     grb_mod->getEnv().set(GRB_IntParam_LazyConstraints, 1);
     grb_mod->set(GRB_IntParam_Threads, 8);
-    grb_mod->set(GRB_DoubleParam_IntFeasTol, 1e-9);
+    grb_mod->set(GRB_DoubleParam_IntFeasTol, 1e-6);
+//    grb_mod->set(GRB_DoubleParam_Inf, 1e-9);
+    grb_mod->set(GRB_IntParam_FuncNonlinear, 1);
+    grb_mod->set(GRB_IntParam_Presolve, 1);
+//    "Presolve": 0, "MIPGap": 1e-3, "OptimalityTol": 1e-3, "GURO_PAR_NLTARGET": 0, "FuncNonlinear": 1, "GURO_PAR_DUMP":1, "GURO_PAR_NLPNOISE":2
     //       grb_mod->set(GRB_IntParam_NumericFocus,3);
     //     grb_mod->set(GRB_IntParam_PreCrush,0);
     //     grb_mod->set(GRB_IntParam_MIPFocus,3);
@@ -525,28 +531,28 @@ bool GurobiProgram::solve(bool relax, double mipgap, double time_limit){
     //grb_env2 = new GRBEnv();
     //auto mod2=GRBModel(grb_mod);
     int n=grb_mod->get(GRB_IntAttr_NumVars);
-    Model<> interior;
-    //    auto lin=_model->buildOA();
-    //    interior=lin->get_interior(*_model);
-    
-    //interior=lin->add_outer_app_solution(*_model);
-    //interior.print_solution();
-    cuts cb = cuts(_grb_vars, n, _model, interior);
-    cuts_primal_complex cbp=cuts_primal_complex(_grb_vars, n, _model, interior);
-    //vector<GRBLinExpr> vec_expr;
-    if(_model->_complex){
-        if(!relax){
-            grb_mod->setCallback(&cbp);
-            grb_mod->update();
-        }
-    }
-    else{
-        //cuts cb(_grb_vars, n, _model, interior);
-        if(!relax){
-            grb_mod->setCallback(&cb);
-            grb_mod->update();
-        }
-    }
+//    Model<> interior;
+//    //    auto lin=_model->buildOA();
+//    //    interior=lin->get_interior(*_model);
+//    
+//    //interior=lin->add_outer_app_solution(*_model);
+//    //interior.print_solution();
+//    cuts cb = cuts(_grb_vars, n, _model, interior);
+//    cuts_primal_complex cbp=cuts_primal_complex(_grb_vars, n, _model, interior);
+//    //vector<GRBLinExpr> vec_expr;
+//    if(_model->_complex){
+//        if(!relax){
+//            grb_mod->setCallback(&cbp);
+//            grb_mod->update();
+//        }
+//    }
+//    else{
+//        //cuts cb(_grb_vars, n, _model, interior);
+//        if(!relax){
+//            grb_mod->setCallback(&cb);
+//            grb_mod->update();
+//        }
+//    }
     
     //grb_mod->set(GRB_IntParam_RINS,1);
     // grb_mod->set(GRB_DoubleParam_Heuristics, 0.5);
@@ -808,13 +814,61 @@ bool GurobiProgram::solve(bool relax, double mipgap, double time_limit){
     return true;
 }
 
+bool copyWithoutLastLine(const std::string& inputFile) {
+    std::string tempFile = inputFile + ".temp"; // Temporary file
+
+    // First, perform the operation with inputFile as input and tempFile as output
+    std::ifstream in(inputFile);
+    std::ofstream out(tempFile, std::ios::trunc);
+    if (!in.is_open() || !out.is_open()) {
+        std::cerr << "Error opening files." << std::endl;
+        return false;
+    }
+
+    std::string line;
+    std::string prevLine;
+    while (std::getline(in, line)) {
+        if (!prevLine.empty()) {
+            out << prevLine << '\n'; // Write previous line, ensuring not to write the last one
+        }
+        prevLine = line; // Keep track of the previous line
+    }
+    
+    in.close();
+    out.close();
+
+    // Now, replace the original file with the temporary file
+    if (std::remove(inputFile.c_str()) != 0) {
+        std::cerr << "Error removing original file." << std::endl;
+        return false;
+    }
+    if (std::rename(tempFile.c_str(), inputFile.c_str()) != 0) {
+        std::cerr << "Error renaming temporary file to original file name." << std::endl;
+        return false;
+    }
+
+    return true;
+}
+
+
 void GurobiProgram::prepare_model(){
     _model->fill_in_maps();
     _model->compute_funcs();
     fill_in_grb_vmap();
     create_grb_constraints();
     set_grb_objective();
-//    grb_mod->write("gurobiprint.lp");
+//    grb_mod->write(_model->get_name()+"_AC.mst");
+//    grb_mod->write(_model->get_name()+"_AC.mps");
+    
+    auto filename = _model->get_name()+".lp";
+    grb_mod->write(filename);
+    copyWithoutLastLine(filename);
+    
+    // Append NL funcs to the file
+    write_NLCstr(filename);
+    
+    
+    exit(0);
     //    print_constraints();
 }
 void GurobiProgram::update_model(){
@@ -910,6 +964,7 @@ void GurobiProgram::fill_in_grb_vmap(){
                     else {
                         _grb_vars.at(vid) = (GRBVar(grb_mod->addVar(real_var->get_lb(i), real_var->get_ub(i), 0.0, GRB_CONTINUOUS, v->get_name(true,true)+"("+v->_indices->_keys->at(i)+")")));
                         _grb_vars.at(vid).set(GRB_DoubleAttr_Start, real_var->eval(i));
+                        _grb_vars.at(vid).set(GRB_DoubleAttr_PStart, real_var->eval(i));
                     }
                 }
                 break;
@@ -955,6 +1010,60 @@ void GurobiProgram::fill_in_grb_vmap(){
     //    }
 }
 
+void GurobiProgram::write_NLCstr(const string &fname){
+    // Open the file in append mode
+    ofstream file(fname, std::ios::app);
+    if (!file.is_open()) {
+        cerr << "Failed to open file for appending nonlinear constraints.\n";
+        return 1;
+    }
+//    file << " zero = 0\n";
+    file << " General Constraints\n";
+
+    char sense;
+    size_t idx = 0, idx_inst = 0, idx1 = 0, idx2 = 0, idx_inst1 = 0, idx_inst2 = 0, nb_inst = 0, inst = 0;
+    GRBLinExpr lterm, linlhs;
+    GRBQuadExpr quadlhs;
+    GRBVar gvar1, gvar2;
+    double coeff;
+    for(auto& p: _model->_cons){
+        auto c = p.second;
+        if (c->is_nonlinear() && (!(c->_expr->is_uexpr() && c->get_nb_vars()==2) && !c->_expr->is_mexpr())) {
+            DebugOff("Founf a nonlinear constraint with more than two variables, writing the expression tree.\n");
+            switch(c->get_ctype()) {
+                case geq:
+                    sense = GRB_GREATER_EQUAL;
+                    break;
+                case leq:
+                    sense = GRB_LESS_EQUAL;
+                    break;
+                case eq:
+                    sense = GRB_EQUAL;
+                    break;
+                default:
+                    break;
+            }
+            assert(sense==GRB_EQUAL);/* Check what to do with inequalities */
+            nb_inst = c->get_nb_inst();
+            for (size_t i = 0; i< nb_inst; i++){
+                file <<  " " << c->get_name()+"("+c->_indices->_keys->at(i)+"):\n";
+                file << " zero(0) = NL :\n";
+                int parent_id = -1;
+                file << c->getNLexpr(-1,parent_id,i);
+            }
+        }
+    }
+    file << "End\n";
+    
+    // Optional: Check if writing was successful
+    if (!file) {
+        cerr << "Failed to write to file.\n";
+        return 1;
+    }
+
+    file.close();
+}
+
 void GurobiProgram::create_grb_constraints(){
     char sense;
     size_t idx = 0, idx_inst = 0, idx1 = 0, idx2 = 0, idx_inst1 = 0, idx_inst2 = 0, nb_inst = 0, inst = 0;
@@ -975,7 +1084,8 @@ void GurobiProgram::create_grb_constraints(){
         c->_new = false;
         
         if (c->is_nonlinear() && (!(c->_expr->is_uexpr() && c->get_nb_vars()==2) && !c->_expr->is_mexpr())) {
-            throw invalid_argument("Gurobi cannot handle nonlinear constraints with more than two variables, try decomposing your constraints by introducing auxiliary variables.\n");
+            DebugOff("Gurobi cannot handle nonlinear constraints with more than two variables, ignoring it.\n");
+            continue;
         }
         switch(c->get_ctype()) {
             case geq:

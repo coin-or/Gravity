@@ -23,6 +23,7 @@ int main (int argc, char * argv[])
     int output = 0;
     double tol = 1e-6;
     string mehrotra = "no", log_level="0";
+    bool extended = false;
 #ifdef USE_OPT_PARSER
     /** create a OptionParser with options */
     op::OptionParser opt;
@@ -49,11 +50,14 @@ int main (int argc, char * argv[])
         exit(0);
     }
 #else
-    if(argc==2){
+    if(argc>=2){
         fname=argv[1];
     }
     else{
         fname=string(prj_dir)+"/data_sets/Power/nesta_case5_pjm.m";
+    }
+    if(argc>=3){
+        mtype=argv[2];
     }
 #endif
     double total_time_start = get_wall_time();
@@ -140,7 +144,10 @@ int main (int argc, char * argv[])
     var<> v("|V|", v_min, v_max);
     var<> vr("vr", -1.*v_max,v_max);
     var<> vi("vi", -1.*v_max,v_max);
+    var<> vij("vij");
 
+    var<> zero("zero",0,0);
+    ACOPF.add(zero);
     var<> v_from, v_to, theta_from, theta_to;
     var<> vr_from, vr_to, vi_from, vi_to;
     if (polar) {
@@ -203,9 +210,14 @@ int main (int argc, char * argv[])
     Constraint<> Flow_P_From("Flow_P_From");
     Flow_P_From += Pf_from;
     if (polar) {
-        Flow_P_From -= g/pow(tr,2)*pow(v_from,2);
-        Flow_P_From += g/tr*(v_from*v_to*cos(theta_from - theta_to - as));
-        Flow_P_From += b/tr*(v_from*v_to*sin(theta_from - theta_to - as));
+//        Flow_P_From -= g/pow(tr,2)*pow(v_from,2);
+//        Flow_P_From += g/tr*(v_from*v_to*cos(theta_from - theta_to - as));
+//        Flow_P_From += b/tr*(v_from*v_to*sin(theta_from - theta_to - as));
+        
+//        Flow_P_From -= g*pow(v_from,2);
+//        Flow_P_From += g*(v_from*v_to*cos(theta_from - theta_to - as));
+        Flow_P_From += v_from*v_to*sin(theta_from);
+//        Flow_P_From += b*(v_from*v_to*sin(theta_from - theta_to - as));
     }
     else {
         Flow_P_From -= g_ff*(pow(vr_from, 2) + pow(vi_from, 2));
@@ -214,47 +226,47 @@ int main (int argc, char * argv[])
     }
     ACOPF.add(Flow_P_From.in(arcs)==0);
     
-    Constraint<> Flow_P_To("Flow_P_To");
-    Flow_P_To += Pf_to;
-    if (polar) {
-        Flow_P_To -= g*pow(v_to, 2);
-        Flow_P_To += g/tr*(v_from*v_to*cos(theta_to - theta_from + as));
-        Flow_P_To += b/tr*(v_from*v_to*sin(theta_to - theta_from + as));
-    }
-    else {
-        Flow_P_To -= g_tt*(pow(vr_to, 2) + pow(vi_to, 2));
-        Flow_P_To -= g_tf*(vr_from*vr_to + vi_from*vi_to);
-        Flow_P_To -= b_tf*(vi_to*vr_from - vr_to*vi_from);
-    }
-    ACOPF.add(Flow_P_To.in(arcs)==0);
-    
-    Constraint<> Flow_Q_From("Flow_Q_From");
-    Flow_Q_From += Qf_from;
-    if (polar) {
-        Flow_Q_From += (0.5*ch+b)/pow(tr,2)*pow(v_from,2);
-        Flow_Q_From -= b/tr*(v_from*v_to*cos(theta_from - theta_to - as));
-        Flow_Q_From += g/tr*(v_from*v_to*sin(theta_from - theta_to - as));
-    }
-    else {
-        Flow_Q_From += b_ff*(pow(vr_from, 2) + pow(vi_from, 2));
-        Flow_Q_From += b_ft*(vr_from*vr_to + vi_from*vi_to);
-        Flow_Q_From -= g_ft*(vi_from*vr_to - vr_from*vi_to);
-    }
-    ACOPF.add(Flow_Q_From.in(arcs)==0);
-    
-    Constraint<> Flow_Q_To("Flow_Q_To");
-    Flow_Q_To += Qf_to;
-    if (polar) {
-        Flow_Q_To += (0.5*ch+b)*pow(v_to,2);
-        Flow_Q_To -= b/tr*(v_from*v_to*cos(theta_to - theta_from + as));
-        Flow_Q_To += g/tr*(v_from*v_to*sin(theta_to - theta_from + as));
-    }
-    else {
-        Flow_Q_To += b_tt*(pow(vr_to, 2) + pow(vi_to, 2));
-        Flow_Q_To += b_tf*(vr_from*vr_to + vi_from*vi_to);
-        Flow_Q_To -= g_tf*(vi_to*vr_from - vr_to*vi_from);
-    }
-    ACOPF.add(Flow_Q_To.in(arcs)==0);
+//    Constraint<> Flow_P_To("Flow_P_To");
+//    Flow_P_To += Pf_to;
+//    if (polar) {
+//        Flow_P_To -= g*pow(v_to, 2);
+//        Flow_P_To += g/tr*(v_from*v_to*cos(theta_to - theta_from + as));
+//        Flow_P_To += b/tr*(v_from*v_to*sin(theta_to - theta_from + as));
+//    }
+//    else {
+//        Flow_P_To -= g_tt*(pow(vr_to, 2) + pow(vi_to, 2));
+//        Flow_P_To -= g_tf*(vr_from*vr_to + vi_from*vi_to);
+//        Flow_P_To -= b_tf*(vi_to*vr_from - vr_to*vi_from);
+//    }
+//    ACOPF.add(Flow_P_To.in(arcs)==0);
+//    
+//    Constraint<> Flow_Q_From("Flow_Q_From");
+//    Flow_Q_From += Qf_from;
+//    if (polar) {
+//        Flow_Q_From += (0.5*ch+b)/pow(tr,2)*pow(v_from,2);
+//        Flow_Q_From -= b/tr*(v_from*v_to*cos(theta_from - theta_to - as));
+//        Flow_Q_From += g/tr*(v_from*v_to*sin(theta_from - theta_to - as));
+//    }
+//    else {
+//        Flow_Q_From += b_ff*(pow(vr_from, 2) + pow(vi_from, 2));
+//        Flow_Q_From += b_ft*(vr_from*vr_to + vi_from*vi_to);
+//        Flow_Q_From -= g_ft*(vi_from*vr_to - vr_from*vi_to);
+//    }
+//    ACOPF.add(Flow_Q_From.in(arcs)==0);
+//    
+//    Constraint<> Flow_Q_To("Flow_Q_To");
+//    Flow_Q_To += Qf_to;
+//    if (polar) {
+//        Flow_Q_To += (0.5*ch+b)*pow(v_to,2);
+//        Flow_Q_To -= b/tr*(v_from*v_to*cos(theta_to - theta_from + as));
+//        Flow_Q_To += g/tr*(v_from*v_to*sin(theta_to - theta_from + as));
+//    }
+//    else {
+//        Flow_Q_To += b_tt*(pow(vr_to, 2) + pow(vi_to, 2));
+//        Flow_Q_To += b_tf*(vr_from*vr_to + vi_from*vi_to);
+//        Flow_Q_To -= g_tf*(vi_to*vr_from - vr_to*vi_from);
+//    }
+//    ACOPF.add(Flow_Q_To.in(arcs)==0);
     
     /** AC voltage limit constraints. */
     if (!polar) {
@@ -287,37 +299,41 @@ int main (int argc, char * argv[])
         PAD_LB = vi.from(node_pairs)*vr.to(node_pairs) - vr.from(node_pairs)*vi.to(node_pairs);
         PAD_LB -= tan_th_min*(vr.from(node_pairs)*vr.to(node_pairs) + vi.from(node_pairs)*vi.to(node_pairs));
     }
-        ACOPF.add(PAD_UB.in(node_pairs) <= 0);
-        ACOPF.add(PAD_LB.in(node_pairs) >= 0);
+//    ACOPF.add(PAD_UB.in(node_pairs) <= 0);
+//    ACOPF.add(PAD_LB.in(node_pairs) >= 0);
     
     
     /*  Thermal Limit Constraints */
     Constraint<> Thermal_Limit_from("Thermal_Limit_from");
     Thermal_Limit_from += pow(Pf_from, 2) + pow(Qf_from, 2);
     Thermal_Limit_from -= pow(S_max, 2);
+//    Thermal_Limit_from *= 1e-3;
     ACOPF.add(Thermal_Limit_from.in(arcs) <= 0);
     
     Constraint<> Thermal_Limit_to("Thermal_Limit_to");
     Thermal_Limit_to += pow(Pf_to, 2) + pow(Qf_to, 2);
     Thermal_Limit_to -= pow(S_max,2);
+//    Thermal_Limit_to *= 1e-3;
     ACOPF.add(Thermal_Limit_to.in(arcs) <= 0);
+    ACOPF.set_name(grid._name);
     ACOPF.print();
-//    ACOPF.initialize_uniform();
-    solver<> OPF(ACOPF,ipopt);
+//    ACOPF.initialize_zero();
+    solver<> OPF(ACOPF,gurobi);
     double solver_time_start = get_wall_time();
-    OPF.run(output=5, tol = 1e-6);
+    auto f = sin(2.5*theta) + v;
+    f.print();
     OPF.run(output=5, tol = 1e-6);
     double solver_time_end = get_wall_time();
     double total_time_end = get_wall_time();
     auto solve_time = solver_time_end - solver_time_start;
     auto total_time = total_time_end - total_time_start;
-    /* Uncomment lines below to print model
-    ACOPF.print_symbolic();
-    ACOPF.print();
-     */
-    /* Uncomment lines below to print solution
-    ACOPF.print_solution();
-     */
+//     Uncomment lines below to print model
+//    ACOPF.print_symbolic();
+//    ACOPF.print_solution();
+     
+//     Uncomment lines below to print solution
+    
+     
     /** Terminal output */
     string out = "DATA_OPF, " + grid._name + ", " + to_string(nb_buses) + ", " + to_string(nb_lines) +", " + to_string_with_precision(ACOPF.get_obj_val(),10) + ", " + to_string(-numeric_limits<double>::infinity()) + ", " + to_string(solve_time) + ", LocalOptimal, " + to_string(total_time);
     DebugOn(out <<endl);
