@@ -4543,6 +4543,12 @@ namespace gravity {
                     parent_id++;
                     return str;
                 }
+                else if(uexp->_son->is_param()) {
+                    auto vv = static_pointer_cast<param_>(uexp->_son);
+                    str += " ( CONSTANT     , " + to_string(eval(vv,i)) + "  , +"+to_string(new_root_id)+" )\n";
+                    parent_id++;
+                    return str;
+                }
             }
             else if(ex->is_bexpr()){
                 string str;
@@ -4587,6 +4593,11 @@ namespace gravity {
                     str += " ( VARIABLE     , " + vv->get_name(i) + "  , +"+to_string(new_root_id)+" )\n";
                     parent_id++;
                 }
+                else if(bexp->_lson->is_param()) {
+                    auto vv = static_pointer_cast<param_>(bexp->_lson);
+                    str += " ( CONSTANT     , " + to_string(eval(vv,i)) + "  , +"+to_string(new_root_id)+" )\n";
+                    parent_id++;
+                }
                 if (bexp->_rson->is_function()) {
                     auto f = static_pointer_cast<func>(bexp->_rson);
                     rson = *f;
@@ -4595,6 +4606,11 @@ namespace gravity {
                 else if(bexp->_rson->is_var()) {
                     auto vv = static_pointer_cast<param_>(bexp->_rson);
                     str += " ( VARIABLE     , " + vv->get_name(i) + "  , +"+to_string(new_root_id)+" )\n";
+                    parent_id++;
+                }
+                else if(bexp->_rson->is_param()) {
+                    auto vv = static_pointer_cast<param_>(bexp->_rson);
+                    str += " ( CONSTANT     , " + to_string(eval(vv,i)) + "  , +"+to_string(new_root_id)+" )\n";
                     parent_id++;
                 }
                 return str;
@@ -4606,27 +4622,46 @@ namespace gravity {
                 parent_id++;
                 return " ( CONSTANT     , " + to_string(eval(i)) + "  , +"+to_string(root_id)+" )\n";
             }
-            if(is_linear() && _vars->size()==1 && _params->size()==0 && _cst->is_zero() && _lterms->begin()->second._coef->is_unit()){
+            if(is_linear() && _vars->size()==1 && _params->size()==0 && _cst->is_zero() && _lterms->begin()->second._sign && _lterms->begin()->second._coef->is_unit()){
                 parent_id++;
                 return " ( VARIABLE     , " + _vars->begin()->second.first->get_name(i) + "  , +"+to_string(root_id)+" )\n";
             }
-            string str;
-            if(root_id==-1)
-                str += " ( PLUS     , -1  , -1 )\n";
-            else
-                str += " ( PLUS     , -1  , +"+to_string(root_id)+" )\n";
-            parent_id++;
-            int current_root_id = parent_id;
-            str += " ( CONSTANT     , " + to_string(eval(this->get_cst(), i)) + "  , +"+to_string(parent_id)+" )\n";
-            parent_id++;
-            for (auto& it1: this->get_lterms()) {
-                str += " ( PLUS     , -1  , +"+to_string(current_root_id)+" )\n";
+            if(_qterms->size()==0 && _pterms->size()==0 && !_expr && _vars->size()==0 && _params->size()==1 && _cst->is_zero() && _lterms->begin()->second._sign && _lterms->begin()->second._coef->is_unit()){
                 parent_id++;
-                int current_parent_id = parent_id;
-                if(_lterms->size()==1){
-                    str += " ( CONSTANT     , 0  , +"+to_string(parent_id)+" )\n";
+                return " ( CONSTANT     , " + to_string(eval(i)) + "  , +"+to_string(root_id)+" )\n";
+            }
+            string str;
+            int nb_elem = 0;
+            if(!_cst->is_zero())
+                nb_elem++;
+            if(!_lterms->empty())
+                nb_elem++;
+            if(!_qterms->empty())
+                nb_elem++;
+            if(!_pterms->empty())
+                nb_elem++;
+            if(_expr)
+                nb_elem++;
+            int current_root_id = root_id;
+            if(nb_elem>1){
+                if(root_id==-1)
+                    str += " ( PLUS     , -1  , -1 )\n";
+                else
+                    str += " ( PLUS     , -1  , +"+to_string(root_id)+" )\n";
+                parent_id++;
+                current_root_id = parent_id;
+                if(!_cst->is_zero()){
+                    str += " ( CONSTANT     , " + to_string(eval(this->get_cst(), i)) + "  , +"+to_string(parent_id)+" )\n";
                     parent_id++;
                 }
+            }
+            int current_parent_id = current_root_id;
+            if(_lterms->size()>1){
+                str += " ( PLUS     , -1  , +"+to_string(current_root_id)+" )\n";
+                parent_id++;
+                current_parent_id = parent_id;
+            }
+            for (auto& it1: this->get_lterms()) {
                 if (it1.second._p->_is_vector || it1.second._p->is_matrix_indexed() || it1.second._coef->is_matrix()) {
                     auto dim =it1.second._p->get_dim(i);
                     for (size_t j = 0; j<dim; j++) {
@@ -4663,14 +4698,13 @@ namespace gravity {
                     parent_id+=2;
                 }
             }
-            for (auto& it1: this->get_qterms()) {
+            current_parent_id = current_root_id;
+            if(_qterms->size()>1){
                 str += " ( PLUS     , -1  , +"+to_string(current_root_id)+" )\n";
                 parent_id++;
-                int current_parent_id = parent_id;
-                if(_qterms->size()==1){
-                    str += " ( CONSTANT     , 0  , +"+to_string(parent_id)+" )\n";
-                    parent_id++;
-                }
+                current_parent_id = parent_id;
+            }
+            for (auto& it1: this->get_qterms()) {
                 if (it1.second._coef_p1_tr) { // qterm = (coef*p1)^T*p2
                     for (auto i = 0; i<it1.second._p->first->get_dim(); i++) {
                         for (auto j = 0; j<it1.second._p->first->get_dim(); j++) {
@@ -4745,18 +4779,18 @@ namespace gravity {
                     parent_id+=3;
                 }
             }
-            for (auto &pair:*this->_pterms) {
+            current_parent_id = current_root_id;
+            if(_pterms->size()>1){
                 str += " ( PLUS     , -1  , +"+to_string(current_root_id)+" )\n";
                 parent_id++;
-                int current_parent_id = parent_id;
-                if(_pterms->size()==1){
-                    str += " ( CONSTANT     , 0  , +"+to_string(parent_id)+" )\n";
-                    parent_id++;
-                }
-                str += " ( MULTIPLY     , -1  , +"+to_string(parent_id)+" )\n";
+                current_parent_id = parent_id;
+            }
+            for (auto &pair:*this->_pterms) {
+                str += " ( MULTIPLY     , -1  , +"+to_string(current_parent_id)+" )\n";
                 parent_id++;
+                int local_current_parent_id = parent_id;
                 for (auto &vpair: *pair.second._l) {
-                    str += " ( POW     , -1  , +"+to_string(current_parent_id)+" )\n";
+                    str += " ( POW     , -1  , +"+to_string(local_current_parent_id)+" )\n";
                     parent_id++;
                     if(vpair.first->is_var()){
                         str += " ( VARIABLE     , " + vpair.first->get_name(i) + "  , +"+to_string(parent_id)+" )\n";
@@ -4771,7 +4805,7 @@ namespace gravity {
                 if (!pair.second._sign) {
                     coeff *= -1.;
                 }
-                str += " ( CONSTANT     , " + to_string(coeff) + "  , +"+to_string(current_parent_id)+" )\n";
+                str += " ( CONSTANT     , " + to_string(coeff) + "  , +"+to_string(local_current_parent_id)+" )\n";
                 parent_id++;
                 
             }

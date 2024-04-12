@@ -112,6 +112,7 @@ PowerNet::PowerNet() {
     ch.set_name("ch");
     as.set_name("as");
     tr.set_name("tr");
+    inv_tr.set_name("inv_tr");
     S_max.set_name("S_max");
     eff_a.set_name("eff_a");
     eff_b.set_name("eff_b");
@@ -791,6 +792,7 @@ int PowerNet::readgrid(const string& fname, bool reverse_arcs) {
         g.add_val(name,arc->g);
         b.add_val(name,arc->b);
         tr.add_val(name,arc->tr);
+        inv_tr.add_val(name,1./arc->tr);
         as.add_val(name,arc->as);
         //(g+g_fr)/tm^2
         g_ff.add_val(name,arc->g/(pow(arc->cc, 2) + pow(arc->dd, 2)));

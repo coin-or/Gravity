@@ -98,6 +98,7 @@ int main (int argc, char * argv[])
     auto as = grid.as.in(arcs);
     auto ch = grid.ch.in(arcs);
     auto tr = grid.tr.in(arcs);
+    auto inv_tr = grid.inv_tr.in(arcs);
     auto th_min = grid.th_min.in(node_pairs);
     auto th_max = grid.th_max.in(node_pairs);
     auto g_ft = grid.g_ft.in(arcs);
@@ -213,11 +214,9 @@ int main (int argc, char * argv[])
 //        Flow_P_From -= g/pow(tr,2)*pow(v_from,2);
 //        Flow_P_From += g/tr*(v_from*v_to*cos(theta_from - theta_to - as));
 //        Flow_P_From += b/tr*(v_from*v_to*sin(theta_from - theta_to - as));
-        
-//        Flow_P_From -= g*pow(v_from,2);
-//        Flow_P_From += g*(v_from*v_to*cos(theta_from - theta_to - as));
-        Flow_P_From += v_from*v_to*sin(theta_from);
-//        Flow_P_From += b*(v_from*v_to*sin(theta_from - theta_to - as));
+        Flow_P_From -= g*pow(inv_tr,2)*pow(v_from,2);
+        Flow_P_From += g*inv_tr*(v_from*v_to*cos(theta_from - theta_to - as));
+        Flow_P_From += b*inv_tr*(v_from*v_to*sin(theta_from - theta_to - as));
     }
     else {
         Flow_P_From -= g_ff*(pow(vr_from, 2) + pow(vi_from, 2));
@@ -226,47 +225,54 @@ int main (int argc, char * argv[])
     }
     ACOPF.add(Flow_P_From.in(arcs)==0);
     
-//    Constraint<> Flow_P_To("Flow_P_To");
-//    Flow_P_To += Pf_to;
-//    if (polar) {
-//        Flow_P_To -= g*pow(v_to, 2);
+    Constraint<> Flow_P_To("Flow_P_To");
+    Flow_P_To += Pf_to;
+    if (polar) {
+        Flow_P_To -= g*pow(v_to, 2);
 //        Flow_P_To += g/tr*(v_from*v_to*cos(theta_to - theta_from + as));
 //        Flow_P_To += b/tr*(v_from*v_to*sin(theta_to - theta_from + as));
-//    }
-//    else {
-//        Flow_P_To -= g_tt*(pow(vr_to, 2) + pow(vi_to, 2));
-//        Flow_P_To -= g_tf*(vr_from*vr_to + vi_from*vi_to);
-//        Flow_P_To -= b_tf*(vi_to*vr_from - vr_to*vi_from);
-//    }
-//    ACOPF.add(Flow_P_To.in(arcs)==0);
-//    
-//    Constraint<> Flow_Q_From("Flow_Q_From");
-//    Flow_Q_From += Qf_from;
-//    if (polar) {
+        Flow_P_To += g*inv_tr*(v_from*v_to*cos(theta_to - theta_from + as));
+        Flow_P_To += b*inv_tr*(v_from*v_to*sin(theta_to - theta_from + as));
+    }
+    else {
+        Flow_P_To -= g_tt*(pow(vr_to, 2) + pow(vi_to, 2));
+        Flow_P_To -= g_tf*(vr_from*vr_to + vi_from*vi_to);
+        Flow_P_To -= b_tf*(vi_to*vr_from - vr_to*vi_from);
+    }
+    ACOPF.add(Flow_P_To.in(arcs)==0);
+    
+    Constraint<> Flow_Q_From("Flow_Q_From");
+    Flow_Q_From += Qf_from;
+    if (polar) {
 //        Flow_Q_From += (0.5*ch+b)/pow(tr,2)*pow(v_from,2);
 //        Flow_Q_From -= b/tr*(v_from*v_to*cos(theta_from - theta_to - as));
 //        Flow_Q_From += g/tr*(v_from*v_to*sin(theta_from - theta_to - as));
-//    }
-//    else {
-//        Flow_Q_From += b_ff*(pow(vr_from, 2) + pow(vi_from, 2));
-//        Flow_Q_From += b_ft*(vr_from*vr_to + vi_from*vi_to);
-//        Flow_Q_From -= g_ft*(vi_from*vr_to - vr_from*vi_to);
-//    }
-//    ACOPF.add(Flow_Q_From.in(arcs)==0);
-//    
-//    Constraint<> Flow_Q_To("Flow_Q_To");
-//    Flow_Q_To += Qf_to;
-//    if (polar) {
-//        Flow_Q_To += (0.5*ch+b)*pow(v_to,2);
+        Flow_Q_From += (0.5*ch+b)*pow(inv_tr,2)*pow(v_from,2);
+        Flow_Q_From += -1*b*inv_tr*(v_from*v_to*cos(theta_from - theta_to - as));
+        Flow_Q_From += g*inv_tr*(v_from*v_to*sin(theta_from - theta_to - as));
+    }
+    else {
+        Flow_Q_From += b_ff*(pow(vr_from, 2) + pow(vi_from, 2));
+        Flow_Q_From += b_ft*(vr_from*vr_to + vi_from*vi_to);
+        Flow_Q_From -= g_ft*(vi_from*vr_to - vr_from*vi_to);
+    }
+    ACOPF.add(Flow_Q_From.in(arcs)==0);
+    
+    Constraint<> Flow_Q_To("Flow_Q_To");
+    Flow_Q_To += Qf_to;
+    if (polar) {
+        Flow_Q_To += (0.5*ch+b)*pow(v_to,2);
 //        Flow_Q_To -= b/tr*(v_from*v_to*cos(theta_to - theta_from + as));
 //        Flow_Q_To += g/tr*(v_from*v_to*sin(theta_to - theta_from + as));
-//    }
-//    else {
-//        Flow_Q_To += b_tt*(pow(vr_to, 2) + pow(vi_to, 2));
-//        Flow_Q_To += b_tf*(vr_from*vr_to + vi_from*vi_to);
-//        Flow_Q_To -= g_tf*(vi_to*vr_from - vr_to*vi_from);
-//    }
-//    ACOPF.add(Flow_Q_To.in(arcs)==0);
+        Flow_Q_To += -1*b*inv_tr*(v_from*v_to*cos(theta_to - theta_from + as));
+        Flow_Q_To += g*inv_tr*(v_from*v_to*sin(theta_to - theta_from + as));
+    }
+    else {
+        Flow_Q_To += b_tt*(pow(vr_to, 2) + pow(vi_to, 2));
+        Flow_Q_To += b_tf*(vr_from*vr_to + vi_from*vi_to);
+        Flow_Q_To -= g_tf*(vi_to*vr_from - vr_to*vi_from);
+    }
+    ACOPF.add(Flow_Q_To.in(arcs)==0);
     
     /** AC voltage limit constraints. */
     if (!polar) {
@@ -299,8 +305,8 @@ int main (int argc, char * argv[])
         PAD_LB = vi.from(node_pairs)*vr.to(node_pairs) - vr.from(node_pairs)*vi.to(node_pairs);
         PAD_LB -= tan_th_min*(vr.from(node_pairs)*vr.to(node_pairs) + vi.from(node_pairs)*vi.to(node_pairs));
     }
-//    ACOPF.add(PAD_UB.in(node_pairs) <= 0);
-//    ACOPF.add(PAD_LB.in(node_pairs) >= 0);
+    ACOPF.add(PAD_UB.in(node_pairs) <= 0);
+    ACOPF.add(PAD_LB.in(node_pairs) >= 0);
     
     
     /*  Thermal Limit Constraints */
