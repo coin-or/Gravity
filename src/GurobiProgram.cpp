@@ -1015,7 +1015,7 @@ void GurobiProgram::write_NLCstr(const string &fname){
     ofstream file(fname, std::ios::app);
     if (!file.is_open()) {
         cerr << "Failed to open file for appending nonlinear constraints.\n";
-        return 1;
+        return;
     }
 //    file << " zero = 0\n";
     file << " General Constraints\n";
@@ -1058,7 +1058,7 @@ void GurobiProgram::write_NLCstr(const string &fname){
     // Optional: Check if writing was successful
     if (!file) {
         cerr << "Failed to write to file.\n";
-        return 1;
+        return;
     }
 
     file.close();

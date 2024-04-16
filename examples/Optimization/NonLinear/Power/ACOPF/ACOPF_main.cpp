@@ -322,12 +322,12 @@ int main (int argc, char * argv[])
 //    Thermal_Limit_to *= 1e-3;
     ACOPF.add(Thermal_Limit_to.in(arcs) <= 0);
     ACOPF.set_name(grid._name);
-    ACOPF.print();
+//    ACOPF.print();
 //    ACOPF.initialize_zero();
     solver<> OPF(ACOPF,gurobi);
     double solver_time_start = get_wall_time();
     auto f = sin(2.5*theta) + v;
-    f.print();
+//    f.print();
     OPF.run(output=5, tol = 1e-6);
     double solver_time_end = get_wall_time();
     double total_time_end = get_wall_time();
