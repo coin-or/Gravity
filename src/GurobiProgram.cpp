@@ -1046,7 +1046,10 @@ void GurobiProgram::write_NLCstr(const string &fname){
             assert(sense==GRB_EQUAL);/* Check what to do with inequalities */
             nb_inst = c->get_nb_inst();
             for (size_t i = 0; i< nb_inst; i++){
-                file <<  " " << c->get_name()+"("+c->_indices->_keys->at(i)+"):\n";
+                if(c->_indices)
+                    file <<  " " << c->get_name()+"("+c->_indices->_keys->at(i)+"):\n";
+                else
+                    file <<  " " << c->get_name()+"("+to_string(i)+"):\n";
                 file << " zero(0) = NL :\n";
                 int parent_id = -1;
                 file << c->getNLexpr(-1,parent_id,i);

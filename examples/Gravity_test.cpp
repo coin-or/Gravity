@@ -26,8 +26,11 @@ using namespace gravity;
 #ifdef USE_MP
 TEST_CASE("testing readNL() function") {
     Model<> M;
-    string NL_file = string(prj_dir)+"/data_sets/NL/ex4.nl";
+    string NL_file = string(prj_dir)+"/data_sets/NL/hvycrash.nl";
     int status = M.readNL(NL_file);
+    solver<> GRB(M,gurobi);
+    double solver_time_start = get_wall_time();
+    GRB.run();
     CHECK(status==0);
     CHECK(M.get_nb_vars()==36);
     CHECK(M.get_nb_cons()==30);
