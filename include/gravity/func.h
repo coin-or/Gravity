@@ -4810,6 +4810,15 @@ namespace gravity {
                 
             }
             if(_expr){
+                if(_expr->_coef != unit<type>().eval()){
+                    str += " ( PLUS     , -1  , +"+to_string(current_root_id)+" )\n";
+                    parent_id++;
+                    str += " ( MULTIPLY     , -1  , +"+to_string(parent_id)+" )\n";
+                    parent_id++;
+                    current_root_id = parent_id;
+                    str += " ( CONSTANT     , " + to_string(_expr->_coef) + "  , +"+to_string(parent_id)+" )\n";
+                    parent_id++;
+                }
                 str += getNLexpr(_expr, current_root_id, parent_id, i);
             }
             return str;

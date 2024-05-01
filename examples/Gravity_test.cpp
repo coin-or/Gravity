@@ -22,11 +22,30 @@
 using namespace std;
 using namespace gravity;
 
+TEST_CASE("testing Gurobi's compound NL") {
+    Model<> M;
+    M.set_name("M");
+    var<> x("x", -2,2);
+    var<> y("y", 0,0);
+    var<> z("z", pi/2.,pi/2.);
+    var<> resvar("resvar", -10,10);
+    M.add(resvar);
+    M.add(x);
+    M.add(y);
+    M.add(z);
+    Constraint<> C("C");
+    C = cos(cos(y) - sin(z + cos(y))) - x - 2 - resvar;
+    M.add(C==0);
+    M.max(resvar);
+    solver<> GRB(M,gurobi);
+    double solver_time_start = get_wall_time();
+    GRB.run();
+}
 
 #ifdef USE_MP
 TEST_CASE("testing readNL() function") {
     Model<> M;
-    string NL_file = string(prj_dir)+"/data_sets/NL/hvycrash.nl";
+    string NL_file = string(prj_dir)+"/data_sets/NL/camshape100.nl";
     int status = M.readNL(NL_file);
     solver<> GRB(M,gurobi);
     double solver_time_start = get_wall_time();

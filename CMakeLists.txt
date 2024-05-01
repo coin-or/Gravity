@@ -195,7 +195,7 @@ set(THIRDPARTY_INSTALL_PATH ${THIRDPARTY_BASE_PATH})
 
 if(NOT WIN32)
 #CoinUtils
-if (CoinUtils or MP)
+if (CoinUtils)
 include(ExternalProject)
 #CoinUtils
 message(STATUS "Enable CoinUtils")
