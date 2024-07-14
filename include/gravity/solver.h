@@ -434,6 +434,7 @@ public:
                     grb_prog->_output = output;
                     //            prog.grb_prog->reset_model();
                         grb_prog->prepare_model();
+                    return 0;
                         //DebugOn("calling prep after init"<<endl);
                     optimal = grb_prog->solve(relax, tol, time_limit);
                     return_status = optimal ? 0 : -1;

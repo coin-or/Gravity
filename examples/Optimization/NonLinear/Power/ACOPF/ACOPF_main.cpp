@@ -60,6 +60,17 @@ int main (int argc, char * argv[])
         mtype=argv[2];
     }
 #endif
+    Model<> M;
+    int status = M.readNL(fname);
+    solver<> GRB(M,gurobi);
+    GRB.run();
+    M.print();
+    M.read_solution(fname);
+    M.write_solution();
+//    M.reset();
+//    M.is_feasible(1e-6);
+    return 0;
+    
     double total_time_start = get_wall_time();
     PowerNet grid;
     grid.readgrid(fname);

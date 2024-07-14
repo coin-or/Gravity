@@ -430,7 +430,7 @@ GurobiProgram::GurobiProgram(Model<>* m) {
         }
     }
     _model = m;
-    m->fill_in_maps();
+//    m->fill_in_maps();
     m->compute_funcs();
 }
 
@@ -814,10 +814,14 @@ bool GurobiProgram::solve(bool relax, double mipgap, double time_limit){
     return true;
 }
 
+#include <fstream>
+#include <iostream>
+#include <string>
+
 bool copyWithoutLastLine(const std::string& inputFile) {
     std::string tempFile = inputFile + ".temp"; // Temporary file
 
-    // First, perform the operation with inputFile as input and tempFile as output
+    // Open input and output files
     std::ifstream in(inputFile);
     std::ofstream out(tempFile, std::ios::trunc);
     if (!in.is_open() || !out.is_open()) {
@@ -827,17 +831,22 @@ bool copyWithoutLastLine(const std::string& inputFile) {
 
     std::string line;
     std::string prevLine;
-    while (std::getline(in, line)) {
-        if (!prevLine.empty()) {
-            out << prevLine << '\n'; // Write previous line, ensuring not to write the last one
+    bool foundGenerals = false;
+    while (!foundGenerals && std::getline(in, line)) {
+        if (line.find("Generals") != std::string::npos) {
+            foundGenerals = true; // Flag that we found the "Generals" line
         }
-        prevLine = line; // Keep track of the previous line
+        if (!prevLine.empty()) {
+            out << prevLine << '\n'; // Write previous line
+        }
+        prevLine = line; // Update previous line
     }
-    
+
+    // Close files
     in.close();
     out.close();
 
-    // Now, replace the original file with the temporary file
+    // Replace original file with temporary file
     if (std::remove(inputFile.c_str()) != 0) {
         std::cerr << "Error removing original file." << std::endl;
         return false;
@@ -851,8 +860,9 @@ bool copyWithoutLastLine(const std::string& inputFile) {
 }
 
 
+
 void GurobiProgram::prepare_model(){
-    _model->fill_in_maps();
+//    _model->fill_in_maps();
     _model->compute_funcs();
     fill_in_grb_vmap();
     create_grb_constraints();
@@ -868,7 +878,7 @@ void GurobiProgram::prepare_model(){
     write_NLCstr(filename);
     
     
-    exit(0);
+    return;
     //    print_constraints();
 }
 void GurobiProgram::update_model(){
@@ -1017,40 +1027,81 @@ void GurobiProgram::write_NLCstr(const string &fname){
         cerr << "Failed to open file for appending nonlinear constraints.\n";
         return;
     }
-//    file << " zero = 0\n";
+    size_t idx = 0, idx_inst = 0, idx1 = 0, idx2 = 0, idx_inst1 = 0, idx_inst2 = 0, nb_inst = 0, inst = 0;
+    int pos_i = 0, neg_i = 0;
+    for(auto& p: _model->_cons){
+        auto c = p.second;
+        if (c->is_polynomial() || c->is_nonlinear()) {
+            nb_inst = c->get_nb_inst();
+            for (size_t i = 0; i< nb_inst; i++){
+                switch(c->get_ctype()) {
+                    case geq:
+                        pos_i++;
+                        break;
+                    case leq:
+                        neg_i++;
+                        break;
+                    default:
+                        break;
+                }
+            }
+        }
+    }
+    file << " zero(0) = 0\n";
+    for(int i = 0; i < pos_i; i++){
+        file << " 0 <= pos(" + to_string(i) + ")\n";
+    }
+    for(int i = 0; i < neg_i; i++){
+        file << " -Inf <= neg(" + to_string(i) + ") <= 0\n";
+    }
+    if(_model->has_int()){
+        auto y = _model->get_var_ptr("y");
+        file << " Generals\n";
+        file << "  ";
+        for (auto i = 0; i<y->get_dim(); i++){
+            file << y->get_name(i) << " " ;
+        }
+        file << "\n";
+    }
     file << " General Constraints\n";
 
     char sense;
-    size_t idx = 0, idx_inst = 0, idx1 = 0, idx2 = 0, idx_inst1 = 0, idx_inst2 = 0, nb_inst = 0, inst = 0;
     GRBLinExpr lterm, linlhs;
     GRBQuadExpr quadlhs;
     GRBVar gvar1, gvar2;
     double coeff;
+    pos_i = 0;
+    neg_i = 0;
     for(auto& p: _model->_cons){
         auto c = p.second;
-        if (c->is_nonlinear() && (!(c->_expr->is_uexpr() && c->get_nb_vars()==2) && !c->_expr->is_mexpr())) {
-            DebugOff("Founf a nonlinear constraint with more than two variables, writing the expression tree.\n");
-            switch(c->get_ctype()) {
-                case geq:
-                    sense = GRB_GREATER_EQUAL;
-                    break;
-                case leq:
-                    sense = GRB_LESS_EQUAL;
-                    break;
-                case eq:
-                    sense = GRB_EQUAL;
-                    break;
-                default:
-                    break;
-            }
-            assert(sense==GRB_EQUAL);/* Check what to do with inequalities */
+//        if(c->get_ctype()==eq)
+//            DebugOn(c->get_name() << endl);
+//        if(c->get_name()=="NL_C_eq_73")
+//            DebugOn(c->get_name() << endl);
+        if (c->is_polynomial() || c->is_nonlinear()) {
+            DebugOff("Found a nonlinear constraint with more than two variables, writing the expression tree.\n");
             nb_inst = c->get_nb_inst();
             for (size_t i = 0; i< nb_inst; i++){
                 if(c->_indices)
                     file <<  " " << c->get_name()+"("+c->_indices->_keys->at(i)+"):\n";
                 else
                     file <<  " " << c->get_name()+"("+to_string(i)+"):\n";
-                file << " zero(0) = NL :\n";
+                switch(c->get_ctype()) {
+                    case geq:
+                        sense = GRB_GREATER_EQUAL;
+                        file << " pos("+ to_string(pos_i++) +") = NL :\n";
+                        break;
+                    case leq:
+                        sense = GRB_LESS_EQUAL;
+                        file << " neg("+ to_string(neg_i++) +") = NL :\n";
+                        break;
+                    case eq:
+                        sense = GRB_EQUAL;
+                        file << " zero(0) = NL :\n";
+                        break;
+                    default:
+                        break;
+                }            
                 int parent_id = -1;
                 file << c->getNLexpr(-1,parent_id,i);
             }
@@ -1086,7 +1137,7 @@ void GurobiProgram::create_grb_constraints(){
         }
         c->_new = false;
         
-        if (c->is_nonlinear() && (!(c->_expr->is_uexpr() && c->get_nb_vars()==2) && !c->_expr->is_mexpr())) {
+        if (c->is_polynomial() || c->is_nonlinear()) {
             DebugOff("Gurobi cannot handle nonlinear constraints with more than two variables, ignoring it.\n");
             continue;
         }
@@ -1228,7 +1279,7 @@ void GurobiProgram::create_grb_constraints(){
                 }
                 else {
                     coeff = c->eval(lt._coef,i);
-                    if (!((coeff==1 && lt._sign) || (coeff==-1 && !lt._sign))) {
+                    if (!((coeff==1 && !lt._sign) || (coeff==-1 && lt._sign))) {
                         throw invalid_argument("Gurobi does not support this type of nonlinear constraints");
                     }
                     gvar1 = _grb_vars[lt._p->get_id() + lt._p->get_id_inst(i)];

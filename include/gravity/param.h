@@ -2351,10 +2351,10 @@ namespace gravity {
                     }
                     else {
                         for (size_t i = 0; i < _dim[0]; i++) {
-                            if((!_is_relaxed && !is_integer()) || std::abs(eval(i)) > 1e-4){
+//                            if((!_is_relaxed && !is_integer()) || std::abs(eval(i)) > 1e-4){
                                 str += name+"(" + _indices->_keys->at(i) + ") " + to_string_with_precision(eval(i), prec);
                                 str += " \n";
-                            }
+//                            }
                         }
                     }
                 }

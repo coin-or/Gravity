@@ -9,10 +9,143 @@
 #include <gravity/model.h>
 #include <gravity/solver.h>
 #include <math.h> //for setting the rounding direction
+//#include <algorithm>
+//#include <string>
+//#include <iostream>
 
 using namespace std;
 namespace gravity {
 
+static int max_line_len;
+static char* line = nullptr;
+
+char* readLine(FILE *input)
+{
+    size_t len;
+    if(fgets(line,max_line_len,input) == NULL)
+        return NULL;
+    
+    while(strrchr(line,'\n') == NULL)
+    {
+        max_line_len *= 2;
+        line = (char *) realloc(line,max_line_len);
+        len = strlen(line);
+        if(fgets(line+len,max_line_len-len,input) == NULL)
+            break;
+    }
+    return line;
+}
+
+void skip_lines(FILE *input, size_t nb_lines){
+    for (size_t i = 0; i<nb_lines; i++) {
+        readLine(input);
+    }
+}
+
+char *mystrtok(char **m,char *s,char c)
+{
+    char *p1=s?s:*m;
+    if( !*p1 )
+        return 0;
+    *m=strchr(p1,c);
+    if(*m && c==' '){
+        while(*m[0]==c){
+            *(*m)++=0;
+        }
+        if(! *m )
+            *m=p1+strlen(p1);
+        return p1;
+    }
+    if( *m )
+        *(*m)++=0;
+    else
+        *m=p1+strlen(p1);
+    return p1;
+}
+
+/** Read solution point to file */
+template <typename type>
+void Model<type>::read_solution(const string& fname){
+    std::string base_filename = fname.substr(0, fname.find_last_of("."));
+
+    string fname_sol = base_filename+".p1.sol";
+    FILE *fp = fopen(fname_sol.c_str(),"r");
+    if(fp == NULL)
+    {
+            cout << "Can’t open input file " << fname;
+            exit(1);
+    }
+    max_line_len = 1024;
+    line = new char[max_line_len];
+    auto n = get_nb_vars();
+    map<string,double> sol_map;
+    double val;
+    string vname;
+    char* p;
+    while(readLine(fp))
+    {
+        vname = mystrtok(&p,line,' ');
+        val = atof(mystrtok(&p,NULL,' '));
+        sol_map[vname] = val;
+    }
+    delete[] line;
+    fclose(fp);
+    /*read col file*/
+    string fname_col = base_filename+".col";
+    fp = fopen(fname_col.c_str(),"r");
+    if(fp == NULL)
+    {
+            cout << "Can’t open input file " << fname;
+            exit(1);
+    }
+    line = new char[max_line_len];
+    map<string,string> v_map;
+    int nb_cont = 0, nb_int = 0;
+    shared_ptr<param_> x = this->get_var_ptr("x");
+    shared_ptr<var<double>> x_cont = nullptr, y_cont = nullptr;
+    shared_ptr<var<int>> y_int = nullptr;
+    if(x){
+        x_cont = static_pointer_cast<var<double>>(x);
+        nb_cont = x_cont->get_dim();
+    }
+    shared_ptr<param_> y = this->get_var_ptr("y");
+    if(y){
+        y_int = static_pointer_cast<var<int>>(_int_vars.begin()->second);
+        y_cont = static_pointer_cast<var<double>>(y);
+        nb_int = y_int->get_dim();
+    }
+    
+    for (int i = 0; i<nb_cont; i++) {
+        readLine(fp);
+        vname = mystrtok(&p,line,'\n');
+//        vname.erase(remove(vname.begin(), vname.end(), '\n'), vname.end());
+        v_map[vname] = x_cont->get_name(i);
+        if(sol_map.count(vname)>0){
+            x_cont->_val->at(i) = sol_map[vname];
+        }
+        else{
+            x_cont->_val->at(i) = 0;
+        }
+    }
+    for (int i = 0; i<nb_int; i++) {
+        readLine(fp);
+        vname = mystrtok(&p,line,'\n');
+        v_map[vname] = y_int->get_name(i);
+        if(sol_map.count(vname)>0){
+            y_int->_val->at(i) = sol_map[vname];
+            y_cont->_val->at(i) = sol_map[vname];
+        }
+        else{
+            y_int->_val->at(i) = 0;
+            y_cont->_val->at(i) = 0;
+        }
+    }
+    auto objvar = static_pointer_cast<var<double>>(this->get_var_ptr("objvar"));
+    objvar->_val->at(0) = sol_map.at("objvar");
+    delete[] line;
+    fclose(fp);
+    this->print_solution();
+}
 
 const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<string,shared_ptr<param_>>& v2) {
     return v1.second->get_nb_rows() > v2.second->get_nb_rows();
@@ -6735,7 +6868,11 @@ void Model<type>::update_upper_bound(shared_ptr<Model<type>>& obbt_model, vector
     
 template <typename type>
 template<typename T,typename std::enable_if<is_arithmetic<T>::value>::type*>
-int Model<type>::readNL(const string& fname){    
+int Model<type>::readNL(const string& fname){
+    std::string base_filename = fname.substr(fname.find_last_of("/\\") + 1);
+    string::size_type const file_with_ext(base_filename.find_last_of('.'));
+    string file_without_extension = base_filename.substr(0, file_with_ext);
+    this->set_name(file_without_extension);
     mp::Problem p;
     mp::ReadNLFile(fname, p);
     auto nb_vars = p.num_vars();
@@ -6765,8 +6902,8 @@ int Model<type>::readNL(const string& fname){
     DebugOn("Number of continuous variables = " << nb_cont << endl);
     DebugOn("Number of integer variables = " << nb_int << endl);
     
-    param<> x_ub("x_ub"), x_lb("x_lb");
-    param<int> y_ub("y_ub"), y_lb("y_lb");
+    param<> x_ub("x-ub"), x_lb("x-lb");
+    param<int> y_ub("y-ub"), y_lb("y-lb");
     x_ub.in(C);x_lb.in(C);
     y_ub.in(I);y_lb.in(I);
     for (int i = 0; i<C.size(); i++) {
@@ -6784,29 +6921,75 @@ int Model<type>::readNL(const string& fname){
     int nb_lin = 0;
     int nb_nonlin = 0;
     int index = 0;
-    _name = fname;
+    
 
-    add(x.in(C));
-    add(y.in(I));
-
-    replace_integers();
+    if(!C.empty())
+        add(x.in(C));
+    if(!I.empty()){
+        add(y.in(I));
+        replace_integers();
+    }
 
     MPConverter converter(*this);
     map<int,vector<int>> constr_sparsity;
     vector<int> C_lin, C_nonlin, C_quad;
+    
+    int num_objs = p.num_objs();
+    if(num_objs>=1){
+        if(num_objs>=2){
+            DebugOn("Gravity currently supports only one objective, will only add the first one");
+        }
+        mp::Problem::Objective obj = p.obj(0);
+        mp::obj::Type main_obj_type = p.obj(0).type();
+        func<> objective;
+        auto lexpr = obj.linear_expr();
+        for (const auto term: lexpr){
+            auto coef = term.coef();
+            auto var_id = term.var_index();
+            if(coef!=0)
+                objective += coef*converter.get_cont_int_var(var_id);
+        }
+        auto nl_expr = obj.nonlinear_expr();
+        if (nl_expr){
+            auto expr = converter.Visit(nl_expr);
+            objective += expr;
+            var<> objvar("objvar");
+            add(objvar);
+            Constraint<> c("Objvar_def");
+            c += objective - objvar;
+            add(c.in(range(1,1)) == 0);
+            auto sense = main_obj_type == mp::obj::MIN;
+            if(sense){
+                min(objvar);
+            }
+            else {
+                max(objvar);
+            }
+        }
+        else{
+            auto sense = main_obj_type == mp::obj::MIN;
+            if(sense){
+                min(objective);
+            }
+            else {
+                max(objective);
+            }
+        }
+    }
+    
     for (const auto con: p.algebraic_cons()) {
         auto lexpr = con.linear_expr();
         auto nl_expr = con.nonlinear_expr();
         if (nl_expr){
             auto expr = converter.Visit(nl_expr);
-            expr.print();
             nb_nonlin++;
             C_nonlin.push_back(index);
             NonLinConstr.insert(to_string(index));
             for (const auto term: lexpr){
                 auto coef = term.coef();
                 auto var_id = term.var_index();
-                expr += coef*converter.get_cont_int_var(var_id);
+                if(coef!=0)
+                    expr += coef*converter.get_cont_int_var(var_id);
             }
             
             auto c_lb = con.lb();
@@ -6814,62 +6997,87 @@ int Model<type>::readNL(const string& fname){
             if(c_lb==c_ub){
                 Constraint<> c("NL_C_eq_"+to_string(index));
                 c += expr;
-                add(c == c_lb);
+                add(c.in(range(1,1)) == c_lb);
             }
             else {
                 if(c_lb>numeric_limits<double>::lowest()){
-                    Constraint<> c("NL_C_lb_"+to_string(index));
+                    Constraint<> c("NL_C_geq_"+to_string(index));
                     c += expr;
-                    add(c >= c_lb);
+                    add(c.in(range(1,1)) >= c_lb);
                 }
                 if(c_ub<numeric_limits<double>::max()){
-                    Constraint<> c("NL_C_ub_"+to_string(index));
+                    Constraint<> c("NL_C_leq_"+to_string(index));
                     c += expr;
-                    add(c <= c_ub);
+                    add(c.in(range(1,1)) <= c_ub);
                 }
             }
         }
         else{
-            int nb_terms = lexpr.num_terms();
-            constr_sparsity[nb_terms].push_back(index);
+            int nb_terms = 0;
             func<> expr;
             for (const auto term: lexpr){
                 auto coef = term.coef();
                 auto var_id = term.var_index();
-                expr += coef*converter.get_cont_int_var(var_id);
+                if(coef!=0){
+                    expr += coef*converter.get_cont_int_var(var_id);
+                    nb_terms++;
+                }
             }
-            
             auto c_lb = con.lb();
             auto c_ub = con.ub();
-            if(c_lb==c_ub){
-                Constraint<> c("Lin_C_eq_"+to_string(index));
-                c += expr;
-                add(c == c_lb);
-            }
-            else {
-                if(c_lb>numeric_limits<double>::lowest()){
-                    Constraint<> c("Lin_C_lb_"+to_string(index));
-                    c += expr;
-                    add(c >= c_lb);
+            if(false && nb_terms==1 && c_lb!=c_ub){/* this is just a bound constraint */
+                const auto term = *lexpr.begin();
+                auto coef = term.coef();
+                auto var_id = term.var_index();
+                auto v = converter.get_cont_int_var(var_id);
+                if(coef != 0 && c_lb>numeric_limits<double>::lowest()){
+                    if(v._is_relaxed){/* an integer */
+                        v._lb->_val->at(v.get_id_inst()) = c_lb/coef;
+                    }
+                    else {
+                        v._lb->_val->at(v.get_id_inst()) = c_lb/coef;
+                    }
                 }
-                if(c_ub<numeric_limits<double>::max()){
-                    Constraint<> c("Lin_C_ub_"+to_string(index));
-                    c += expr;
-                    add(c <= c_ub);
+                if(coef != 0 && c_ub<numeric_limits<double>::max()){
+                    if(v._is_relaxed){/* an integer */
+                        v._ub->_val->at(v.get_id_inst()) = c_ub/coef;
+                    }
+                    else {
+                        v._ub->_val->at(v.get_id_inst()) = c_ub/coef;
+                    }
                 }
             }
-            LinConstr.insert(to_string(index));
-            C_lin.push_back(index);
-            nb_lin++;
+            else{
+                constr_sparsity[nb_terms].push_back(index);
+                if(c_lb==c_ub){
+                    Constraint<> c("Lin_C_eq_"+to_string(index));
+                    c += expr;
+                    add(c.in(range(1,1)) == c_lb);
+                }
+                else {
+                    if(c_lb>numeric_limits<double>::lowest()){
+                        Constraint<> c("Lin_C_geq_"+to_string(index));
+                        c += expr;
+                        add(c.in(range(1,1)) >= c_lb);
+                    }
+                    if(c_ub<numeric_limits<double>::max()){
+                        Constraint<> c("Lin_C_leq_"+to_string(index));
+                        c += expr;
+                        add(c.in(range(1,1)) <= c_ub);
+                    }
+                }
+                LinConstr.insert(to_string(index));
+                C_lin.push_back(index);
+                nb_lin++;
+            }
         }
-        
         index++;
     }
     DebugOn("Number of linear constraints = " << nb_lin << endl);
     DebugOn("Number of non linear constraints = " << nb_nonlin << endl);
     DebugOn("Number of sparsity degrees for linear constraints = " << constr_sparsity.size() << endl);
-
-    print();
+//    this->print();
+    
     return 0;
 }
     
@@ -6882,7 +7090,7 @@ int Model<type>::readNL(const string& fname){
     template Constraint<Cpx> Model<Cpx>::lift(Constraint<Cpx>& c, string model_type);
     template Constraint<> Model<>::lift(Constraint<>& c, string model_type);
     template int gravity::Model<double>::readNL<double, (void*)0>(const string&);
-    
+    template void gravity::Model<double>::read_solution(const string& fname);
     
     //    template void Model<double>::run_obbt(double max_time, unsigned max_iter);
     //    template func<double> constant<double>::get_real() const;

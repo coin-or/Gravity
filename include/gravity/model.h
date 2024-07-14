@@ -2951,9 +2951,9 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
                                 c->_violated[inst] = false;
                                 diff = std::abs(c->eval(inst));
                                 if(diff > tol) {
-                                    DebugOff("Violated equation: ");
-                                    //                        c->print(inst);
-                                    DebugOff(", violation = "<< diff << endl);
+                                    DebugOn("Violated equation: ");
+                                                            c->print(inst);
+                                    DebugOn(", violation = "<< diff << endl);
                                     nb_viol++;
                                     //                        violated = true;
                                     if (*c->_all_lazy) {
@@ -2979,9 +2979,9 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
                                 c->_violated[inst] = false;
                                 diff = c->eval(inst);
                                 if(diff > tol) {
-                                    DebugOff("Violated inequality: ");
-                                    //                                c->print(inst);
-                                    DebugOff(", violation = "<< diff << endl);
+                                    DebugOn("Violated inequality: ");
+                                                                    c->print(inst);
+                                    DebugOn(", violation = "<< diff << endl);
                                     nb_viol++;
                                     //                        violated = true;
                                     if (*c->_all_lazy) {
@@ -3013,9 +3013,9 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
                                 c->_violated[inst] = false;
                                 diff = c->eval(inst);
                                 if(diff < -tol) {
-                                    DebugOff("Violated inequality: ");
-                                    //                        c->print(inst);
-                                    DebugOff(", violation = "<< diff << endl);
+                                    DebugOn("Violated inequality: ");
+                                                            c->print(inst);
+                                    DebugOn(", violation = "<< diff << endl);
                                     nb_viol++;
                                     //                        violated = true;
                                     if (*c->_all_lazy) {
@@ -5077,11 +5077,14 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
 
             for(auto& c_p :_cons)
             {
-//                c_p.second->uneval();
                 c_p.second->_new = true;
+                c_p.second->uneval();
+                c_p.second->eval_all();
                 c_p.second->_dfdx->clear();
             }
             _obj->_new = true;
+            _obj->uneval();
+            _obj->eval_all();
             _obj->_dfdx->clear();
             for(auto &v_p: _vars)
             {
@@ -5859,6 +5862,21 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
             return size_header;
         }
         
+    /** Read solution point to file */
+        void read_solution(const string& fname);
+        
+    /** Write solution point to file */
+        void write_solution(int precision = 10){
+            ofstream myfile;
+            string fname = _name+".sol";
+            myfile.open(fname);
+            std::streambuf *coutbuf = std::cout.rdbuf(); //save old buf
+            std::cout.rdbuf(myfile.rdbuf());
+            print_solution(precision);
+            std::cout.rdbuf(coutbuf);
+            myfile.close();
+        }
+        
         /** Write Model to file */
         void write(int precision = 10){
             ofstream myfile;
@@ -5897,6 +5915,9 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
         
         
         
+        bool has_int() const{
+            return !_int_vars.empty();
+        }
         
         void replace_integers(){/*< Replace internal type of integer variables so that continuous relaxations can be computed */
             bool has_int = false;
@@ -8195,11 +8216,15 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
         }
         
         var<> get_cont_int_var(int index){
-            auto x = _model->get_var<double>("x");
-            auto y = _model->get_var<double>("y");
-            if(index >= y.get_id())/* Integer variable */
-                return y(index);
+            if(_model->has_int()){
+                auto y = _model->get_var<double>("y");
+                if(y._indices->has_key(to_string(index)))/* Integer variable */
+                {
+                    return y(index);
+                }
+            }
             /* Continuous variable */
+            auto x = _model->get_var<double>("x");
             return x(index);
         }
         
@@ -8270,6 +8295,9 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
         
         func<> VisitLog(UnaryExpr e) {
             return log(Visit(e.arg()));
+        }
+        func<> VisitLog10(UnaryExpr e) {
+            return log(Visit(e.arg()))/std::log(10);
         }
 //        func<> VisitFloor(UnaryExpr e) {
 //          return IloFloor(Visit(e.arg()));

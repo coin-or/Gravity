@@ -23,18 +23,20 @@ using namespace std;
 using namespace gravity;
 
 TEST_CASE("testing Gurobi's compound NL") {
+    double pi = 3.123456789;
+    cout << to_string_with_precision(pi, 4) << endl;
+    cout << to_string_with_precision(pi, 8) << endl;
+    cout << to_string_with_precision(pi, 10) << endl;
     Model<> M;
-    M.set_name("M");
-    var<> x("x", -2,2);
-    var<> y("y", 0,0);
-    var<> z("z", pi/2.,pi/2.);
+    M.set_name("M0");
+    var<> x("x", -1,1);
+    var<> y("y", -1,1);
     var<> resvar("resvar", -10,10);
     M.add(resvar);
     M.add(x);
     M.add(y);
-    M.add(z);
     Constraint<> C("C");
-    C = cos(cos(y) - sin(z + cos(y))) - x - 2 - resvar;
+    C = 6*sin(x)/cos(y) - resvar;
     M.add(C==0);
     M.max(resvar);
     solver<> GRB(M,gurobi);
@@ -45,7 +47,7 @@ TEST_CASE("testing Gurobi's compound NL") {
 #ifdef USE_MP
 TEST_CASE("testing readNL() function") {
     Model<> M;
-    string NL_file = string(prj_dir)+"/data_sets/NL/camshape100.nl";
+    string NL_file = "/Users/hassan.hijazi/Downloads/polygon25.nl.txt";
     int status = M.readNL(NL_file);
     solver<> GRB(M,gurobi);
     double solver_time_start = get_wall_time();

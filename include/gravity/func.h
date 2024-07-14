@@ -353,12 +353,12 @@ namespace gravity {
     template<class T,typename enable_if<is_arithmetic<T>::value>::type* = nullptr>
     T extended_plus(T x, T y){
         
-        if(x==numeric_limits<T>::max() && y==numeric_limits<T>::lowest()){
-            throw invalid_argument("In function extended_plus cannot add +inf to -inf");
-        }
-        if(x==numeric_limits<T>::lowest() && y==numeric_limits<T>::max()){
-            throw invalid_argument("In function extended_plus cannot add -inf to +inf");
-        }
+//        if(x==numeric_limits<T>::max() && y==numeric_limits<T>::lowest()){
+//            throw invalid_argument("In function extended_plus cannot add +inf to -inf");
+//        }
+//        if(x==numeric_limits<T>::lowest() && y==numeric_limits<T>::max()){
+//            throw invalid_argument("In function extended_plus cannot add -inf to +inf");
+//        }
         //+INF
         if(x==numeric_limits<T>::max() || y==numeric_limits<T>::max()){
             return numeric_limits<T>::max();
@@ -1031,7 +1031,7 @@ namespace gravity {
                         return 0.5*bexp->_coef*(lson.get_derivative(v) + rson.get_derivative(v) + df_abs(lson-rson)*(lson.get_derivative(v)-rson.get_derivative(v)));
                         break;
                     case power_:
-                        if (!rson.is_number()) {
+                        if (!rson.is_constant()) {
                             throw invalid_argument("Function in exponent not supported yet.\n");
                         }
                         //                auto exponent = poly_eval(_rson);
@@ -4492,7 +4492,7 @@ namespace gravity {
             if(ex->is_var()){
                 auto vv = static_pointer_cast<param_>(ex);
                 parent_id++;
-                return " ( VARIABLE     , " + vv->get_name(i) + "  , +"+to_string(root_id)+" )\n";
+                return " ( VARIABLE     , " + vv->get_name(i) + "  , "+to_string(root_id)+" )\n";
             }
             else if(ex->is_function()){
                 auto f = static_pointer_cast<func>(ex);
@@ -4503,26 +4503,26 @@ namespace gravity {
                 auto uexp = static_pointer_cast<uexpr<type>>(ex);
                 switch (uexp->_otype) {
                     case cos_:
-                        str = " ( COS      , -1 , +"+to_string(root_id)+" )\n";
+                        str = " ( COS      , -1 , "+to_string(root_id)+" )\n";
                         break;
                     case sin_:
-                        str = " ( SIN      , -1 , +"+to_string(root_id)+" )\n";
+                        str = " ( SIN      , -1 , "+to_string(root_id)+" )\n";
                         break;
                     case sqrt_:
-                        str = " ( SQRT      , -1 , +"+to_string(root_id)+" )\n";
+                        str = " ( SQRT      , -1 , "+to_string(root_id)+" )\n";
                         break;
                     case exp_:{
-                        str = " ( EXP      , -1 , +"+to_string(root_id)+" )\n";
+                        str = " ( EXP      , -1 , "+to_string(root_id)+" )\n";
                         break;
                     }
                     case log_:
-                        str = " ( LOG      , -1 , +"+to_string(root_id)+" )\n";
+                        str = " ( LOG      , -1 , "+to_string(root_id)+" )\n";
                         break;
                     case abs_:
-                        str = " ( ABS      , -1 , +"+to_string(root_id)+" )\n";
+                        str = " ( ABS      , -1 , "+to_string(root_id)+" )\n";
                         break;
                     case relu_:
-                        str = " ( RELU      , -1 , +"+to_string(root_id)+" )\n";
+                        str = " ( RELU      , -1 , "+to_string(root_id)+" )\n";
                         break;
                     default:
                         throw invalid_argument("Unsupported unary operation");
@@ -4539,13 +4539,13 @@ namespace gravity {
                 }
                 else if(uexp->_son->is_var()) {
                     auto vv = static_pointer_cast<param_>(uexp->_son);
-                    str += " ( VARIABLE     , " + vv->get_name(i) + "  , +"+to_string(new_root_id)+" )\n";
+                    str += " ( VARIABLE     , " + vv->get_name(i) + "  , "+to_string(new_root_id)+" )\n";
                     parent_id++;
                     return str;
                 }
                 else if(uexp->_son->is_param()) {
                     auto vv = static_pointer_cast<param_>(uexp->_son);
-                    str += " ( CONSTANT     , " + to_string(eval(vv,i)) + "  , +"+to_string(new_root_id)+" )\n";
+                    str += " ( CONSTANT     , " + to_string_with_precision(eval(vv,i), 15) + "  , "+to_string(new_root_id)+" )\n";
                     parent_id++;
                     return str;
                 }
@@ -4555,26 +4555,26 @@ namespace gravity {
                 auto bexp = static_pointer_cast<bexpr<type>>(ex);
                 switch (bexp->_otype) {
                     case plus_:
-                        str = " ( PLUS      , -1 , +"+to_string(root_id)+" )\n";
+                        str = " ( PLUS      , -1 , "+to_string(root_id)+" )\n";
                         break;
                     case minus_:
-                        str = " ( MINUS      , -1 , +"+to_string(root_id)+" )\n";
+                        str = " ( MINUS      , -1 , "+to_string(root_id)+" )\n";
                         break;
                     case product_:{
-                        str = " ( MULTIPLY      , -1 , +"+to_string(root_id)+" )\n";
+                        str = " ( MULTIPLY      , -1 , "+to_string(root_id)+" )\n";
                         break;
                     }
                     case div_:
-                        str = " ( DIVIDE      , -1 , +"+to_string(root_id)+" )\n";
+                        str = " ( DIVIDE      , -1 , "+to_string(root_id)+" )\n";
                         break;
                     case min_:
-                        str = " ( MIN      , -1 , +"+to_string(root_id)+" )\n";
+                        str = " ( MIN      , -1 , "+to_string(root_id)+" )\n";
                         break;
                     case max_:
-                        str = " ( MAX      , -1 , +"+to_string(root_id)+" )\n";
+                        str = " ( MAX      , -1 , "+to_string(root_id)+" )\n";
                         break;
                     case power_:
-                        str = " ( POW      , -1 , +"+to_string(root_id)+" )\n";
+                        str = " ( POW      , -1 , "+to_string(root_id)+" )\n";
                         break;
                     default:
                         throw invalid_argument("unsupported operation");
@@ -4590,12 +4590,12 @@ namespace gravity {
                 }
                 else if(bexp->_lson->is_var()) {
                     auto vv = static_pointer_cast<param_>(bexp->_lson);
-                    str += " ( VARIABLE     , " + vv->get_name(i) + "  , +"+to_string(new_root_id)+" )\n";
+                    str += " ( VARIABLE     , " + vv->get_name(i) + "  , "+to_string(new_root_id)+" )\n";
                     parent_id++;
                 }
                 else if(bexp->_lson->is_param()) {
                     auto vv = static_pointer_cast<param_>(bexp->_lson);
-                    str += " ( CONSTANT     , " + to_string(eval(vv,i)) + "  , +"+to_string(new_root_id)+" )\n";
+                    str += " ( CONSTANT     , " + to_string_with_precision(eval(vv,i), 15) + "  , "+to_string(new_root_id)+" )\n";
                     parent_id++;
                 }
                 if (bexp->_rson->is_function()) {
@@ -4605,12 +4605,12 @@ namespace gravity {
                 }
                 else if(bexp->_rson->is_var()) {
                     auto vv = static_pointer_cast<param_>(bexp->_rson);
-                    str += " ( VARIABLE     , " + vv->get_name(i) + "  , +"+to_string(new_root_id)+" )\n";
+                    str += " ( VARIABLE     , " + vv->get_name(i) + "  , "+to_string(new_root_id)+" )\n";
                     parent_id++;
                 }
                 else if(bexp->_rson->is_param()) {
                     auto vv = static_pointer_cast<param_>(bexp->_rson);
-                    str += " ( CONSTANT     , " + to_string(eval(vv,i)) + "  , +"+to_string(new_root_id)+" )\n";
+                    str += " ( CONSTANT     , " + to_string_with_precision(eval(vv,i), 15) + "  , "+to_string(new_root_id)+" )\n";
                     parent_id++;
                 }
                 return str;
@@ -4620,15 +4620,15 @@ namespace gravity {
         string getNLexpr(int root_id, int& parent_id, size_t i){
             if(func_is_number()){
                 parent_id++;
-                return " ( CONSTANT     , " + to_string(eval(i)) + "  , +"+to_string(root_id)+" )\n";
+                return " ( CONSTANT     , " + to_string_with_precision(eval(i),15) + "  , "+to_string(root_id)+" )\n";
             }
             if(is_linear() && _vars->size()==1 && _params->size()==0 && _cst->is_zero() && _lterms->begin()->second._sign && _lterms->begin()->second._coef->is_unit()){
                 parent_id++;
-                return " ( VARIABLE     , " + _vars->begin()->second.first->get_name(i) + "  , +"+to_string(root_id)+" )\n";
+                return " ( VARIABLE     , " + _vars->begin()->second.first->get_name(i) + "  , "+to_string(root_id)+" )\n";
             }
             if(_qterms->size()==0 && _pterms->size()==0 && !_expr && _vars->size()==0 && _params->size()==1 && _cst->is_zero() && _lterms->begin()->second._sign && _lterms->begin()->second._coef->is_unit()){
                 parent_id++;
-                return " ( CONSTANT     , " + to_string(eval(i)) + "  , +"+to_string(root_id)+" )\n";
+                return " ( CONSTANT     , " + to_string_with_precision(eval(i),15) + "  , "+to_string(root_id)+" )\n";
             }
             string str;
             int nb_elem = 0;
@@ -4647,17 +4647,17 @@ namespace gravity {
                 if(root_id==-1)
                     str += " ( PLUS     , -1  , -1 )\n";
                 else
-                    str += " ( PLUS     , -1  , +"+to_string(root_id)+" )\n";
+                    str += " ( PLUS     , -1  , "+to_string(root_id)+" )\n";
                 parent_id++;
                 current_root_id = parent_id;
                 if(!_cst->is_zero()){
-                    str += " ( CONSTANT     , " + to_string(eval(this->get_cst(), i)) + "  , +"+to_string(parent_id)+" )\n";
+                    str += " ( CONSTANT     , " + to_string_with_precision(eval(this->get_cst(), i), 15) + "  , "+to_string(parent_id)+" )\n";
                     parent_id++;
                 }
             }
             int current_parent_id = current_root_id;
             if(_lterms->size()>1){
-                str += " ( PLUS     , -1  , +"+to_string(current_root_id)+" )\n";
+                str += " ( PLUS     , -1  , "+to_string(current_root_id)+" )\n";
                 parent_id++;
                 current_parent_id = parent_id;
             }
@@ -4669,14 +4669,14 @@ namespace gravity {
                         if (!it1.second._sign) {
                             coeff *= -1;
                         }
-                        str += " ( MULTIPLY     , -1  , +"+to_string(current_parent_id)+" )\n";
+                        str += " ( MULTIPLY     , -1  , "+to_string(current_parent_id)+" )\n";
                         parent_id++;
-                        str += " ( CONSTANT     , " + to_string(coeff) + "  , +"+to_string(parent_id)+" )\n";
+                        str += " ( CONSTANT     , " + to_string_with_precision(coeff, 15) + "  , "+to_string(parent_id)+" )\n";
                         if(it1.second._p->is_var()){
-                            str += " ( VARIABLE     , " + it1.second._p->get_name(i,j) + "  , +"+to_string(parent_id)+" )\n";
+                            str += " ( VARIABLE     , " + it1.second._p->get_name(i,j) + "  , "+to_string(parent_id)+" )\n";
                         }
                         else{
-                            str += " ( CONSTANT     , " + to_string(eval(it1.second._p,i,j)) + "  , +"+to_string(parent_id)+" )\n";
+                            str += " ( CONSTANT     , " + to_string_with_precision(eval(it1.second._p,i,j), 15) + "  , "+to_string(parent_id)+" )\n";
                         }
                         parent_id+=2;
                     }
@@ -4686,21 +4686,21 @@ namespace gravity {
                     if (!it1.second._sign) {
                         coeff *= -1;
                     }
-                    str += " ( MULTIPLY     , -1  , +"+to_string(current_parent_id)+" )\n";
+                    str += " ( MULTIPLY     , -1  , "+to_string(current_parent_id)+" )\n";
                     parent_id++;
-                    str += " ( CONSTANT     , " + to_string(coeff) + "  , +"+to_string(parent_id)+" )\n";
+                    str += " ( CONSTANT     , " + to_string_with_precision(coeff, 15) + "  , "+to_string(parent_id)+" )\n";
                     if(it1.second._p->is_var()){
-                        str += " ( VARIABLE     , " + it1.second._p->get_name(i) + "  , +"+to_string(parent_id)+" )\n";
+                        str += " ( VARIABLE     , " + it1.second._p->get_name(i) + "  , "+to_string(parent_id)+" )\n";
                     }
                     else{
-                        str += " ( CONSTANT     , " + to_string(eval(it1.second._p,i)) + "  , +"+to_string(parent_id)+" )\n";
+                        str += " ( CONSTANT     , " + to_string_with_precision(eval(it1.second._p,i), 15) + "  , "+to_string(parent_id)+" )\n";
                     }
                     parent_id+=2;
                 }
             }
             current_parent_id = current_root_id;
             if(_qterms->size()>1){
-                str += " ( PLUS     , -1  , +"+to_string(current_root_id)+" )\n";
+                str += " ( PLUS     , -1  , "+to_string(current_root_id)+" )\n";
                 parent_id++;
                 current_parent_id = parent_id;
             }
@@ -4712,20 +4712,20 @@ namespace gravity {
                             if (!it1.second._sign) {
                                 coeff *= -1;
                             }
-                            str += " ( MULTIPLY     , -1  , +"+to_string(current_parent_id)+" )\n";
+                            str += " ( MULTIPLY     , -1  , "+to_string(current_parent_id)+" )\n";
                             parent_id++;
-                            str += " ( CONSTANT     , " + to_string(coeff) + "  , +"+to_string(parent_id)+" )\n";
+                            str += " ( CONSTANT     , " + to_string_with_precision(coeff, 15) + "  , "+to_string(parent_id)+" )\n";
                             if(it1.second._p->first->is_var()){
-                                str += " ( VARIABLE     , " + it1.second._p->first->get_name(j) + "  , +"+to_string(parent_id)+" )\n";
+                                str += " ( VARIABLE     , " + it1.second._p->first->get_name(j) + "  , "+to_string(parent_id)+" )\n";
                             }
                             else{
-                                str += " ( CONSTANT     , " + to_string(eval(it1.second._p->first,j)) + "  , +"+to_string(parent_id)+" )\n";
+                                str += " ( CONSTANT     , " + to_string_with_precision(eval(it1.second._p->first,j), 15) + "  , "+to_string(parent_id)+" )\n";
                             }
                             if(it1.second._p->second->is_var()){
-                                str += " ( VARIABLE     , " + it1.second._p->second->get_name(i) + "  , +"+to_string(parent_id)+" )\n";
+                                str += " ( VARIABLE     , " + it1.second._p->second->get_name(i) + "  , "+to_string(parent_id)+" )\n";
                             }
                             else{
-                                str += " ( CONSTANT     , " + to_string(eval(it1.second._p->second,i)) + "  , +"+to_string(parent_id)+" )\n";
+                                str += " ( CONSTANT     , " + to_string_with_precision(eval(it1.second._p->second,i), 15) + "  , "+to_string(parent_id)+" )\n";
                             }
                             parent_id+=3;
                         }
@@ -4738,20 +4738,20 @@ namespace gravity {
                         if (!it1.second._sign) {
                             coeff *= -1;
                         }
-                        str += " ( MULTIPLY     , -1  , +"+to_string(current_parent_id)+" )\n";
+                        str += " ( MULTIPLY     , -1  , "+to_string(current_parent_id)+" )\n";
                         parent_id++;
-                        str += " ( CONSTANT     , " + to_string(coeff) + "  , +"+to_string(parent_id)+" )\n";
+                        str += " ( CONSTANT     , " + to_string_with_precision(coeff, 15) + "  , "+to_string(parent_id)+" )\n";
                         if(it1.second._p->first->is_var()){
-                            str += " ( VARIABLE     , " + it1.second._p->first->get_name(i,j) + "  , +"+to_string(parent_id)+" )\n";
+                            str += " ( VARIABLE     , " + it1.second._p->first->get_name(i,j) + "  , "+to_string(parent_id)+" )\n";
                         }
                         else{
-                            str += " ( CONSTANT     , " + to_string(eval(it1.second._p->first,i,j)) + "  , +"+to_string(parent_id)+" )\n";
+                            str += " ( CONSTANT     , " + to_string_with_precision(eval(it1.second._p->first,i,j), 15) + "  , "+to_string(parent_id)+" )\n";
                         }
                         if(it1.second._p->second->is_var()){
-                            str += " ( VARIABLE     , " + it1.second._p->second->get_name(i,j) + "  , +"+to_string(parent_id)+" )\n";
+                            str += " ( VARIABLE     , " + it1.second._p->second->get_name(i,j) + "  , "+to_string(parent_id)+" )\n";
                         }
                         else{
-                            str += " ( CONSTANT     , " + to_string(eval(it1.second._p->second,i,j)) + "  , +"+to_string(parent_id)+" )\n";
+                            str += " ( CONSTANT     , " + to_string_with_precision(eval(it1.second._p->second,i,j), 15) + "  , "+to_string(parent_id)+" )\n";
                         }
                         parent_id+=3;
                     }
@@ -4761,62 +4761,76 @@ namespace gravity {
                     if (!it1.second._sign) {
                         coeff *= -1;
                     }
-                    str += " ( MULTIPLY     , -1  , +"+to_string(current_parent_id)+" )\n";
+                    str += " ( MULTIPLY     , -1  , "+to_string(current_parent_id)+" )\n";
                     parent_id++;
-                    str += " ( CONSTANT     , " + to_string(coeff) + "  , +"+to_string(parent_id)+" )\n";
+                    str += " ( CONSTANT     , " + to_string_with_precision(coeff, 15) + "  , "+to_string(parent_id)+" )\n";
                     if(it1.second._p->first->is_var()){
-                        str += " ( VARIABLE     , " + it1.second._p->first->get_name(i) + "  , +"+to_string(parent_id)+" )\n";
+                        str += " ( VARIABLE     , " + it1.second._p->first->get_name(i) + "  , "+to_string(parent_id)+" )\n";
                     }
                     else{
-                        str += " ( CONSTANT     , " + to_string(eval(it1.second._p->first,i)) + "  , +"+to_string(parent_id)+" )\n";
+                        str += " ( CONSTANT     , " + to_string_with_precision(eval(it1.second._p->first,i), 15) + "  , "+to_string(parent_id)+" )\n";
                     }
                     if(it1.second._p->second->is_var()){
-                        str += " ( VARIABLE     , " + it1.second._p->second->get_name(i) + "  , +"+to_string(parent_id)+" )\n";
+                        str += " ( VARIABLE     , " + it1.second._p->second->get_name(i) + "  , "+to_string(parent_id)+" )\n";
                     }
                     else{
-                        str += " ( CONSTANT     , " + to_string(eval(it1.second._p->second,i)) + "  , +"+to_string(parent_id)+" )\n";
+                        str += " ( CONSTANT     , " + to_string_with_precision(eval(it1.second._p->second,i), 15) + "  , "+to_string(parent_id)+" )\n";
                     }
                     parent_id+=3;
                 }
             }
             current_parent_id = current_root_id;
             if(_pterms->size()>1){
-                str += " ( PLUS     , -1  , +"+to_string(current_root_id)+" )\n";
+                str += " ( PLUS     , -1  , "+to_string(current_root_id)+" )\n";
                 parent_id++;
                 current_parent_id = parent_id;
             }
             for (auto &pair:*this->_pterms) {
-                str += " ( MULTIPLY     , -1  , +"+to_string(current_parent_id)+" )\n";
+                str += " ( MULTIPLY     , -1  , "+to_string(current_parent_id)+" )\n";
                 parent_id++;
                 int local_current_parent_id = parent_id;
                 for (auto &vpair: *pair.second._l) {
-                    str += " ( POW     , -1  , +"+to_string(local_current_parent_id)+" )\n";
-                    parent_id++;
-                    if(vpair.first->is_var()){
-                        str += " ( VARIABLE     , " + vpair.first->get_name(i) + "  , +"+to_string(parent_id)+" )\n";
+                    bool has_power = true;
+                    if(vpair.second == unit<type>().eval())
+                        has_power = false;
+                    if(has_power){
+                        str += " ( POW     , -1  , "+to_string(local_current_parent_id)+" )\n";
+                        parent_id++;
+                        if(vpair.first->is_var()){
+                            str += " ( VARIABLE     , " + vpair.first->get_name(i) + "  , "+to_string(parent_id)+" )\n";
+                        }
+                        else{
+                            str += " ( CONSTANT     , " + to_string_with_precision(eval(vpair.first,i), 15) + "  , "+to_string(parent_id)+" )\n";
+                        }
+                        str += " ( CONSTANT     , " + to_string_with_precision(vpair.second, 15) + "  , "+to_string(parent_id)+" )\n";
+                        parent_id+=2;
                     }
                     else{
-                        str += " ( CONSTANT     , " + to_string(eval(vpair.first,i)) + "  , +"+to_string(parent_id)+" )\n";
+                        if(vpair.first->is_var()){
+                            str += " ( VARIABLE     , " + vpair.first->get_name(i) + "  , "+to_string(local_current_parent_id)+" )\n";
+                        }
+                        else{
+                            str += " ( CONSTANT     , " + to_string_with_precision(eval(vpair.first,i), 15) + "  , "+to_string(local_current_parent_id)+" )\n";
+                        }
+                        parent_id+=1;
                     }
-                    str += " ( CONSTANT     , " + to_string(vpair.second) + "  , +"+to_string(parent_id)+" )\n";
-                    parent_id+=2;
                 }
                 auto coeff = eval_coef(pair.second._coef,i);
                 if (!pair.second._sign) {
                     coeff *= -1.;
                 }
-                str += " ( CONSTANT     , " + to_string(coeff) + "  , +"+to_string(local_current_parent_id)+" )\n";
+                str += " ( CONSTANT     , " + to_string_with_precision(coeff, 15) + "  , "+to_string(local_current_parent_id)+" )\n";
                 parent_id++;
                 
             }
             if(_expr){
                 if(_expr->_coef != unit<type>().eval()){
-                    str += " ( PLUS     , -1  , +"+to_string(current_root_id)+" )\n";
+                    str += " ( PLUS     , -1  , "+to_string(current_root_id)+" )\n";
                     parent_id++;
-                    str += " ( MULTIPLY     , -1  , +"+to_string(parent_id)+" )\n";
+                    str += " ( MULTIPLY     , -1  , "+to_string(parent_id)+" )\n";
                     parent_id++;
                     current_root_id = parent_id;
-                    str += " ( CONSTANT     , " + to_string(_expr->_coef) + "  , +"+to_string(parent_id)+" )\n";
+                    str += " ( CONSTANT     , " + to_string_with_precision(_expr->_coef, 15) + "  , "+to_string(parent_id)+" )\n";
                     parent_id++;
                 }
                 str += getNLexpr(_expr, current_root_id, parent_id, i);
@@ -9684,9 +9698,9 @@ namespace gravity {
     
     template<class T1>
     func<T1> log(const func<T1>& f){
-        if(!f.is_positive()){
-            throw invalid_argument("Calling log() with a potentially negative/zero argument");
-        }
+//        if(!f.is_positive()){
+//            throw invalid_argument("Calling log() with a potentially negative/zero argument");
+//        }
         func<T1> res(uexpr<T1>(log_, f.copy()));
         if(f._range->first>=1){
             res._all_sign = non_neg_;
@@ -9749,9 +9763,9 @@ namespace gravity {
     
     template<class T1>
     func<T1> sqrt(const func<T1>& f){
-        if(!f.is_non_negative()){
-            throw invalid_argument("Calling sqrt() with a potentially negative argument");
-        }
+//        if(!f.is_non_negative()){
+//            throw invalid_argument("Calling sqrt() with a potentially negative argument");
+//        }
         func<T1> res(uexpr<T1>(sqrt_, f.copy()));
         res._all_sign = non_neg_;
         if(f.is_positive()){
@@ -10190,63 +10204,61 @@ namespace gravity {
     }
     
     template<class T, typename enable_if<is_arithmetic<T>::value>::type* = nullptr>
-    func<T> pow(const func<T>& f, int exp){
-        if(exp<0){
-            return func<T>(bexpr<T>(power_, f.copy(), make_shared<constant<int>>(exp)));
-        }
+    func<T> pow(const func<T>& f, double exp){
         if(exp==0){
             return func<T>();
         }
         if(exp==1){
             return f;
         }
-        //        if(exp==2){
-        //            return f*f;
-        //        }
+//        if(exp==2){
+//            return f*f;
+//        }
         else {
-            func<T> res(f);
-            for (int i = 1; i < exp; i++) {
-                res *= f;
-            }
-            if(f._range->first==numeric_limits<T>::lowest() || f._range->second==numeric_limits<T>::max()){
-                res._range->first = numeric_limits<T>::lowest();
-                res._range->second = numeric_limits<T>::max();
-            }
-            else {
-                res._range->first = gravity::min(std::pow(f._range->first,exp),std::pow(f._range->second,exp));
-                res._range->second = gravity::max(std::pow(f._range->first,exp),std::pow(f._range->second,exp));
-            }
-            if(exp%2==0) {
-                res._all_sign = non_neg_;
-                if(f.is_positive()){
-                    res._all_sign = pos_;
-                }
-                if(f._range->first <0 && f._range->second >0){
-                    res._range->first = 0;
-                }
-            }
-            else {
-                res._all_sign = f.get_all_sign();
-            }
-            if (f.is_linear()) {
-                if(exp%2==0) {
-                    res._all_convexity = convex_;
-                }
-                else if(f.is_non_negative()){
-                    res._all_convexity = convex_;
-                }
-                else if(f.is_non_positive()){
-                    res._all_convexity = concave_;
-                }
-                else {
-                    res._all_convexity = undet_;
-                }
-            }
-            else if(!f.is_constant()){
-                res._all_convexity = undet_;
-            }
-            res._indices = f._indices;
-            return res;
+//            func<T> res;
+            return func<T>(bexpr<T>(power_, f.copy(), func<T>(exp).copy()));
+//            for (int i = 1; i < exp; i++) {
+//                res *= f;
+//            }
+//            if(f._range->first==numeric_limits<T>::lowest() || f._range->second==numeric_limits<T>::max()){
+//                res._range->first = numeric_limits<T>::lowest();
+//                res._range->second = numeric_limits<T>::max();
+//            }
+//            else {
+//                res._range->first = gravity::min(std::pow(f._range->first,exp),std::pow(f._range->second,exp));
+//                res._range->second = gravity::max(std::pow(f._range->first,exp),std::pow(f._range->second,exp));
+//            }
+//            if(exp%2==0) {
+//                res._all_sign = non_neg_;
+//                if(f.is_positive()){
+//                    res._all_sign = pos_;
+//                }
+//                if(f._range->first <0 && f._range->second >0){
+//                    res._range->first = 0;
+//                }
+//            }
+//            else {
+//                res._all_sign = f.get_all_sign();
+//            }
+//            if (f.is_linear()) {
+//                if(exp%2==0) {
+//                    res._all_convexity = convex_;
+//                }
+//                else if(f.is_non_negative()){
+//                    res._all_convexity = convex_;
+//                }
+//                else if(f.is_non_positive()){
+//                    res._all_convexity = concave_;
+//                }
+//                else {
+//                    res._all_convexity = undet_;
+//                }
+//            }
+//            else if(!f.is_constant()){
+//                res._all_convexity = undet_;
+//            }
+//            res._indices = f._indices;
+//            return res;
         }
     }
     

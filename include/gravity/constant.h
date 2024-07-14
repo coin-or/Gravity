@@ -52,7 +52,10 @@ namespace gravity {
         if(std::numeric_limits<T>::is_specialized && a_value==numeric_limits<T>::max()){
             return "+∞";
         }
-        out << std::setprecision(n) << a_value;
+        out.setf(ios::fixed);
+        out.precision(n);
+        out << std::scientific << a_value;
+//        out << std::setprecision(n) << a_value;
         return out.str();
     }
     /**
