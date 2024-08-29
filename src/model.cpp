@@ -72,7 +72,7 @@ void Model<type>::read_solution(const string& fname){
     FILE *fp = fopen(fname_sol.c_str(),"r");
     if(fp == NULL)
     {
-            cout << "Can’t open input file " << fname;
+            cout << "Can’t open input file " << fname_sol;
             exit(1);
     }
     max_line_len = 1024;
@@ -95,7 +95,7 @@ void Model<type>::read_solution(const string& fname){
     fp = fopen(fname_col.c_str(),"r");
     if(fp == NULL)
     {
-            cout << "Can’t open input file " << fname;
+            cout << "Can’t open input file " << fname_col;
             exit(1);
     }
     line = new char[max_line_len];
@@ -114,34 +114,43 @@ void Model<type>::read_solution(const string& fname){
         y_cont = static_pointer_cast<var<double>>(y);
         nb_int = y_int->get_dim();
     }
-    
-    for (int i = 0; i<nb_cont; i++) {
+    int vid = 0;
+    while (vid<nb_cont) {
         readLine(fp);
         vname = mystrtok(&p,line,'\n');
+        if(vname[0]!='x')
+            continue;
 //        vname.erase(remove(vname.begin(), vname.end(), '\n'), vname.end());
-        v_map[vname] = x_cont->get_name(i);
+        v_map[vname] = x_cont->get_name(vid);
         if(sol_map.count(vname)>0){
-            x_cont->_val->at(i) = sol_map[vname];
+            x_cont->_val->at(vid) = sol_map[vname];
         }
         else{
-            x_cont->_val->at(i) = 0;
+            x_cont->_val->at(vid) = 0;
         }
+        vid++;
     }
-    for (int i = 0; i<nb_int; i++) {
+    rewind(fp);
+    vid = 0;
+    while (vid<nb_int) {
         readLine(fp);
         vname = mystrtok(&p,line,'\n');
-        v_map[vname] = y_int->get_name(i);
+        if(vname[0]=='x')
+            continue;
+        v_map[vname] = y_int->get_name(vid);
         if(sol_map.count(vname)>0){
-            y_int->_val->at(i) = sol_map[vname];
-            y_cont->_val->at(i) = sol_map[vname];
+            y_int->_val->at(vid) = sol_map[vname];
+            y_cont->_val->at(vid) = sol_map[vname];
         }
         else{
-            y_int->_val->at(i) = 0;
-            y_cont->_val->at(i) = 0;
+            y_int->_val->at(vid) = 0;
+            y_cont->_val->at(vid) = 0;
         }
+        vid++;
     }
     auto objvar = static_pointer_cast<var<double>>(this->get_var_ptr("objvar"));
-    objvar->_val->at(0) = sol_map.at("objvar");
+    if(objvar)
+        objvar->_val->at(0) = sol_map.at("objvar");
     delete[] line;
     fclose(fp);
     this->print_solution();

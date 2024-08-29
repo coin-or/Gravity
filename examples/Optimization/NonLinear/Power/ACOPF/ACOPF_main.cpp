@@ -66,7 +66,7 @@ int main (int argc, char * argv[])
     GRB.run();
     M.print();
     M.read_solution(fname);
-    M.write_solution();
+    M.write_solution(15);
 //    M.reset();
 //    M.is_feasible(1e-6);
     return 0;
