@@ -31,6 +31,7 @@ int main(int argc, const char * argv[]) {
 //        run_MIP = true;
     myModel m = myModel();
     auto par = m.readHD5(fname, 1e-8);
+    return;
 //    vector<param<double>> par = m.readData(argc, argv, 1, 2);
 //    m.readH5SolStats(sol_fname, par[0], par[1], par[2]);
     auto start = high_resolution_clock::now();
@@ -81,195 +82,51 @@ int main(int argc, const char * argv[]) {
 
 vector<param<double>> myModel::readHD5(const string& fname, double wThrsh){
 
+    vector<param<double>> par (3);
 #ifdef USE_H5CPP
     auto hd5file = file::open(fname);
     auto RootGroup = hd5file.root();
-    /* Read agent names */
-    auto agents_group = RootGroup.get_group("agents");
-    auto agents_names = agents_group.get_dataset("agent_name");
-    agents = indices("agents");
-    dataspace::Simple Dataspace(agents_names.dataspace());
-    auto Dimensions = Dataspace.current_dimensions();
-    auto nb_agents = Dimensions[0];
-//    budget.resize(nb_agents);
-//    auto budget_set = agents_group.get_dataset("budget");
-//    budget_set.read(budget);
-    auto MaxDimensions = Dataspace.maximum_dimensions();
-    std::vector<string> AllElements(Dataspace.size());
-    agents_names.read(AllElements);
-    for (auto Value : AllElements) {
-        agents.insert("Agent_"+to_string(agents.size()));
+    auto att = RootGroup.attributes;
+    auto natt = att.size();
+    DebugOn("H5 file has " << natt << " attributes" << endl);
+    for (auto i = 0; i < natt; i++) {
+        auto att_i = att[i];
+        DebugOn("Attribute " << i << "'s name is " << att_i.name() << endl);
+        auto ds = att_i.dataspace();
+        auto nbe = ds.size();
+        DebugOn("Attribute dataspace size: " << nbe << endl);
+        string att_data;
+        att_i.read(att_data);
+        DebugOn("Attribute data: " << att_data << endl);
     }
-    /* Read objects */
-    auto objects_group = RootGroup.get_group("objects");
-    auto object_names_set = objects_group.get_dataset("object_name");
-    auto priority_set = objects_group.get_dataset("priority");
-    dataspace::Simple object_names_space(object_names_set.dataspace());
-    objects = indices("objects");
-    auto nb_objects = object_names_space.size();
-    std::vector<string> object_names(nb_objects);
-    object_names_set.read(object_names);
-    for (auto name : object_names) {
-        objects.insert("Object_"+to_string(objects.size()));
-    }
-    auto pr_size = priority_set.dataspace().size();
-    assert(pr_size==nb_objects*nb_agents);
-    vector<double> priority(pr_size);
-    sleep(1);
-    priority_set.read(priority);
-    if(priority.size() != pr_size){
-        throw invalid_argument("priority size should be " + to_string(pr_size) + ". After reading h5 file, it is being set to " + to_string(priority.size()));
-    }
-    /* Read sensors */
-    auto sensors_group = RootGroup.get_group("sensors");
-    auto sensors_names_set = sensors_group.get_dataset("sensor_name");
-    auto agent_own_set = sensors_group.get_dataset("agent_id");
-    dataspace::Simple sensors_names_space(sensors_names_set.dataspace());
-    dataspace::Simple agent_own_space(agent_own_set.dataspace());
-    sensors = indices("sensors");
-    own_sens = indices("own_sens");
-
-    auto nb_sensors = sensors_names_space.size();
-    owner.resize(nb_sensors);/*< vector storing ownership of each sensor */
-    vector<string> sensors_names(nb_sensors);
-    sensors_names_set.read(sensors_names);
-    for (auto name : sensors_names) {
-        sensors.insert("Sensor_"+to_string(sensors.size()));
-    }
-    vector<int> agent_own(nb_sensors);
-    agent_own_set.read(agent_own);
-    int s_id = 0;
-    for (auto agent_id : agent_own) {
-        owner[s_id] = agent_id;
-        owner_map[sensors.get_key(s_id)] = agent_id;
-        own_sens.insert(sensors.get_key(s_id++)+","+agents.get_key(agent_id));
-    }
-//    agents.print();
-//    objects.print();
-//    sensors.print();
-//    own_sens.print();
-    /* Read arcs */
-    auto arcs_group = RootGroup.get_group("arcs");
-    auto object_id_set = arcs_group.get_dataset("object_id");
-    auto sensor_id_set = arcs_group.get_dataset("sensor_id");
-    auto quality_set = arcs_group.get_dataset("quality");
-    auto nb_arcs = object_id_set.dataspace().size();
-    vector<int> object_ids(nb_arcs), sensor_ids(nb_arcs);
-    vector<double> quality(nb_arcs);
-    object_id_set.read(object_ids);
-    sensor_id_set.read(sensor_ids);
-    quality_set.read(quality);
-    Node* node = NULL;
-    Arc* arc = NULL;
-    string src, dest;
-
-    
-    for (int i = 0; i <nb_objects; i++){
-        node = new Node(objects.get_key(i),graph.nodes.size());
-        graph.add_node(node);
-    }
-    for (int i = 0; i <nb_sensors; i++){
-        node = new Node(sensors.get_key(i),graph.nodes.size());
-        node->owner_id = owner[i];
-        graph.add_node(node);
-    }
-    
-
-    for (int i = 0; i < nb_arcs; i++) {
-        src = sensors.get_key(sensor_ids[i]);
-        dest = objects.get_key(object_ids[i]);
-        arc = new Arc(src + "," + dest);
-        arc->_id = i;
-        arc->_src = graph.get_node(src);
-        arc->_dest= graph.get_node(dest);
-        arc->weight = quality[i];
-        graph.add_arc(arc);
-        arc->connect(false);
-    }
-//    graph.print();
-    DebugOn("Done reading h5 file and building graph" << endl);
-    DebugOn("Graph has " << graph.nodes.size() << " nodes" << endl);
-    DebugOn("Graph has " << graph.arcs.size() << " arcs" << endl);
-    DebugOn("Number of objects =  " << nb_objects << endl);
-    DebugOn("Number of sensors =  " << nb_sensors << endl);
-    DebugOn("Number of agents =  " << nb_agents << endl);
-    N = nb_sensors;
-    M = nb_objects;
-    K = nb_agents;
-
-    /* Graph nodes are indexed in {0,...,n+m-1})*/
-    assert(N + M == graph.nodes.size());/* Make sure we have the right number of nodes */
-    arcs = indices("arcs");
-    own_arcs = indices("own_arcs");
-    bought_arcs = indices("bought_arcs");
-
-    /* Parameters */
-    vector<param<double>> par (3);
-    param<double> w0("w0");
-    param<double> w_own("w_own");
-    param<double> w_bought("w_bought");
-    arcs.add(graph.arcs);
-    w0.in(arcs);
-    w_own.in(own_arcs);
-    w_bought.in(bought_arcs);
-    DebugOn("Building coefficient matrix..." << endl);
-    string sensor_name, agent_name, object_name;
-    /*define index sets for weights, then read weights (need owner to sepsrate own and bought weights)*/
-    for (int k = 0; k < K; k++) {
-        agent_name = agents.get_key(k);
-        for (int i = 0; i < N; i++) {
-            sensor_name = sensors.get_key(i);
-            auto sensor_node = graph.get_node(sensor_name);
-            if (owner[i] == k) {
-                for (const Arc* a: sensor_node->get_out()) {
-                    own_arcs.add(sensor_name + "," + a->_dest->_name + "," + agent_name);
-                    int object = stoi(a->_dest->_name.substr(7, a->_dest->_name.size()));
-                    int tmp = k + object * K;//a->_dest->_id + nb_objects * k;
-                    double wTmp = a->weight*priority[tmp];
-                    if (wTmp > wThrsh) {
-                        w_own.add_val(wTmp);
-                    }
-                    else {
-                        w_own.add_val(0);
-                    }
-//                    for (const Arc* b: a->_dest->get_in()) {
-//                        if (b->_src->owner_id == k) {
-//                            if (b->_src->_id != i) {
-//                                own_rplc.add(a->_src->_name + "," + b->_src->_name + "," + a->_dest->_name + "," + agent_name);
-//                            }
-//                        }
-//                        else {
-//                            oths_rplc.add(sensor_name + "," + b->_src->_name + "," + a->_dest->_name + "," + agent_name);
-//                        }
-//                    }
-                }
-            }
-            else {
-                bought_sens.add(sensor_name + "," + agent_name);
-                for (const Arc* a: sensor_node->get_out()) {
-                    bought_arcs.add(a->_src->_name + "," + a->_dest->_name +  "," + agent_name);
-                    int object = stoi(a->_dest->_name.substr(7, a->_dest->_name.size()));
-                    int tmp = k + object * K;//a->_dest->_id + nb_objects * k;
-                    if (tmp >= priority.size()) {
-                        cout << "Priority out of range " << tmp << " " << priority.size() << endl;
-                    }
-                    double wTmp = a->weight * priority[tmp];
-                    if (wTmp > wThrsh) {
-                        w_bought.add_val(wTmp);
-                    }
-                    else {
-                        w_bought.add_val(0);
-                    }
-                }
-            }
+    auto nodes = RootGroup.nodes;
+    auto nnodes = nodes.size();
+    DebugOn("H5 file has " << nnodes << " nodes" << endl);
+    for(size_t index = 0; index<nnodes;++index)
+    {
+       std::cout<<RootGroup.nodes[index].link().path()<<std::endl;
+        auto nbnodeatt = RootGroup.nodes[index].attributes.size();
+        DebugOn("Node has " << nbnodeatt << " attributes" << endl);
+        for (auto i = 0; i < nbnodeatt; i++) {
+            auto att_i = RootGroup.nodes[index].attributes[i];
+            DebugOn("Attribute " << i << "'s name is " << att_i.name() << endl);
+//            DebugOn("Attribute " << i << "'s datatype is " << att_i.datatype() << endl);
+//            auto dtype = att_i.datatype();
+            auto ds = att_i.dataspace();
+            auto nbe = ds.size();
+            DebugOn("Attribute dataspace size: " << nbe << endl);
+            
+            
+//            string att_data;
+//            att_i.read(att_data);
+//            DebugOn("Attribute data: " << att_data[0] << endl);
         }
     }
+    
+    
+//    graph.print();
+    DebugOn("Done reading h5 file" << endl);
 
-
-    /*pass weights to init*/
-    par[0] = w0;
-    par[1] = w_own;
-    par[2] = w_bought;
 
     return par;
 #else

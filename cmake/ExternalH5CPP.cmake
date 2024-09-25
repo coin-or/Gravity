@@ -12,7 +12,7 @@ set(H5CPP_DOWNLOAD_URL https://github.com/ess-dmsc/h5cpp.git)
 set(H5CPP_ROOT_DIR ${THIRDPARTY_INSTALL_PATH}/Install/H5CPP/build CACHE INTERNAL "")
 ExternalProject_Add(h5cpp
     DOWNLOAD_DIR ${THIRDPARTY_INSTALL_PATH}
-    DOWNLOAD_COMMAND export HTTPS_PROXY=$ENV{HTTPS_PROXY} && git clone ${H5CPP_DOWNLOAD_URL} && rm -fr ./Install/H5CPP && mv H5CPP ./Install/H5CPP && cd ./Install/H5CPP && mkdir build && cd build && cmake .. -DH5CPP_WITH_BOOST=OFF -DH5CPP_CONAN=DISABLE -DH5CPP_DISABLE_TESTS=ON && make
+    DOWNLOAD_COMMAND export HTTPS_PROXY=$ENV{HTTPS_PROXY} && git clone ${H5CPP_DOWNLOAD_URL} && rm -fr ./Install/H5CPP && mv H5CPP ./Install/H5CPP && cd ./Install/H5CPP && mkdir build && cd build && cmake .. -DH5CPP_WITH_BOOST=ON -DH5CPP_CONAN=DISABLE -DH5CPP_DISABLE_TESTS=ON && make
     URL ${H5CPP_DOWNLOAD_URL}
     CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${H5CPP_ROOT_DIR}
     CONFIGURE_COMMAND ""

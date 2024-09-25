@@ -5,10 +5,11 @@ message("Looking for H5CPP in ${H5CPP_ROOT_DIR}")
 include(FindPackageHandleStandardArgs)
 
 find_path(H5CPP_INCLUDE_DIR
-	NAMES hdf5.hpp 
+	NAMES hdf5.hpp
 	HINTS /usr/local/include
 	HINTS /usr/local/include/h5cpp
 	HINTS ${H5CPP_ROOT_DIR}/include
+	HINTS ${H5CPP_ROOT_DIR}/../src/h5cpp/
 	HINTS ${H5CPP_ROOT_DIR}/src/h5cpp
 	HINTS ${PROJECT_SOURCE_DIR}/thirdparty/H5CPP/src
 )
