@@ -61,12 +61,10 @@ int main (int argc, char * argv[])
     }
 #endif
     Model<> M;
-    int status = M.readNL(fname);
     solver<> GRB(M,gurobi);
-    GRB.run();
+    int status = GRB.readLP(fname);
     M.print();
-    M.read_solution(fname);
-    M.write_solution(15);
+//    GRB.run();
 //    M.reset();
 //    M.is_feasible(1e-6);
     return 0;

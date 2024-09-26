@@ -59,6 +59,9 @@ void ClpNotAvailable()
 }
 
 namespace gravity {
+
+
+
 /** Returns copy of current Model  which has all variables in current model, same objective as current model and only linear constraints in current Model. Throws exception if model has nonlinear equality constraints
  **/
 template<typename type>

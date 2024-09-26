@@ -116,6 +116,7 @@ public:
         _bool_options[option] = val;
     }
     
+    
     unsigned get_nb_iterations(){
         return _nb_iterations;
     }
@@ -203,6 +204,47 @@ public:
     }
     //@}
     void set_model(gravity::Model<type>& m);
+    
+    
+    int readLP(const string& fname) {
+        if(_stype==gurobi)
+        {
+#ifdef USE_GUROBI
+            indices C("C"), I("I"), LinConstr("LinConstr"), QuadConstr("QuadConstr"), NonLinConstr("NonLinConstr");
+            int nb_cont = 0;
+            int nb_int = 0;
+            int nb_other = 0;
+            vector<int> C_ids,I_ids;
+            auto grb_prog = (GurobiProgram*)(_prog.get());
+            try{
+                auto mod = GRBModel(grb_prog->grb_env, fname);
+                int n = mod.get(GRB_IntAttr_NumVars);
+                auto vars = mod.getVars();
+                int nb_c = 0, nb_i = 0;
+                for (int i = 0; i < n; i++) {
+                    if(vars[i].get(GRB_CharAttr_VType) == GRB_CONTINUOUS){
+                        nb_c++;
+                        C.insert(to_string(v.index()));
+                        C_ids.push_back(v.index());
+                    }
+                    else if (vars[i].get(GRB_CharAttr_VType) == GRB_INTEGER || vars[i].get(GRB_CharAttr_VType) == GRB_BINARY) {
+                        I.insert(to_string(v.index()));
+                        I_ids.push_back(v.index());
+                        nb_i++;
+                    }
+                }
+                DebugOn("Model has " << nb_c << " continuous vars and " << nb_i << " integers" << endl);
+            }catch(GRBException e) {
+                cerr << "\nError code = " << e.getErrorCode() << endl;
+                cerr << e.getMessage() << endl;
+            }
+#else
+            gurobiNotAvailable();
+#endif
+        }
+        return 0;
+    }
+    
     int run(bool relax){
         return run(5, 1e-6, 10000, 1e-6, relax, {false,""}, 1e+6);
     }

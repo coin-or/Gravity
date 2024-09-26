@@ -6874,6 +6874,7 @@ void Model<type>::update_upper_bound(shared_ptr<Model<type>>& obbt_model, vector
         }
     }
 }
+
     
 template <typename type>
 template<typename T,typename std::enable_if<is_arithmetic<T>::value>::type*>

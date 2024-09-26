@@ -6738,6 +6738,7 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
         template<typename T=type>
         shared_ptr<Model<type>> buildOA();
         
+        
         /** Returns a model such that when optimized will return an iterior point to the current model**/
         template<typename T=type>
         Model<type> build_model_interior() const;
