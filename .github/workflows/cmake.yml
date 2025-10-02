@@ -60,12 +60,6 @@ jobs:
       fail-fast: false
       matrix:
         config:
-        # - {
-        #     name: "Windows Latest MSVC", artifact: "Windows-MSVC.tar.xz",
-        #     os: windows-latest,
-        #     build_type: "Release", cc: "cl", cxx: "cl",
-        #     environment_script: "C:/Program Files (x86)/Microsoft Visual Studio/2019/Enterprise/VC/Auxiliary/Build/vcvars64.bat"
-        #   }
         - {
             name: "Windows latest MinGW", artifact: "Windows-MinGW.tar.xz",
             os: windows-latest,
@@ -85,7 +79,7 @@ jobs:
     steps:
     - uses: actions/checkout@v1
     - name: Set up MinGW
-      uses: egor-tensin/setup-mingw@v2
+      uses: msys2/setup-msys2@v2
       with:
         platform: x64
         version: 3.2.0
