@@ -10,7 +10,6 @@
 </p>
 <H2 align="center"> Mathematical Modeling for Optimization and Machine Learning</H2>
 <p align="center"> <img src="media/cpp_logo.png" width="50"></p>
-<H2 align="center"> www.gravityopt.com </H2>
 
 ## Citing
 The original paper was presentend at the Machine Learning Open Source Software Workshop at NeurIPS 2018, a longer version of the paper can be downloaded [here](https://791a4f37-01ef-43ce-b940-f17c763418b1.filesusr.com/ugd/c6cff5_e4889c3e27b54023a70a8c0496ff90a0.pdf).
@@ -20,8 +19,7 @@ Bibtex ref:
   title={Gravity: A Mathematical Modeling Language for Optimization and Machine Learning},
   author={Hassan Hijazi and Guanglei Wang and Carleton Coffrin},
   journal={Machine Learning Open Source Software Workshop at NeurIPS 2018},
-  year={2018},
-  note = {Available at \url{www.gravityopt.com}.},
+  year={2018},  
   publisher={The Thirty-second Annual Conference on Neural Information Processing Systems (NeurIPS)}
 }`
 
@@ -73,3 +71,4 @@ src="https://static.wixstatic.com/media/c6cff5_083fff4f0fa94b4b98b6790b18e7af8b~
 
 ## Contributors
 See the list of contributors [here](https://github.com/coin-or/Gravity/graphs/contributors) 
+
