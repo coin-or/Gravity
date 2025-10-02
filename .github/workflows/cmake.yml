@@ -62,10 +62,6 @@ jobs:
       # See https://cmake.org/cmake/help/latest/manual/ctest.1.html for more detail
       run: ctest -C $BUILD_TYPE --output-on-failure
       
-    - name: Gencov
-      shell: bash
-      run:  sudo ./bin/Debug/gravity_test && sudo chmod +x ./get_code_cov.sh && sudo ./get_code_cov.sh
-      
     - name: Codecov
       uses: codecov/codecov-action@v2.1.0
       with:
