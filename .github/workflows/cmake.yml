@@ -6,6 +6,7 @@ env:
   BUILD_TYPE: Debug
 
 jobs:
+
   build-linux:
     # The CMake configure and build commands are platform agnostic and should work equally
     # well on Windows or Mac.  You can convert this to a matrix build if you need
@@ -15,6 +16,23 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
+
+    - name: Install LAPACK/BLAS (Linux)  
+      run: |
+        set -euxo pipefail
+        sudo apt-get update
+        # Try common runtime packages first (Jammy and older)
+        sudo apt-get install -y liblapack3 libblas3 || true
+        # Fallback for newer Ubuntu (e.g., Noble) where the runtime package name differs
+        sudo apt-get install -y liblapack0 || true
+        # As a last resort, install the -devs (often pull in the correct runtime + soname symlinks)
+        sudo apt-get install -y liblapack-dev libblas-dev || true
+  
+        # Make sure the dynamic linker can see it
+        sudo ldconfig
+        # Debug: show what the loader sees
+        ldconfig -p | grep -E 'liblapack\.so(\.3)?' || true
+        ldconfig -p | grep -E 'libblas\.so' || true
 
     - name: Create Build Environment
       # Some projects don't allow in-source building, so create a separate build directory
