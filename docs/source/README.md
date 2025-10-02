@@ -47,7 +47,6 @@ Bibtex ref:
   author={Hassan Hijazi and Guanglei Wang and Carleton Coffrin},
   journal={Machine Learning Open Source Software Workshop at NeurIPS 2018},
   year={2018},
-  note = {Available at \url{www.gravityopt.com}.},
   publisher={The Thirty-second Annual Conference on Neural Information Processing Systems (NeurIPS)}
 }
 ```
@@ -61,3 +60,4 @@ src="https://static.wixstatic.com/media/c6cff5_083fff4f0fa94b4b98b6790b18e7af8b~
 
 ## Contributors
 See the list of contributors [here](https://github.com/coin-or/Gravity/graphs/contributors) 
+
